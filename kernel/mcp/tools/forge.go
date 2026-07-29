@@ -797,7 +797,7 @@ func resolveForgeDevRepoTarget(root, rawPath string) (string, string, error) {
 	}
 	rel := relativeForgePath(cleanRoot, target)
 	if isBlockedForgePath(rel) {
-		return "", "", errors.New("禁止访问 .git 元数据目录")
+		return "", "", errors.New("禁止访问 Git 元数据或 Forge Supervisor 凭据")
 	}
 	probe := target
 	for {
@@ -898,6 +898,8 @@ func validateForgeRuntimeLifecycleCommand(command, root string) error {
 		`\b(pnpm|npm|yarn)\s+(run\s+)?forge\b|\bgo\s+run\b|--mode(?:=|\s+)forge\b|` +
 		`\b(curl|wget|invoke-webrequest|invoke-restmethod)\b[^\r\n]*(127\.0\.0\.1|localhost)|` +
 		`s_forge_supervisor|\.forge-runtime[\\/]supervisor(?:\.stale-[^\\/\s]+)?\.json|` +
+		`\.forge-runtime[\\/](?:commit-runtime-gate\.json|operations|incidents)|\.githooks[\\/]|` +
+		`--no-verify|core\.hookspath|` +
 		`x-s-forge-supervisor-token)`)
 	if forbidden.MatchString(command) {
 		return errors.New("禁止通过源码命令控制 Kernel 或 Forge Supervisor 生命周期，请使用 forge_runtime_restart")
@@ -992,12 +994,14 @@ func relativeForgePath(root, target string) string {
 }
 
 func isBlockedForgePath(relative string) bool {
-	for _, segment := range strings.Split(filepath.ToSlash(relative), "/") {
+	normalized := strings.ToLower(strings.TrimPrefix(filepath.ToSlash(filepath.Clean(relative)), "./"))
+	for _, segment := range strings.Split(normalized, "/") {
 		if segment == ".git" {
 			return true
 		}
 	}
-	return false
+	return normalized == ".forge-runtime/supervisor.json" ||
+		strings.HasPrefix(normalized, ".forge-runtime/supervisor.stale-")
 }
 
 func sameOrSubForgePath(root, target string) bool {

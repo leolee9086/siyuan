@@ -15,6 +15,7 @@ function createConfig(targetName, argv, env = {}) {
     const isElectron = t.platform === "electron";
     const isLibrary = !!t.library;
     const isModuleLibrary = t.library?.format === "module";
+    const oneShot = env.oneShot === true || env.oneShot === "true";
     const outputDir = env.outputDir
         ? path.resolve(__dirname, env.outputDir)
         : path.resolve(__dirname, t.outputDir);
@@ -27,7 +28,7 @@ function createConfig(targetName, argv, env = {}) {
         // is unavailable instead of emitting a bare `global` reference.
         node: { global: true },
         mode: argv.mode || "development",
-        watch: !isProd,
+        watch: !isProd && !oneShot,
         cache: isProd ? undefined : false,
         devtool: isProd ? false : "eval-source-map",
         entry: t.entry,

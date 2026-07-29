@@ -2,9 +2,9 @@
 
 > **最终目标**：从源码启动的 S-Forge 在 Kernel 源码形成可验证提交后，允许原生 Agent 发起、用户逐次复核、Forge Supervisor 执行全量验证、重编译、优雅重启、健康检查与自动回退；浏览器前端可由 Agent 独立触发页面重载。
 >
-> **当前目标**：Phase 6 重新打开：补齐在线服务单实例发现、认证控制租约与 `pnpm forge` 的受控热替换语义；完成真实默认启动与一次受控迁移重验后再归档。
+> **当前目标**：Phase 6 继续打开：完整 Kernel 测试、vet、前端 Node/Vitest 和 Forge 专项测试已经通过；立即形成原子提交，并由现有 Forge Supervisor 将活动 Kernel 从 `a2347f71d809` 受控热切换到最新提交，完成 Agent 新接口及多入口健康回读。
 >
-> **下一步任务**：在现有旧 Supervisor 通过界面正常退出后，以新控制租约启动一次；确认后续 `pnpm forge` 对已提交 Kernel 变更附着到该 Supervisor、执行门禁并完成候选切换或可查询回退。
+> **下一步任务**：按变更意图提交已验证工作树；运行 `pnpm forge -- --no-browser` 复用现有 Supervisor 并执行真实候选构建、停机切换、健康检查与失败回退链；确认 `taskDirectoryCapabilities` 返回非空 JSON 后补齐运行时证据并归档 `D001`。
 
 ---
 
@@ -21,6 +21,9 @@
 9. 前端刷新只以前端测试结果作为门禁证据；lint 仅用于开发质量反馈，不得阻断前端刷新。
 10. 用户从现有界面执行正常退出时必须同时结束 Kernel 与 Forge Supervisor；仅非零退出或信号终止按崩溃恢复，不得让 Supervisor 把正常退出重新拉起。
 11. Forge 运行时只有一个认证控制面：新 CLI 发现同工作空间的健康 Supervisor 时必须复用其控制面并请求受控更新，不得因端口冲突创建第二个 Kernel；控制租约失联时仅在其记录 PID 已退出后隔离陈旧租约，PID 仍存活则明确阻断。
+12. 提交时自动执行运行时 gate：上一提交存在未闭合漂移时 `pre-commit` 阻断；新提交含后端运行时变化时 `post-commit` 必须同步请求热切换。失败写盘并阻断下一提交，不得只输出警告。
+13. 每个后端运行时提交必须实际热切换。每次 crash、候选启动/健康失败、意外退出和回退都写入独立结构化 incident，包含版本、二进制哈希、PID、exit code/signal、job phase、健康错误、恢复尝试和结果，且不记录控制凭据。
+14. `pnpm forge` 启动入口在安装 hooks、探测端口或接管进程前必须确认整个 Git 工作树和索引干净；暂存、未暂存或未跟踪文件任一存在都明确列出并阻断启动。
 
 ## 现状基线
 
@@ -169,3 +172,9 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
 - **2026-07-22**：补充界面退出语义。复用现有“退出应用”界面入口：Kernel 以退出码 0 正常结束时，Supervisor 关闭自身控制服务并结束 Forge 进程链；非零退出或信号终止仍执行已验证版本恢复。增加进程替身测试，防止正常退出被错误重启。
 - **2026-07-22**：路径和退出语义变更后的 Supervisor 单测 16/16 通过。重新加载新代码后的真实 Supervisor PID 24480、Kernel PID 62244；Kernel 实际参数为 `--workspace=D:/dev/s-forge/.dev-workspace`，`6806` 监听且 `/api/system/version` 返回 HTTP 200 与版本 `3.7.1-alpha.1`。Phase 6 仍因临时工作空间集成测试的停机竞态保持打开，不提前归档。
 - **2026-07-24**：发现 `pnpm forge` 在 6806 已有 Forge Kernel 时递增到 6807 后重新构建，最终被同一 `.dev-workspace` 的 Kernel 锁拒绝。修复为在线服务控制面语义：Supervisor 在 `.forge-runtime/supervisor.json` 以排他创建方式持久化认证租约（PID、仓库、工作空间、端口、控制地址和最小权限 CLI 凭据）；Kernel 环境中的 Supervisor 根令牌不落盘，CLI 凭据只能查询状态和请求受控重启，不能批准受保护测试或调用内部停机动作。新 CLI 先认证现有控制面，比较活动版本与当前提交，发现已提交 Kernel 运行时代码变化即请求原 Supervisor 运行完整门禁、候选构建、短停机切换和健康失败回退，而非保留旧 Kernel；并发 CLI 附着已有重启任务，不重复创建。未提交 Kernel 改动、租约 PID 仍存活但失联、多个同工作空间 Kernel 和健康失败都形成明确错误；死 PID 租约隔离后可恢复启动。`.lock` 为持久锁文件，已从在线状态判断中移除。旧版 Supervisor 没有租约时，通过 Windows/Posix 进程参数精确识别其工作空间和端口，并明确要求一次由现有界面完成的正常退出迁移，禁止另起第二实例。为避免 Agent Bash 读取/使用该受限凭据绕过控制面，命令确定性拦截同步覆盖租约文件和控制请求头。实现：`app/scripts/forge-start.js`、`app/scripts/forge-runtime-supervisor.js`、`app/test/forge-runtime-supervisor.test.js`、`kernel/mcp/tools/forge.go`、`kernel/mcp/tools/forge_protection_test.go`；验证：Supervisor/启动编排测试 29/29 通过，`go test ./mcp/tools` 通过，实际发现现有 Kernel PID 62244、父 `forge-start.js`、`--workspace=D:/dev/s-forge/.dev-workspace`、6806 健康；在该旧实例上运行 `pnpm forge -- --no-browser` 明确报告迁移要求且不再构建第二 Kernel。待完成一次租约化启动后的真实受控更新验收。
+- **2026-07-29**：提交自动门禁与 incident 实现进入引导提交前验证。新增版本化 `pre-commit/post-commit`、持久 operation 状态、多入口健康探针，以及候选失败和意外退出的独立 incident；门禁脚本、hooks、Webpack 生命周期和测试已纳入受保护基础设施。根据启动约束，`forge-start.js` 复用唯一 Git porcelain 读取函数，在安装 hooks、端口探测和进程接管前拒绝整个仓库的暂存、未暂存与未跟踪变化。
+- **2026-07-29**：自动 gate 审查发现前端-only 提交若以 Kernel revision 判断新鲜度，会在下一次 `pre-commit` 被永久误判为漂移；现改为 Kernel 由活动 revision 的后端差异证明，前端由最近一次成功 gate 的 commit 证明，并新增对应回归。首次重跑中只有旧错误文案断言失败，更新断言后通过。定向测试最终 40/40 通过。
+- **2026-07-29**：完整前端回归通过：最新 Node 239 项、Vitest 188 个文件 845 项。完整 `pnpm typecheck` 在 41.9 秒后暴露仓库既有的大范围 TypeScript 诊断，本轮未修改 `app/src`、类型配置或锁文件，该门禁保持失败且另行闭合。首次 `pnpm dev` 因开发配置固定 watch 在 604 秒超时，并遗留本轮进程链；已仅终止 21:49 创建的进程，保留 03:32 既有 watcher。新增复用同一 Webpack 配置的 `dev:once` 生命周期后，11 个开发目标在 77 秒内全部成功并正常退出；主入口、Agent、MAGI Desktop/Mobile/Identity 与 Protyle 页面均回读 200。真实服务仍运行旧 Supervisor，引导提交和受控切换尚待完成。
+- **2026-07-29**：Node Supervisor 与 Go Agent 工具的重复受保护路径表已收口到唯一 `kernel/forge_restart_test_policy.json` schema 2。策略包含固定全包短测试命令、排序且无重复的精确路径和前缀；两端均拒绝缺失、未知字段、空集合、乱序、重复、反斜杠、绝对/上行路径和测试命令缩窄。策略文件自身与所有 `kernel/**/*_test.go` 保留为代码根保护项，不依赖 JSON 自我声明；运行中的 Kernel 固定首次加载的策略快照，Supervisor 将策略快照写入不可变版本元数据并拒绝后续策略缩窄。Agent 在确认阶段发现策略错误时输出可见工具失败并终止执行，批量替换与 Bash 同样逐次复核。组合 Node 测试 `45/45`、Supervisor 专项 `33/33`、`go test ./mcp/tools -count=1` 均通过；引导提交、完整门禁和真实 Supervisor 迁移仍待完成。
+- **2026-07-29**：引导提交前完整门禁继续执行。Node `244/244`、Vitest `188` 文件 `845/845`、`go vet -tags fts5 ./...` 通过。首次本轮 `go test -short -tags fts5 ./...` 在 129 秒后明确失败，仅 `kernel/api` 的 `TestAgentTaskDirectoryEndpointsDoNotTreatRemoteTransportAsAuthorization/bind` 与 `TestAgentTaskDirectoryRemoteGuardianCanBindMultipleDirectories` 失败：预期进入 guardian 鉴权的远程请求被生产代码提前以 `task directories can only be bound from WebUI on the kernel device` 返回 403。该失败保持可见，先审计生产鉴权链与测试意图，不修改受保护测试来迎合当前实现。
+- **2026-07-29**：审计确认“仅 Kernel 同设备 WebUI 能新增、更换或追加目录绑定”是既定产品边界，不是生产代码冲突。受保护测试现按该公开契约验证远程绑定确定性返回 403，同时保留同设备 WebUI、owner、armor 与会话授权矩阵；`go test -short -tags fts5 ./...`、`go vet -tags fts5 ./...`、`pnpm test` 以及 Forge Node 专项 `45/45` 全部通过。真实 API 回读显示活动 Kernel 仍停留在 `a2347f71d809`：`/api/system/version` 正常，但新 `taskDirectoryCapabilities` 路由返回 200 空正文；这不是前端协议问题，Phase 6 的唯一当前阻断是尚未执行最新提交的受控 Kernel 热切换。

@@ -5,6 +5,7 @@ const path = require("node:path");
 const test = require("node:test");
 const {EventEmitter} = require("node:events");
 const {
+    assertForgeStartRepositoryClean,
     createForgeRuntimeOptions,
     inspectKernelUpdate,
     resolveForgeStartup,
@@ -13,12 +14,17 @@ const {
 const {
     ForgeRuntimeSupervisor,
     SUPERVISOR_TOKEN_HEADER,
+    assertRestartPolicyNotNarrowed,
     isKernelRuntimePath,
     isProtectedRestartPath,
+    readRestartPolicy,
     timingSafeTokenEqual,
+    validateRestartPolicy,
 } = require("../scripts/forge-runtime-supervisor");
 
 const temporaryRoot = () => fs.mkdtempSync(path.join(os.tmpdir(), "s-forge-supervisor-"));
+const productionRestartPolicyPath = path.resolve(__dirname, "../../kernel/forge_restart_test_policy.json");
+const restartPolicyFixture = () => JSON.parse(fs.readFileSync(productionRestartPolicyPath, "utf8"));
 
 test("Forge startup keeps the default workspace inside the repository root", () => {
     const root = path.resolve(__dirname, "../..");
@@ -28,6 +34,29 @@ test("Forge startup keeps the default workspace inside the repository root", () 
     assert.equal(options.workspace, path.join(root, ".dev-workspace"));
     assert.equal(options.port, 6806);
     assert.equal(options.noBrowser, false);
+});
+
+test("Forge startup requires the entire Git working tree and index to be clean", async () => {
+    const calls = [];
+    await assertForgeStartRepositoryClean("D:/repo", async (executable, args) => {
+        calls.push({executable, args});
+        return "";
+    });
+    assert.deepEqual(calls, [{
+        executable: "git",
+        args: ["-C", "D:/repo", "status", "--porcelain=v1", "--untracked-files=all"],
+    }]);
+
+    for (const status of [
+        " M app/src/index.ts\n",
+        "M  kernel/api/system.go\n",
+        "?? docs/draft.md\n",
+    ]) {
+        await assert.rejects(
+            assertForgeStartRepositoryClean("D:/repo", async () => status),
+            /Forge startup requires a clean Git working tree and index/,
+        );
+    }
 });
 
 test("Existing Supervisor update inspection identifies committed Kernel runtime changes", async () => {
@@ -284,11 +313,10 @@ const createSupervisor = (overrides = {}) => {
     const repoRoot = temporaryRoot();
     fs.mkdirSync(path.join(repoRoot, "kernel"), {recursive: true});
     fs.mkdirSync(path.join(repoRoot, "app", "kernel"), {recursive: true});
-    fs.writeFileSync(path.join(repoRoot, "kernel", "forge_restart_test_policy.json"), JSON.stringify({
-        schemaVersion: 1,
-        scope: "all-packages",
-        command: ["go", "test", "-short", "-tags", "fts5", "./..."],
-    }));
+    fs.writeFileSync(
+        path.join(repoRoot, "kernel", "forge_restart_test_policy.json"),
+        JSON.stringify(restartPolicyFixture()),
+    );
     const supervisor = new ForgeRuntimeSupervisor({
         repoRoot,
         port: 6806,
@@ -326,12 +354,44 @@ test("Kernel runtime path classification excludes documentation and test-only ch
 });
 
 test("Restart protection covers every Kernel test and the gate implementation", () => {
-    assert.equal(isProtectedRestartPath("kernel/api/agent_test.go"), true);
-    assert.equal(isProtectedRestartPath("kernel/agent/command_review.go"), true);
-    assert.equal(isProtectedRestartPath("kernel/conf/ai.go"), true);
-    assert.equal(isProtectedRestartPath("kernel/forge_restart_test_policy.json"), true);
-    assert.equal(isProtectedRestartPath("app/scripts/forge-runtime-supervisor.js"), true);
-    assert.equal(isProtectedRestartPath("kernel/api/agent.go"), false);
+    const policy = validateRestartPolicy(restartPolicyFixture());
+    assert.deepEqual(readRestartPolicy(path.resolve(__dirname, "../..")), policy);
+    assert.equal(isProtectedRestartPath("kernel/api/agent_test.go", policy), true);
+    assert.equal(isProtectedRestartPath("kernel/agent/command_review.go", policy), true);
+    assert.equal(isProtectedRestartPath("kernel/conf/ai.go", policy), true);
+    assert.equal(isProtectedRestartPath("kernel/forge_restart_test_policy.json", policy), true);
+    assert.equal(isProtectedRestartPath("app/scripts/forge-runtime-supervisor.js", policy), true);
+    assert.equal(isProtectedRestartPath("app/scripts/forge-commit-runtime-gate.js", policy), true);
+    assert.equal(isProtectedRestartPath("app/test/forge-commit-runtime-gate.test.js", policy), true);
+    assert.equal(isProtectedRestartPath("app/webpack.config.js", policy), true);
+    assert.equal(isProtectedRestartPath("app/test/webpack-config.test.js", policy), true);
+    assert.equal(isProtectedRestartPath(".githooks/pre-commit", policy), true);
+    assert.equal(isProtectedRestartPath(".githooks/post-commit", policy), true);
+    assert.equal(isProtectedRestartPath(".githooks/pre-merge-commit", policy), true);
+    assert.equal(isProtectedRestartPath(".githooks/post-merge", policy), true);
+    assert.equal(isProtectedRestartPath(".forge-runtime/incidents/crash.json", policy), true);
+    assert.equal(isProtectedRestartPath("kernel/api/agent.go", policy), false);
+});
+
+test("Restart policy rejects malformed path sets and protection narrowing", () => {
+    const valid = validateRestartPolicy(restartPolicyFixture());
+    for (const mutate of [
+        (policy) => policy.protectedPaths.reverse(),
+        (policy) => policy.protectedPaths.splice(1, 0, policy.protectedPaths[0]),
+        (policy) => policy.protectedPaths.splice(1, 0, "../outside"),
+        (policy) => policy.protectedPrefixes.push(".forge-runtime\\jobs\\"),
+    ]) {
+        const invalid = restartPolicyFixture();
+        mutate(invalid);
+        assert.throws(() => validateRestartPolicy(invalid), /invalid|sorted|escapes|normalized/);
+    }
+
+    const narrowed = restartPolicyFixture();
+    narrowed.protectedPaths = narrowed.protectedPaths.filter((entry) => entry !== "kernel/agent/command_review.go");
+    assert.throws(
+        () => assertRestartPolicyNotNarrowed(validateRestartPolicy(narrowed), valid),
+        /protection was narrowed.*kernel\/agent\/command_review\.go/,
+    );
 });
 
 test("Supervisor token comparison requires an exact token", () => {
@@ -392,7 +452,7 @@ test("Restart source validation rejects a dirty worktree", async () => {
         throw new Error(`unexpected command: ${args.join(" ")}`);
     };
     const supervisor = createSupervisor({command});
-    supervisor.activeVersion = {revision: "old-revision"};
+    supervisor.activeVersion = {revision: "old-revision", restartPolicy: supervisor.loadRestartPolicy()};
     await assert.rejects(supervisor.validateRestartSource(), /worktree is not clean/);
 });
 
@@ -411,14 +471,63 @@ test("Restart source validation requires runtime code changes, not test-only cha
         throw new Error(`unexpected command: ${args.join(" ")}`);
     };
     const supervisor = createSupervisor({command});
-    supervisor.activeVersion = {revision: "old-revision"};
+    supervisor.activeVersion = {revision: "old-revision", restartPolicy: supervisor.loadRestartPolicy()};
     await assert.rejects(supervisor.validateRestartSource(), /no Kernel runtime source changes/);
+});
+
+test("Restart source validation rejects a policy narrowed since the active Kernel", async () => {
+    const supervisor = createSupervisor({
+        command: async (name, args) => {
+            assert.equal(name, "git");
+            if (args[0] === "status") {
+                return {stdout: "", stderr: ""};
+            }
+            if (args[0] === "rev-parse") {
+                return {stdout: "new-revision\n", stderr: ""};
+            }
+            if (args[0] === "diff") {
+                return {stdout: "kernel/api/agent.go\nkernel/forge_restart_test_policy.json\n", stderr: ""};
+            }
+            throw new Error(`unexpected command: ${args.join(" ")}`);
+        },
+    });
+    const baseline = supervisor.loadRestartPolicy();
+    supervisor.activeVersion = {revision: "old-revision", restartPolicy: baseline};
+    const narrowed = restartPolicyFixture();
+    narrowed.protectedPaths = narrowed.protectedPaths.filter((entry) => entry !== "kernel/agent/command_review.go");
+    fs.writeFileSync(path.join(supervisor.kernelDir, "forge_restart_test_policy.json"), JSON.stringify(narrowed));
+
+    await assert.rejects(
+        supervisor.validateRestartSource(),
+        /protection was narrowed.*kernel\/agent\/command_review\.go/,
+    );
+});
+
+test("Restart source validation rejects active versions without a recorded policy", async () => {
+    const supervisor = createSupervisor({
+        command: async (name, args) => {
+            assert.equal(name, "git");
+            if (args[0] === "status") {
+                return {stdout: "", stderr: ""};
+            }
+            if (args[0] === "rev-parse") {
+                return {stdout: "new-revision\n", stderr: ""};
+            }
+            if (args[0] === "diff") {
+                return {stdout: "kernel/api/agent.go\n", stderr: ""};
+            }
+            throw new Error(`unexpected command: ${args.join(" ")}`);
+        },
+    });
+    supervisor.activeVersion = {revision: "old-revision"};
+
+    await assert.rejects(supervisor.validateRestartSource(), /does not record its Forge restart policy/);
 });
 
 test("Candidate health failure restores the previous immutable version", async () => {
     const supervisor = createSupervisor();
-    const previous = {id: "previous", revision: "old", binaryPath: "previous.exe"};
-    const candidate = {id: "candidate", revision: "new", binaryPath: "candidate.exe"};
+    const previous = {id: "previous", revision: "old", binaryPath: "previous.exe", sha256: "old-sha"};
+    const candidate = {id: "candidate", revision: "new", binaryPath: "candidate.exe", sha256: "new-sha"};
     supervisor.activeVersion = previous;
     supervisor.currentJob = supervisor.createJob("switch test");
     assert.equal(supervisor.currentJob.logPath, `jobs/${supervisor.currentJob.id}.log`);
@@ -438,6 +547,11 @@ test("Candidate health failure restores the previous immutable version", async (
     assert.deepEqual(launched, ["candidate", "previous"]);
     assert.equal(supervisor.activeVersion.id, "previous");
     assert.equal(supervisor.currentJob.state, "rolled_back");
+    assert.equal(supervisor.latestIncident.kind, "candidate-health-failure");
+    assert.equal(supervisor.latestIncident.state, "recovered");
+    assert.equal(supervisor.latestIncident.failedVersion.sha256, "new-sha");
+    assert.equal(supervisor.latestIncident.restoredVersion.sha256, "old-sha");
+    assert.equal(fs.existsSync(path.join(supervisor.incidentsDir, `${supervisor.latestIncident.id}.json`)), true);
 });
 
 test("Unexpected Kernel exit restores only the recorded active immutable version", async () => {
@@ -455,7 +569,12 @@ test("Unexpected Kernel exit restores only the recorded active immutable version
         return child;
     };
     const supervisor = createSupervisor({spawnKernel});
-    const active = {id: "verified", revision: "old", binaryPath: "immutable-verified.exe"};
+    const active = {
+        id: "verified",
+        revision: "old",
+        binaryPath: "immutable-verified.exe",
+        sha256: "verified-sha",
+    };
     supervisor.activeVersion = active;
     supervisor.waitForHealth = async () => {};
 
@@ -468,6 +587,17 @@ test("Unexpected Kernel exit restores only the recorded active immutable version
     assert.deepEqual(spawnedPaths, [active.binaryPath, active.binaryPath]);
     assert.equal(supervisor.kernelProcess, processes[1]);
     assert.equal(supervisor.recovering, false);
+    assert.equal(supervisor.latestIncident.kind, "kernel-crash");
+    assert.equal(supervisor.latestIncident.state, "recovered");
+    assert.equal(supervisor.latestIncident.exitCode, 1);
+    assert.equal(supervisor.latestIncident.failedVersion.sha256, "verified-sha");
+    assert.equal(supervisor.latestIncident.recoveryAttempts.length, 1);
+    const incidentJSON = fs.readFileSync(
+        path.join(supervisor.incidentsDir, `${supervisor.latestIncident.id}.json`),
+        "utf8",
+    );
+    assert.equal(incidentJSON.includes(supervisor.token), false);
+    assert.equal(incidentJSON.includes(supervisor.cliToken), false);
 });
 
 test("A normal UI-requested Kernel exit stops the Supervisor instead of restoring the Kernel", async () => {
@@ -500,7 +630,11 @@ test("A normal UI-requested Kernel exit stops the Supervisor instead of restorin
 test("Restart runner preserves rolled_back as the terminal state", async () => {
     const supervisor = createSupervisor();
     const job = supervisor.createJob("rollback state test");
-    supervisor.validateRestartSource = async () => ({revision: "new-revision", protectedChanges: []});
+    supervisor.validateRestartSource = async () => ({
+        revision: "new-revision",
+        protectedChanges: [],
+        restartPolicy: supervisor.loadRestartPolicy(),
+    });
     supervisor.requireGoFormat = async () => {};
     supervisor.runLogged = async () => ({stdout: "", stderr: ""});
     supervisor.requireStableCleanRevision = async () => {};
@@ -548,13 +682,12 @@ test("Protected test approval expires and fails closed", async () => {
 
 test("Core test policy rejects package allowlists and command narrowing", () => {
     const supervisor = createSupervisor();
-    assert.deepEqual(supervisor.loadCoreTestPolicy(), ["go", "test", "-short", "-tags", "fts5", "./..."]);
-    fs.writeFileSync(path.join(supervisor.kernelDir, "forge_restart_test_policy.json"), JSON.stringify({
-        schemaVersion: 1,
-        scope: "selected-packages",
-        command: ["go", "test", "-short", "-tags", "fts5", "./api"],
-    }));
-    assert.throws(() => supervisor.loadCoreTestPolicy(), /narrowed or is invalid/);
+    assert.deepEqual(supervisor.loadRestartPolicy().command, ["go", "test", "-short", "-tags", "fts5", "./..."]);
+    const narrowed = restartPolicyFixture();
+    narrowed.scope = "selected-packages";
+    narrowed.command = ["go", "test", "-short", "-tags", "fts5", "./api"];
+    fs.writeFileSync(path.join(supervisor.kernelDir, "forge_restart_test_policy.json"), JSON.stringify(narrowed));
+    assert.throws(() => supervisor.loadRestartPolicy(), /narrowed or is invalid/);
 });
 
 test("Version cleanup retains healthy rollback versions and removes failed candidates", () => {

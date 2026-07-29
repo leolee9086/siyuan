@@ -831,7 +831,8 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 				for i, tc := range aggregatedToolCalls {
 					args := parsedArgs[i]
 					confirmedByUser := false
-					freshConfirmationRequired := requiresFreshConfirmation(tc.Function.Name) || mcpTools.RequiresFreshForgeApproval(tc.Function.Name, args)
+					forgeConfirmationRequired, forgeProtectionErr := mcpTools.RequiresFreshForgeApproval(tc.Function.Name, args)
+					freshConfirmationRequired := requiresFreshConfirmation(tc.Function.Name) || forgeConfirmationRequired
 					action := ""
 					if a, ok := args["action"]; ok {
 						action, _ = a.(string)
@@ -843,6 +844,21 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 						Arguments: args,
 						CallID:    tc.ID,
 					})
+					if forgeProtectionErr != nil {
+						rejectionMsg := "Forge protection policy validation failed: " + forgeProtectionErr.Error()
+						messages = append(messages, openai.ChatCompletionMessage{
+							Role:       openai.ChatMessageRoleTool,
+							Content:    wrapToolOutput(rejectionMsg),
+							ToolCallID: tc.ID,
+						})
+						checkpointMsgs[assistantIdx].ToolCalls[i].Result = rejectionMsg
+						checkpointMsgs[assistantIdx].ToolCalls[i].State = "failed"
+						sendCriticalEvent(ctx, ch, AgentEvent{Type: "tool_result", Name: tc.Function.Name, CallID: tc.ID, Result: rejectionMsg})
+						if !saveTurn("running") {
+							return
+						}
+						continue
+					}
 
 					if reviewErr := reviewCommandToolCall(ctx, tc.Function.Name, args, userMessage,
 						reasoningBuilder.String()+"\n"+contentBuilder.String()); reviewErr != nil {

@@ -24,6 +24,7 @@ func TestForgeDevRepoCRUDAndBoundary(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "kernel", "main.go"), []byte("alpha\nbeta\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
+	writeForgeRestartPolicyFixture(t, root)
 
 	previousResolver := forgeRepoRootResolver
 	forgeRepoRootResolver = func() (string, error) { return root, nil }
@@ -91,6 +92,7 @@ func TestForgeDevRepoBatchReplaceAndAtomicCommitGuard(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	writeForgeRestartPolicyFixture(t, root)
 
 	previousResolver := forgeRepoRootResolver
 	forgeRepoRootResolver = func() (string, error) { return root, nil }

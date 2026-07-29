@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const {execFile} = require("child_process");
 const {ForgeRuntimeSupervisor, SUPERVISOR_TOKEN_HEADER, isKernelRuntimePath, parseLines} = require("./forge-runtime-supervisor");
+const {installCommitRuntimeHooks} = require("./forge-commit-runtime-gate");
 
 const repoRoot = path.resolve(__dirname, "../..");
 
@@ -44,6 +45,21 @@ const execFileOutput = (executable, args) => new Promise((resolve, reject) => {
         resolve(stdout);
     });
 });
+
+const readRepositoryStatus = (root, run = execFileOutput) => run("git", [
+    "-C",
+    root,
+    "status",
+    "--porcelain=v1",
+    "--untracked-files=all",
+]);
+
+const assertForgeStartRepositoryClean = async (root, run = execFileOutput) => {
+    const status = await readRepositoryStatus(root, run);
+    if (status.trim()) {
+        throw new Error(`Forge startup requires a clean Git working tree and index:\n${status.trimEnd()}`);
+    }
+};
 
 const commandArgument = (commandLine, name) => {
     const match = String(commandLine || "").match(new RegExp(`--${name}=(?:"([^"]*)"|'([^']*)'|([^\\s]+))`));
@@ -189,7 +205,7 @@ const inspectKernelUpdate = async (root, activeRevision, run = execFileOutput) =
     if (!activeRevision) {
         throw new Error("running Supervisor does not report an active Kernel revision");
     }
-    const status = (await run("git", ["-C", root, "status", "--porcelain", "--untracked-files=all"])).split(/\r?\n/).filter(Boolean);
+    const status = (await readRepositoryStatus(root, run)).split(/\r?\n/).filter(Boolean);
     const uncommittedRuntimeChanges = status.flatMap(porcelainPaths).filter(isKernelRuntimePath);
     if (uncommittedRuntimeChanges.length > 0) {
         throw new Error(`Kernel source has uncommitted changes; create a verified commit before hot replacement: ${uncommittedRuntimeChanges.join(", ")}`);
@@ -329,6 +345,8 @@ const resolveForgeStartup = async ({
 };
 
 const main = async () => {
+    await assertForgeStartRepositoryClean(repoRoot);
+    installCommitRuntimeHooks(repoRoot);
     const requestedPortArg = process.argv.find((argument) => argument.startsWith("--port="));
     const requestedPort = Number(requestedPortArg ? requestedPortArg.split("=")[1] : "6806");
     const noBrowser = process.argv.includes("--no-browser");
@@ -382,6 +400,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+    assertForgeStartRepositoryClean,
     createForgeRuntimeOptions,
     callSupervisor,
     commandArgument,

@@ -1,0 +1,2 @@
+#!/bin/sh
+exec node app/scripts/forge-commit-runtime-gate.js post-commit

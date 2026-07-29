@@ -1,6 +1,31 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "scope": "all-packages",
   "command": ["go", "test", "-short", "-tags", "fts5", "./..."],
+  "protectedPaths": [
+    ".forge-runtime/commit-runtime-gate.json",
+    "app/package.json",
+    "app/scripts/forge-commit-runtime-gate.js",
+    "app/scripts/forge-runtime-supervisor.js",
+    "app/scripts/forge-start.js",
+    "app/test/forge-commit-runtime-gate.test.js",
+    "app/test/forge-runtime-supervisor.test.js",
+    "app/test/webpack-config.test.js",
+    "app/webpack.config.js",
+    "kernel/agent/agent.go",
+    "kernel/agent/command_review.go",
+    "kernel/agent/tools.go",
+    "kernel/api/forge_runtime.go",
+    "kernel/conf/ai.go",
+    "kernel/mcp/tools/forge.go",
+    "kernel/mcp/tools/forge_protection.go",
+    "kernel/mcp/tools/forge_runtime.go",
+    "kernel/util/forge_supervisor.go"
+  ],
+  "protectedPrefixes": [
+    ".forge-runtime/incidents/",
+    ".forge-runtime/operations/",
+    ".githooks/"
+  ],
   "coreDefinition": "All tests in all Kernel packages are mandatory by default. A performance or availability test is non-core only when its own implementation explicitly skips under testing.Short()."
 }

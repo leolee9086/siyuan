@@ -10,6 +10,7 @@ const DEFAULT_RETAINED_VERSIONS = 4;
 const MAX_REQUEST_BYTES = 64 * 1024;
 const REQUIRED_CORE_TEST_COMMAND = ["go", "test", "-short", "-tags", "fts5", "./..."];
 const DEFAULT_PROTECTED_APPROVAL_TIMEOUT = 5 * 60 * 1000;
+const RESTART_POLICY_RELATIVE_PATH = "kernel/forge_restart_test_policy.json";
 
 class CommandFailure extends Error {
     constructor(message, details) {
@@ -22,6 +23,15 @@ class CommandFailure extends Error {
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 const sanitizeIDPart = (value) => value.replace(/[^a-zA-Z0-9_.-]/g, "-").slice(0, 80);
+
+const versionContext = (version) => version ? {
+    id: version.id || null,
+    revision: version.revision || null,
+    kind: version.kind || null,
+    state: version.state || null,
+    binaryPath: version.binaryPath || null,
+    sha256: version.sha256 || null,
+} : null;
 
 const executableName = (platform) => platform === "win32" ? "SiYuan-Kernel.exe" : "SiYuan-Kernel";
 
@@ -39,26 +49,98 @@ const isKernelRuntimePath = (filePath) => {
     return /\.(go|c|cc|cpp|h|s)$/i.test(normalized);
 };
 
-const protectedInfrastructurePaths = new Set([
-    "app/package.json",
-    "app/scripts/forge-start.js",
-    "app/scripts/forge-runtime-supervisor.js",
-    "kernel/forge_restart_test_policy.json",
-    "kernel/agent/agent.go",
-    "kernel/agent/command_review.go",
-    "kernel/agent/tools.go",
-    "kernel/api/forge_runtime.go",
-    "kernel/conf/ai.go",
-    "kernel/mcp/tools/forge.go",
-    "kernel/mcp/tools/forge_protection.go",
-    "kernel/mcp/tools/forge_runtime.go",
-    "kernel/util/forge_supervisor.go",
-]);
+const normalizePolicyEntry = (entry, kind) => {
+    if (typeof entry !== "string" || entry === "" || entry.includes("\\") ||
+        entry.includes(":") || /[\u0000-\u001f]/.test(entry)) {
+        throw new Error(`${kind} contains an invalid repository-relative path`);
+    }
+    const requiresTrailingSlash = kind === "protectedPrefixes";
+    if (requiresTrailingSlash !== entry.endsWith("/")) {
+        throw new Error(`${kind} entry has an invalid trailing slash: ${entry}`);
+    }
+    const pathPart = requiresTrailingSlash ? entry.slice(0, -1) : entry;
+    const normalized = path.posix.normalize(pathPart);
+    if (!pathPart || normalized !== pathPart || normalized === "." || normalized === ".." ||
+        normalized.startsWith("../") || path.posix.isAbsolute(normalized)) {
+        throw new Error(`${kind} entry escapes or is not normalized: ${entry}`);
+    }
+    return requiresTrailingSlash ? `${normalized}/` : normalized;
+};
 
-const isProtectedRestartPath = (filePath) => {
-    const normalized = filePath.replace(/\\/g, "/").toLowerCase();
-    return protectedInfrastructurePaths.has(normalized) ||
-        (normalized.startsWith("kernel/") && normalized.endsWith("_test.go"));
+const validateOrderedPolicyEntries = (entries, kind) => {
+    if (!Array.isArray(entries) || entries.length === 0) {
+        throw new Error(`${kind} must be a non-empty array`);
+    }
+    const normalized = entries.map((entry) => normalizePolicyEntry(entry, kind));
+    const folded = normalized.map((entry) => entry.toLowerCase());
+    const sorted = [...folded].sort();
+    if (new Set(folded).size !== folded.length || folded.some((entry, index) => entry !== sorted[index])) {
+        throw new Error(`${kind} must be case-insensitively unique and sorted`);
+    }
+    return normalized;
+};
+
+const validateRestartPolicy = (policy) => {
+    const expectedKeys = [
+        "command",
+        "coreDefinition",
+        "protectedPaths",
+        "protectedPrefixes",
+        "schemaVersion",
+        "scope",
+    ];
+    const actualKeys = policy && typeof policy === "object" && !Array.isArray(policy) ?
+        Object.keys(policy).sort() : [];
+    const commandMatches = Array.isArray(policy?.command) &&
+        policy.command.length === REQUIRED_CORE_TEST_COMMAND.length &&
+        policy.command.every((value, index) => value === REQUIRED_CORE_TEST_COMMAND[index]);
+    if (actualKeys.length !== expectedKeys.length || actualKeys.some((key, index) => key !== expectedKeys[index]) ||
+        policy?.schemaVersion !== 2 || policy.scope !== "all-packages" || !commandMatches ||
+        typeof policy.coreDefinition !== "string" || policy.coreDefinition.trim() === "") {
+        throw new Error("core restart test policy was narrowed or is invalid");
+    }
+    return {
+        schemaVersion: policy.schemaVersion,
+        scope: policy.scope,
+        command: [...policy.command],
+        protectedPaths: validateOrderedPolicyEntries(policy.protectedPaths, "protectedPaths"),
+        protectedPrefixes: validateOrderedPolicyEntries(policy.protectedPrefixes, "protectedPrefixes"),
+        coreDefinition: policy.coreDefinition,
+    };
+};
+
+const readRestartPolicy = (repoRoot, readFile = fs.readFileSync) => {
+    const policyPath = path.join(repoRoot, ...RESTART_POLICY_RELATIVE_PATH.split("/"));
+    try {
+        return validateRestartPolicy(JSON.parse(readFile(policyPath, "utf8")));
+    } catch (error) {
+        throw new Error(`invalid Forge restart policy ${policyPath}: ${error.message}`);
+    }
+};
+
+const policyProtectsPath = (policy, normalizedPath) => {
+    const folded = normalizedPath.toLowerCase();
+    return policy.protectedPaths.some((entry) => entry.toLowerCase() === folded) ||
+        policy.protectedPrefixes.some((prefix) => folded.startsWith(prefix.toLowerCase()));
+};
+
+const isProtectedRestartPath = (filePath, policy) => {
+    if (!policy) {
+        throw new Error("Forge restart policy is required for protected-path classification");
+    }
+    const normalized = String(filePath).replace(/\\/g, "/");
+    return normalized.toLowerCase() === RESTART_POLICY_RELATIVE_PATH ||
+        (normalized.toLowerCase().startsWith("kernel/") && normalized.toLowerCase().endsWith("_test.go")) ||
+        policyProtectsPath(policy, normalized);
+};
+
+const assertRestartPolicyNotNarrowed = (current, baseline) => {
+    const missingPaths = baseline.protectedPaths.filter((entry) => !policyProtectsPath(current, entry));
+    const missingPrefixes = baseline.protectedPrefixes.filter((entry) =>
+        !current.protectedPrefixes.some((prefix) => entry.toLowerCase().startsWith(prefix.toLowerCase())));
+    if (missingPaths.length > 0 || missingPrefixes.length > 0) {
+        throw new Error(`Forge restart policy protection was narrowed; missing paths=[${missingPaths.join(", ")}] prefixes=[${missingPrefixes.join(", ")}]`);
+    }
 };
 
 const parseLines = (value) => value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
@@ -142,6 +224,7 @@ class ForgeRuntimeSupervisor {
         this.runtimeDir = options.runtimeDir || path.join(this.repoRoot, ".forge-runtime");
         this.versionsDir = path.join(this.runtimeDir, "versions");
         this.jobsDir = path.join(this.runtimeDir, "jobs");
+        this.incidentsDir = path.join(this.runtimeDir, "incidents");
         this.statePath = path.join(this.runtimeDir, "state.json");
         this.ownershipPath = path.join(this.runtimeDir, "supervisor.json");
         this.port = String(options.port);
@@ -160,6 +243,7 @@ class ForgeRuntimeSupervisor {
         this.activeVersion = undefined;
         this.kernelProcess = undefined;
         this.currentJob = undefined;
+        this.latestIncident = undefined;
         this.controlServer = undefined;
         this.controlURL = "";
         this.switching = false;
@@ -171,13 +255,15 @@ class ForgeRuntimeSupervisor {
     }
 
     async initialize() {
+        const restartPolicy = this.loadRestartPolicy();
         fs.mkdirSync(this.versionsDir, {recursive: true});
         fs.mkdirSync(this.jobsDir, {recursive: true});
+        fs.mkdirSync(this.incidentsDir, {recursive: true});
         await this.startControlServer();
         try {
             this.claimRuntimeOwnership();
             const revision = await this.gitOutput(["rev-parse", "HEAD"]);
-            const version = await this.buildVersion(revision, "initial");
+            const version = await this.buildVersion(revision, "initial", restartPolicy);
             await this.launchAndRequireHealthy(version, !this.noBrowser);
             this.markVersionState(version, "healthy");
             this.activeVersion = version;
@@ -223,6 +309,7 @@ class ForgeRuntimeSupervisor {
             port: Number(this.port),
             activeVersion: this.activeVersion || null,
             job: this.currentJob || null,
+            latestIncident: this.latestIncident || null,
             retainedVersions: this.listVersions(),
         };
     }
@@ -354,13 +441,13 @@ class ForgeRuntimeSupervisor {
             this.updateJob(job, "running", "go_vet");
             await this.runLogged("go", ["vet", "-tags", "fts5", "./..."], this.kernelDir);
             this.updateJob(job, "running", "core_test_policy");
-            const coreTestCommand = this.loadCoreTestPolicy();
+            const coreTestCommand = source.restartPolicy.command;
             this.updateJob(job, "running", "go_test_core");
             await this.runLogged(coreTestCommand[0], coreTestCommand.slice(1), this.kernelDir);
             this.updateJob(job, "running", "source_recheck");
             await this.requireStableCleanRevision(source.revision);
             this.updateJob(job, "running", "build_candidate");
-            const candidate = await this.buildVersion(source.revision, "candidate");
+            const candidate = await this.buildVersion(source.revision, "candidate", source.restartPolicy);
             this.updateJob(job, "running", "switch_kernel");
             await this.switchToCandidate(candidate);
             this.updateJob(job, "completed", "completed");
@@ -395,9 +482,15 @@ class ForgeRuntimeSupervisor {
         if (runtimeChanges.length === 0) {
             throw new Error("commits since the running version contain no Kernel runtime source changes");
         }
-        const protectedChanges = changed.filter(isProtectedRestartPath);
+        const restartPolicy = this.loadRestartPolicy();
+        if (!this.activeVersion.restartPolicy) {
+            throw new Error("active kernel version does not record its Forge restart policy");
+        }
+        const baselinePolicy = validateRestartPolicy(this.activeVersion.restartPolicy);
+        assertRestartPolicyNotNarrowed(restartPolicy, baselinePolicy);
+        const protectedChanges = changed.filter((filePath) => isProtectedRestartPath(filePath, restartPolicy));
         this.writeJobLog(`source revision ${revision}; kernel runtime changes: ${runtimeChanges.join(", ")}`);
-        return {revision, changed, runtimeChanges, protectedChanges};
+        return {revision, changed, runtimeChanges, protectedChanges, restartPolicy};
     }
 
     async requireProtectedTestApproval(job, source) {
@@ -443,16 +536,8 @@ class ForgeRuntimeSupervisor {
         return {jobId, revision, state: "approved"};
     }
 
-    loadCoreTestPolicy() {
-        const policyPath = path.join(this.kernelDir, "forge_restart_test_policy.json");
-        const policy = JSON.parse(fs.readFileSync(policyPath, "utf8"));
-        const commandMatches = Array.isArray(policy.command) &&
-            policy.command.length === REQUIRED_CORE_TEST_COMMAND.length &&
-            policy.command.every((value, index) => value === REQUIRED_CORE_TEST_COMMAND[index]);
-        if (policy.schemaVersion !== 1 || policy.scope !== "all-packages" || !commandMatches) {
-            throw new Error("core restart test policy was narrowed or is invalid");
-        }
-        return [...policy.command];
+    loadRestartPolicy() {
+        return readRestartPolicy(this.repoRoot);
     }
 
     async requireGoFormat() {
@@ -483,7 +568,7 @@ class ForgeRuntimeSupervisor {
         }
     }
 
-    async buildVersion(revision, kind) {
+    async buildVersion(revision, kind, restartPolicy = this.loadRestartPolicy()) {
         const createdAt = this.now().toISOString();
         const id = sanitizeIDPart(`${createdAt}-${revision.slice(0, 12)}-${kind}`);
         const versionDir = path.join(this.versionsDir, id);
@@ -492,7 +577,16 @@ class ForgeRuntimeSupervisor {
         await this.runLogged("go", ["build", "-tags", "fts5", "-o", binaryPath, "."], this.kernelDir);
         await this.runLogged(binaryPath, ["--version"], this.kernelDir);
         const digest = crypto.createHash("sha256").update(fs.readFileSync(binaryPath)).digest("hex");
-        const version = {id, revision, kind, state: "built", createdAt, binaryPath, sha256: digest};
+        const version = {
+            id,
+            revision,
+            kind,
+            state: "built",
+            createdAt,
+            binaryPath,
+            sha256: digest,
+            restartPolicy,
+        };
         writeJSONAtomic(path.join(versionDir, "version.json"), version);
         return version;
     }
@@ -513,14 +607,45 @@ class ForgeRuntimeSupervisor {
                 this.persistState();
                 this.writeJobLog(`candidate promoted: ${candidate.id}`);
             } catch (candidateError) {
-                this.writeJobLog(`candidate health check failed: ${this.describeError(candidateError)}`);
-                this.markVersionState(candidate, "failed", this.describeError(candidateError));
+                const error = this.describeError(candidateError);
+                this.writeJobLog(`candidate health check failed: ${error}`);
+                this.markVersionState(candidate, "failed", error);
+                const delegatedCrash = this.latestIncident?.state === "delegated" &&
+                    this.latestIncident.failedVersion?.id === candidate.id ? this.latestIncident : null;
+                const incident = delegatedCrash || this.createIncident("candidate-health-failure", {
+                    failedVersion: versionContext(candidate),
+                    previousVersion: versionContext(previous),
+                    error,
+                    recoveryOwner: "candidate-switch",
+                });
+                if (delegatedCrash) {
+                    this.updateIncident(incident, {
+                        kind: "candidate-crash",
+                        previousVersion: versionContext(previous),
+                        error,
+                    }, `candidate crash entered rollback: ${error}`);
+                }
                 await this.terminateKernelProcess();
-                await this.launchAndRequireHealthy(previous, false);
-                this.activeVersion = previous;
-                this.persistState();
-                this.updateJob(this.currentJob, "rolled_back", "rollback", this.describeError(candidateError));
-                throw new Error(`candidate failed health check; previous version restored: ${this.describeError(candidateError)}`);
+                try {
+                    await this.launchAndRequireHealthy(previous, false);
+                    this.activeVersion = previous;
+                    this.persistState();
+                    this.updateIncident(incident, {
+                        state: "recovered",
+                        outcome: "previous-version-restored",
+                        restoredVersion: versionContext(previous),
+                    }, `previous version restored: ${previous.id}`);
+                } catch (recoveryError) {
+                    const recoveryMessage = this.describeError(recoveryError);
+                    this.updateIncident(incident, {
+                        state: "unrecovered",
+                        outcome: "previous-version-restore-failed",
+                        recoveryError: recoveryMessage,
+                    }, `previous version restore failed: ${recoveryMessage}`);
+                    throw recoveryError;
+                }
+                this.updateJob(this.currentJob, "rolled_back", "rollback", error);
+                throw new Error(`candidate failed health check; previous version restored: ${error}`);
             }
         } finally {
             this.switching = false;
@@ -536,6 +661,17 @@ class ForgeRuntimeSupervisor {
             }
             const expected = this.expectedKernelExit;
             this.expectedKernelExit = false;
+            const crashed = !expected && !(code === 0 && signal === null);
+            const incident = crashed ? this.createIncident("kernel-crash", {
+                failedVersion: versionContext(version),
+                processId: launchedProcess.pid || null,
+                exitCode: code,
+                signal: signal || null,
+                recoveryOwner: this.switching ? "candidate-switch" : "active-version-recovery",
+            }) : null;
+            if (incident && this.switching) {
+                this.updateIncident(incident, {state: "delegated"}, "recovery delegated to candidate switch");
+            }
             if (!this.switching && !expected) {
                 if (code === 0 && signal === null) {
                     console.log("[forge] kernel exited normally; stopping Forge supervisor");
@@ -543,13 +679,13 @@ class ForgeRuntimeSupervisor {
                     return;
                 }
                 console.error(`[forge] kernel exited unexpectedly: code=${code}, signal=${signal}`);
-                void this.recoverActiveVersionAfterUnexpectedExit(version);
+                void this.recoverActiveVersionAfterUnexpectedExit(version, incident);
             }
         });
         await this.waitForHealth(90_000, launchedProcess);
     }
 
-    async recoverActiveVersionAfterUnexpectedExit(exitedVersion) {
+    async recoverActiveVersionAfterUnexpectedExit(exitedVersion, incident) {
         if (this.closing || this.switching || this.recovering || this.kernelProcess ||
             !this.activeVersion || this.activeVersion.id !== exitedVersion.id) {
             return;
@@ -561,12 +697,38 @@ class ForgeRuntimeSupervisor {
                     return;
                 }
                 try {
+                    const attemptRecord = {
+                        attempt,
+                        startedAt: this.now().toISOString(),
+                        result: "running",
+                    };
+                    incident?.recoveryAttempts.push(attemptRecord);
+                    if (incident) {
+                        this.updateIncident(incident, {}, `recovery attempt ${attemptRecord.attempt}/3 started`);
+                    }
                     console.error(`[forge] restoring active kernel version ${this.activeVersion.id}, attempt ${attempt}/3`);
                     await this.launchAndRequireHealthy(this.activeVersion, false);
                     console.log(`[forge] active kernel version restored: ${this.activeVersion.id}`);
+                    attemptRecord.result = "recovered";
+                    attemptRecord.finishedAt = this.now().toISOString();
+                    if (incident) {
+                        this.updateIncident(incident, {
+                            state: "recovered",
+                            outcome: "active-version-restored",
+                            restoredVersion: versionContext(this.activeVersion),
+                        }, `active version restored on attempt ${attemptRecord.attempt}`);
+                    }
                     return;
                 } catch (error) {
-                    console.error(`[forge] active kernel restore attempt ${attempt} failed: ${this.describeError(error)}`);
+                    const message = this.describeError(error);
+                    const recoveryAttempt = incident?.recoveryAttempts.at(-1);
+                    if (recoveryAttempt) {
+                        recoveryAttempt.result = "failed";
+                        recoveryAttempt.error = message;
+                        recoveryAttempt.finishedAt = this.now().toISOString();
+                        this.updateIncident(incident, {}, `recovery attempt ${recoveryAttempt.attempt} failed: ${message}`);
+                    }
+                    console.error(`[forge] active kernel restore attempt ${attempt} failed: ${message}`);
                     await this.terminateKernelProcess();
                     if (attempt < 3) {
                         await this.delay(attempt * 1_000);
@@ -574,6 +736,12 @@ class ForgeRuntimeSupervisor {
                 }
             }
             console.error(`[forge] active kernel version ${this.activeVersion.id} could not be restored after 3 attempts`);
+            if (incident) {
+                this.updateIncident(incident, {
+                    state: "unrecovered",
+                    outcome: "active-version-restore-exhausted",
+                }, "active version could not be restored after 3 attempts");
+            }
         } finally {
             this.recovering = false;
         }
@@ -716,6 +884,52 @@ class ForgeRuntimeSupervisor {
         this.persistState();
     }
 
+    createIncident(kind, details = {}) {
+        const createdAt = this.now().toISOString();
+        const id = sanitizeIDPart(`${createdAt}-${kind}-${crypto.randomBytes(4).toString("hex")}`);
+        const incident = {
+            schemaVersion: 1,
+            id,
+            kind,
+            state: "open",
+            createdAt,
+            updatedAt: createdAt,
+            repository: this.repoRoot,
+            workspace: this.workspace,
+            port: Number(this.port),
+            supervisorProcessId: process.pid,
+            job: this.currentJob ? {
+                id: this.currentJob.id,
+                state: this.currentJob.state,
+                phase: this.currentJob.phase,
+                reason: this.currentJob.reason,
+                logPath: this.currentJob.logPath,
+            } : null,
+            activeVersion: versionContext(this.activeVersion),
+            logPath: `incidents/${id}.log`,
+            recoveryAttempts: [],
+            ...details,
+        };
+        this.latestIncident = incident;
+        this.writeIncident(incident, `incident opened: kind=${kind}`);
+        return incident;
+    }
+
+    updateIncident(incident, updates, message) {
+        Object.assign(incident, updates, {updatedAt: this.now().toISOString()});
+        this.latestIncident = incident;
+        this.writeIncident(incident, message);
+    }
+
+    writeIncident(incident, message) {
+        fs.mkdirSync(this.incidentsDir, {recursive: true});
+        writeJSONAtomic(path.join(this.incidentsDir, `${incident.id}.json`), incident);
+        const line = `[${this.now().toISOString()}] ${message}\n`;
+        fs.appendFileSync(path.join(this.incidentsDir, `${incident.id}.log`), line, "utf8");
+        this.persistState();
+        console.error(`[forge] incident ${incident.id}: ${message}`);
+    }
+
     writeJobLog(message) {
         if (!this.currentJob) {
             console.log(`[forge] ${message}`);
@@ -785,7 +999,11 @@ module.exports = {
     SUPERVISOR_TOKEN_HEADER,
     executableName,
     isKernelRuntimePath,
+    assertRestartPolicyNotNarrowed,
     parseLines,
+    readRestartPolicy,
     timingSafeTokenEqual,
     isProtectedRestartPath,
+    validateRestartPolicy,
+    writeJSONAtomic,
 };
