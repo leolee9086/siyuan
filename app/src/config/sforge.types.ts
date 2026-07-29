@@ -16,6 +16,12 @@ import {NAVIGATION_HISTORY_REGISTRY} from "./sforge.symbols";
 import {WINDOW_KEYDOWN_SWITCH_DIALOG} from "./sforge.symbols";
 /** 用途：定位当前搜索文章预览；使用范围：ISForgeGlobalState 的异步预览隔离槽；解耦评估：Symbol 保证跨调用共享唯一状态。 */
 import {ARTICLE_PREVIEW_CURRENT_ID} from "./sforge.symbols";
+/** 用途：定位 Model WebSocket 处理器。使用范围：ISForgeGlobalState 的模型消息能力槽；解耦评估：命名 Symbol 保留键和值的精确映射。 */
+import {MODEL_HANDLERS} from "./sforge.symbols";
+/** 用途：定位网络请求信号量。使用范围：ISForgeGlobalState 的并发控制状态槽；解耦评估：命名 Symbol 保留键和值的精确映射。 */
+import {REQUEST_SEMAPHORE} from "./sforge.symbols";
+/** 用途：定位内核消息分发 UI 依赖。使用范围：ISForgeGlobalState 的网络消息能力槽；解耦评估：命名 Symbol 保证各网络入口读取同一宿主能力。 */
+import {PROCESS_MESSAGE_UI_DEPENDENCIES} from "./sforge.symbols";
 /** 用途：定位新用户引导生命周期状态；使用范围：ISForgeGlobalState 的登录/同步监听槽；解耦评估：Symbol 保证跨事件回调共享唯一状态。 */
 import {ONBOARDING_LIFECYCLE_STATE} from "./sforge.symbols";
 /** 用途：定位通用全局命令路由；使用范围：ISForgeGlobalState 的命令分发槽；解耦评估：Symbol 保证 HMR 与多入口共享唯一已构建路由。 */
@@ -84,6 +90,8 @@ import type {FrontendActionRegistryState} from "../layout/dock/agent/frontendAct
 import type {LayoutResizeState} from "../layout/resize/resizeTabs.types";
 /** 用途：完整设置页签领域对象。使用范围：SForge 注册表映射；解耦评估：纯类型依赖，不加载 tabs.ts 注册装配。 */
 import type {SettingTab} from "../config/setting/builder";
+/** 用途：内核消息分发完整 UI 依赖。使用范围：全局能力槽；解耦评估：纯类型依赖不加载网络或 Dialog 实现。 */
+import type {IProcessMessageUIDependencies} from "../util/network/types";
 
 /**
  * SForge 全局状态类型定义
@@ -99,10 +107,11 @@ export interface ISForgeGlobalState {
     [SForgeSymbols.BRUSH_SESSION]?: IBrushSession | null;
     [SForgeSymbols.STYLE_BRUSH_HANDLERS]?: IStyleBrushHandlers;
     [SForgeSymbols.POPOVER_TARGET_ELEMENT]?: HTMLElement;
-    [SForgeSymbols.MODEL_HANDLERS]?: IModelHandlers;
+    [MODEL_HANDLERS]?: IModelHandlers;
     [SForgeSymbols.OPEN_MOBILE_FILE_BY_ID]?: IMobileFileOpenPort;
     [SForgeSymbols.CONTENT_RENDERER_REGISTRY]?: Map<string, ContentRendererRegistration>;
-    [SForgeSymbols.REQUEST_SEMAPHORE]?: IRequestSemaphore;
+    [REQUEST_SEMAPHORE]?: IRequestSemaphore;
+    [PROCESS_MESSAGE_UI_DEPENDENCIES]?: IProcessMessageUIDependencies;
     [SForgeSymbols.DRAG_TIP_STATE]?: DragTipState;
     [SForgeSymbols.CARET_LINE_ELEMENT]?: HTMLElement | null;
     [SForgeSymbols.DIALOG_PORT]?: IProtyleDialogPort;
@@ -157,4 +166,3 @@ export interface ISForgeInitOptions {
     /** 是否为移动端平台 */
     isMobile?: boolean;
 }
-

@@ -25,6 +25,15 @@ export const WINDOW_KEYDOWN_SWITCH_DIALOG = Symbol.for("sforge.windowKeyDown.swi
 /** 当前搜索文章预览标识的唯一状态键。 */
 export const ARTICLE_PREVIEW_CURRENT_ID = Symbol.for("sforge.search.articlePreviewCurrentId");
 
+/** Model WebSocket 处理器的唯一状态键。 */
+export const MODEL_HANDLERS = Symbol.for("sforge.model.handlers");
+
+/** 网络请求信号量的唯一状态键。 */
+export const REQUEST_SEMAPHORE = Symbol.for("sforge.fetch.requestSemaphore");
+
+/** 内核消息分发 UI 依赖的唯一注册键。 */
+export const PROCESS_MESSAGE_UI_DEPENDENCIES = Symbol.for("sforge.fetch.processMessageUIDependencies");
+
 /** 新用户引导跨登录与同步事件的唯一生命周期状态键。 */
 export const ONBOARDING_LIFECYCLE_STATE = Symbol.for("sforge.onboarding.lifecycleState");
 
@@ -57,7 +66,7 @@ export const SForgeSymbols = Object.freeze({
     /** Popover 目标元素 (用于解决模块级变量缓存不一致问题) */
     POPOVER_TARGET_ELEMENT: Symbol.for("sforge.popover.targetElement"),
     /** Model WebSocket 处理器 (用于打断 Model 循环依赖) */
-    MODEL_HANDLERS: Symbol.for("sforge.model.handlers"),
+    MODEL_HANDLERS,
     /** openMobileFileById 代理 (用于打断 mobile/editor ↔ plugin/API 循环依赖) */
     OPEN_MOBILE_FILE_BY_ID: Symbol.for("sforge.mobile.openFileById"),
     /** 内容块渲染器注册表 */
@@ -67,7 +76,7 @@ export const SForgeSymbols = Object.freeze({
     /** 拖拽引用行级竖线元素（用于解决模块级变量问题） */
     CARET_LINE_ELEMENT: Symbol.for("sforge.dragTip.caretLineElement"),
     /** 请求信号量 (用于限制 API 最大并发) */
-    REQUEST_SEMAPHORE: Symbol.for("sforge.fetch.requestSemaphore"),
+    REQUEST_SEMAPHORE,
     /** Protyle Dialog/消息/Tooltip 宿主能力 */
     DIALOG_PORT: Symbol.for("sforge.protyle.dialogPort"),
     /** Protyle 状态统计宿主能力 */
