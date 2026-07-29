@@ -1,7 +1,7 @@
 /**
  * MAGI 问卷数据聚合导出（Phase 1：切换到 IPIP-NEO-120）。
  *
- * 说明：旧的 `questionnaire-sections/` 已归档至 `_backup/`，这里改为统一导出标准题库模块。
+ * 说明：旧的 `questionnaire-sections/` 已归档至 `docs/archive/magi/questionnaire/`，这里改为统一导出标准题库模块。
  */
 import {
     ipipNeo120DistributionReport,

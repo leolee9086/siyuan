@@ -44,9 +44,9 @@
    - 已从“分贤者问卷聚合器”转为“IPIP题库 + Prompt能力”统一导出入口。
    - 导出：`ipipNeo120QuestionBank`、`summaryPrompts`、`filterExtremeFacets`、五层Prompt构建函数。
 
-5. [`data/_backup/questionnaire-sections/*`](app/src/magi/data/_backup/questionnaire-sections)
+5. [`legacy-custom/*`](../archive/magi/questionnaire/legacy-custom)
    - 旧版四贤者问卷与旧计分逻辑归档。
-   - 包含 `trinity/melchior/balthazar/casper` 分目录、[`calculateScore.ts`](app/src/magi/data/_backup/questionnaire-sections/calculateScore.ts)、[`questionnaire.guard.ts`](app/src/magi/data/_backup/questionnaire-sections/questionnaire.guard.ts)。
+   - 包含 `trinity/melchior/balthazar/casper` 分目录、[`calculateScore.ts`](../archive/magi/questionnaire/legacy-custom/calculateScore.ts)、[`questionnaire.guard.ts`](../archive/magi/questionnaire/legacy-custom/questionnaire.guard.ts)。
 
 ### B. 问卷UI组件
 

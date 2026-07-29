@@ -41,7 +41,7 @@
     - `app/src/magi/data/ipip-neo-120.ts`
     - `app/src/magi/data/ipip-neo-120.types.ts`
     - `app/src/magi/data/questionnaire-sections.ts`
-    - `app/src/magi/data/_backup/questionnaire-sections/`
+    - `docs/archive/magi/questionnaire/legacy-custom/`
 
 - [x] **Phase 2: 类型系统清理 (P0)** [已完成 2026-03-02]
   - **背景**: 四个贤者专属 SummaryData 接口与统一 P_base 设计冲突，需移除并统一为 PersonaBase
@@ -50,10 +50,10 @@
   - **参考文档**: [`设计文档 §1.2`](../设计/MAGI_问卷系统迁移_自定义题库到IPIP-NEO-120.design.md)
   - **成果文件**:
     - `app/src/magi/data/questionnaire.types.ts`
-    - `app/src/magi/data/_backup/questionnaire-sections/trinity/prompts.ts`
-    - `app/src/magi/data/_backup/questionnaire-sections/melchior/prompts.ts`
-    - `app/src/magi/data/_backup/questionnaire-sections/balthazar/prompts.ts`
-    - `app/src/magi/data/_backup/questionnaire-sections/casper/prompts.ts`
+    - `docs/archive/magi/questionnaire/legacy-custom/trinity/prompts.ts`
+    - `docs/archive/magi/questionnaire/legacy-custom/melchior/prompts.ts`
+    - `docs/archive/magi/questionnaire/legacy-custom/balthazar/prompts.ts`
+    - `docs/archive/magi/questionnaire/legacy-custom/casper/prompts.ts`
     - `app/src/magi/data/questionnaire.types.ts.phase2.backup.md`
 
 ---
