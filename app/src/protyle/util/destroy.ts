@@ -22,12 +22,16 @@ export const destroy = (protyle: IProtyle) => {
     if (protyle.undo) {
         protyle.undo.clear();
     }
-    try {
-        protyle.ws.send("closews", {});
-    } catch (e) {
-        setTimeout(() => {
-            protyle.ws.send("closews", {});
-        }, 10240);
+    const websocketModel = protyle.ws;
+    // 导出、静态或尚未连接的 Protyle 没有 WebSocket；已存在的连接沿用原关闭与延迟重试语义。
+    if (websocketModel) {
+        try {
+            websocketModel.send("closews", {});
+        } catch (e) {
+            setTimeout(() => {
+                websocketModel.send("closews", {});
+            }, 10240);
+        }
     }
     protyle.app.plugins.forEach(item => {
         item.eventBus.emit("destroy-protyle", {
