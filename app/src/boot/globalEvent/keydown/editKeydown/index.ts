@@ -9,7 +9,6 @@ import {
     execByCommand,
     Editor,
     fetchPost,
-    fullscreen,
     getActiveTab,
     getAllModels,
     getContentByInlineHTML,
