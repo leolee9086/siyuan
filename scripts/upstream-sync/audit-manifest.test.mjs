@@ -7,6 +7,7 @@ import test from "node:test";
 import {
     buildAuditRecords,
     loadCycleForRegeneration,
+    refreshAuditManifest,
     verifyAuditManifest,
     writeAuditManifest,
 } from "./audit-manifest.mjs";
@@ -159,4 +160,51 @@ test("preserves rolling delivery configuration while refreshing generated cycle 
         mode: "rolling-verified-series",
         longLivedMainFreeze: false,
     });
+});
+
+test("refreshes the mapping endpoint from the current branch without losing cycle policy", (context) => {
+    const repo = mkdtempSync(join(tmpdir(), "sforge-audit-refresh-"));
+    context.after(() => rmSync(repo, {recursive: true, force: true}));
+    git(repo, ["init", "--initial-branch=main"]);
+    git(repo, ["config", "user.name", "Test Author"]);
+    git(repo, ["config", "user.email", "test@example.com"]);
+    const upstreamBase = commitFile(repo, "base.txt", "base\n", "base");
+    git(repo, ["switch", "-c", "upstream"]);
+    const upstreamTip = commitFile(repo, "upstream.txt", "upstream\n", "upstream behavior");
+    git(repo, ["switch", "-c", "series", upstreamBase]);
+    const localBase = commitFile(repo, "local.txt", "local\n", "local base");
+    const output = join(repo, "audit");
+    writeFileSync(join(repo, "message.txt"), [
+        "port upstream behavior",
+        "",
+        `Upstream-Commit: ${upstreamTip}`,
+        "Upstream-Series: fixture/refresh",
+        "Upstream-Disposition: semantic-port",
+        "Upstream-Audit: audit/commits.jsonl",
+    ].join("\n"));
+    writeFileSync(join(repo, "port.txt"), "port\n");
+    git(repo, ["add", "port.txt"]);
+    git(repo, ["commit", "-F", "message.txt"]);
+    const candidateHead = git(repo, ["rev-parse", "HEAD"]);
+    const records = buildAuditRecords({repo, upstreamBase, upstreamTip, localBase, candidateHead});
+    writeAuditManifest({
+        repo,
+        output,
+        cycle: {
+            upstreamBase,
+            upstreamTip,
+            localBase,
+            candidateBranch: "stale-branch",
+            candidateHead: localBase,
+            deliveryStrategy: {mode: "rolling-verified-series"},
+        },
+        records,
+    });
+
+    const refreshed = refreshAuditManifest({repo, output});
+
+    assert.equal(refreshed.candidateBranch, "series");
+    assert.equal(refreshed.candidateHead, candidateHead);
+    assert.equal(refreshed.mappedUpstreamCommitCount, 1);
+    assert.deepEqual(refreshed.deliveryStrategy, {mode: "rolling-verified-series"});
 });

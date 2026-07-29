@@ -296,6 +296,30 @@ export const verifyAuditManifest = ({repo, output}) => {
     return {commitCount: records.length, mergeCommitCount, revertCommitCount, mappedUpstreamCommitCount};
 };
 
+export const refreshAuditManifest = ({repo, output}) => {
+    const cyclePath = resolve(output, "cycle.json");
+    if (!existsSync(cyclePath)) {
+        throw new Error(`Missing frozen cycle configuration: ${cyclePath}`);
+    }
+    const cycle = JSON.parse(readFileSync(cyclePath, "utf8"));
+    const candidateHead = runGit(repo, ["rev-parse", "HEAD"]).trim();
+    const candidateBranch = runGit(repo, ["branch", "--show-current"]).trim();
+    const refreshedCycle = {
+        ...cycle,
+        candidateBranch: candidateBranch || cycle.candidateBranch,
+        candidateHead,
+    };
+    const records = buildAuditRecords({
+        repo,
+        upstreamBase: refreshedCycle.upstreamBase,
+        upstreamTip: refreshedCycle.upstreamTip,
+        localBase: refreshedCycle.localBase,
+        candidateHead,
+        existingManifestPath: resolve(output, "commits.jsonl"),
+    });
+    return writeAuditManifest({repo, output, cycle: refreshedCycle, records});
+};
+
 const requireOption = (values, name) => {
     if (!values[name]) {
         throw new Error(`Missing --${name}`);
@@ -330,8 +354,17 @@ const main = () => {
         process.stdout.write(`${JSON.stringify(verifyAuditManifest({repo, output}))}\n`);
         return;
     }
+    if (command === "refresh") {
+        const result = refreshAuditManifest({repo, output});
+        process.stdout.write(`${JSON.stringify({
+            candidateHead: result.candidateHead,
+            commitCount: result.commitCount,
+            mappedUpstreamCommitCount: result.mappedUpstreamCommitCount,
+        })}\n`);
+        return;
+    }
     if (command !== "generate") {
-        throw new Error("Expected generate or verify command");
+        throw new Error("Expected generate, refresh or verify command");
     }
     const generatedCycle = {
         cycleId: requireOption(values, "cycle-id"),

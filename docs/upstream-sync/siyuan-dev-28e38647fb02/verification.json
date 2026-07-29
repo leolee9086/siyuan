@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "cycleId": "siyuan-dev-28e38647fb02",
   "status": "in-progress",
-  "candidateHead": "ddc21df46e3edf597c714318a1bfc5340ec4dcba",
+  "candidateHead": "4d13d8b4cae1c90b56143cd846493d64b59a1386",
   "manifest": {
     "status": "passed",
     "command": "node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
@@ -26,7 +26,7 @@
       "name": "audit manifest tooling",
       "status": "passed",
       "command": "node --test scripts/upstream-sync/audit-manifest.test.mjs",
-      "evidence": "3 tests passed; covers DAG, merge, revert, stable regeneration, audit preservation, local trailer mappings and preservation of rolling delivery configuration"
+      "evidence": "4 tests passed; covers DAG, merge, revert, stable regeneration, audit preservation, local trailer mappings, preservation of rolling delivery configuration and controlled refresh from the current branch"
     },
     {
       "name": "search exact ranking",
