@@ -262,12 +262,12 @@ export class EmbeddingDock extends Model<AppFacade, Tab> {
     private progress: IEmbeddingProgress = { total: 0, current: 0, status: "idle" };
 
     constructor(app: AppFacade, tab: Tab) {
-        super({
-            app,
+        super({app});
+        this.connect({
             id: tab.id,
             msgCallback: (data) => {
                 this.onMessage(data);
-            }
+            },
         });
         this.element = tab.panelElement;
         this.element.classList.add("fn__flex-column", "file-tree", "sy__embedding-dock");

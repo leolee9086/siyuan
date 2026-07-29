@@ -8,10 +8,12 @@ import { updateListTarget } from "./customLists.helper";
 import { genSearch } from "../../../search/utils/genSearch";
 import { Dialog } from "../../../dialog";
 import type { AppFacade } from "../../../app/AppFacade.types";
+import {getSiyuanGlobalMenusMenu} from "../../../util/siyuanEnvironments/getMenu.environment";
 
 export const showCustomListMenu = (app: AppFacade, customList: CustomListsDomain, event: MouseEvent) => {
-    window.siyuan.menus.menu.remove();
-    window.siyuan.menus.menu.append(new MenuItem({
+    const menu = getSiyuanGlobalMenusMenu();
+    menu.remove();
+    menu.append(new MenuItem({
         iconHTML: "",
         label: siyuanI18n.loading || "Loading...",
         type: "readonly",
@@ -19,11 +21,11 @@ export const showCustomListMenu = (app: AppFacade, customList: CustomListsDomain
 
     const x = event.clientX;
     const y = event.clientY;
-    window.siyuan.menus.menu.popup({ x, y });
+    menu.popup({ x, y });
 
     // @内联回调
     fetchPost("/api/storage/getCriteria", {}, (response) => {
-        window.siyuan.menus.menu.remove();
+        menu.remove();
 
         const subMenus: IMenu[] = [];
         if (response.data && Array.isArray(response.data)) {
@@ -50,7 +52,8 @@ export const showCustomListMenu = (app: AppFacade, customList: CustomListsDomain
         }
 
         if (customList.listData.type === "dynamic") {
-            window.siyuan.menus.menu.append(new MenuItem({
+            const dynamicListData = customList.listData;
+            menu.append(new MenuItem({
                 iconHTML: "",
                 label: forgeI18n.customList?.savedCriteria || "Saved Criteria",
                 type: "submenu",
@@ -58,7 +61,7 @@ export const showCustomListMenu = (app: AppFacade, customList: CustomListsDomain
             }).element);
 
 
-            window.siyuan.menus.menu.append(new MenuItem({
+            menu.append(new MenuItem({
                 label: forgeI18n.customList?.editSearchConditions || "Edit Search Conditions",
                 iconHTML: "",
                 click: () => {
@@ -78,7 +81,7 @@ export const showCustomListMenu = (app: AppFacade, customList: CustomListsDomain
                     const searchContainer = dialog.element.querySelector("#searchContainer") as HTMLElement;
                     let currentConfig: Config.IUILayoutTabSearchConfig;
                     try {
-                        currentConfig = JSON.parse(customList.listData.target);
+                        currentConfig = JSON.parse(dynamicListData.target);
                     } catch (e) {
                         currentConfig = {
                             k: "",
@@ -99,11 +102,15 @@ export const showCustomListMenu = (app: AppFacade, customList: CustomListsDomain
                     }, updateCB});
 
                     const cancelBtn = dialog.element.querySelector(".b3-button--cancel");
+                    const saveBtn = dialog.element.querySelector("#saveSearchBtn");
+                    if (!cancelBtn || !saveBtn) {
+                        dialog.destroy();
+                        throw new Error("CustomLists search dialog actions were not created");
+                    }
                     cancelBtn.addEventListener("click", () => {
                         dialog.destroy();
                     });
 
-                    const saveBtn = dialog.element.querySelector("#saveSearchBtn");
                     saveBtn.addEventListener("click", () => {
                         // Use currentConfig
                         customList.listData.target = JSON.stringify(currentConfig);
@@ -114,7 +121,7 @@ export const showCustomListMenu = (app: AppFacade, customList: CustomListsDomain
 
                         // We might want to clear the title if it was a saved criterion name and now it's modified?
                         // But let's keep it simple.
-                        customList.updateTitle();
+                        customList.updateTitle(customList.listData.title);
                         updateListTarget(customList.listData);
                         customList.update();
                         dialog.destroy();
@@ -124,7 +131,7 @@ export const showCustomListMenu = (app: AppFacade, customList: CustomListsDomain
         }
 
         // 转换为嵌入数据集
-        window.siyuan.menus.menu.append(new MenuItem({
+        menu.append(new MenuItem({
             iconHTML: "",
             label: forgeI18n.customList?.convertToDataset || "转换为嵌入数据集",
             icon: "iconDatabase",
@@ -133,7 +140,7 @@ export const showCustomListMenu = (app: AppFacade, customList: CustomListsDomain
             }
         }).element);
 
-        window.siyuan.menus.menu.popup({ x, y });
+        menu.popup({ x, y });
     });
 };
 

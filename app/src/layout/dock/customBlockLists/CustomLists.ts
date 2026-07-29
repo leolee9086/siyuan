@@ -22,6 +22,7 @@ import type {TreeDomain, TreeOptions} from "../../../util/file/tree.types";
  * 用途：检查块折叠状态。使用范围：树节点点击时判断是否需要 zoomIn。解耦评估：平台工具函数，通过参数传递解耦。
  */
 import {checkFold} from "../../../block/fold/checkFold";
+import {getIconByType} from "../../../editor/getIcon";
 /**
  * 用途：块编辑器完整领域抽象。使用范围：展开树节点时保存内嵌编辑器生命周期。解耦评估：由完整 AppFacade 创建，不加载具体 Protyle。
  */
@@ -37,7 +38,7 @@ import { getCustomListIcon, getTopExtHTML, handleRemoveFromStorage, handleRemove
 /**
  * 用途：类型定义。使用范围：类型约束。解耦评估：纯类型定义。
  */
-import { ICustomList, IBlock } from "./customLists.types";
+import type {CustomListsDomain, IBlock, ICustomList} from "./customLists.types";
 
 /** @同步豁免: UI构建 - 更新 dock 图标必须同步操作 DOM */
 const updateDockIcon = (
@@ -103,7 +104,7 @@ const renderData = (blocks: IBlock[], tree: TreeDomain) => {
         return {
             id: block.id,
             name: block.content || "Untitled",
-            icon: window.siyuan.util.getIconByType(nodeType, block.subType),
+            icon: getIconByType(nodeType, block.subType),
             showArrow: true,
             type: nodeType,
             nodeType: nodeType,
@@ -118,13 +119,13 @@ const renderData = (blocks: IBlock[], tree: TreeDomain) => {
 
 const handleContainerClick = (
     event: MouseEvent,
-    owner: CustomLists,
-    showMenu: (app: AppFacade, customList: CustomLists, event: MouseEvent) => void,
+    owner: CustomListsDomain,
+    showMenu: (app: AppFacade, customList: CustomListsDomain, event: MouseEvent) => void,
 ) => {
-    let target = event.target;
-    if (!(target instanceof HTMLElement)) {
+    if (!(event.target instanceof HTMLElement)) {
         return;
     }
+    let target: HTMLElement | null = event.target;
     // 沿 DOM 冒泡查找点击的工具栏图标
     while (target && !target.isEqualNode(owner.element)) {
         if (target.classList.contains("block__icon")) {
@@ -147,10 +148,10 @@ const handleItemRemoveOnTree = (
     element: HTMLElement,
     event: MouseEvent,
     id: string,
-    owner: CustomLists,
+    owner: CustomListsDomain,
     saveCustomLists: (customLists: Record<string, ICustomList>) => void,
 ) => {
-    let current = target;
+    let current: HTMLElement | null = target;
     // 沿 DOM 冒泡查找列表项删除按钮
     while (current && !current.isEqualNode(element)) {
         if (current.classList.contains("b3-list-item__action")) {
@@ -172,7 +173,7 @@ const handleItemRemoveOnTree = (
  * key: data-type 属性值，value: 处理函数
  */
 const getIconHandlers = (
-    owner: CustomLists,
+    owner: CustomListsDomain,
     getDockByType: (type: string) => DockDomain | undefined,
     saveCustomLists: (customLists: Record<string, ICustomList>) => void,
 ): Record<string, () => void> => ({
@@ -220,17 +221,17 @@ export class CustomLists extends Model<AppFacade, LayoutTab> {
         getDockByType: (type: string) => DockDomain | undefined,
         saveCustomLists: (customLists: Record<string, ICustomList>) => void,
         createTree: (options: TreeOptions) => TreeDomain,
-        showMenu: (app: AppFacade, customList: CustomLists, event: MouseEvent) => void,
+        showMenu: (app: AppFacade, customList: CustomListsDomain, event: MouseEvent) => void,
     ) {
-        super({
-            app,
+        super({app});
+        this.connect({
             id: tab.id,
             msgCallback: (msgData) => {
                 // WebSocket 消息回调，触发数据源为动态列表的更新
                 if (msgData.cmd === "transactions" && data.type === "dynamic") {
                     // 动态列表收到事务通知时可在此处 debounce 刷新
                 }
-            }
+            },
         });
         this.element = tab.panelElement;
         this.listData = data;
