@@ -1,4 +1,4 @@
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {mergeRecordByDottedPath} from "./dotPath";
 
 export function createConfigNamespaceApi<TData>(options: {

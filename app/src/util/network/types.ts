@@ -27,9 +27,9 @@ export interface IFetchRequestObject {
  *
  * 用途：表示 fetchPost 等函数接受的请求数据
  * 使用场景：所有 HTTP POST 请求的 body 数据
- * 关联类型：IFetchRequestObject（普通对象）、FormData（文件上传）
+ * 关联类型：领域请求对象、FormData（文件上传）
  */
-export type TFetchRequestData = IFetchRequestObject | FormData;
+export type TFetchRequestData = object;
 
 /**
  * 请求上下文对象，用于在中间件之间传递和修改请求数据
@@ -211,23 +211,52 @@ export interface ICronjobAuthDependencies {
     sendAuthResponse: SendAuthResponsePort;
 }
 
+/**
+ * 用途：描述迁移期既可同步完成、也可异步完成的回调结果。
+ * 使用场景：网络响应回调与仍在迁移的 UI Port。
+ * 关联类型：FetchPostPort、IProcessMessageUIDependencies。
+ * 改进：模块边界完成异步迁移后应逐步收敛为 Promise。
+ */
 export type MaybePromise<T> = T | Promise<T>;
 
+/**
+ * 用途：引用官方插件包声明的 fetchPost 完整公共协议。
+ * 使用场景：网络实现以重载形式同时保持插件生态兼容与内部可等待扩展。
+ * 关联类型：FetchPostPort、siyuan.fetchPost。
+ * 改进：随官方 siyuan 类型包升级自动参与类型门禁，避免手工复制签名漂移。
+ */
+export type OfficialFetchPost = typeof import("siyuan").fetchPost;
+
+/**
+ * 用途：描述 processMessage 可调用的 POST 网络能力。
+ * 使用场景：网络实现注入系统消息处理器，避免反向导入具体实现。
+ * 关联类型：TFetchRequestData、MaybePromise。
+ */
 export type FetchPostPort = (
     url: string,
     data?: TFetchRequestData,
-    cb?: (response: IWebSocketData) => void,
-    headers?: IObject,
-    failCallback?: (response: IWebSocketData) => void,
+    cb?: (response: IWebSocketData) => MaybePromise<void>,
+    headers?: HeadersInit | IObject | null,
+    failCallback?: (response: IWebSocketData) => MaybePromise<void>,
     signal?: AbortSignal,
     bypassSemaphore?: boolean,
-) => MaybePromise<void>;
+) => Promise<void>;
 
+/**
+ * 用途：描述系统消息触发的布局导出能力。
+ * 使用场景：processMessage 收到重载指令时等待布局保存。
+ * 关联类型：IProcessMessageUIDependencies、MaybePromise。
+ */
 export type ExportLayoutPort = (options: {
     cb: () => void;
     errorExit: boolean;
 }) => MaybePromise<void>;
 
+/**
+ * 用途：描述系统消息展示能力及其消息标识返回值。
+ * 使用场景：processMessage 展示内核通知。
+ * 关联类型：IProcessMessageUIDependencies、MaybePromise。
+ */
 export type ShowMessagePort = (
     message: string,
     timeout?: number,
@@ -235,8 +264,18 @@ export type ShowMessagePort = (
     messageId?: string,
 ) => MaybePromise<string | undefined>;
 
+/**
+ * 用途：描述按标识隐藏系统消息的能力。
+ * 使用场景：processMessage 更新或结束进度通知。
+ * 关联类型：IProcessMessageUIDependencies、MaybePromise。
+ */
 export type HideMessagePort = (id?: string) => MaybePromise<void>;
 
+/**
+ * 用途：聚合 processMessage 需要的 UI 能力。
+ * 使用场景：完整应用启动时一次性登记消息、确认和布局导出实现。
+ * 关联类型：ExportLayoutPort、ShowMessagePort、HideMessagePort、ConfirmDialogPort。
+ */
 export interface IProcessMessageUIDependencies {
     exportLayout: ExportLayoutPort;
     showMessage: ShowMessagePort;
@@ -244,6 +283,11 @@ export interface IProcessMessageUIDependencies {
     confirmDialog: ConfirmDialogPort;
 }
 
+/**
+ * 用途：描述一次 processMessage 调用所需的完整依赖。
+ * 使用场景：网络响应处理时组合已登记 UI 能力与当前 fetchPost。
+ * 关联类型：IProcessMessageUIDependencies、FetchPostPort。
+ */
 export interface IProcessMessageDependencies extends Partial<IProcessMessageUIDependencies> {
     fetchPost: FetchPostPort;
 }

@@ -3,7 +3,7 @@ import type {LayoutTab} from "../layout.types";
 import {Tree} from "../../util/file/Tree";
 import {getInstanceById, setPanelFocus} from "../util";
 import {getDockByType} from "../query/dockByType";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {getAllModels} from "../getAll";
 import {hasClosestBlock, hasClosestByClassName, hasTopClosestByClassName} from "../../protyle/util/hasClosest";
 import {

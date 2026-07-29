@@ -1,7 +1,7 @@
 import {Dialog} from "../dialog";
 import {showMessage} from "../dialog/message";
 import {escapeAttr, escapeHtml} from "../util/DOM/escape";
-import {fetchSyncPost} from "../util/fetch";
+import {fetchSyncPost} from "../util/network/fetch";
 
 interface IObsidianAnalysis {
     vaultName: string;

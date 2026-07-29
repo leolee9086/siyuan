@@ -8,7 +8,7 @@ import {desktopModeCookie} from "../../util/cookie";
 import {isMobile, objEquals} from "../../util/functions";
 import {isElectron} from "../../platform";
 import {exitSiYuan} from "../../dialog/processSystem";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {openByMobile} from "../../editor/openLink";
 import {openSnippets} from "../util/snippets";
 import {confirmDialog} from "../../dialog/confirmDialog";

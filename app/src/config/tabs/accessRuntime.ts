@@ -1,4 +1,4 @@
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {isMobile} from "../../util/functions";
 
 /** 访问授权 Tab 根节点，供 send 回调更新局部 UI */

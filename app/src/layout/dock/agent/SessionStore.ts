@@ -1,5 +1,5 @@
 /** 用途：调用 Agent 会话 API；使用范围：会话列表、持久化和任务目录绑定流程；解耦评估：网络请求必须经统一 fetchSyncPost，暂不适合通过事件替代。 */
-import {fetchSyncPost} from "../../../util/fetch";
+import {fetchSyncPost} from "../../../util/network/fetch";
 /** 用途：取得当前应用实例标识；使用范围：会话广播去重；解耦评估：常量依赖稳定且仅用于请求元数据，无需额外注入层。 */
 import {Constants} from "../../../constants";
 import {getSafeSiyuanConfig} from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
@@ -156,7 +156,8 @@ export const SessionStore = {
             if (snapshot.commitTurnID || snapshot.recoveryTurnID) {
                 sessionRuntimeRevisions.set(snapshot.id, 0);
             }
-            return {revision, session: resp.data?.session};
+            const savedSession = resp.data?.session;
+            return savedSession ? {revision, session: savedSession} : {revision};
         };
         const save = previous ? previous.then((result) => persist(result.revision)) : persist(baseRevision);
         sessionSaveQueues.set(snapshot.id, save);

@@ -1,5 +1,5 @@
 import {Constants} from "../constants";
-import {fetchPost} from "../util/fetch";
+import {fetchPost} from "../util/network/fetch";
 import {exportLayout} from "../layout/export/exportLayout";
 import {getAllEditor} from "../layout/getAll";
 import {getDockByType} from "../layout/tabUtil";

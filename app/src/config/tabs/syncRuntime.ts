@@ -1,4 +1,4 @@
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {processSync} from "../../dialog/processSystem";
 import {
     onSetaccount,

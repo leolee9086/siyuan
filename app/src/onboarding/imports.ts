@@ -15,9 +15,9 @@ import {getSiyuanConfig} from "../util/siyuanEnvironments/getSiyuanConfig.enviro
 /** 用途：完整应用外观；使用范围：两类宿主类型边界；解耦评估：纯类型不加载具体实现。 */
 import type {AppFacade} from "../app/AppFacade.types";
 /** 用途：持久化与确认引导状态；使用范围：共享引导业务；解耦评估：直达统一网络实现。 */
-import {fetchPost} from "../util/fetch";
+import {fetchPost} from "../util/network/fetch";
 /** 用途：同步确认引导状态；使用范围：共享引导业务；解耦评估：直达统一网络实现。 */
-import {fetchSyncPost} from "../util/fetch";
+import {fetchSyncPost} from "../util/network/fetch";
 /** 用途：打开用户指南；使用范围：引导帮助动作；解耦评估：直达唯一帮助实现。 */
 import {mountHelp} from "../util/file/mount";
 /** 用途：启动同步引导；使用范围：引导同步动作；解耦评估：直达唯一同步实现。 */

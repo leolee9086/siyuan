@@ -46,5 +46,5 @@ export const exportLayout = async (options: {cb: () => void; errorExit: boolean}
         options.cb();
         return;
     }
-    fetchPost("/api/system/setUILayout", {layout: result, errorExit: options.errorExit}, options.cb);
+    await fetchPost("/api/system/setUILayout", {layout: result, errorExit: options.errorExit}, options.cb);
 };

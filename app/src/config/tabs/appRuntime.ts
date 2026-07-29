@@ -1,4 +1,4 @@
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {Constants} from "../../constants";
 import {exportLayout} from "../../layout/export/exportLayout";
 import {exitSiYuan} from "../../dialog/processSystem";

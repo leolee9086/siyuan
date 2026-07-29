@@ -2,7 +2,7 @@ import type { AppFacade } from "../app/AppFacade.types";
 import {hideMessage} from "../dialog/message";
 import {hideElements} from "../protyle/ui/hideElements";
 import {setEmpty} from "../mobile/util/setEmpty";
-import {fetchPost} from "./fetch";
+import {fetchPost} from "./network/fetch";
 import {Constants} from "../constants";
 import {getDocDisplayName, isEncryptedBox, setNoteBook} from "./pathName";
 import {getAllModels} from "../layout/getAll";

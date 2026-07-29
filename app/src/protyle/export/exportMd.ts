@@ -1,7 +1,7 @@
 import {Constants} from "../../constants";
 import {Dialog} from "../runtime/dialog.port";
 import {confirmDialog, showMessage} from "../runtime/dialog.port";
-import {fetchPost, fetchSyncPost} from "../../util/fetch";
+import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {isMobile} from "../../util/functions";
 import {isEncryptedBox} from "../../util/pathName";
 import {saveExportFile} from "../util/compatibility";

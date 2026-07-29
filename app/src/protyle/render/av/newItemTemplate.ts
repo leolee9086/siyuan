@@ -4,7 +4,7 @@ import {Menu} from "../../../plugin/Menu";
 import {MenuItem} from "../../../menus/Menu";
 import {Constants} from "../../../constants";
 import {escapeAttr, escapeHtml} from "../../../util/DOM/escape";
-import {fetchPost} from "../../../util/fetch";
+import {fetchPost} from "../../../util/network/fetch";
 import {transaction} from "../../wysiwyg/transaction/submit";
 import {avRender} from "./render";
 import {getFieldsByData} from "./view/metadata";

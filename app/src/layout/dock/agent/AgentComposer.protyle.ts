@@ -1,7 +1,7 @@
 import {Constants} from "../../../constants";
 import type {AppFacade} from "../../../app/AppFacade.types";
 import {escapeHtml} from "../../../util/DOM/escape";
-import {fetchPost} from "../../../util/fetch";
+import {fetchPost} from "../../../util/network/fetch";
 import {hintRef} from "../../../protyle/hint/extend.hintRef";
 import {genEmptyElement} from "../../../block/element.factory";
 import {blockRender} from "../../../protyle/render/blockRender";

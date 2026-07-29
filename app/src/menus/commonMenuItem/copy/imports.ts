@@ -14,7 +14,7 @@ import {writeText} from "../../../protyle/util/compatibility";
 export {writeText};
 
 /** 用途：读取标准 Markdown 内容；使用范围：Markdown 复制动作；解耦评估：保持当前根实现使用的请求协议。 */
-import {fetchSyncPost} from "../../../util/fetch";
+import {fetchSyncPost} from "../../../util/network/fetch";
 /** 导出同步风格请求。 */
 export {fetchSyncPost};
 

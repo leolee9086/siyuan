@@ -1,5 +1,5 @@
 import {showMessage} from "../../dialog/message";
-import {fetchPost, fetchSyncPost} from "../../util/fetch";
+import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {confirmDialog} from "../../dialog/confirmDialog";
 import {isInIOS, saveExportFile} from "../../protyle/util/compatibility";
 import {isPaidUser, needSubscribe} from "../../util/platform/needSubscribe";

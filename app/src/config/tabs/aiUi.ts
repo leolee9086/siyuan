@@ -4,7 +4,7 @@ import {confirmDialog} from "../../dialog/confirmDialog";
 import {showMessage} from "../../dialog/message";
 import {Constants} from "../../constants";
 import {isMobile} from "../../util/functions";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {aiConfigApi} from "./aiRuntime";
 import {openByMobile} from "../../editor/openLink";
 import {Menu} from "../../plugin/Menu";

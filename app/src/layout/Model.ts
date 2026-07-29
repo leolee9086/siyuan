@@ -11,12 +11,16 @@ export class Model<
     TParent extends ILayoutModelHost = ILayoutModelHost,
 > implements ILayoutModel {
     public readonly layoutModel = true as const;
-    public ws: WebSocket;
-    public reqId: number;
-    public parent: TParent;
+    /** connect() 成功创建连接后存在；Inbox 等无连接模型始终保持未设置。 */
+    public ws?: WebSocket;
+    /** 首次 send() 时产生；构造完成不代表已经发送过内核命令。 */
+    public reqId?: number;
+    /** 模型挂载到 Tab 等宿主后由布局生命周期写入。 */
+    public parent?: TParent;
     public app: TApplication;
     private reconnectTimer: number | null = null;
     private destroyed = false;
+    private messageQueue: Promise<void> = Promise.resolve();
 
     constructor(options: {
         app: TApplication,
@@ -30,9 +34,23 @@ export class Model<
         this.clearReconnectTimer();
         const websocketURL = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`;
         const ws = createModelWebSocket(`${websocketURL}?app=${Constants.SIYUAN_APPID}&id=${options.id}${options.type ? "&type=" + options.type : ""}`);
+        // 新连接拥有独立的消息序列；旧连接中未完成的处理不得阻塞新连接。
+        this.messageQueue = Promise.resolve();
         ws.onopen = () => {
+            if (this.destroyed || this.ws !== ws) {
+                return;
+            }
             if (options.callback) {
-                options.callback.call(this);
+                try {
+                    const callbackResult = options.callback.call(this);
+                    if (callbackResult) {
+                        void callbackResult.catch((error: unknown) => {
+                            console.error("Model WebSocket open callback failed", error);
+                        });
+                    }
+                } catch (error) {
+                    console.error("Model WebSocket open callback failed", error);
+                }
             }
             const logElement = document.getElementById("errorLog");
             if (logElement) {
@@ -52,23 +70,47 @@ export class Model<
             if (!options.msgCallback || !window.siyuan.config) {
                 return;
             }
-            const data = getModelHandlers().processMessage(JSON.parse(event.data));
-            if (data) {
-                options.msgCallback.call(this, data);
-            }
+            const serializedResponse = event.data;
+            // WebSocket 不会等待异步事件监听器；实例队列保持与原同步实现相同的消息分发顺序。
+            this.messageQueue = this.messageQueue.then(async () => {
+                if (this.destroyed || this.ws !== ws) {
+                    return;
+                }
+                if (typeof serializedResponse !== "string") {
+                    throw new TypeError("Model WebSocket message payload must be a JSON string");
+                }
+                const response: IWebSocketData = JSON.parse(serializedResponse);
+                const data = await getModelHandlers().processMessage(response);
+                // 处理期间可能发生重连或销毁；旧连接的迟到结果不得进入当前模型回调。
+                if (this.destroyed || this.ws !== ws) {
+                    return;
+                }
+                if (data) {
+                    await options.msgCallback?.call(this, data);
+                }
+            }).catch((error: unknown) => {
+                // 单条消息失败必须可观察，同时将队列恢复为 fulfilled，保证后续消息仍可处理。
+                console.error("Model WebSocket message processing failed", error);
+            });
         };
-        ws.onclose = (ev) => this.handleSocketClose(ev, options);
-        ws.onerror = (err: Event & { target: { url: string, readyState: number } }) => {
+        ws.onclose = (ev) => this.handleSocketClose(ws, ev, options);
+        ws.onerror = () => {
             // 仅主连接（type=main）且 WebSocket 已关闭（readyState=3）时显示内核错误提示
-            if (err.target.url.endsWith("&type=main") && err.target.readyState === 3) {
+            if (!this.destroyed && this.ws === ws && ws.url.endsWith("&type=main") && ws.readyState === WebSocket.CLOSED) {
                 getModelHandlers().kernelError();
             }
         };
-        if (this.ws) {
-            this.ws.onclose = null;
-            this.ws.close();
-        }
+        const previousSocket = this.ws;
         this.ws = ws;
+        if (previousSocket && previousSocket !== ws) {
+            previousSocket.onopen = null;
+            previousSocket.onmessage = null;
+            previousSocket.onclose = null;
+            previousSocket.onerror = null;
+            if (previousSocket.readyState !== WebSocket.CLOSED) {
+                previousSocket.close();
+            }
+        }
     }
 
     /** 向模型 WebSocket 发送内核命令；Inbox 等无连接模型会直接忽略请求。 */
@@ -92,8 +134,8 @@ export class Model<
     }
 
     /** 处理连接关闭并按原有规则安排重连；销毁中的模型不会再次建立连接。 */
-    private handleSocketClose(ev: CloseEvent, options: IModelConnectOptions) {
-        if (this.destroyed || 0 <= ev.reason.indexOf("unauthenticated") ||
+    private handleSocketClose(socket: WebSocket, ev: CloseEvent, options: IModelConnectOptions) {
+        if (this.destroyed || this.ws !== socket || 0 <= ev.reason.indexOf("unauthenticated") ||
             0 <= ev.reason.indexOf("close websocket")) {
             return;
         }
@@ -110,7 +152,7 @@ export class Model<
         if (this.destroyed) {
             return;
         }
-        this.connect({id: options.id, type: options.type, msgCallback: options.msgCallback});
+        this.connect(options);
     }
 
     /** 清理尚未执行的重连定时器，供重新连接和销毁路径共享。 */
@@ -136,6 +178,8 @@ export class Model<
         this.destroyed = true;
         this.clearReconnectTimer();
         const socket = this.ws;
+        delete this.ws;
+        this.messageQueue = Promise.resolve();
         if (!socket) {
             return;
         }

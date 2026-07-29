@@ -1,7 +1,7 @@
 import type {SettingTabBuilder} from "../setting/builder";
 import {confirmDialog} from "../../dialog/confirmDialog";
 import {showMessage} from "../../dialog/message";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {
     genProvidersBlockHtml,
     getProvidersBlockKeywords,

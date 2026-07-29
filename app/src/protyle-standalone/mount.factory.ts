@@ -37,7 +37,7 @@ const resolveTarget = (target: HTMLElement | string) => {
 const ignoreEvent = () => undefined;
 
 /** 保留成功消息并阻止错误消息进入编辑器推送处理，后续由 SyncPort 接管。 */
-const processMessage = (response: IWebSocketData) => response.code < 0 ? false : response;
+const processMessage = async (response: IWebSocketData) => response.code < 0 ? false : response;
 
 /** 独立入口没有布局树，无需处理主应用布局同步。 */
 const reloadSync = () => undefined;

@@ -13,7 +13,7 @@ import {isElectron} from "../../platform";
 import {openExternal} from "../../platform/electron/shell";
 import {openBy} from "../../platform/localPath/openBy";
 import {setProtyleOutlineCurrent} from "../runtime/layout.port";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {processRender} from "../util/processCode";
 import {highlightRender} from "../render/highlightRender";
 import {speechRender} from "../render/speechRender";

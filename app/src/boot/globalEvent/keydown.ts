@@ -26,7 +26,7 @@ import {rename} from "../../editor/rename";
 import {Files} from "../../layout/dock/Files";
 import {newDailyNote} from "../../util/file/mount";
 import {hideElements} from "../../protyle/ui/hideElements";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {goBack, goForward} from "../../util/platform/backForward";
 import {getDisplayName, getNotebookName, isEncryptedBox} from "../../util/pathName";
 import {openFileById} from "../../editor/utils.openFileById";

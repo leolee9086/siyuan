@@ -1,7 +1,7 @@
 import * as path from "path";
 import type {SettingTabBuilder} from "../setting/builder";
 import {Constants} from "../../constants";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {exportLayout} from "../../layout/export/exportLayout";
 import {exitSiYuan} from "../../dialog/processSystem";
 import {showMessage} from "../../dialog/message";

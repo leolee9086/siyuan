@@ -6,7 +6,7 @@ vi.mock("../../../../src/util/siyuanEnvironments/getSiyuanConfig.environment", (
     getSafeSiyuanConfig: mockedGetSafeSiyuanConfig,
 }));
 
-vi.mock("../../../../src/util/fetch", () => ({
+vi.mock("../../../../src/util/network/fetch", () => ({
     fetchSyncPost: vi.fn(),
 }));
 
@@ -44,11 +44,12 @@ describe("Agent owner request headers", () => {
 
     it("forwards the requested conversation target when listing sessions", async () => {
         mockedGetSafeSiyuanConfig.mockReturnValue({api: {token: "workspace-api-token"}});
-        const fetchModule = await import("../../../../src/util/fetch");
+        const fetchModule = await import("../../../../src/util/network/fetch");
         const fetchSyncPost = vi.mocked(fetchModule.fetchSyncPost);
         fetchSyncPost.mockResolvedValue({
             code: 0,
             data: {sessions: [], total: 0, page: 1, pageSize: 30},
+            msg: "",
         });
         const {SessionStore} = await import("../../../../src/layout/dock/agent/SessionStore");
 
@@ -66,9 +67,9 @@ describe("Agent owner request headers", () => {
 
     it("combines checkpoint, app, workspace and owner headers when saving", async () => {
         mockedGetSafeSiyuanConfig.mockReturnValue({api: {token: "workspace-api-token"}});
-        const fetchModule = await import("../../../../src/util/fetch");
+        const fetchModule = await import("../../../../src/util/network/fetch");
         const fetchSyncPost = vi.mocked(fetchModule.fetchSyncPost);
-        fetchSyncPost.mockResolvedValue({code: 0, data: {revision: 4}});
+        fetchSyncPost.mockResolvedValue({code: 0, data: {revision: 4}, msg: ""});
         const {SessionStore, setAgentOwnerTokenProvider} = await import("../../../../src/layout/dock/agent/SessionStore");
         setAgentOwnerTokenProvider(() => "magi-armor-token");
 
@@ -95,27 +96,29 @@ describe("Agent owner request headers", () => {
 
     it("serializes saves for the same session and chains the committed revision", async () => {
         mockedGetSafeSiyuanConfig.mockReturnValue({});
-        const fetchModule = await import("../../../../src/util/fetch");
+        const fetchModule = await import("../../../../src/util/network/fetch");
         const fetchSyncPost = vi.mocked(fetchModule.fetchSyncPost);
-        let completeFirstSave: (value: {code: number; data: {revision: number}}) => void;
-        const firstResponse = new Promise<{code: number; data: {revision: number}}>((resolve) => {
+        let completeFirstSave: (value: IWebSocketData) => void;
+        const firstResponse = new Promise<IWebSocketData>((resolve) => {
             completeFirstSave = resolve;
         });
         fetchSyncPost
             .mockImplementationOnce(() => firstResponse)
-            .mockResolvedValueOnce({code: 0, data: {revision: 3}});
+            .mockResolvedValueOnce({code: 0, data: {revision: 3}, msg: ""});
         const {SessionStore} = await import("../../../../src/layout/dock/agent/SessionStore");
 
         const first = SessionStore.save({id: "serial", title: "First", createdAt: 1, updatedAt: 1});
         const second = SessionStore.save({id: "serial", title: "Second", createdAt: 1, updatedAt: 1});
         expect(fetchSyncPost).toHaveBeenCalledTimes(1);
 
-        completeFirstSave!({code: 0, data: {revision: 2}});
+        completeFirstSave!({code: 0, data: {revision: 2}, msg: ""});
         await first;
         await second;
 
         expect(fetchSyncPost).toHaveBeenCalledTimes(2);
-        expect(fetchSyncPost.mock.calls[1][1]).toEqual(expect.objectContaining({
+        const secondCall = fetchSyncPost.mock.calls[1];
+        expect(secondCall).toBeDefined();
+        expect(secondCall?.[1]).toEqual(expect.objectContaining({
             title: "Second",
             expectedRevision: 2,
         }));
@@ -123,10 +126,10 @@ describe("Agent owner request headers", () => {
 
     it("propagates a pending save failure instead of loading or deleting stale state", async () => {
         mockedGetSafeSiyuanConfig.mockReturnValue({});
-        const fetchModule = await import("../../../../src/util/fetch");
+        const fetchModule = await import("../../../../src/util/network/fetch");
         const fetchSyncPost = vi.mocked(fetchModule.fetchSyncPost);
-        let completeSave: (value: {code: number; msg: string}) => void;
-        const saveResponse = new Promise<{code: number; msg: string}>((resolve) => {
+        let completeSave: (value: IWebSocketData) => void;
+        const saveResponse = new Promise<IWebSocketData>((resolve) => {
             completeSave = resolve;
         });
         fetchSyncPost.mockImplementationOnce(() => saveResponse);
@@ -145,12 +148,12 @@ describe("Agent owner request headers", () => {
 
     it("rejects three stale reads after observing a newer revision", async () => {
         mockedGetSafeSiyuanConfig.mockReturnValue({});
-        const fetchModule = await import("../../../../src/util/fetch");
+        const fetchModule = await import("../../../../src/util/network/fetch");
         const fetchSyncPost = vi.mocked(fetchModule.fetchSyncPost);
         const session = {id: "revisioned", title: "Revisioned", createdAt: 1, updatedAt: 1};
         fetchSyncPost
-            .mockResolvedValueOnce({code: 0, data: {...session, revision: 5}})
-            .mockResolvedValue({code: 0, data: {...session, revision: 4}});
+            .mockResolvedValueOnce({code: 0, data: {...session, revision: 5}, msg: ""})
+            .mockResolvedValue({code: 0, data: {...session, revision: 4}, msg: ""});
         const {SessionStore} = await import("../../../../src/layout/dock/agent/SessionStore");
 
         await expect(SessionStore.load("revisioned")).resolves.toEqual(expect.objectContaining({revision: 5}));

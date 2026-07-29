@@ -1,7 +1,7 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
 import type {MenuItem} from "../../src/menus/Menu";
 import type {rename} from "../../src/editor/rename";
-import type {fetchPost} from "../../src/util/fetch";
+import type {fetchPost} from "../../src/util/network/fetch";
 import type {movePathTo, moveToPath} from "../../src/util/pathName";
 
 const state = vi.hoisted(() => ({

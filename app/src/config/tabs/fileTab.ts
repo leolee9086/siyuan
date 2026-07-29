@@ -1,6 +1,6 @@
 import {confirmDialog} from "../../dialog/confirmDialog";
 import {genNotebookOption} from "../../menus/onGetnotebookconf";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {editorConfigApi} from "./editorRuntime";
 import {fileConfigApi} from "./fileRuntime";
 import type {SettingTabBuilder} from "../setting/builder";

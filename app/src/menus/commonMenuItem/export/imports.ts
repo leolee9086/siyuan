@@ -19,7 +19,7 @@ import {exportMarkdownZip} from "../../../protyle/export/exportMd";
 /** 用途：判断移动原生平台并保存压缩包；使用范围：平台导出动作；解耦评估：现有兼容层是统一平台边界。 */
 import {isInAndroid, isInHarmony, isInIOS, isInMobileApp, saveExportFile} from "../../../protyle/util/compatibility";
 /** 用途：发起导出请求；使用范围：全部后端导出动作；解耦评估：保持当前回调协议与错误传播。 */
-import {fetchPost, fetchSyncPost} from "../../../util/fetch";
+import {fetchPost, fetchSyncPost} from "../../../util/network/fetch";
 /** 用途：严格读取配置、语言和存储；使用范围：菜单描述与移动 PDF 参数；解耦评估：读取同一全局状态并在缺失时显式失败。 */
 import {getSiyuanConfig, getSiyuanLanguages, getSiyuanStorage} from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 /** 用途：读取当前页面地址；使用范围：移动 PDF HTML 基址；解耦评估：稳定环境查询直达声明。 */

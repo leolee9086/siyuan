@@ -1,6 +1,6 @@
 import type {SettingTabBuilder} from "../setting/builder";
 import {Constants} from "../../constants";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {getCloudURL} from "../util/about";
 import {openByMobile} from "../../editor/openLink";
 import {sendAppSetting} from "./appRuntime";

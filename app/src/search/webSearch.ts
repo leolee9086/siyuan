@@ -1,6 +1,6 @@
 import {getAllEditor} from "../layout/getAll";
 import {showMessage} from "../dialog/message";
-import {fetchSyncPost} from "../util/fetch";
+import {fetchSyncPost} from "../util/network/fetch";
 import type {ProtyleDomain} from "../protyle/protyle.types";
 import {inputEvent} from "./inputEvent";
 import {

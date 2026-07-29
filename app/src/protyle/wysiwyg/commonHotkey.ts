@@ -1,5 +1,5 @@
 import {matchHotKey} from "../util/hotKey";
-import {fetchPost, fetchSyncPost} from "../../util/fetch";
+import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {isMac, writeText} from "../util/compatibility";
 import {focusBlock, getSelectionOffset, setFirstNodeRange, setLastNodeRange,} from "../util/selection";
 import {getContenteditableElement, getNextBlock} from "./getBlock";

@@ -2,7 +2,7 @@ import {saveScroll} from "../../protyle/scroll/saveScroll";
 import {adjustDockPadding} from "../../layout/dock/util";
 import {exportLayout} from "../../layout/export/exportLayout";
 import {syncHideToolbarLayout, updateBarModeIcon} from "../../layout/topBar";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {loadAssets} from "../../util/assets";
 import {remountOpenSettingTab} from "../setting/remount";
 import {createConfigNamespaceApi} from "../util/namespaceApi";

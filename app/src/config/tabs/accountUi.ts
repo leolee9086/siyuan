@@ -1,6 +1,6 @@
 import {showMessage} from "../../dialog/message";
 import {Constants} from "../../constants";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {confirmDialog} from "../../dialog/confirmDialog";
 import {Dialog} from "../../dialog";
 import {isInIOS} from "../../protyle/util/compatibility";

@@ -33,19 +33,19 @@ export interface ILayoutDestroyableModel extends ILayoutModel {
 export interface IModelConnectOptions {
     id: string;
     type?: TWS;
-    callback?: () => void;
-    msgCallback?: (data: IWebSocketData) => void;
+    callback?: () => void | Promise<void>;
+    msgCallback?: (data: IWebSocketData) => void | Promise<void>;
 }
 
-/** Model class 的完整公共领域表面；具体模型可在此基础上增加自身状态和行为。 */
+/** Model class 跨构造、挂载、连接和首次发送阶段的完整公共领域表面。 */
 export interface ModelDomain<
     TApplication extends object = object,
     TParent extends ILayoutModelHost = ILayoutModelHost,
 > extends ILayoutModel {
     readonly layoutModel: true;
-    ws: WebSocket;
-    reqId: number;
-    parent: TParent;
+    ws?: WebSocket;
+    reqId?: number;
+    parent?: TParent;
     app: TApplication;
     connect(options: IModelConnectOptions): void;
     send(cmd: string, param: Record<string, unknown>, process?: boolean): void;

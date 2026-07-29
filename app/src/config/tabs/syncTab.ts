@@ -1,7 +1,7 @@
 import type {SettingTabBuilder} from "../setting/builder";
 import {registerAccountGroup} from "./accountUi";
 import {Constants} from "../../constants";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {confirmDialog} from "../../dialog/confirmDialog";
 import {showMessage} from "../../dialog/message";
 import {processSync} from "../../dialog/processSystem";

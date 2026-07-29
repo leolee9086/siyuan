@@ -14,3 +14,12 @@ export const isWebSocketData = (value: unknown): value is IWebSocketData => {
     const obj = value as Record<string, unknown>;
     return typeof obj.msg === "string" && typeof obj.code === "number";
 };
+
+/** 检查捕获值是否为请求实现产生的取消异常。 */
+export const isAbortError = (value: unknown): value is Error & {name: "AbortError"} =>
+    typeof value === "object" &&
+    value !== null &&
+    "name" in value &&
+    value.name === "AbortError" &&
+    "message" in value &&
+    typeof value.message === "string";

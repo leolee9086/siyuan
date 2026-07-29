@@ -1,4 +1,4 @@
-import {fetchSyncPost} from "../util/fetch";
+import {fetchSyncPost} from "../util/network/fetch";
 
 import type {EventBus} from "./EventBus";
 
