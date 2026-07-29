@@ -17,7 +17,8 @@ import {
     创建贤者回复函数,
 } from "./mockWise.prompts";
 import { 应用人格提示词注入 } from "./promptTemplates/promptInjection";
-import type { MockWISE实例, ReplyOptions, InitMagiOptions } from "./wise.types";
+import type { MockWISE实例, InitMagiOptions } from "./wise.types";
+import type {ReplyOptions} from "../core.types";
 import { MELCHIOR特征集 } from "../dummySys/zhi";
 import * as MELCHIOR提示词模板集 from "./promptTemplates/Melchior";
 import { buildTrinityToolReplyOptions } from "./trinity.toolset";
