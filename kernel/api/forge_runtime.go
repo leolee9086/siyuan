@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"mime"
 	"net/http"
 	"net/url"
 	"strings"
@@ -128,7 +129,8 @@ func requireForgeRuntimeWebUI(c *gin.Context, ret *util.Result) bool {
 		ret.Msg = "Forge Runtime 控制仅接受同源主界面请求"
 		return false
 	}
-	if contentType := strings.ToLower(strings.TrimSpace(c.GetHeader("Content-Type"))); !strings.HasPrefix(contentType, "application/json") {
+	contentType, _, err := mime.ParseMediaType(c.GetHeader("Content-Type"))
+	if err != nil || !strings.EqualFold(contentType, "application/json") {
 		ret.Code = -1
 		ret.Msg = "Forge Runtime 控制仅接受 application/json 请求"
 		return false
@@ -145,7 +147,12 @@ func isForgeRuntimeSameOriginRequest(c *gin.Context) bool {
 		origin.Host == "" || origin.Path != "" || origin.RawQuery != "" || origin.Fragment != "" {
 		return false
 	}
-	return strings.EqualFold(origin.Host, strings.TrimSpace(c.Request.Host))
+	requestScheme := "http"
+	if c.Request.TLS != nil {
+		requestScheme = "https"
+	}
+	return strings.EqualFold(origin.Scheme, requestScheme) &&
+		strings.EqualFold(origin.Host, strings.TrimSpace(c.Request.Host))
 }
 
 func forwardForgeRuntimeRequest(ret *util.Result, endpoint string, body any) {

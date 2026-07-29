@@ -175,8 +175,17 @@ func TestForgeRuntimeWebUIRejectsNonUIAuthenticationAndCrossOriginRequests(t *te
 		{name: "cross origin", mutate: func(request *http.Request) {
 			request.Header.Set("Origin", "http://localhost:6807")
 		}},
+		{name: "cross scheme origin", mutate: func(request *http.Request) {
+			request.Header.Set("Origin", "https://localhost:6806")
+		}},
+		{name: "missing origin", mutate: func(request *http.Request) {
+			request.Header.Del("Origin")
+		}},
 		{name: "non JSON", mutate: func(request *http.Request) {
 			request.Header.Set("Content-Type", "text/plain")
+		}},
+		{name: "JSON prefix spoof", mutate: func(request *http.Request) {
+			request.Header.Set("Content-Type", "application/jsonp")
 		}},
 	}
 	for _, test := range tests {

@@ -2,9 +2,9 @@
 
 > **最终目标**：从源码启动的 S-Forge 在 Kernel 源码形成可验证提交后，允许原生 Agent 或已登录的同设备主界面发起验证与热切换、用户逐次复核受保护变更、Forge Supervisor 执行全量验证、重编译、优雅重启、健康检查与自动回退；浏览器前端可由 Agent 独立触发页面重载。
 >
-> **当前目标**：收口无需 Agent 请求的 Forge Runtime 主界面控制面，验证独立 WebUI 鉴权、审批主动弹窗、命令旁路阻断与完整门禁，再通过唯一 Supervisor 将运行中 Kernel 热切换到本批次提交。
+> **当前目标**：无需 Agent 请求的 Forge Runtime 主界面控制面已在活动 Kernel `7fd0cbeab3be1ed9c85a7908767976fb37756e9d` 上线；当前提交严格同源与精确 JSON 媒体类型收紧，并从新控制面完成第二次真实门禁、主动审批和热切换验收。
 >
-> **下一步任务**：暂存并原子提交直接控制面实现；由主界面发起真实“校验并热切换”，确认受保护测试审批弹窗可见且批准精确绑定当前 `jobId + revision`，完成全量核心门禁、候选切换、页面回归与运行版本核对。
+> **下一步任务**：复跑鉴权专项测试并原子提交本批次；在状态栏“Forge 核心更新”Dialog 中直接点击“校验并热切换”，确认受保护测试审批弹窗精确绑定当前 `jobId + revision`，完成全量核心门禁、候选切换、页面回归和活动 revision 核对。
 
 ---
 
@@ -82,9 +82,9 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
   - **行动**：执行 Go 单元测试、目标全量门禁测试和前端测试；在不直接读取开发工作空间配置与凭据的前提下验证 Supervisor 启动、认证控制租约、同工作空间复用和已提交 Kernel 更新的受控切换。前端 lint 结果可记录，但不属于刷新门禁。
   - **验收标准**：测试证据写入本文；当前工作树未满足清洁门禁时明确记录预期阻断，不伪造真实核心切换成功；旧控制面无租约时明确要求一次正常退出迁移，不创建第二 Kernel。
 
-- [ ] **Phase 7：主界面人工控制面与主动审批（P0）** [实现验证中 2026-07-30]
+- [ ] **Phase 7：主界面人工控制面与主动审批（P0）** [源码与专项测试完成，运行验收中 2026-07-30]
   - **行动**：在完整桌面/Web 主应用状态栏注册 Forge Runtime 控制入口；通过 Kernel 公开 API 查询状态、直接发起验证与热切换；轮询发现受保护变更时主动显示文件清单及批准/拒绝弹窗。MAGI、移动端与独立窗口不通过全局断点或条件分支复用该入口。
-  - **鉴权**：路由保留 `CheckAuth + CheckAdminRole + CheckReadonly`，Handler 追加真实同设备来源、严格 `Origin == Host`、`application/json` 与通用 Token 凭据拒绝；Kernel 代持唯一回环 Supervisor 凭据。Agent Bash 明确阻断 WebUI Runtime URL，CLI 凭据继续只允许状态与重启，不能审批。
+  - **鉴权**：路由保留 `CheckAuth + CheckAdminRole + CheckReadonly`，Handler 追加真实同设备来源、协议与主机均一致的严格同源校验、精确 `application/json` 媒体类型校验与通用 Token 凭据拒绝；Kernel 代持唯一回环 Supervisor 凭据。Agent Bash 明确阻断 WebUI Runtime URL，CLI 凭据继续只允许状态与重启，不能审批。
   - **验收标准**：无需 Agent 消息即可打开控制面并发起任务；相同 pending `jobId + revision` 只弹一次；错误在界面可见；API Token、插件 JWT、BasicAuth、query token、跨源、远端和非 JSON 请求均不触达 Supervisor；真实审批、全量门禁和热切换通过。
 
 ## 中期计划
@@ -126,9 +126,14 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
 
 - [x] **2026-07-30：主界面直接控制面实现与专项验证**
   - **完成情况**：新增独立 `ForgeRuntimeClient`、控制器、状态栏/Dialog 视图和样式；主应用在布局与消息系统初始化后启动控制面，非 Forge 模式按 capability 不显示入口。重启 mutation 完成后立即切换为 1 秒活动轮询；相同 pending `jobId + revision` 只创建一个审批弹窗；控制 Dialog 周期刷新保留用户已输入的更新说明。
-  - **鉴权情况**：Kernel WebUI API 与 MCP 共用唯一 `CallForgeSupervisor` 传输，但不共用 Agent 确认 capability；路由要求登录管理员且非只读，Handler 额外拒绝远端、跨源、非 JSON、Authorization、`X-Auth-Token` 和 query token。批准/拒绝由 Supervisor 对当前 pending 对象执行精确重验，CLI token 调用审批保持 403；Agent Forge Bash 规则覆盖新 WebUI Runtime 路径。
+  - **鉴权情况**：Kernel WebUI API 与 MCP 共用唯一 `CallForgeSupervisor` 传输，但不共用 Agent 确认 capability；路由要求登录管理员且非只读，Handler 额外拒绝远端、协议或主机跨源、缺失 `Origin`、非精确 JSON 媒体类型、Authorization、`X-Auth-Token` 和 query token。批准/拒绝由 Supervisor 对当前 pending 对象执行精确重验，CLI token 调用审批保持 403；Agent Forge Bash 规则覆盖新 WebUI Runtime 路径。
   - **成果文件**：`app/src/sforge/forgeRuntime/*`、`app/src/index.ts`、Forge i18n、`kernel/api/forge_runtime.go`、`kernel/util/forge_supervisor.go`、`kernel/mcp/tools/forge.go`、`app/scripts/forge-runtime-supervisor.js` 及对应测试。
-  - **验证证据**：`go test ./api ./mcp/tools ./util -count=1` 通过；Supervisor `39/39` 通过；前端 Forge Runtime `8/8` 通过；主应用 development one-shot 构建成功；`git diff --check` 无差异错误。完整 `pnpm typecheck` 仍被 AppFacade、异步迁移、Protyle 等现有全局诊断阻断，但本次 `forgeRuntime` 文件与新增测试的筛选诊断已归零，未将全量类型检查记为通过。真实提交门禁、审批弹窗和 Kernel 热切换仍属于 Phase 6/7 待验收项。
+  - **验证证据**：`go test ./api ./mcp/tools ./util -count=1` 通过；Supervisor `39/39` 通过；前端 Forge Runtime `8/8` 通过；主应用 development one-shot 构建成功；`git diff --check` 无差异错误。2026-07-30 再次复跑上述三组专项测试均通过，并新增跨协议 Origin、缺失 Origin 与 `application/jsonp` 媒体类型伪装拒绝用例。完整 `pnpm typecheck` 仍被 AppFacade、异步迁移、Protyle 等现有全局诊断阻断，但本次 `forgeRuntime` 文件与新增测试的筛选诊断已归零，未将全量类型检查记为通过。首个真实提交门禁与 Kernel 热切换已通过；严格鉴权收紧提交下的直接发起和主动审批仍属于 Phase 7 待验收项。
+
+- [x] **2026-07-30：直接控制面的单次引导上线**
+  - **运行证据**：唯一 Supervisor PID `32436` 未变化；任务 `2026-07-29T23-11-16.327Z-33baaf44` 经精确受保护文件人工批准后依次通过 `gofmt`、`go vet -tags fts5 ./...`、`go test -short -tags fts5 ./...`、源码二次检查、候选构建和健康检查，活动 Kernel 晋升为 `7fd0cbeab3be1ed9c85a7908767976fb37756e9d`。
+  - **恢复证据**：正式 `retry-post-commit` operation `2026-07-29T23-17-29-900Z-7fd0cbeab3be-86dcea0c` 已闭合为 `completed`；Supervisor、Kernel 与 `/`、Agent App、MAGI desktop/mobile/identity、Protyle App 页面探针全部通过，未删除或覆盖此前审批超时记录。
+  - **界面证据**：刷新主应用后状态栏出现“Forge 核心更新”；无需 Agent 消息即可打开控制 Dialog，界面显示活动 revision、任务状态、阶段、更新说明及“校验并热切换”动作。
 
 - [x] **2026-07-22：现状调查与架构决策**
   - **完成情况**：确认 Forge 父进程当前不保活；确认现有 Agent 确认机制可扩展但“始终允许”需要对重启单独禁用；确认 `s-code` 使用交替不可变产物；确定采用 Supervisor 控制面而非 Kernel 自行覆盖并拉起自身。
