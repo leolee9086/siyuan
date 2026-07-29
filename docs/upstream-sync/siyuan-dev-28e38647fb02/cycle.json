@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "generator": "scripts/upstream-sync/audit-manifest.mjs",
+  "cycleId": "siyuan-dev-28e38647fb02",
+  "upstreamRemote": "https://github.com/siyuan-note/siyuan.git",
+  "upstreamBranch": "dev",
+  "localBase": "7845c47e3620a7cd411648e36fd508c43ea757f7",
+  "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
+  "upstreamTip": "28e38647fb02ef126002633f33f9d3fcccb8c167",
+  "candidateBranch": "sync/upstream-dev-28e38647fb02",
+  "candidateHead": "4d13d8b4cae1c90b56143cd846493d64b59a1386",
+  "candidateCreatedAt": "2026-07-29T14:15:25+08:00",
+  "mainRepository": "D:/dev/s-forge",
+  "mainBranch": "multipleAI",
+  "isolatedRepository": "D:/dev/s-forge-upstream-sync-20260729-7845c47e3",
+  "deliveryStrategy": {
+    "mode": "rolling-verified-series",
+    "deliveriesManifest": "docs/upstream-sync/siyuan-dev-28e38647fb02/deliveries.jsonl",
+    "longLivedMainFreeze": false,
+    "seriesIntegration": "no-ff",
+    "finalTopologyIntegration": "ff-only-reviewed-ours-merge"
+  },
+  "frozenAt": "2026-07-29T20:02:23+08:00",
+  "requiredGates": [
+    "kernel: go test -short -tags fts5 ./...",
+    "kernel: go vet -tags fts5 ./...",
+    "app: pnpm typecheck",
+    "app: pnpm test",
+    "app: pnpm test:browser",
+    "app: pnpm build"
+  ],
+  "procedure": {
+    "blockId": "20260729083130-vaxfqpr",
+    "updatedAt": "20260729204652",
+    "kramdownSha256": "427d6b58c462b37a223f326f241b5f8276d47676f42cffc00630969768f84c00",
+    "mirrorSha256": "cb694e3afdf35caac19f79c076471d587116ae082f26261913ea743686e967b4"
+  },
+  "commitCount": 440,
+  "mergeCommitCount": 33,
+  "revertCommitCount": 0,
+  "stablePatchIdCount": 407,
+  "mappedUpstreamCommitCount": 4,
+  "auditGrouping": {
+    "mode": "optional",
+    "fixedSize": null,
+    "note": "Grouping is an execution aid and never a completion boundary."
+  }
+}
