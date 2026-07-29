@@ -14,10 +14,10 @@ import {
     hasClosestBlock,
     hasClosestByAttribute,
     hasClosestByClassName,
-    hasClosestByTag,
     isInEmbedBlock
 } from "../util/hasClosest";
 import { hideElements } from "./hideElements";
+import {highlightGutterButtonTarget} from "./gutterHover";
 
 /**
  * 处理字体大小增减
@@ -306,62 +306,6 @@ const 处理Gutter悬停 = (protyle: IProtyle, nodeElement: HTMLElement, target:
 };
 
 /**
- * 处理高亮项的移除
- */
-const 处理高亮移除 = (
-    protyle: IProtyle,
-    currentItem: Element,
-    rowItem: Element | null
-) => {
-    Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--hl, .av__row--hl")).forEach(hlItem => {
-        if (currentItem !== hlItem) {
-            hlItem.classList.remove("protyle-wysiwyg--hl");
-        }
-        if (rowItem && rowItem !== hlItem) {
-            rowItem.classList.remove("av__row--hl");
-        }
-    });
-};
-
-/**
- * 处理 gutter 按钮的鼠标悬停高亮
- */
-const 处理Gutter按钮高亮 = (protyle: IProtyle, target: HTMLElement, event: Event): boolean => {
-    const buttonElement = hasClosestByTag(target, "BUTTON");
-    const 不是Gutter按钮 = !buttonElement || !buttonElement.parentElement.classList.contains("protyle-gutters");
-    if (不是Gutter按钮) {
-        return false;
-    }
-
-    const type = buttonElement.getAttribute("data-type");
-    if (type === "fold" || type === "NodeAttributeViewRow") {
-        Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--hl, .av__row--hl")).forEach(item => {
-            item.classList.remove("protyle-wysiwyg--hl", "av__row--hl");
-        });
-        return true;
-    }
-
-    const gutterNodeElement = protyle.gutter.getNodeElement(protyle, buttonElement);
-    if (gutterNodeElement) {
-        const bodyQueryClass = (buttonElement.dataset.groupId && buttonElement.dataset.groupId !== "undefined")
-            ? `.av__body[data-group-id="${buttonElement.dataset.groupId}"] `
-            : "";
-        const rowItem = gutterNodeElement.querySelector(bodyQueryClass + `.av__row[data-id="${buttonElement.dataset.rowId}"]`);
-
-        处理高亮移除(protyle, gutterNodeElement, rowItem);
-
-        if (type === "NodeAttributeViewRowMenu" && rowItem) {
-            rowItem.classList.add("av__row--hl");
-        } else {
-            gutterNodeElement.classList.add("protyle-wysiwyg--hl");
-        }
-    }
-
-    event.preventDefault();
-    return true;
-};
-
-/**
  * 处理面包屑的鼠标悬停高亮
  */
 const 处理面包屑高亮 = (protyle: IProtyle, target: HTMLElement) => {
@@ -419,7 +363,7 @@ export const 绑定悬停事件 = (protyle: IProtyle) => {
         }
 
         // 3. 处理 gutter 按钮高亮
-        if (处理Gutter按钮高亮(protyle, event.target, event)) {
+        if (highlightGutterButtonTarget(protyle, event.target, event)) {
             return;
         }
 
