@@ -1,10 +1,9 @@
 import {focusByRange} from "./selection";
-import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
+import {fetchSyncPost} from "../../util/network/fetch";
 import {Constants} from "../../constants";
 import {isBrowser, isElectron} from "../../platform";
 import {ipcInvoke, ipcSendSync} from "../../platform/electron/ipcRenderer";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import {getDefaultSubType, getDefaultType} from "../../search/defaults/searchDefaults";
 import {hideMessage, showMessage} from "../runtime/dialog.port";
 import {isMac} from "../../util/platform/hotkey/format";
 import {isNotCtrl} from "../../util/platform/hotkey/format";
@@ -15,6 +14,7 @@ import {getEventName} from "../../util/platform/functions";
 import {isIPad} from "../../util/platform/functions";
 import {isIPhone} from "../../util/platform/functions";
 import {setStorageVal} from "../../util/storage/setStorageVal";
+export {getLocalStorage} from "./localStorage/initialize";
 
 export {getEventName};
 export {isIPad};
@@ -416,164 +416,6 @@ export function isChromeBrowser(): boolean {
 
     return isChromium && !isEdge && !isOpera;
 }
-
-export const getLocalStorage = (cb: () => void) => {
-    fetchPost("/api/storage/getLocalStorage", undefined, (response) => {
-        window.siyuan.storage = response.data;
-        // 历史数据迁移
-        const defaultStorage: any = {};
-        defaultStorage[Constants.LOCAL_SEARCHASSET] = {
-            keys: [],
-            col: "",
-            row: "",
-            layout: 0,
-            method: 0,
-            types: {},
-            sort: 0,
-            k: "",
-        };
-        defaultStorage[Constants.LOCAL_SEARCHUNREF] = {
-            col: "",
-            row: "",
-            layout: 0,
-        };
-        Constants.SIYUAN_ASSETS_SEARCH.forEach(type => {
-            defaultStorage[Constants.LOCAL_SEARCHASSET].types[type] = true;
-        });
-        defaultStorage[Constants.LOCAL_SEARCHKEYS] = {
-            keys: [],
-            replaceKeys: [],
-            col: "",
-            row: "",
-            layout: 0,
-            colTab: "",
-            rowTab: "",
-            layoutTab: 0
-        };
-        defaultStorage[Constants.LOCAL_PDFTHEME] = {
-            light: "light",
-            dark: "dark",
-            annoColor: "var(--b3-pdf-background1)"
-        };
-        defaultStorage[Constants.LOCAL_LAYOUTS] = [];   // {name: "", layout:{}, time: number, filespaths: IFilesPath[]}
-        defaultStorage[Constants.LOCAL_AI] = [];   // {name: "", memo: ""}
-        defaultStorage[Constants.LOCAL_PLUGIN_DOCKS] = {};  // { pluginName: {dockId: IPluginDockTab}}
-        defaultStorage[Constants.LOCAL_PLUGINTOPUNPIN] = [];
-        defaultStorage[Constants.LOCAL_OUTLINE] = { keepCurrentExpand: false };
-        defaultStorage[Constants.LOCAL_FILEPOSITION] = {}; // {id: IScrollAttr}
-        defaultStorage[Constants.LOCAL_DIALOGPOSITION] = {}; // {id: IPosition}
-        defaultStorage[Constants.LOCAL_HISTORY] = {
-            notebookId: "%",
-            type: 0,
-            operation: "all",
-            sideWidth: "256px",
-            sideDocWidth: "256px",
-            sideDiffWidth: "256px",
-        };
-        defaultStorage[Constants.LOCAL_FLASHCARD] = {
-            fullscreen: false
-        };
-        defaultStorage[Constants.LOCAL_BAZAAR] = {
-            theme: "0",
-            template: "0",
-            icon: "0",
-            widget: "0",
-        };
-        defaultStorage[Constants.LOCAL_EXPORTWORD] = { removeAssets: false, mergeSubdocs: false };
-        defaultStorage[Constants.LOCAL_EXPORTPDF] = {
-            landscape: false,
-            marginType: "0",
-            scale: 1,
-            pageSize: "A4",
-            removeAssets: true,
-            keepFold: false,
-            mergeSubdocs: false,
-            watermark: false,
-            paged: true
-        };
-        defaultStorage[Constants.LOCAL_EXPORTIMG] = {
-            keepFold: false,
-            watermark: false,
-            ratio: "auto",
-            background: ""
-        };
-        defaultStorage[Constants.LOCAL_DOCINFO] = {
-            id: "",
-        };
-        defaultStorage[Constants.LOCAL_IMAGES] = {
-            file: "1f4c4",
-            note: "1f5c3",
-            folder: "1f4d1"
-        };
-        defaultStorage[Constants.LOCAL_EMOJIS] = {
-            currentTab: "emoji"
-        };
-        defaultStorage[Constants.LOCAL_FONTSTYLES] = [];
-        defaultStorage[Constants.LOCAL_CLOSED_TABS] = [];
-        defaultStorage[Constants.LOCAL_FILESPATHS] = [];    // IFilesPath[]
-        defaultStorage[Constants.LOCAL_SEARCHDATA] = {
-            removed: true,
-            page: 1,
-            sort: 0,
-            group: 0,
-            hasReplace: false,
-            method: 0,
-            hPath: "",
-            idPath: [],
-            k: "",
-            r: "",
-            types: getDefaultType(),
-            subTypes: getDefaultSubType(),
-            replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
-        };
-        defaultStorage[Constants.LOCAL_ZOOM] = 1;
-        defaultStorage[Constants.LOCAL_MOVE_PATH] = { keys: [], k: "" };
-        defaultStorage[Constants.LOCAL_RECENT_DOCS] = { type: "viewedAt" };   // TRecentDocsSort
-        defaultStorage[Constants.LOCAL_SEMANTIC_SEARCH] = {
-            datasets: [],      // 空数组表示查询所有数据集
-            topK: 10,
-            threshold: 0,
-            lastQuery: ""
-        };
-
-        [Constants.LOCAL_EXPORTIMG, Constants.LOCAL_SEARCHKEYS, Constants.LOCAL_PDFTHEME, Constants.LOCAL_BAZAAR,
-            Constants.LOCAL_EXPORTWORD, Constants.LOCAL_EXPORTPDF, Constants.LOCAL_DOCINFO, Constants.LOCAL_FONTSTYLES,
-            Constants.LOCAL_SEARCHDATA, Constants.LOCAL_ZOOM, Constants.LOCAL_LAYOUTS, Constants.LOCAL_AI,
-            Constants.LOCAL_PLUGINTOPUNPIN, Constants.LOCAL_SEARCHASSET, Constants.LOCAL_FLASHCARD,
-            Constants.LOCAL_DIALOGPOSITION, Constants.LOCAL_SEARCHUNREF, Constants.LOCAL_HISTORY,
-            Constants.LOCAL_OUTLINE, Constants.LOCAL_FILEPOSITION, Constants.LOCAL_FILESPATHS, Constants.LOCAL_IMAGES,
-            Constants.LOCAL_PLUGIN_DOCKS, Constants.LOCAL_EMOJIS, Constants.LOCAL_MOVE_PATH, Constants.LOCAL_RECENT_DOCS,
-            Constants.LOCAL_CLOSED_TABS,
-            Constants.LOCAL_SEMANTIC_SEARCH].forEach((key) => { // S-forge: LOCAL_SEMANTIC_SEARCH 为本地语义搜索功能扩展
-            if (typeof response.data[key] === "string") {
-                try {
-                    const parseData = JSON.parse(response.data[key]);
-                    if (typeof parseData === "number") {
-                        // https://github.com/siyuan-note/siyuan/issues/8852 Object.assign 会导致 number to Number
-                        window.siyuan.storage[key] = parseData;
-                    } else {
-                        window.siyuan.storage[key] = Object.assign(defaultStorage[key], parseData);
-                    }
-                } catch (e) {
-                    window.siyuan.storage[key] = defaultStorage[key];
-                }
-            } else if (typeof response.data[key] === "undefined") {
-                window.siyuan.storage[key] = defaultStorage[key];
-            }
-        });
-        // 搜索数据添加 replaceTypes 兼容
-        if (!window.siyuan.storage[Constants.LOCAL_SEARCHDATA].replaceTypes ||
-            Object.keys(window.siyuan.storage[Constants.LOCAL_SEARCHDATA].replaceTypes).length === 0) {
-            window.siyuan.storage[Constants.LOCAL_SEARCHDATA].replaceTypes = Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES);
-        }
-        // Migrate stored search data to include subTypes when absent
-        if (!window.siyuan.storage[Constants.LOCAL_SEARCHDATA].subTypes ||
-            Object.keys(window.siyuan.storage[Constants.LOCAL_SEARCHDATA].subTypes).length === 0) {
-            window.siyuan.storage[Constants.LOCAL_SEARCHDATA].subTypes = getDefaultSubType();
-        }
-        cb();
-    });
-};
 
 export const initNativeDialogOverride = () => {
     if (isBrowser) {

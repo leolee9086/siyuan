@@ -13,7 +13,7 @@ import {parseSiYuanUriInfo} from "../util/uri/protocol";
 import {exportLayout} from "../layout/export/exportLayout";
 // S-forge: 补 handleTouchUp——上游 commit 8e2f01032 新增的触摸事件处理函数，用于物理按键消除长按定时器
 import { handleTouchEnd, handleTouchMove, handleTouchStart, handleTouchUp } from "./util/touch";
-import { fetchGet, fetchPost } from "../util/network/fetch";
+import { fetchPost } from "../util/network/fetch";
 import { initFramework } from "./util/initFramework";
 import { initAssets } from "../util/assets/assets";
 import { bootSync, lockScreen } from "../dialog/processSystem";
@@ -67,6 +67,7 @@ import { SForgeSymbols } from "../config/sforge.symbols";
 import { appearanceConfigApi } from "../config/tabs/appearanceRuntime";
 // S-forge: 上游 8422a9b49 新增的移动端原生键盘控制函数，用于调用原生键盘、判断输入能力、设置 WebView 可聚焦
 import {armKeyboardLock, callMobileAppShowKeyboard, canInput, setWebViewFocusable} from "./keyboard/mobileAppUtil";
+import {loadSiyuanLanguages} from "../util/siyuanEnvironments/languages/environment";
 
 import {activateQueuedAVLocate, queueAVLocateRequest} from "../protyle/render/av/locate/activation/activation";
 import {avRender} from "../protyle/render/av/render";
@@ -278,14 +279,14 @@ export class App {
         fetchPost("/api/system/getConf", {}, async (confResponse) => {
             addScriptSync(`${Constants.PROTYLE_CDN}/js/lute/lute.min.js?v=${Constants.SIYUAN_VERSION}`, "protyleLuteScript");
             addScript(`${Constants.PROTYLE_CDN}/js/protyle-html.js?v=${Constants.SIYUAN_VERSION}`, "protyleWcHtmlScript");
-            window.siyuan.config = confResponse.data.conf;
+            const config = confResponse.data.conf;
+            window.siyuan.config = config;
             window.siyuan.isPublish = confResponse.data.isPublish;
             correctHotkey(siyuanApp);
             await loadPlugins(this);
             await this.inNotePluginManager.init(this);
-            getLocalStorage(() => {
-                fetchGet(`/appearance/langs/${window.siyuan.config.appearance.lang}.json?v=${Constants.SIYUAN_VERSION}`, async (lauguages: IObject) => {
-                    window.siyuan.languages = lauguages;
+            await getLocalStorage();
+            await loadSiyuanLanguages(config.appearance.lang);
                     // S-forge: 加载 Forge 翻译
                     const { loadForgeI18n } = await import("../util/siyuanEnvironments/forgeI18n.getI18n.environment");
                     await loadForgeI18n();
@@ -323,8 +324,6 @@ export class App {
                             });
                         });
                     });
-                });
-            });
             document.addEventListener("touchstart", handleTouchStart, false);
             document.addEventListener("touchmove", handleTouchMove, false);
             document.addEventListener("touchend", handleTouchEnd, false);

@@ -5,7 +5,7 @@ import "../assets/scss/base.scss";
 import { initBlockPopover } from "../block/popover";
 import { addScript, addScriptSync } from "../protyle/util/addScript";
 import { genUUID } from "../util/platform/genID";
-import { fetchGet, fetchPost } from "../util/network/fetch";
+import { fetchPost } from "../util/network/fetch";
 import { addBaseURL, getDocDisplayName, redirectToCheckAuth, setNoteBook } from "../util/file/pathName";
 import {exportLayout} from "../layout/export/exportLayout";
 import { openFileById } from "../editor/utils.openFileById";
@@ -35,6 +35,7 @@ import { setBodyHighlight } from "../util/assets/assets";
 import { setSForgeState } from "../config/sforge.global";
 import { SForgeSymbols } from "../config/sforge.symbols";
 import { createProcessMessage, setProcessMessageUIDependencies } from "../util/network/processMessage";
+import {loadSiyuanLanguages} from "../util/siyuanEnvironments/languages/environment";
 
 class App {
     public plugins: import("../plugin").Plugin[] = [];
@@ -201,13 +202,13 @@ class App {
         fetchPost("/api/system/getConf", {}, async (response) => {
             addScriptSync(`${Constants.PROTYLE_CDN}/js/lute/lute.min.js?v=${Constants.SIYUAN_VERSION}`, "protyleLuteScript");
             addScript(`${Constants.PROTYLE_CDN}/js/protyle-html.js?v=${Constants.SIYUAN_VERSION}`, "protyleWcHtmlScript");
-            window.siyuan.config = response.data.conf;
+            const config = response.data.conf;
+            window.siyuan.config = config;
             setBodyHighlight();
             window.siyuan.isPublish = response.data.isPublish;
             await loadPlugins(this);
-            getLocalStorage(() => {
-                fetchGet(`/appearance/langs/${window.siyuan.config.appearance.lang}.json?v=${Constants.SIYUAN_VERSION}`, async (lauguages: IObject) => {
-                    window.siyuan.languages = lauguages;
+            await getLocalStorage();
+            await loadSiyuanLanguages(config.appearance.lang);
                     // 加载 Forge 翻译
                     const { loadForgeI18n } = await import("../util/siyuanEnvironments/forgeI18n.getI18n.environment");
                     await loadForgeI18n();
@@ -227,8 +228,6 @@ class App {
                         setTitle("", true);
                         initMessage();
                     });
-                });
-            });
         });
         setNoteBook();
         initBlockPopover(this);
