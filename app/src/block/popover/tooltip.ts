@@ -43,13 +43,14 @@ export type { TooltipInfo };
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * 异步获取信息后再显示 tooltip，鼠标已移走时需中断请求
+ * 异步获取信息后再显示 tooltip，鼠标已移走时需废弃旧请求结果
  * https://github.com/siyuan-note/siyuan/issues/14823
  */
 let tooltipAbortController: AbortController | null = null;
 
 /**
- * 中断上一轮尚未完成的 tooltip 信息请求
+ * 标记上一轮 tooltip 请求失效；传输继续完成，回调通过 signal 状态丢弃旧结果。
+ * 原生 fetch 不接收该 signal，避免正常的悬停切换产生 AbortError 请求失败日志。
  * 在 mouseover 事件开始处调用
  * @同步豁免: 性能考虑 - 此函数需要在事件循环中同步中断异步请求，避免并发请求堆积
  */
@@ -309,7 +310,7 @@ const handleStatAssetResponse = ({response, tip, title, aElement, tooltipClass}:
 };
 
 /**
- * 处理本地路径的 tooltip 显示，使用 AbortController 支持请求中断
+ * 处理本地路径的 tooltip 显示，使用 AbortController 标记过期响应
  */
 const handleLocalPathTooltip = (aElement: HTMLElement, tip: string, tooltipClass: string) => {
     const href = aElement.getAttribute("data-href");
@@ -327,7 +328,7 @@ const handleLocalPathTooltip = (aElement: HTMLElement, tip: string, tooltipClass
         if (tooltipAbortController?.signal === signal) {
             tooltipAbortController = null;
         }
-    }, undefined, undefined, signal);
+    });
 };
 
 /**
@@ -350,7 +351,7 @@ const updateNotebookTooltip = (response: IWebSocketData, target: HTMLElement, no
 };
 
 /**
- * 处理笔记本的 tooltip 显示，使用 AbortController 支持请求中断
+ * 处理笔记本的 tooltip 显示，使用 AbortController 标记过期响应
  */
 const handleNotebookTooltip = (event: MouseEvent) => {
     const target = event.target;
@@ -380,7 +381,7 @@ const handleNotebookTooltip = (event: MouseEvent) => {
         if (tooltipAbortController?.signal === signal) {
             tooltipAbortController = null;
         }
-    }, undefined, undefined, signal);
+    });
 };
 
 /**
@@ -434,7 +435,7 @@ const handleTabTooltip = (event: MouseEvent) => {
         if (tooltipAbortController?.signal === signal) {
             tooltipAbortController = null;
         }
-    }, undefined, undefined, signal);
+    });
 };
 
 /**
