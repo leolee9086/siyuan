@@ -1,5 +1,5 @@
 import {ForgeRuntimeClient} from "./client";
-import {forgeRuntimeTerminalJobStates} from "./types";
+import {isForgeRuntimeJobActive} from "./types";
 import type {ForgeRuntimeControllerState, ForgeRuntimeStatusData} from "./types";
 
 type ForgeRuntimeStateListener = (state: ForgeRuntimeControllerState) => void;
@@ -64,6 +64,9 @@ export class ForgeRuntimeController {
         const normalizedReason = reason.trim();
         if (!normalizedReason) {
             throw new Error("Forge Runtime restart reason is required");
+        }
+        if (isForgeRuntimeJobActive(this.currentState.status?.status?.job)) {
+            throw new Error("A Forge Runtime restart job is already running");
         }
         await this.runMutation(async () => {
             await this.client.restart(normalizedReason);
@@ -139,8 +142,8 @@ export class ForgeRuntimeController {
         if (this.pollTimer !== undefined) {
             window.clearTimeout(this.pollTimer);
         }
-        const jobState = this.currentState.status?.status?.job?.state;
-        const interval = jobState && !forgeRuntimeTerminalJobStates.has(jobState) ? activePollInterval : idlePollInterval;
+        const interval = isForgeRuntimeJobActive(this.currentState.status?.status?.job) ?
+            activePollInterval : idlePollInterval;
         this.pollTimer = window.setTimeout(() => {
             this.pollTimer = undefined;
             void this.refresh().catch((error) => {

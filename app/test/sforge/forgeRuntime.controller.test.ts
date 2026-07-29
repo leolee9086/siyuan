@@ -44,6 +44,12 @@ const activeJob = {
     error: "",
 };
 
+const completedJob = {
+    ...activeJob,
+    state: "completed",
+    phase: "completed",
+};
+
 describe("Forge Runtime WebUI client", () => {
     beforeEach(() => {
         network.fetchSyncPost.mockReset();
@@ -142,6 +148,32 @@ describe("Forge Runtime controller", () => {
         expect(getStatus).toHaveBeenCalledTimes(2);
         await vi.advanceTimersByTimeAsync(1);
         expect(getStatus).toHaveBeenCalledTimes(3);
+        controller.destroy();
+    });
+
+    it("rejects a duplicate restart while the Supervisor job is active", async () => {
+        const client = new ForgeRuntimeClient();
+        vi.spyOn(client, "getStatus").mockResolvedValue(status(activeJob));
+        const restart = vi.spyOn(client, "restart");
+        const controller = new ForgeRuntimeController(client);
+        await controller.start();
+
+        await expect(controller.restart("duplicate request")).rejects.toThrow("restart job is already running");
+        expect(restart).not.toHaveBeenCalled();
+        controller.destroy();
+    });
+
+    it("allows a new restart after the previous Supervisor job reaches a terminal state", async () => {
+        const client = new ForgeRuntimeClient();
+        vi.spyOn(client, "getStatus").mockResolvedValue(status(completedJob));
+        const restart = vi.spyOn(client, "restart").mockResolvedValue({job: activeJob});
+        const controller = new ForgeRuntimeController(client);
+        await controller.start();
+
+        await controller.restart("next validated revision");
+
+        expect(restart).toHaveBeenCalledOnce();
+        expect(restart).toHaveBeenCalledWith("next validated revision");
         controller.destroy();
     });
 

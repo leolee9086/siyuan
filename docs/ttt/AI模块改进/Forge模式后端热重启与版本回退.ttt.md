@@ -82,7 +82,7 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
   - **行动**：执行 Go 单元测试、目标全量门禁测试和前端测试；在不直接读取开发工作空间配置与凭据的前提下验证 Supervisor 启动、认证控制租约、同工作空间复用和已提交 Kernel 更新的受控切换。前端 lint 结果可记录，但不属于刷新门禁。
   - **验收标准**：测试证据写入本文；当前工作树未满足清洁门禁时明确记录预期阻断，不伪造真实核心切换成功；旧控制面无租约时明确要求一次正常退出迁移，不创建第二 Kernel。
 
-- [ ] **Phase 7：主界面人工控制面与主动审批（P0）** [源码与专项测试完成，运行验收中 2026-07-30]
+- [x] **Phase 7：主界面人工控制面与主动审批（P0）** [已完成 2026-07-30]
   - **行动**：在完整桌面/Web 主应用状态栏注册 Forge Runtime 控制入口；通过 Kernel 公开 API 查询状态、直接发起验证与热切换；轮询发现受保护变更时主动显示文件清单及批准/拒绝弹窗。MAGI、移动端与独立窗口不通过全局断点或条件分支复用该入口。
   - **鉴权**：路由保留 `CheckAuth + CheckAdminRole + CheckReadonly`，Handler 追加真实同设备来源、协议与主机均一致的严格同源校验、精确 `application/json` 媒体类型校验与通用 Token 凭据拒绝；Kernel 代持唯一回环 Supervisor 凭据。Agent Bash 明确阻断 WebUI Runtime URL，CLI 凭据继续只允许状态与重启，不能审批。
   - **验收标准**：无需 Agent 消息即可打开控制面并发起任务；相同 pending `jobId + revision` 只弹一次；错误在界面可见；API Token、插件 JWT、BasicAuth、query token、跨源、远端和非 JSON 请求均不触达 Supervisor；真实审批、全量门禁和热切换通过。
@@ -114,8 +114,8 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
 - [x] Agent 发起 Kernel 重启时每次出现人在回路复核，直接 MCP 调用不能触发。
 - [x] 所有 Agent Bash/命令调用先经独立模型审核；Forge 源码场景额外识别重启绕过意图，模型审核异常时失败关闭。
 - [x] Bash 子进程不继承 Supervisor 地址、令牌和源码根环境；显式生命周期命令被确定性阻断，核心意外退出时仅恢复记录中的不可变活动版本。
-- [ ] 已登录的同设备主界面可在不创建 Agent 请求的情况下直接发起校验与热切换，且通用 API/插件凭据、跨源与远端请求不能使用该人工 UI 通道。
-- [ ] 主界面轮询在任务进入 `awaiting_protected_test_approval` 后主动弹出精确审批；用户无需依赖终端或 Agent 查询即可批准或拒绝。
+- [x] 已登录的同设备主界面可在不创建 Agent 请求的情况下直接发起校验与热切换，且通用 API/插件凭据、跨源与远端请求不能使用该人工 UI 通道。
+- [x] 主界面轮询在任务进入 `awaiting_protected_test_approval` 后主动弹出精确审批；用户无需依赖终端或 Agent 查询即可批准或拒绝。
 - [x] 脏 Git、无新提交、无 Kernel 变化、格式/vet/任一测试失败均阻断重启并可查询原因。
 - [x] 候选构建完成前现有 Kernel 持续运行。
 - [x] 新 Kernel 健康检查通过后才晋升为当前版本；失败时自动拉起上一版本。
@@ -123,6 +123,12 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
 - [x] 相关 Go/Node/前端测试通过，TTT 记录实现文件与证据；lint 仅作为非阻断质量记录。
 
 ## 已归档/已完成
+
+- [x] **2026-07-30：严格 WebUI 鉴权下的真实热切换与重复任务防重入**
+  - **运行证据**：唯一 Supervisor PID `32436` 保持不变；任务 `2026-07-29T23-30-40.269Z-c800027a` 在主界面显示精确受保护文件并由人工批准，随后通过 `gofmt`、`go vet -tags fts5 ./...`、`go test -short -tags fts5 ./...`、候选构建、切换和健康检查；正式 operation `2026-07-29T23-30-39-837Z-8dd352e87527-3a0ece49` 状态为 `completed`。
+  - **新鲜度证据**：活动 Kernel revision 为 `8dd352e875271446c5a559eb618f2731db395cc8`，二进制 SHA-256 为 `9083d44e23bbd952ac04c6eb1a200a7734725df81bd1519b9b7db3eb08f5f7ba`；主入口、Agent App、MAGI desktop/mobile/identity 和 Protyle App 探针均为 200。
+  - **问题与修复**：运行中的 Supervisor 任务本应使“校验并热切换”按钮不可用，原界面仅依据短暂 mutation `busy` 状态，因而可以重复发起并收到 HTTP 409。现将非终态任务判定收口为 `isForgeRuntimeJobActive()`，同时用于控制器网络前阻断、视图按钮状态和轮询周期；任务进入 `completed`/`failed`/`rolled_back` 后立即恢复发起能力，不吞掉 Supervisor 返回的错误。
+  - **验证**：控制器和视图契约同时覆盖活动任务拒绝重复请求、按钮禁用、终态任务恢复发起和按钮恢复。
 
 - [x] **2026-07-30：主界面直接控制面实现与专项验证**
   - **完成情况**：新增独立 `ForgeRuntimeClient`、控制器、状态栏/Dialog 视图和样式；主应用在布局与消息系统初始化后启动控制面，非 Forge 模式按 capability 不显示入口。重启 mutation 完成后立即切换为 1 秒活动轮询；相同 pending `jobId + revision` 只创建一个审批弹窗；控制 Dialog 周期刷新保留用户已输入的更新说明。

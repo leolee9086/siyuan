@@ -4,7 +4,7 @@ import {注册状态栏按钮, 渲染所有状态栏按钮} from "../../registry
 import {escapeAttr, escapeHtml} from "../../util/DOM/escape";
 import {forgeI18n} from "../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
 import {ForgeRuntimeController} from "./controller";
-import {getForgeProtectedApprovalKey} from "./types";
+import {getForgeProtectedApprovalKey, isForgeRuntimeJobActive} from "./types";
 import type {ForgeRuntimeControllerState, ForgeRuntimeJob, ForgeSupervisorStatus} from "./types";
 import "./style.scss";
 
@@ -118,6 +118,7 @@ export class ForgeRuntimeControlView {
         }
         const status = state.status?.status;
         const job = status?.job;
+        const restartDisabled = state.busy || isForgeRuntimeJobActive(job);
         const reason = root.querySelector<HTMLTextAreaElement>("#forgeRuntimeReason")?.value ??
             forgeI18n.forge.runtime.defaultReason;
         root.innerHTML = `${this.renderStatusSummary(status, job)}
@@ -128,7 +129,7 @@ export class ForgeRuntimeControlView {
 <div class="b3-dialog__action forge-runtime__actions">
     <button class="b3-button b3-button--cancel" data-forge-action="refresh"${state.busy ? " disabled" : ""}>${buttonIcon("iconRefresh")}${escapeHtml(forgeI18n.forge.runtime.refresh)}</button>
     <div class="fn__space"></div>
-    <button class="b3-button b3-button--text" data-forge-action="restart"${state.busy ? " disabled" : ""}>${buttonIcon("iconCirclePlay")}${escapeHtml(forgeI18n.forge.runtime.restart)}</button>
+    <button class="b3-button b3-button--text" data-forge-action="restart"${restartDisabled ? " disabled" : ""}>${buttonIcon("iconCirclePlay")}${escapeHtml(forgeI18n.forge.runtime.restart)}</button>
 </div>`;
     }
 

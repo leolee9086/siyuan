@@ -73,6 +73,9 @@ export interface ForgeRuntimeControllerState {
 
 export const forgeRuntimeTerminalJobStates = new Set(["completed", "failed", "rolled_back"]);
 
+export const isForgeRuntimeJobActive = (job: ForgeRuntimeJob | null | undefined): boolean =>
+    Boolean(job && !forgeRuntimeTerminalJobStates.has(job.state));
+
 export const getForgeProtectedApprovalKey = (job: ForgeRuntimeJob): string | undefined => {
     const approval = job.protectedTestApproval;
     if (job.state !== "awaiting_protected_test_approval" || job.phase !== "protected_test_approval" ||

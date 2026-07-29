@@ -119,6 +119,22 @@ const pendingStatus = {
     },
 };
 
+const completedStatus = {
+    ...pendingStatus,
+    status: {
+        ...pendingStatus.status,
+        job: {
+            ...pendingStatus.status.job,
+            state: "completed",
+            phase: "completed",
+            protectedTestApproval: {
+                ...pendingStatus.status.job.protectedTestApproval,
+                state: "approved",
+            },
+        },
+    },
+};
+
 describe("Forge Runtime approval view", () => {
     beforeEach(() => {
         vi.useFakeTimers();
@@ -154,6 +170,40 @@ describe("Forge Runtime approval view", () => {
         approvalDialog.destroy();
         await controller.refresh();
         expect(runtime.dialogs).toHaveLength(1);
+
+        view.destroy();
+        controller.destroy();
+    });
+
+    it("disables restart while a Supervisor job is active", async () => {
+        runtime.fetchSyncPost.mockResolvedValue({code: 0, msg: "", data: pendingStatus});
+        const controller = new ForgeRuntimeController(new ForgeRuntimeClient());
+        const view = new ForgeRuntimeControlView(controller);
+        view.connect();
+
+        await controller.start();
+        view.openControlDialog();
+        const restartButton = document.querySelector<HTMLButtonElement>("[data-forge-action='restart']");
+        expect(restartButton?.disabled).toBe(true);
+
+        view.destroy();
+        controller.destroy();
+    });
+
+    it("re-enables restart after the Supervisor job reaches a terminal state", async () => {
+        runtime.fetchSyncPost
+            .mockResolvedValueOnce({code: 0, msg: "", data: pendingStatus})
+            .mockResolvedValueOnce({code: 0, msg: "", data: completedStatus});
+        const controller = new ForgeRuntimeController(new ForgeRuntimeClient());
+        const view = new ForgeRuntimeControlView(controller);
+        view.connect();
+
+        await controller.start();
+        view.openControlDialog();
+        expect(document.querySelector<HTMLButtonElement>("[data-forge-action='restart']")?.disabled).toBe(true);
+
+        await controller.refresh();
+        expect(document.querySelector<HTMLButtonElement>("[data-forge-action='restart']")?.disabled).toBe(false);
 
         view.destroy();
         controller.destroy();
