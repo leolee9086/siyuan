@@ -1,13 +1,14 @@
 import { Dialog, IDialogOptions } from "../../dialog";
 import { isMobile } from "../platform/functions";
-import { createVueComponentInDialog, VueComponentMountConfig } from "./mount";
+import { createVueComponentInDialog } from "./mount";
+import type { VueComponentMountConfig } from "./mount.types";
 
 /**
  * Vue对话框配置接口
  */
 export interface VueDialogConfig {
     /** 对话框data-key属性值 */
-    dataKey?: string;
+    dataKey: string;
     /** Vue组件挂载配置工厂函数，接收dialog实例作为参数 */
     vueConfigFactory: (dialog: Dialog) => VueComponentMountConfig;
     /** 对话框配置选项 */

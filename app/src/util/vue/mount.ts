@@ -52,12 +52,6 @@ import type { VueComponentLoaderContext } from "./mount.types";
  */
 import type { ComponentEventHandler } from "./mount.types";
 /**
- * 用途：setup 合并后对象条目值类型，既可能是数据也可能是事件处理器。
- * 使用范围：buildSetupReturnData 返回对象。
- * 解耦评估：类型定义集中在 mount.types.ts。
- */
-import type { MergedSetupValue } from "./mount.types";
-/**
  * 用途：组件包装器创建函数，用于包装一个组件得到增强组件。
  * 使用范围：applyWrapperToComponent。
  * 解耦评估：同级内部模块直接导入。
@@ -146,7 +140,8 @@ const buildSetupReturnData = (
     context?: VueComponentLoaderContext
 ) => {
     // 数据与事件处理器同属 setup 暴露面，先合并为统一对象供模板绑定
-    const merged: Record<string, MergedSetupValue> = {
+    // 挂载层不读取这些业务值，只将其作为 setup bindings 交给 Vue。
+    const merged: Record<string, unknown> = {
         ...(config.data || {}),
         ...(config.eventHandlers || {})
     };

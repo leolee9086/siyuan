@@ -25,11 +25,11 @@ import type { ComponentWrapperConfig } from "./wrapper";
  */
 import type { ComponentWrapper } from "./wrapper";
 
-/** 组件事件处理器函数类型，以明确的参数与返回类型替代宽泛的 Function */
-export type ComponentEventHandler = (...args: unknown[]) => unknown;
-
-/** setup 合并对象中条目的值类型：既可能是普通数据，也可能是事件处理器 */
-export type MergedSetupValue = unknown | ComponentEventHandler;
+/**
+ * Vue 模板负责按组件事件契约调用处理器，挂载层只透传函数引用。
+ * `never[]` 接受具有具体参数签名的处理器，同时阻止挂载层自行构造参数调用它们。
+ */
+export type ComponentEventHandler = (...args: never[]) => unknown;
 
 /**
  * Vue 组件挂载配置接口，描述将一组组件挂载到容器所需的组件、数据、模板与包装器等输入

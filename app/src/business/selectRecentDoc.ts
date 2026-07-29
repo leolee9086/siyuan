@@ -5,7 +5,8 @@ import { focusByRange } from "../protyle/util/selection";
 import { getFirstSelectedRange } from "../util/DOM/selection/range.global";
 import { fetchPost } from "../util/network/fetch";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { VueComponentMountConfig, createVueComponentInDialog } from "../util/vue/mount";
+import { createVueComponentInDialog } from "../util/vue/mount";
+import type { VueComponentMountConfig } from "../util/vue/mount.types";
 
 /**
  * 创建一个函数,作用如下:

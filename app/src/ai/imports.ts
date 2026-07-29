@@ -10,7 +10,7 @@ export { Constants } from "../constants";
 export { Dialog } from "../dialog";
 
 // Vue工具相关导入
-export type { VueComponentMountConfig } from "../util/vue/mount";
+export type { VueComponentMountConfig } from "../util/vue/mount.types";
 export { createVueDialog } from "../util/vue/createVueDialog";
 
 // 组件导入

@@ -68,7 +68,7 @@ export { createVueComponentInDialog };
  * 使用范围：openRecentDocs 模块配置 Vue 组件数据
  * 解耦评估：类型定义通过 imports.ts 转发，避免业务代码直接依赖 util/vue 路径
  */
-import type { VueComponentMountConfig } from "../util/vue/mount";
+import type { VueComponentMountConfig } from "../util/vue/mount.types";
 /** 导出 [`VueComponentMountConfig`](app/src/business/imports.ts:65) 供 business 目录复用。 */
 export type { VueComponentMountConfig };
 
