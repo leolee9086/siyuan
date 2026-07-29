@@ -1,6 +1,7 @@
 /**
  * 用途：通过同层转发层获取窗口按键模块所需依赖，避免业务文件直接使用父级路径导入。
  * 使用范围：仅供当前文件执行全局快捷键注销流程时使用。
+ * 替代关系：本模块的 `sendUnregisterGlobalShortcut` 是原 `boot/globalEvent/keydown.ts` 同名导出的唯一现行入口。
  * 解耦评估：该文件仍依赖 AppFacade、IPC 与环境配置；先通过本地 `imports.ts` 收敛耦合，后续若改为依赖注入，可只调整转发层。
  */
 import type { AppFacade } from "./imports";

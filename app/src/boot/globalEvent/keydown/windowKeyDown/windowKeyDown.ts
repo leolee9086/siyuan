@@ -1,6 +1,7 @@
 /**
  * 用途：作为窗口级键盘事件的统一入口，按“前置短路 -> 状态收集 -> 路由导航 -> 子集处理”编排整个处理流程。
  * 使用范围：供 `globalEvent/event.ts` 绑定 `window.addEventListener("keydown")` 时调用。
+ * 替代关系：本模块的 `windowKeyDown` 是原 `boot/globalEvent/keydown.ts` 同名导出的唯一现行入口。
  * 解耦评估：当前文件只保留流程编排与对外兼容导出，不再承载任何领域事实判断或命令分发细节。
  */
 

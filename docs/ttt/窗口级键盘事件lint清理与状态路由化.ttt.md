@@ -49,6 +49,12 @@
 
 ## 🏁 已归档/已完成
 
+- [x] **移除旧窗口键盘聚合实现、保留墓碑并登记替代关系 (P0)** [已完成 2026-07-29]
+  - **背景**：`app/src/boot/globalEvent/keydown.ts` 在窗口路由与全局快捷键拆分完成后仍保留 `windowKeyDown`、`sendGlobalShortcut` 和 `sendUnregisterGlobalShortcut` 三份重复实现，已无源码或测试消费者，但仍被全量 TypeScript 检查收录。
+  - **替代映射**：`windowKeyDown` 由 `keydown/windowKeyDown/windowKeyDown.ts` 唯一提供；`sendGlobalShortcut` 与 `sendUnregisterGlobalShortcut` 分别由 `keydown/windowKeyDown/globalShortcut/send.ts` 和 `unregister.ts` 唯一提供。三个现行入口均保留可搜索的替代关系注释。
+  - **处理依据**：生产事件入口 `globalEvent/event.ts` 与配置、快捷键消费者均直达上述现行模块；仓库搜索确认旧文件无导入者，旧文件除这三个导出外没有公共表面。原实现删除后在同路径保留无运行时逻辑、无依赖、无公共导出的墓碑模块，旧命名导入会在编译期显式失败。
+  - **验证证据**：删除前窗口路由专项测试 `36/36` 通过；删除后继续以全量类型检查、循环门禁和同一专项测试验证替代关系完整。
+
 - [x] **Phase 3.4: 按阶段重排 windowKeyDown 目录结构 (P0)** [已完成 2026-04-24]
   - **背景**: 现有 `windowKeyDown/` 虽然已经做了状态路由化，但目录仍按 `dialog/system/navigation` 领域拆分，导致状态收集阶段也被拆散到多个子域目录中，违背“状态收集 => 路由导航 => 子集处理”的阶段边界。
   - **完成情况**:
@@ -173,3 +179,8 @@
   - **验证命令**:
     - `cd app && pnpm exec eslint "src/boot/globalEvent/keydown/windowKeyDown/**/*.ts" "src/boot/globalEvent/keydown/windowKeyDown/*.ts"`
     - `cd app && pnpm exec tsc --noEmit --pretty false --strict --strictNullChecks --strictFunctionTypes --strictBindCallApply --strictPropertyInitialization --noImplicitAny --noImplicitThis --useUnknownInCatchVariables --exactOptionalPropertyTypes --noUncheckedIndexedAccess --target ES2022 --module ESNext --moduleResolution bundler --types node --skipLibCheck src/boot/globalEvent/keydown/windowKeyDown/windowKeyDown.ts src/boot/globalEvent/keydown/windowKeyDown/dialog/state.ts src/boot/globalEvent/keydown/windowKeyDown/system/state.ts src/boot/globalEvent/keydown/windowKeyDown/navigation/state.ts src/boot/globalEvent/keydown/windowKeyDown/types.ts`
+
+- [x] **Phase 3.2: 设置 Dialog 的 Esc 退场回归 (P0)** [已完成 2026-07-28]
+  - **背景**：设置面板采用非模态透明穿透遮罩，不允许遮罩点击关闭；用户报告设置打开后 `Esc` 也不退出，需要区分 Dialog 栈注册与 Calibur 路由问题。
+  - **完成情况**：确认 Dialog 构造与 `executeEscape()` 读写同一 `window.siyuan.dialogs` 注册表；新增状态空间测试，证明非组合输入的 `Escape` 在无菜单和专用 Dialog 抢占时由根路由选择 `system` 域并产出 `ESCAPE`，执行器销毁栈顶 Dialog。真实桌面设置搜索框聚焦场景按 `Esc` 后设置 Dialog 已移除。
+  - **验证证据**：`test/globalEvent/windowKeyDown/dialogEscape.runtime.test.ts` 与 Dialog 按钮测试合计 `8/8` 通过。未增加兼容分支或静默路径，现有路由无需修改。

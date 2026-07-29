@@ -1,6 +1,7 @@
 /**
  * 用途：同步当前窗口和插件命令的全局快捷键到 Electron 主进程。
  * 使用范围：供 `onGetConfig.ts`、`commonHotkey.ts` 和键位设置模块在需要重新注册全局快捷键时调用。
+ * 替代关系：本模块的 `sendGlobalShortcut` 是原 `boot/globalEvent/keydown.ts` 同名导出的唯一现行入口。
  * 解耦评估：当前流程仍直接依赖 Electron IPC 与思源环境配置；把它收敛成独立模块并通过本地网关读取环境，已经比继续留在庞大入口文件中更低耦合。
  */
 
