@@ -2,9 +2,9 @@
 
 > **最终目标**：从源码启动的 S-Forge 在 Kernel 源码形成可验证提交后，允许原生 Agent 发起、用户逐次复核、Forge Supervisor 执行全量验证、重编译、优雅重启、健康检查与自动回退；浏览器前端可由 Agent 独立触发页面重载。
 >
-> **当前目标**：原子提交已完成真实恢复验证的 commit runtime gate 修复；保留 Kernel 资源读取批次的独立提交边界，随后执行完整受保护测试审批与真实热切换。
+> **当前目标**：提交已恢复并复验的 Kernel 资源读取批次，执行完整受保护测试审批与真实热切换，确保运行中 Kernel 跟随最新已验证提交。
 >
-> **下一步任务**：提交门禁修复并确认其 post-commit operation 完成；再提交当前六个 Kernel 资源读取文件，确保受保护测试审批可见且由用户逐次批准，完成全量核心门禁、候选构建、热切换、健康检查和页面回归。
+> **下一步任务**：提交当前六个 Kernel 资源读取文件及本进度记录；确认受保护测试审批可见且由用户逐次批准，完成全量核心门禁、候选构建、热切换、健康检查和页面回归，再清理本轮临时 Git 快照。
 
 ---
 
@@ -186,3 +186,4 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
 - **2026-07-30**：第二、三次真实 `retry-post-commit` 均完整通过 `pnpm test` 与 11 个 `dev:once` 构建目标，随后在第一次 post-build Supervisor 探针处以 `Forge runtime ownership is stale or unreachable: fetch failed` 失败；两次失败后同一 PID `32436`、租约、活动 Kernel PID `6008` 和 revision `efb5b3fa288b` 均未变化，控制端再次采样约 157ms 即返回。由重复时序证据确认问题是资源密集构建后的单点 readiness 竞态，不是租约陈旧、Supervisor 退出或 Kernel 故障；两次失败 operation 均保留写盘，不计作恢复成功。
 - **2026-07-30**：post-build 检查改为 20 秒截止时间内等待 Supervisor 连续两次成功，网络拒绝、连接超时等暂态失败逐次写入 operation；401、响应进程与租约不匹配等确定性控制面错误仍立即阻断。`probeSupervisor` 现在保留底层 `cause` 与错误码，避免日志只剩无信息量的 `fetch failed`。新增暂态恢复、连续成功、确定性错误立即失败和网络原因保留测试；Forge 门禁与 Supervisor 专项合计 `51/51` 通过，`git diff --check` 通过。下一次真实恢复尚待完成，不提前标记 gate 成功。
 - **2026-07-30**：真实 recovery operation `2026-07-29T19-08-48-984Z-a7e5ffcb60b4-8b300a66` 完成：`status=completed`、`trigger=retry-post-commit`、commit=`a7e5ffcb60b4`。完整 `pnpm test` 和全部 `dev:once` 目标通过；第一次 post-build 探针明确记录 `ECONNABORTED: write ECONNABORTED`，随后 539ms 内取得连续成功，readiness 共 3 次采样、1 次暂态失败。Kernel 保持原 PID `6008`、revision `efb5b3fa288b`，Supervisor 保持 PID `32436`，没有新建进程；Kernel 健康探针与主入口、Agent 独立页、MAGI Desktop/Mobile/Identity、Protyle 六个页面均返回 200。旧 `run is not a function` 持久失败已通过正式重放闭合，未删除或伪造状态。
+- **2026-07-30**：门禁修复已原子提交为 `29c6ba9d8 fix(forge): stabilize post-build supervisor readiness`；自动 post-commit operation 状态为 `completed`，readiness 连续 2 次成功，六个页面均为 200。为避免临时索引把 Kernel 批次混入门禁提交，先保存完整 Git 对象快照，再从专用快照按 6 个 Kernel 路径恢复；恢复后的索引 blob OID 与快照逐文件完全一致。Kernel 定向验证 `go test ./model ./mcp/tools -count=1` 通过，6 个文件 `gofmt -d` 无输出，`git diff --cached --check` 通过；下一提交仍须经过受保护测试审批及真实热切换，不以定向测试替代全量核心门禁。

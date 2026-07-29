@@ -18,6 +18,7 @@ package model
 
 import (
 	"bytes"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -108,6 +109,47 @@ func GetAssetContentByPath(path string) (ret *AssetContent) {
 	}
 	ret = results[0]
 	return
+}
+
+// ReadTextAssetContentByPath directly reads a UTF-8 text asset without adding it to the global index.
+// This is used for assets scoped to encrypted notebooks, which intentionally never enter that index.
+func ReadTextAssetContentByPath(path string) (*AssetContent, error) {
+	cleanPath, boxID, err := AssetPathAndBox(path, "")
+	if err != nil {
+		return nil, err
+	}
+	ext := strings.ToLower(filepath.Ext(cleanPath))
+	if _, ok := assetContentSearcher.GetParser(ext).(*TxtAssetParser); !ok {
+		return nil, fmt.Errorf("asset type [%s] requires indexed content", ext)
+	}
+
+	absPath, err := GetAssetAbsPathInBox(cleanPath, boxID)
+	if err != nil {
+		return nil, err
+	}
+	info, err := os.Stat(absPath)
+	if err != nil {
+		return nil, err
+	}
+	if TxtAssetContentMaxSize < info.Size() {
+		return nil, fmt.Errorf("text asset is too large [%s]", humanize.BytesCustomCeil(uint64(info.Size()), 2))
+	}
+	data, err := ReadAssetBytesInBox(boxID, cleanPath)
+	if err != nil {
+		return nil, err
+	}
+	if !utf8.Valid(data) {
+		return nil, fmt.Errorf("text asset is not UTF-8 encoded")
+	}
+	return &AssetContent{
+		Name:    util.RemoveID(filepath.Base(cleanPath)),
+		Ext:     ext,
+		Path:    path,
+		Size:    int64(len(data)),
+		HSize:   humanize.BytesCustomCeil(uint64(len(data)), 2),
+		Updated: info.ModTime().Unix(),
+		Content: util.EscapeHTML(string(data)),
+	}, nil
 }
 
 // FullTextSearchAssetContent 搜索资源文件内容。

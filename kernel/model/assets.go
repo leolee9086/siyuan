@@ -937,6 +937,11 @@ func AssetPathWithoutQuery(relativePath string) string {
 	return filepath.ToSlash(relativePath)
 }
 
+// AssetPathAndBox normalizes an asset URL path and returns its optional box scope.
+func AssetPathAndBox(relativePath, defaultBoxID string) (cleanPath, boxID string, err error) {
+	return assetPathAndBox(relativePath, defaultBoxID)
+}
+
 func assetPathAndBox(relativePath, defaultBoxID string) (cleanPath, boxID string, err error) {
 	relativePath = strings.TrimSpace(relativePath)
 	boxID = defaultBoxID
@@ -953,6 +958,9 @@ func assetPathAndBox(relativePath, defaultBoxID string) (cleanPath, boxID string
 				boxID = queryBoxID
 			}
 		}
+	}
+	if relativePath, err = url.PathUnescape(relativePath); err != nil {
+		return "", "", fmt.Errorf("decode asset path failed: %w", err)
 	}
 	cleanPath = filepath.ToSlash(relativePath)
 	return

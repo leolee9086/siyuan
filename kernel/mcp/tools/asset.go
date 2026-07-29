@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/siyuan-note/siyuan/kernel/model"
-	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 var AssetTool = &Tool{
@@ -132,7 +131,10 @@ func assetStat(args map[string]any) (CallToolResult, error) {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "path is required"}}, IsError: true}, nil
 	}
 
-	abs := filepath.Join(util.DataDir, p)
+	abs, err := model.GetAssetAbsPathInBox(p, "")
+	if err != nil {
+		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "stat failed: " + err.Error()}}, IsError: true}, nil
+	}
 	info, err := os.Stat(abs)
 	if err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "stat failed: " + err.Error()}}, IsError: true}, nil
