@@ -1,6 +1,6 @@
 import {fetchPost} from "../util/network/fetch";
 import {showMessage} from "../dialog/message";
-import {bindSyncCloudListEvent, getSyncCloudList} from "../sync/syncGuide";
+import {bindSyncCloudListEvent, renderSyncCloudList} from "../sync/syncGuide";
 import {processSync} from "../dialog/processSystem";
 import {saveExportFile} from "../protyle/util/compatibility";
 import {confirmDialog} from "../dialog/confirmDialog";
@@ -201,7 +201,7 @@ export const repos = {
                 const action = target.getAttribute("data-action");
                 if (action === "config") {
                     if (syncConfigElement.classList.contains("fn__none")) {
-                        getSyncCloudList(syncConfigElement, true);
+                        renderSyncCloudList(syncConfigElement, true);
                         syncConfigElement.classList.remove("fn__none");
                     } else {
                         syncConfigElement.classList.add("fn__none");
