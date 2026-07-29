@@ -229,9 +229,9 @@ export const writeAuditManifest = ({repo, output, cycle, records}) => {
     const stablePatchIdCount = records.filter((record) => record.stablePatchId !== null).length;
     const mappedUpstreamCommitCount = records.filter((record) => record.audit.localCommits.length > 0).length;
     const cycleRecord = {
+        ...cycle,
         schemaVersion: 1,
         generator: "scripts/upstream-sync/audit-manifest.mjs",
-        ...cycle,
         commitCount: records.length,
         mergeCommitCount,
         revertCommitCount,
@@ -246,6 +246,18 @@ export const writeAuditManifest = ({repo, output, cycle, records}) => {
     writeFileSync(resolve(output, "cycle.json"), `${JSON.stringify(cycleRecord, null, 2)}\n`);
     writeFileSync(manifestPath, records.map((record) => JSON.stringify(record)).join("\n") + "\n");
     return cycleRecord;
+};
+
+export const loadCycleForRegeneration = (output, generatedCycle) => {
+    const cyclePath = resolve(output, "cycle.json");
+    if (!existsSync(cyclePath)) {
+        return generatedCycle;
+    }
+    const existingCycle = JSON.parse(readFileSync(cyclePath, "utf8"));
+    return {
+        ...existingCycle,
+        ...generatedCycle,
+    };
 };
 
 export const verifyAuditManifest = ({repo, output}) => {
@@ -321,7 +333,7 @@ const main = () => {
     if (command !== "generate") {
         throw new Error("Expected generate or verify command");
     }
-    const cycle = {
+    const generatedCycle = {
         cycleId: requireOption(values, "cycle-id"),
         upstreamRemote: "https://github.com/siyuan-note/siyuan.git",
         upstreamBranch: "dev",
@@ -347,6 +359,7 @@ const main = () => {
             mirrorSha256: requireOption(values, "procedure-mirror-sha256"),
         },
     };
+    const cycle = loadCycleForRegeneration(output, generatedCycle);
     const manifestPath = resolve(output, "commits.jsonl");
     const records = buildAuditRecords({
         repo,

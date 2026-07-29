@@ -17,10 +17,16 @@
   },
   "focusedChecks": [
     {
+      "name": "published rolling-delivery procedure",
+      "status": "passed",
+      "command": "POST /api/block/updateBlock then POST /api/block/getBlockKramdown for 20260729083130-vaxfqpr",
+      "evidence": "updated=20260729204652; 7 required/obsolete semantic assertions passed; Kramdown SHA-256 427d6b58c462b37a223f326f241b5f8276d47676f42cffc00630969768f84c00; mirror SHA-256 cb694e3afdf35caac19f79c076471d587116ae082f26261913ea743686e967b4"
+    },
+    {
       "name": "audit manifest tooling",
       "status": "passed",
       "command": "node --test scripts/upstream-sync/audit-manifest.test.mjs",
-      "evidence": "2 tests passed; covers DAG, merge, revert, stable regeneration, audit preservation and local trailer mappings"
+      "evidence": "3 tests passed; covers DAG, merge, revert, stable regeneration, audit preservation, local trailer mappings and preservation of rolling delivery configuration"
     },
     {
       "name": "search exact ranking",
@@ -50,6 +56,24 @@
     {"name": "all app build targets", "command": "pnpm build", "status": "pending"}
   ],
   "failures": [
+    {
+      "stage": "published procedure readback assertion",
+      "result": "failed-explicitly",
+      "message": "The first assertion incorrectly required finalTopologyIntegration, which belongs to cycle.json rather than the procedure body.",
+      "resolution": "Removed the cross-artifact assertion and retained procedure-only semantic checks. The Block API update itself had already returned code 0."
+    },
+    {
+      "stage": "published procedure readback assertion",
+      "result": "failed-explicitly",
+      "message": "The second assertion compared raw Kramdown inline-code text without normalizing zero-width separators.",
+      "resolution": "Normalized Kramdown zero-width separators before semantic checks; the corrected 7 assertions passed."
+    },
+    {
+      "stage": "published procedure readback helper",
+      "result": "failed-explicitly",
+      "message": "PowerShell selected the char overload of Replace and rejected an empty replacement character.",
+      "resolution": "Selected the string overload explicitly and completed the readback inspection."
+    },
     {
       "stage": "manifest generation",
       "result": "failed-explicitly",

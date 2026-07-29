@@ -4,7 +4,12 @@ import {mkdtempSync, readFileSync, rmSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import test from "node:test";
-import {buildAuditRecords, verifyAuditManifest, writeAuditManifest} from "./audit-manifest.mjs";
+import {
+    buildAuditRecords,
+    loadCycleForRegeneration,
+    verifyAuditManifest,
+    writeAuditManifest,
+} from "./audit-manifest.mjs";
 
 const git = (repo, args) => execFileSync("git", args, {cwd: repo, encoding: "utf8"}).trim();
 
@@ -127,4 +132,31 @@ test("classifies reverts and derives local mappings from commit trailers determi
     writeAuditManifest({repo, output, cycle, records: build()});
     assert.equal(readFileSync(join(output, "cycle.json"), "utf8"), firstCycle);
     assert.equal(readFileSync(join(output, "commits.jsonl"), "utf8"), firstManifest);
+});
+
+test("preserves rolling delivery configuration while refreshing generated cycle fields", (context) => {
+    const output = mkdtempSync(join(tmpdir(), "sforge-audit-cycle-"));
+    context.after(() => rmSync(output, {recursive: true, force: true}));
+    writeFileSync(join(output, "cycle.json"), JSON.stringify({
+        schemaVersion: 1,
+        candidateHead: "old-head",
+        mainBranch: "multipleAI",
+        deliveryStrategy: {
+            mode: "rolling-verified-series",
+            longLivedMainFreeze: false,
+        },
+    }));
+
+    const cycle = loadCycleForRegeneration(output, {
+        candidateHead: "new-head",
+        upstreamTip: "upstream-tip",
+    });
+
+    assert.equal(cycle.candidateHead, "new-head");
+    assert.equal(cycle.upstreamTip, "upstream-tip");
+    assert.equal(cycle.mainBranch, "multipleAI");
+    assert.deepEqual(cycle.deliveryStrategy, {
+        mode: "rolling-verified-series",
+        longLivedMainFreeze: false,
+    });
 });

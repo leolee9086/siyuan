@@ -10,6 +10,16 @@
   "candidateBranch": "sync/upstream-dev-28e38647fb02",
   "candidateHead": "ddc21df46e3edf597c714318a1bfc5340ec4dcba",
   "candidateCreatedAt": "2026-07-29T14:15:25+08:00",
+  "mainRepository": "D:/dev/s-forge",
+  "mainBranch": "multipleAI",
+  "isolatedRepository": "D:/dev/s-forge-upstream-sync-20260729-7845c47e3",
+  "deliveryStrategy": {
+    "mode": "rolling-verified-series",
+    "deliveriesManifest": "docs/upstream-sync/siyuan-dev-28e38647fb02/deliveries.jsonl",
+    "longLivedMainFreeze": false,
+    "seriesIntegration": "no-ff",
+    "finalTopologyIntegration": "ff-only-reviewed-ours-merge"
+  },
   "frozenAt": "2026-07-29T20:02:23+08:00",
   "requiredGates": [
     "kernel: go test -short -tags fts5 ./...",
@@ -21,9 +31,9 @@
   ],
   "procedure": {
     "blockId": "20260729083130-vaxfqpr",
-    "updatedAt": "20260729202117",
-    "kramdownSha256": "27c80bb4519050180fd10017cc066677f9241b7a1477d54816d27d0f15639c6f",
-    "mirrorSha256": "d74e025abfcbd954a64aadf8a7a8d040acec5c91c8038780f44c8ed7f1fced9c"
+    "updatedAt": "20260729204652",
+    "kramdownSha256": "427d6b58c462b37a223f326f241b5f8276d47676f42cffc00630969768f84c00",
+    "mirrorSha256": "cb694e3afdf35caac19f79c076471d587116ae082f26261913ea743686e967b4"
   },
   "commitCount": 440,
   "mergeCommitCount": 33,
