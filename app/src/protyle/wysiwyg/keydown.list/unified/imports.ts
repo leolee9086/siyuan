@@ -7,28 +7,11 @@
 /**
  * 用途：集中转发第三方声明式路由构建器，使 unified 目录内的路由文件不直接依赖外部包路径。
  * 使用范围：仅供 [`router.ts`](app/src/protyle/wysiwyg/keydown.list/unified/router.ts) 与 [`router.transform.ts`](app/src/protyle/wysiwyg/keydown.list/unified/router.transform.ts) 这类 unified 路由定义文件复用；边界是不在本层封装任何路由规则或运行时行为。
- * 解耦评估：`calibur` 是当前路由声明 DSL 的核心构建器，理论上可把路由器实例改为外部工厂注入，但那会迫使所有子路由与主路由从静态常量改成初始化产物，显著扩大调用链与测试装配复杂度；因此现阶段通过同层转发收敛第三方包路径，已是在不改动路由架构前提下更低耦合的方案。
+ * 解耦评估：`zodCalibur` 与 `zodState` 是当前路由声明 DSL 的共同入口；本文件只收敛包路径，不包装或削弱状态空间语义。
  */
-import { calibur } from "calibur-router";
-/** 导出 [`calibur`](app/src/protyle/wysiwyg/keydown.list/unified/imports.ts:12) 供 unified 路由模块复用。 */
-export { calibur };
-
-/**
- * 用途：集中转发 Arktype 的 `type()` 声明器，用于描述 unified 列表路由的输入状态约束。
- * 使用范围：仅供 [`router.ts`](app/src/protyle/wysiwyg/keydown.list/unified/router.ts) 与 [`router.transform.ts`](app/src/protyle/wysiwyg/keydown.list/unified/router.transform.ts) 内构建 schema 时使用；边界是不在本层承担运行时校验策略扩展。
- * 解耦评估：理论上可预先在各路由文件外构造 schema 后以参数传入，但当前路由定义与 schema 是同处一处的声明式静态结构，强行拆出只会增加额外中间变量和装配层；因此继续通过同层转发复用 `type()`，比在业务文件中直接依赖第三方包更利于收敛耦合面。
- */
-import { type } from "arktype";
-/** 导出 [`type`](app/src/protyle/wysiwyg/keydown.list/unified/imports.ts:21) 供 unified 路由模块复用。 */
-export { type };
-/**
- * 用途：集中转发 Arktype 的 schema 类型接口，供 unified 状态类型文件为 schema 常量添加精确的泛型约束。
- * 使用范围：仅供 [`types.ts`](app/src/protyle/wysiwyg/keydown.list/types.ts) 这类列表键盘模块类型定义文件在编译期标注 schema 目标结构；边界是不参与任何运行时校验逻辑，也不扩展第三方类型能力。
- * 解耦评估：这是纯编译期依赖，无法通过事件发射替代；若在每个类型文件中直接耦合第三方包路径，会把外部依赖散落到多个业务文件。继续通过当前同层 imports 网关集中转发，可以把第三方路径耦合压缩到单点，同时保留未来替换类型源时的统一入口。
- */
-import type { Type } from "arktype";
-/** 导出 [`Type`](app/src/protyle/wysiwyg/keydown.list/unified/imports.ts:27) 供 unified 类型模块复用。 */
-export type { Type };
+import {zodCalibur, zodState} from "calibur-router/zod";
+/** 导出 Zod 状态空间路由构建器与模式构造器供 unified 路由模块复用。 */
+export {zodCalibur, zodState};
 
 /**
  * 用途：转发统一列表状态 schema 常量，供 unified 路由与入口模块在不越级导入的前提下复用上层共享状态契约。

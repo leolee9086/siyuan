@@ -12,13 +12,7 @@
  * 使用范围：仅用于当前 router 模块的路由声明阶段；边界是不参与状态提取、命令执行或中间件编排。
  * 解耦评估：理论上可以把路由构建器或已构建好的路由实例通过工厂参数注入，但当前 unified 列表路由与 middleware 的调用方式都围绕静态常量路由器展开，强行改为注入会把装配逻辑扩散到入口链路。继续经由同层 ./imports.ts 收敛第三方依赖，是现有架构下更低耦合的方案。
  */
-import { calibur } from "./imports";
-/**
- * 用途：复用 unified 目录同层转发的 Arktype type() 声明器，用于为 universe() 与 split() 分支定义输入状态约束。
- * 使用范围：仅用于当前 router 模块内部声明主路由与基础子路由器；边界是不负责运行时命令执行、状态提取实现或类型导出。
- * 解耦评估：理论上可将 schema 预先定义到外部后作为参数传入，但本文件的路由规则与约束是紧邻维护的静态声明结构，拆出去只会增加中间层并降低可读性。继续通过同层 ./imports.ts 转发 type()，比直接耦合第三方包路径更利于收敛依赖面。
- */
-import { type } from "./imports";
+import {zodCalibur, zodState} from "./imports";
 /**
  * 用途：复用 unified 目录同层转发的列表命令常量，作为各路由分支的返回值，保证路由结果与执行层共享同一命令契约。
  * 使用范围：仅用于当前 router 模块各个子路由器和主路由器的命令返回；边界是不承担命令执行、副作用处理或状态收集逻辑。
@@ -27,7 +21,7 @@ import { type } from "./imports";
 import { LIST_COMMANDS } from "./imports";
 /**
  * 用途：引入统一列表状态 Schema，作为 listMasterRouter 的 universe 输入约束，确保主路由器与 extractUnifiedListState 产出的状态结构保持一致。
- * 使用范围：仅用于当前 router 模块中主路由器的 calibur.universe() 声明阶段；边界是这里只消费 schema 做路由输入建模，不负责状态提取、命令执行，也不向 router.transform 反向传递实现细节。
+ * 使用范围：仅用于当前 router 模块中主路由器的 zodCalibur.universe() 声明阶段；边界是这里只消费 schema 做路由输入建模，不负责状态提取、命令执行，也不向 router.transform 反向传递实现细节。
  * 解耦评估：理论上可由外部把 schema 作为参数注入路由工厂，或在状态提取层返回后跳过 schema 直接依赖隐式对象结构；但当前 listMasterRouter 被设计为静态常量路由器，且 UnifiedListStateSchema 同时承载运行时 universe 约束与编译期类型来源。若改成依赖注入，需要把主路由器改造成工厂并把装配责任扩散到 middleware 等调用链；若仅靠参数传递或事件发射，也无法替代 calibur 在路由定义阶段对 schema 常量的直接依赖。因此这里保留对上层共享类型文件的静态依赖，是结合当前静态路由架构后的真实最小耦合方案。
  */
 import { UnifiedListStateSchema } from "./imports";
@@ -56,14 +50,16 @@ import { transformSubRouter } from "./router.transform";
  * - 在任务列表项中 -> CHECK_TOGGLE
  * - 否则 -> IGNORE
  */
-const checkToggleSubRouter = calibur
-    .universe(type({
-        context: {
-            hasTaskItem: "boolean"
-        }
+const checkToggleSubRouter = zodCalibur
+    .universe(zodState.object({
+        context: zodState.object({
+            hasTaskItem: zodState.boolean(),
+        }),
     }))
     .split(
-        type({ context: { hasTaskItem: "false" } }),
+        zodState.object({
+            context: zodState.object({hasTaskItem: zodState.literal(false)}),
+        }),
         () => LIST_COMMANDS.IGNORE
     )
     .remain(() => LIST_COMMANDS.CHECK_TOGGLE)
@@ -81,50 +77,66 @@ const checkToggleSubRouter = calibur
  * - 无多选 + 不在列表项 -> IGNORE
  * - 无多选 + 在列表项 -> OUTDENT
  */
-const outdentSubRouter = calibur
-    .universe(type({
-        selection: {
-            hasMultiple: "boolean",
-            isContinuous: "boolean",
-            firstInList: "boolean"
-        },
-        context: {
-            inListItem: "boolean",
-            inCodeBlock: "boolean"
-        }
+const outdentSubRouter = zodCalibur
+    .universe(zodState.object({
+        selection: zodState.object({
+            hasMultiple: zodState.boolean(),
+            isContinuous: zodState.boolean(),
+            firstInList: zodState.boolean(),
+        }),
+        context: zodState.object({
+            inListItem: zodState.boolean(),
+            inCodeBlock: zodState.boolean(),
+        }),
     }))
     // 有多选但不连续
     .split(
-        type({ selection: { hasMultiple: "true", isContinuous: "false" } }),
+        zodState.object({
+            selection: zodState.object({
+                hasMultiple: zodState.literal(true),
+                isContinuous: zodState.literal(false),
+            }),
+        }),
         () => LIST_COMMANDS.IGNORE
     )
     // 有多选且连续但第一个不在列表
     .split(
-        type({
-            selection: { hasMultiple: "true", isContinuous: "true", firstInList: "false" }
+        zodState.object({
+            selection: zodState.object({
+                hasMultiple: zodState.literal(true),
+                isContinuous: zodState.literal(true),
+                firstInList: zodState.literal(false),
+            }),
         }),
         () => LIST_COMMANDS.IGNORE
     )
     // 有多选且连续且第一个在列表
     .split(
-        type({
-            selection: { hasMultiple: "true", isContinuous: "true", firstInList: "true" }
+        zodState.object({
+            selection: zodState.object({
+                hasMultiple: zodState.literal(true),
+                isContinuous: zodState.literal(true),
+                firstInList: zodState.literal(true),
+            }),
         }),
         () => LIST_COMMANDS.OUTDENT
     )
     // 无多选但在代码块
     .split(
-        type({
-            selection: { hasMultiple: "false" },
-            context: { inCodeBlock: "true" }
+        zodState.object({
+            selection: zodState.object({hasMultiple: zodState.literal(false)}),
+            context: zodState.object({inCodeBlock: zodState.literal(true)}),
         }),
         () => LIST_COMMANDS.IGNORE
     )
     // 无多选且不在列表项
     .split(
-        type({
-            selection: { hasMultiple: "false" },
-            context: { inCodeBlock: "false", inListItem: "false" }
+        zodState.object({
+            selection: zodState.object({hasMultiple: zodState.literal(false)}),
+            context: zodState.object({
+                inCodeBlock: zodState.literal(false),
+                inListItem: zodState.literal(false),
+            }),
         }),
         () => LIST_COMMANDS.IGNORE
     )
@@ -138,50 +150,66 @@ const outdentSubRouter = calibur
  * 前置条件：hotkeys.indent = true
  * 决策逻辑：与 outdent 类似
  */
-const indentSubRouter = calibur
-    .universe(type({
-        selection: {
-            hasMultiple: "boolean",
-            isContinuous: "boolean",
-            firstInList: "boolean"
-        },
-        context: {
-            inListItem: "boolean",
-            inCodeBlock: "boolean"
-        }
+const indentSubRouter = zodCalibur
+    .universe(zodState.object({
+        selection: zodState.object({
+            hasMultiple: zodState.boolean(),
+            isContinuous: zodState.boolean(),
+            firstInList: zodState.boolean(),
+        }),
+        context: zodState.object({
+            inListItem: zodState.boolean(),
+            inCodeBlock: zodState.boolean(),
+        }),
     }))
     // 有多选但不连续
     .split(
-        type({ selection: { hasMultiple: "true", isContinuous: "false" } }),
+        zodState.object({
+            selection: zodState.object({
+                hasMultiple: zodState.literal(true),
+                isContinuous: zodState.literal(false),
+            }),
+        }),
         () => LIST_COMMANDS.IGNORE
     )
     // 有多选且连续但第一个不在列表
     .split(
-        type({
-            selection: { hasMultiple: "true", isContinuous: "true", firstInList: "false" }
+        zodState.object({
+            selection: zodState.object({
+                hasMultiple: zodState.literal(true),
+                isContinuous: zodState.literal(true),
+                firstInList: zodState.literal(false),
+            }),
         }),
         () => LIST_COMMANDS.IGNORE
     )
     // 有多选且连续且第一个在列表
     .split(
-        type({
-            selection: { hasMultiple: "true", isContinuous: "true", firstInList: "true" }
+        zodState.object({
+            selection: zodState.object({
+                hasMultiple: zodState.literal(true),
+                isContinuous: zodState.literal(true),
+                firstInList: zodState.literal(true),
+            }),
         }),
         () => LIST_COMMANDS.INDENT
     )
     // 无多选但在代码块
     .split(
-        type({
-            selection: { hasMultiple: "false" },
-            context: { inCodeBlock: "true" }
+        zodState.object({
+            selection: zodState.object({hasMultiple: zodState.literal(false)}),
+            context: zodState.object({inCodeBlock: zodState.literal(true)}),
         }),
         () => LIST_COMMANDS.IGNORE
     )
     // 无多选且不在列表项
     .split(
-        type({
-            selection: { hasMultiple: "false" },
-            context: { inCodeBlock: "false", inListItem: "false" }
+        zodState.object({
+            selection: zodState.object({hasMultiple: zodState.literal(false)}),
+            context: zodState.object({
+                inCodeBlock: zodState.literal(false),
+                inListItem: zodState.literal(false),
+            }),
         }),
         () => LIST_COMMANDS.IGNORE
     )
@@ -206,50 +234,50 @@ const indentSubRouter = calibur
  * 4. indent 快捷键 -> indentSubRouter
  * 5. transform 快捷键 -> transformSubRouter
  */
-export const listMasterRouter = calibur
+export const listMasterRouter = zodCalibur
     .universe(UnifiedListStateSchema)
     // 快速路径：没有按下任何列表相关快捷键
     .split(
-        type({
-            hotkeys: {
-                checkToggle: "false",
-                outdent: "false",
-                indent: "false",
-                list: "false",
-                oList: "false",
-                check: "false",
-                quote: "false"
-            }
+        zodState.object({
+            hotkeys: zodState.object({
+                checkToggle: zodState.literal(false),
+                outdent: zodState.literal(false),
+                indent: zodState.literal(false),
+                list: zodState.literal(false),
+                oList: zodState.literal(false),
+                check: zodState.literal(false),
+                quote: zodState.literal(false),
+            }),
         }),
         () => LIST_COMMANDS.IGNORE
     )
     // CheckToggle 快捷键 - 委托给子路由器
     .split(
-        type({
-            hotkeys: {
-                checkToggle: "true",
-                outdent: "false",
-                indent: "false",
-                list: "false",
-                oList: "false",
-                check: "false",
-                quote: "false"
-            }
+        zodState.object({
+            hotkeys: zodState.object({
+                checkToggle: zodState.literal(true),
+                outdent: zodState.literal(false),
+                indent: zodState.literal(false),
+                list: zodState.literal(false),
+                oList: zodState.literal(false),
+                check: zodState.literal(false),
+                quote: zodState.literal(false),
+            }),
         }),
         (state: UnifiedListState) => checkToggleSubRouter({ context: state.context })
     )
     // Outdent 快捷键 - 委托给子路由器
     .split(
-        type({
-            hotkeys: {
-                checkToggle: "false",
-                outdent: "true",
-                indent: "false",
-                list: "false",
-                oList: "false",
-                check: "false",
-                quote: "false"
-            }
+        zodState.object({
+            hotkeys: zodState.object({
+                checkToggle: zodState.literal(false),
+                outdent: zodState.literal(true),
+                indent: zodState.literal(false),
+                list: zodState.literal(false),
+                oList: zodState.literal(false),
+                check: zodState.literal(false),
+                quote: zodState.literal(false),
+            }),
         }),
         (state: UnifiedListState) => outdentSubRouter({
             selection: state.selection,
@@ -258,16 +286,16 @@ export const listMasterRouter = calibur
     )
     // Indent 快捷键 - 委托给子路由器
     .split(
-        type({
-            hotkeys: {
-                checkToggle: "false",
-                outdent: "false",
-                indent: "true",
-                list: "false",
-                oList: "false",
-                check: "false",
-                quote: "false"
-            }
+        zodState.object({
+            hotkeys: zodState.object({
+                checkToggle: zodState.literal(false),
+                outdent: zodState.literal(false),
+                indent: zodState.literal(true),
+                list: zodState.literal(false),
+                oList: zodState.literal(false),
+                check: zodState.literal(false),
+                quote: zodState.literal(false),
+            }),
         }),
         (state: UnifiedListState) => indentSubRouter({
             selection: state.selection,

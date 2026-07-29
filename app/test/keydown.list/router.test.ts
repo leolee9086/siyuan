@@ -5,7 +5,7 @@
  * @see app/src/protyle/wysiwyg/keydown.list/unified/router.ts
  */
 
-import { describe, test, expect } from "vitest";
+import {describe, expect, expectTypeOf, test} from "vitest";
 import {
     listMasterRouter,
     checkToggleSubRouter,
@@ -68,6 +68,20 @@ function createMockUnifiedState(
         }
     };
 }
+
+describe("router backend contract", () => {
+    test("all list routers use the Zod formal state backend", () => {
+        expect(listMasterRouter.__状态空间后端__.name).toBe("zod");
+        expect(checkToggleSubRouter.__状态空间后端__.name).toBe("zod");
+        expect(outdentSubRouter.__状态空间后端__.name).toBe("zod");
+        expect(indentSubRouter.__状态空间后端__.name).toBe("zod");
+        expect(transformSubRouter.__状态空间后端__.name).toBe("zod");
+    });
+
+    test("the master router accepts exactly the collected unified state", () => {
+        expectTypeOf(listMasterRouter).parameter(0).toEqualTypeOf<UnifiedListState>();
+    });
+});
 
 // ============================================================================
 // 主路由器测试

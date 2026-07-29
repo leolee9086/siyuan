@@ -65,6 +65,7 @@ import { type } from "arktype";
  * 解耦评估：这是编译期类型契约，无法通过事件发射替代。若在 [`types.ts`](app/src/protyle/wysiwyg/keydown.list/types.ts) 内直接依赖第三方类型导出，会把外部包路径耦合扩散到业务目录中的多个文件；继续通过本 imports 网关集中转发，仍是当前目录层级下更低耦合的方案。
  */
 import type { Type } from "arktype";
+import {zodState} from "calibur-router/zod";
 /**
  * 用途：引入公共日志模块暴露的日志级别枚举与命令日志参数契约，并在当前列表键盘模块的日志转发层统一对外再导出。
  * 使用范围：仅用于 [`imports.ts`](app/src/protyle/wysiwyg/keydown.list/imports.ts) 这个列表键盘日志网关文件向 [`executors.ts`](app/src/protyle/wysiwyg/keydown.list/executors.ts)、[`executors.transform.ts`](app/src/protyle/wysiwyg/keydown.list/executors.transform.ts)、[`executors.transform.helpers.ts`](app/src/protyle/wysiwyg/keydown.list/executors.transform.helpers.ts) 以及 [`index.ts`](app/src/protyle/wysiwyg/keydown.list/index.ts) 的公开 API 复用统一日志契约；边界是这里只转发共享类型/枚举，不承载任何日志格式化、命令执行或路由判断逻辑。
@@ -145,3 +146,7 @@ export { dayjs };
  * 用途：对外暴露 Arktype schema 类型接口，供同目录类型定义文件进行编译期泛型约束。
  */
 export type { Type };
+/**
+ * 用途：声明统一列表路由的 Zod 形式化状态空间。
+ */
+export {zodState};
