@@ -5,7 +5,7 @@ import type {SessionIndexItem, TaskDirectoryMenuAction} from "../SessionStore.ty
 /** 用途：构造会话目录路径；使用范围：Electron 文件管理器入口；解耦评估：Node path 是桌面路径标准边界。 */
 import * as path from "path";
 /** 用途：打开本地会话目录；使用范围：Electron 会话菜单；解耦评估：复用已有 shell 适配器，不直接依赖 Electron shell。 */
-import {useShell} from "../../../../util/pathName";
+import {useShell} from "../../../../util/file/pathName";
 /** 用途：区分原生目录选择和 Web 路径输入；使用范围：task-directory 绑定；解耦评估：平台判断必须由统一适配层提供。 */
 import {isElectron} from "../../../../platform";
 /** 用途：请求 Electron 主进程打开目录选择器；使用范围：task-directory 选择；解耦评估：IPC 细节经平台适配器集中隔离。 */

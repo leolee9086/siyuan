@@ -1,5 +1,6 @@
 /** 用途：打开既有移动选择器并提交移动请求、解析文档路径；使用范围：移动菜单点击流程；解耦评估：三项均是当前路径领域真实声明，参数注入会把固定命令实现泄露给菜单调用方。 */
-import {movePathTo, moveToPath, pathPosix} from "../../../util/pathName";
+import {movePathTo} from "../../../util/file/movePath/movePathTo";
+import {moveToPath, pathPosix} from "../../../util/file/pathName";
 /** 用途：严格读取应用配置与语言；使用范围：同步菜单描述；解耦评估：现有 getter 读取同一全局状态并在缺失时显式失败，避免调用方注入重复状态。 */
 import {getSiyuanConfig, getSiyuanLanguages} from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 /** 用途：生成现有菜单 DOM；使用范围：移动菜单同步构建；解耦评估：MenuItem 是菜单领域唯一渲染实现，本子域无需另建渲染接口。 */

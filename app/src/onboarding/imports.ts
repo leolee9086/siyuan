@@ -5,7 +5,7 @@ import {openFileById} from "../editor/utils.openFileById";
 /** 用途：移动引导文档导航；使用范围：移动宿主；解耦评估：直达移动导航唯一实现。 */
 import {openMobileFileById} from "../mobile/editor";
 /** 用途：笔记本准备；使用范围：两类宿主激活流程；解耦评估：直达唯一生命周期实现。 */
-import {setNoteBook} from "../util/pathName";
+import {setNoteBook} from "../util/file/pathName";
 /** 用途：桌面数据迁移入口；使用范围：桌面引导；解耦评估：直达桌面宿主实现。 */
 import {openDesktopDataMigration} from "../menus/dataMigration/desktop";
 /** 用途：移动数据迁移入口；使用范围：移动引导；解耦评估：直达移动宿主实现。 */

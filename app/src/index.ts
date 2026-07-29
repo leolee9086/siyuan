@@ -10,7 +10,8 @@ import { fetchGet, fetchPost } from "./util/network/fetch";
 import { addBaseURL, redirectToCheckAuth, setNoteBook } from "./util/file/pathName";
 import {exportLayout} from "./layout/export/exportLayout";
 // S-forge: 上游新增 - 支持空文档标题显示 (upstream #17110)
-import { getDocDisplayName, parseSiYuanUriInfo } from "./util/pathName";
+import {getDocDisplayName} from "./util/file/pathName";
+import {parseSiYuanUriInfo} from "./util/uri/protocol";
 import { registerServiceWorker } from "./util/network/serviceWorker";
 import { openFileById } from "./editor/utils.openFileById";
 import {activateQueuedAVLocate, queueAVLocateRequest} from "./protyle/render/av/locate/activation/activation";

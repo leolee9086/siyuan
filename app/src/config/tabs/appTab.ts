@@ -9,7 +9,7 @@ import {isMac, saveExportFile} from "../../protyle/util/compatibility";
 import {confirmDialog} from "../../dialog/confirmDialog";
 import {Dialog} from "../../dialog";
 import {isInMobileApp} from "../../protyle/util/compatibility";
-import {pathPosix} from "../../util/pathName";
+import {pathPosix} from "../../util/file/pathName";
 import {escapeAttr, escapeHtml} from "../../util/DOM/escape";
 import {afterExport} from "../../protyle/export/util";
 import {genConfigItemMainHtml, genConfigItemName} from "../render/fragments";

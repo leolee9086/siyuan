@@ -1,9 +1,9 @@
 /** 用途：SiYuan URI 协议解析。使用范围：处理 siyuan:// 与 web+siyuan://。解耦评估：路径工具模块。 */
-import {isSiYuanUriProtocol} from "./pathName";
+import {isSiYuanUriProtocol} from "./uri/protocol";
 /** 用途：SiYuan URI 信息解析。使用范围：提取块 ID、聚焦状态等。解耦评估：路径工具模块。 */
-import {parseSiYuanUriInfo} from "./pathName";
+import {parseSiYuanUriInfo} from "./uri/protocol";
 /** 用途：网络请求。使用范围：检查块是否存在。解耦评估：基础设施。 */
-import {fetchPost} from "./fetch";
+import {fetchPost} from "./network/fetch";
 /** 用途：检查折叠状态。使用范围：URI 块处理前检查折叠。解耦评估：平台工具模块。 */
 import {checkFold} from "../block/fold/checkFold";
 import {isValidBazaarPackageName} from "./bazaarPackage";

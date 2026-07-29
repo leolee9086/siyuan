@@ -15,7 +15,7 @@ import { buildGutterMultipleMenu } from "./buildGutterMultipleMenu";
 import { createProtyleMenuContext, scheduleProtyleMenuTask, setProtyleMenuContext } from "../runtime/menu.visibility";
 import {getGutterNodeElement} from "./gutter.node";
 import {getEmbedChildOperationContext} from "../wysiwyg/getBlock";
-import {isEncryptedBox} from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 import {createAddBlocksToAgentMenuItem} from "./addBlockToAgent";
 import type {IGutterMenuCapabilities} from "./gutter.types";
 

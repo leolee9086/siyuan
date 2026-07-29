@@ -35,7 +35,7 @@ import { exportImage } from "./imports";
 import { buildGutterBackgroundMenu } from "./menus/buildGutterBackgroundMenu";
 import { getProtyleMenuContext, scheduleProtyleMenuTask } from "../runtime/menu.visibility";
 import { createBlockColorMenuItem } from "../../sforge/colors/menu";
-import {isEncryptedBox} from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 import type {IGutterCommonMenuContext} from "./gutter.types";
 
 /**

@@ -14,7 +14,7 @@ import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.e
 import type { 面包屑点击上下文, 面包屑点击处理器 } from "./breadcrumb.types";
 import { getSiyuanKeyboardState } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isMobile } from "../../platform";
-import {withEncryptedNotebook} from "../../util/pathName";
+import {withEncryptedNotebook} from "../../util/file/notebook/store";
 
 // ============================================================
 // 节点 ID 点击处理 (data-node-id)

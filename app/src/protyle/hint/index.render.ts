@@ -8,7 +8,7 @@ import {hasPreviousSibling} from "../wysiwyg/getBlock";
 import {filterEmoji, getEmojiDesc, getEmojiTitle, lazyLoadEmoji, lazyLoadEmojiImg, unicode2Emoji} from "../../emoji";
 import {isMobile} from "../../platform";
 import {fetchPost} from "../../util/network/fetch";
-import {withEncryptedNotebook} from "../../util/pathName";
+import {withEncryptedNotebook} from "../../util/file/notebook/store";
 import type {HintDomain} from "./hint.types";
 
 /** @同步豁免: 遗留代码 — 从 Hint.render 原样提取的渲染逻辑 */

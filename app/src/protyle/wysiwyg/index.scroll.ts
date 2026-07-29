@@ -3,7 +3,7 @@ import {Constants} from "../../constants";
 import {fetchPost} from "../../util/network/fetch";
 import {onGet} from "../util/onGet";
 import {hideTooltip} from "../runtime/dialog.port";
-import {withEncryptedNotebook} from "../../util/pathName";
+import {withEncryptedNotebook} from "../../util/file/notebook/store";
 
 /**
  * 绑定 mousewheel 事件，处理动态加载和表格横向滚动。

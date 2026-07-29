@@ -4,7 +4,7 @@ import {Constants} from "../../constants";
 import {openMobileFileById} from "../editor";
 import type { AppFacade } from "../../app/AppFacade.types";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import {isEncryptedBox} from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 export class MobileBacklinks {
     public element: HTMLElement;
     private tree: Tree;

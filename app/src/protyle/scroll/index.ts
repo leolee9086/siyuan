@@ -7,7 +7,7 @@ import { goHome } from "../wysiwyg/commonHotkey/commonHotkey";
 import {goEnd} from "../wysiwyg/commonHotkey/goEnd/goEnd";
 import { showTooltip } from "../runtime/dialog.port";
 import { isBrowser } from "../../platform";
-import {withEncryptedNotebook} from "../../util/pathName";
+import {withEncryptedNotebook} from "../../util/file/notebook/store";
 
 export class Scroll {
     public element: HTMLElement;

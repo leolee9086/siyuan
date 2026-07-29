@@ -11,7 +11,7 @@ import { Dialog } from "../runtime/dialog.port";
 import { replaceLocalPath } from "../../editor/rename";
 import { getScreenWidth, isInMobileApp, saveExportFile, setStorageVal } from "../util/compatibility";
 import { getFrontend } from "../../util/platform/functions";
-import { isEncryptedBox } from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 // S-forge: 使用统一的i18n环境抽象
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 

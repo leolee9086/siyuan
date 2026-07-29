@@ -9,7 +9,7 @@ import {disabledProtyle, onGet} from "../util/onGet";
 import {avRender} from "../render/av/render";
 import {scrollCenter} from "../../util/DOM/highlightById";
 import {refreshSbs} from "./transaction/refreshSbs";
-import {withEncryptedNotebook} from "../../util/pathName";
+import {withEncryptedNotebook} from "../../util/file/notebook/store";
 
 export const syncFoldAttr = (element: Element, operation: IOperation) => {
     const attrs = JSON.parse(operation.data);

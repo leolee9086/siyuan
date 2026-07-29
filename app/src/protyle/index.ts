@@ -24,7 +24,8 @@ import {turnsIntoOneTransaction, turnsIntoTransaction} from "./wysiwyg/transacti
 import {updateBatchTransaction, updateTransaction} from "./wysiwyg/transaction/update";
 import { fetchPost } from "../util/network/fetch";
 import { refreshProtyleBacklink, refreshProtyleDatabaseRows, refreshProtyleOutline, updateProtylePanel, focusProtylePanel, clearProtylePanelFocus, updateProtyleTitle } from "./runtime/layout.port";
-import { getDocDisplayName, withEncryptedNotebook } from "../util/pathName";
+import {getDocDisplayName} from "../util/file/pathName";
+import {withEncryptedNotebook} from "../util/file/notebook/store";
 import { initMirror, refreshUndoButtons, syncMirrorFromBroadcast } from "./undo/globalUndo";
 import { Title } from "./header/Title";
 import { Background } from "./header/Background";

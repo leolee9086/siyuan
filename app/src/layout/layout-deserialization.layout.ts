@@ -6,7 +6,7 @@
 import type { AppFacade } from "../app/AppFacade.types";
 import { Tab } from "./Tab";
 import { openFileById } from "../editor/utils.openFileById";
-import { parseUriInfo } from "../util/pathName";
+import {parseUriInfo} from "../util/uri/protocol";
 import { setPanelFocus } from "./utils/setPanelFocus";
 import { isBrowser } from "../platform";
 import { getAllTabs } from "./getAll";

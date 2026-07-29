@@ -12,7 +12,7 @@ import { popSearch } from "../../mobile/menu/search";
 import { BlockPanel } from "../../block/panel/Panel";
 import { editAssetItem } from "../render/av/asset";
 import { fetchPost } from "../../util/network/fetch";
-import { parseSiYuanUriInfo } from "../../util/pathName";
+import {parseSiYuanUriInfo} from "../../util/uri/protocol";
 import { processSiYuanUri } from "../../util/uri";
 
 /**

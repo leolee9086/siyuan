@@ -15,7 +15,7 @@ import {showMessage} from "../dialog/message";
 import type { AppFacade } from "../app/AppFacade.types";
 import {initMirror} from "../protyle/undo/globalUndo";
 import {getDocByScroll, saveScroll} from "../protyle/scroll/saveScroll";
-import {isEncryptedBox} from "../util/pathName";
+import {isEncryptedBox} from "../util/file/notebook/store";
 
 // getCurrentEditor 已提取到 ./util/getCurrentEditor.ts
 // 目的：打断 closePanel → keyboardToolbar → mobile/editor → closePanel 循环依赖

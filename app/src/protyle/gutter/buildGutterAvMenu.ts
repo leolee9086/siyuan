@@ -27,7 +27,7 @@ import { saveExportFile } from "./imports";
  * 解耦评估：通过 imports.ts 统一管理
  */
 import { useShell } from "./imports";
-import {isEncryptedBox} from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 /**
  * 用途：获取系统配置
  * 使用范围：获取数据目录路径

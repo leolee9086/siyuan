@@ -11,7 +11,7 @@ import type { SearchContext, SemanticSearchResultItem } from "./render.types";
 import { getSiyuanConfig, getSafeSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isStylableElement } from "../../util/DOM/element.guard";
-import {withEncryptedNotebook} from "../../util/pathName";
+import {withEncryptedNotebook} from "../../util/file/notebook/store";
 
 /**
  * 表示嵌入查询返回或本地搜索合成的一项块结果。

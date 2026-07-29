@@ -10,7 +10,7 @@ import {hasClosestBlock, hasClosestByClassName} from "../protyle/util/hasClosest
 import {getInstanceById} from "./util";
 import {Tab} from "./Tab";
 import {Backlink} from "./dock/Backlink";
-import {withEncryptedNotebook} from "../util/pathName";
+import {withEncryptedNotebook} from "../util/file/notebook/store";
 import {getDockByType} from "./query/dockByType";
 
 /** 完整 App 的布局协同适配器；具体布局树和 DOM 查询只允许出现在此边界内。 */

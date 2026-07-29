@@ -16,7 +16,7 @@ import { showMobileAppearance } from "./showMobileAppearance";
 import { Constants } from "../../constants";
 import { buildMultiAiMenu } from "./menus/buildGutterAiMenu";
 import { buildGutterBackgroundMenu } from "./menus/buildGutterBackgroundMenu";
-import {isEncryptedBox} from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 import {createAddBlocksToAgentMenuItem} from "./addBlockToAgent";
 
 /**

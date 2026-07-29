@@ -34,7 +34,7 @@ import { clearSelect } from "../util/clearSelect";
 import { buildGutterMenu } from "./buildGutterMenu";
 import { insertEmptyBlock } from "../../block/util";
 import { countBlockWord } from "../runtime/status.port";
-import {isEncryptedBox} from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 import {getGutterNodeElement} from "./gutter.node";
 
 export const isMatchNode = (item: Element, gutterElement: Element) => {

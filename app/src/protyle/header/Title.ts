@@ -19,7 +19,8 @@ import { isMobile } from "../../platform";
 // S-forge: openFileById 路径重构
 import { openFileById } from "../../editor/utils.openFileById";
 // 上游: getDocDisplayName 用于 render() 中标签页标题更新
-import { getDocDisplayName, withEncryptedNotebook } from "../../util/pathName";
+import {getDocDisplayName} from "../../util/file/pathName";
+import {withEncryptedNotebook} from "../../util/file/notebook/store";
 import { getContenteditableElement, getNoContainerElement } from "../wysiwyg/getBlock";
 // S-forge: commonHotkey 路径重构
 import { commonHotkey } from "../wysiwyg/commonHotkey/commonHotkey";

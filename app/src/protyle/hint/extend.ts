@@ -10,7 +10,7 @@ import { hasClosestBlock, hasClosestByClassName } from "../util/hasClosest";
 import { getContenteditableElement, getTopAloneElement } from "../wysiwyg/getBlock";
 import {transaction} from "../wysiwyg/transaction/submit";
 import { getDisplayName } from "../../util/file/pathName";
-import { withEncryptedNotebook } from "../../util/pathName";
+import {withEncryptedNotebook} from "../../util/file/notebook/store";
 import { genEmptyElement } from "../../block/element.factory";
 import { updateListOrder } from "../wysiwyg/list.updateOrder";
 import { escapeHtml } from "../../util/DOM/escape";

@@ -9,12 +9,12 @@ import {fetchPost} from "../../util/network/fetch";
 export {fetchPost};
 
 /** 用途：SiYuan URI 协议判断。使用范围：同步协议接管；解耦评估：稳定路径解析。 */
-import {isSiYuanUriProtocol} from "../../util/pathName";
+import {isSiYuanUriProtocol} from "../../util/uri/protocol";
 /** 导出 SiYuan URI 协议判断。 */
 export {isSiYuanUriProtocol};
 
 /** 用途：SiYuan 块 URI 解析。使用范围：块导航请求；解耦评估：稳定路径解析。 */
-import {parseSiYuanUriInfo} from "../../util/pathName";
+import {parseSiYuanUriInfo} from "../../util/uri/protocol";
 /** 导出 SiYuan 块 URI 解析。 */
 export {parseSiYuanUriInfo};
 

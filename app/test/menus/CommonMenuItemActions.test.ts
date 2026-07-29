@@ -2,7 +2,8 @@ import {beforeEach, describe, expect, it, vi} from "vitest";
 import type {MenuItem} from "../../src/menus/Menu";
 import type {rename} from "../../src/editor/rename";
 import type {fetchPost} from "../../src/util/network/fetch";
-import type {movePathTo, moveToPath} from "../../src/util/pathName";
+import type {movePathTo} from "../../src/util/file/movePath/movePathTo";
+import type {moveToPath} from "../../src/util/file/pathName";
 
 const state = vi.hoisted(() => ({
     encrypted: false,

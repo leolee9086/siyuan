@@ -20,7 +20,7 @@ import {getContenteditableElement} from "../wysiwyg/getBlock";
 import {activeBlur} from "../../mobile/keyboard/activeBlur";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import * as platform from "../../platform";
-import {isEncryptedBox} from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 
 export const onGet = (options: {
     data: IWebSocketData,

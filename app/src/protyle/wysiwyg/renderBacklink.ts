@@ -6,7 +6,7 @@ import {highlightRender} from "../render/highlightRender";
 import {blockRender} from "../render/blockRender";
 import {disabledForeverProtyle, disabledProtyle} from "../util/onGet";
 import {avRender} from "../render/av/render";
-import {isEncryptedBox} from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 import {genBreadcrumb, improveBreadcrumbAppearance} from "../breadcrumb/backlinkBreadcrumb";
 import {foldPassiveType} from "./backlink/foldPassiveType";
 

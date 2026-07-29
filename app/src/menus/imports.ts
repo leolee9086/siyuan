@@ -81,6 +81,6 @@ import {escapeHtml} from "../util/DOM/escape";
 /** 导出标签菜单使用的 HTML 转义。 */
 export {escapeHtml};
 /** 用途：统一标签重命名；使用范围：标签菜单；解耦评估：业务操作唯一实现经菜单网关暴露。 */
-import {renameTag} from "../util/platform/noRelyPCFunction";
+import {renameTag} from "./tag.actions";
 /** 导出标签菜单使用的重命名行为。 */
 export {renameTag};

@@ -24,7 +24,7 @@ import { transferBlockRef } from "../../menus/block";
 import { appendFileOperationsMenuItemGroup } from "./openTitleMenu.FileOperations";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import {isEncryptedBox, withEncryptedNotebook} from "../../util/pathName";
+import {isEncryptedBox, withEncryptedNotebook} from "../../util/file/notebook/store";
 const appendDesktopOnlyMenuItemGroup = (protyle: IProtyle) => {
     if (isMobile) {
         return;

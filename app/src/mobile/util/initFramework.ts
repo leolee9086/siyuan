@@ -10,7 +10,7 @@ import {setInlineStyle} from "../../util/assets/assets";
 import {renderSnippet} from "../../config/util/snippets";
 import {setEmpty} from "./setEmpty";
 import {getOpenNotebookCount} from "../../util/file/pathName";
-import {parseUriInfo} from "../../util/pathName";
+import {parseUriInfo} from "../../util/uri/protocol";
 import {popMenu} from "../menu";
 import {MobileFiles} from "../dock/MobileFiles";
 import {MobileOutline} from "../dock/MobileOutline";

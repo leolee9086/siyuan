@@ -5,7 +5,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { hasClosestBlock } from "../util/hasClosest";
 import { getEditorRange } from "../util/selection";
 import {genHintItemHTML} from "./result/item";
-import { withEncryptedNotebook } from "../../util/pathName";
+import {withEncryptedNotebook} from "../../util/file/notebook/store";
 
 const genNewFileItem = (k: string) => {
     const newFileName = Lute.UnEscapeHTMLStr(replaceFileName(k));

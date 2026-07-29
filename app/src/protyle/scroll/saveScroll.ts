@@ -5,7 +5,7 @@ import {onGet} from "../util/onGet";
 import {Constants} from "../../constants";
 import {setStorageVal} from "../util/compatibility";
 import {isSupportCSSHL} from "../render/searchMarkRender";
-import {isEncryptedBox} from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 import {getContenteditableElement} from "../wysiwyg/getBlock";
 
 export const saveScroll = (protyle: IProtyle, getObject = false) => {

@@ -24,13 +24,13 @@ import {checkFold} from "../../block/fold/checkFold";
 import {transaction} from "../../protyle/wysiwyg/transaction/submit";
 import {turnsIntoTransaction} from "../../protyle/wysiwyg/transaction.turns";
 import {goHome} from "../../protyle/wysiwyg/commonHotkey";
-import {isEncryptedBox} from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 import {isEditorDomain} from "../../editor/model/editorDomain.types";
 import {mathRender} from "../../protyle/render/mathRender";
 import {genEmptyElement} from "../../block/element.factory";
 import {focusBlock, focusByWbr} from "../../protyle/util/selection";
 import {dragOverScroll, stopScrollAnimation} from "../../boot/globalEvent/dragover";
-import {getDocDisplayName} from "../../util/pathName";
+import {getDocDisplayName} from "../../util/file/pathName";
 
 export class Outline extends Model<AppFacade, LayoutTab> {
     public tree: Tree;

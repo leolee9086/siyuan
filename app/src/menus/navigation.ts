@@ -6,7 +6,7 @@ import {renameMenu} from "./commonMenuItem/rename/renameMenu.factory";
 import { isElectron, isMobile } from "../platform";
 import { MenuItem } from "./Menu.Item";
 import { getDisplayName, getNotebookName, getTopPaths, useShell, pathPosix, originalPath } from "../util/file/pathName";
-import { isEncryptedBox } from "../util/pathName";
+import {isEncryptedBox} from "../util/file/notebook/store";
 import { showMessage } from "../dialog/message";
 import { confirmDialog } from "../dialog/confirmDialog";
 import { fetchPost, fetchSyncPost } from "../util/network/fetch";

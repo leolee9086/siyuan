@@ -34,7 +34,7 @@ import { removeProtyleBacklinkEditor } from "../runtime/layout.port";
 import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { onGet } from "../util/onGet";
 import { removeLi } from "./remove.removeLi";
-import { withEncryptedNotebook } from "../../util/pathName";
+import {withEncryptedNotebook} from "../../util/file/notebook/store";
 import {moveToPrevious} from "./remove/focus";
 
 export {getOperationParentID} from "./getBlock";

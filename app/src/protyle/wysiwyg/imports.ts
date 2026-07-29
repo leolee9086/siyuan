@@ -111,7 +111,7 @@ import {matchHotKey} from "../util/hotKey";
 export {matchHotKey};
 
 /** 用途：为加密笔记本请求附加 notebook。使用范围：WYSIWYG 文档信息请求。解耦评估：复用唯一加密参数构造器，避免各中间件重复判断。 */
-import {withEncryptedNotebook} from "../../util/pathName";
+import {withEncryptedNotebook} from "../../util/file/notebook/store";
 /** 用途：刷新数据库视图表头选中状态。使用范围：Gallery 多选。解耦评估：通过目录网关转发。 */
 import {updateHeader} from "../render/av/selection/header";
 /** 用途：同步数据库虚拟滚动行选中快照。使用范围：Gallery 多选。解耦评估：通过目录网关转发。 */

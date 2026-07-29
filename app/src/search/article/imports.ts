@@ -41,7 +41,7 @@ import {scrollToCurrent} from "../utils/utils.scrollToCurrent";
 export {scrollToCurrent};
 
 /** 用途：识别加密笔记本并补充请求参数；使用范围：文档信息与正文请求；解耦评估：直达统一路径领域判断。 */
-import {isEncryptedBox} from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 /** 导出加密笔记本判断。 */
 export {isEncryptedBox};
 

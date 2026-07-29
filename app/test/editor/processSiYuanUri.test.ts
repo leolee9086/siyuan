@@ -25,21 +25,6 @@ vi.mock("../../src/util/network/fetch", () => ({fetchPost: services.fetchPost}))
 vi.mock("../../src/platform", () => ({isElectron: true, isMobile: false}));
 vi.mock("../../src/platform/electron/ipcRenderer", () => ({ipcSend: services.ipcSend}));
 vi.mock("../../src/editor/open/openFile", () => ({openFile: services.openFile}));
-vi.mock("../../src/util/pathName", () => ({
-    isSiYuanUriProtocol: (uri: URL) => uri.protocol === "siyuan:" || uri.protocol === "web+siyuan:",
-    parseSiYuanUriInfo: (uri: URL) => {
-        if (uri.hostname !== "blocks") {
-            return null;
-        }
-        const id = uri.pathname.split("/")[1];
-        return id ? {
-            id,
-            focus: uri.searchParams.get("focus") === "1",
-            fullscreen: uri.searchParams.get("fullscreen") === "1",
-        } : null;
-    },
-}));
-
 import {processSiYuanUri} from "../../src/editor/uri/processSiYuanUri";
 
 const createApp = () => createAppFacade<Siyuan.Plugin, EventBus>({

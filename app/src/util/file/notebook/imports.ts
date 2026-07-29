@@ -4,6 +4,8 @@ import {fetchPost} from "../../network/fetch";
 import {getSiyuanNotebooks} from "../../siyuanEnvironments/getSiyuanConfig.environment";
 /** 用途：替换笔记本集合；使用范围：非闪卡列表刷新；解耦评估：状态写入端口集中在笔记本领域。 */
 import {setSiyuanNotebooks} from "../../siyuanEnvironments/getSiyuanConfig.environment";
+/** 用途：读取当前配置；使用范围：同步笔记本列表响应携带的顶层文档开关；解耦评估：状态更新直达既有环境边界。 */
+import {getSiyuanConfig} from "../../siyuanEnvironments/getSiyuanConfig.environment";
 
 /** 同目录笔记本状态使用的网络请求。 */
 export {fetchPost};
@@ -11,3 +13,5 @@ export {fetchPost};
 export {getSiyuanNotebooks};
 /** 同目录笔记本状态使用的集合写入端口。 */
 export {setSiyuanNotebooks};
+/** 同目录笔记本状态使用的配置读取端口。 */
+export {getSiyuanConfig};

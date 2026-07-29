@@ -12,7 +12,7 @@ import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment
 import {showContextMenu} from "./MobileOutline.contextMenu";
 import {setFilter, showExpandLevelMenu, handleOutlineTransaction, bindKeepCurrentExpandEvent} from "./MobileOutline.expand";
 import {getDocDisplayName} from "../../util/file/pathName";
-import {isEncryptedBox} from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 import {escapeHtml} from "../../util/DOM/escape";
 import {unicode2Emoji} from "../../emoji";
 import {bindOutlineSort} from "./MobileOutline.sort";

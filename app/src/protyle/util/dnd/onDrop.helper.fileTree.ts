@@ -18,7 +18,7 @@ import {
     resolveAvItemPreviousId,
     executeAvInsert,
 } from "./onDrop.helper.avDrop";
-import {withEncryptedNotebook} from "../../../util/pathName";
+import {withEncryptedNotebook} from "../../../util/file/notebook/store";
 
 /**
  * 文件树拖拽到非 AV 区域：插入引用链接

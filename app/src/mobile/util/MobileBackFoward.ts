@@ -13,7 +13,7 @@ import { showMessage } from "../../dialog/message";
 import { getCurrentEditor } from "./getCurrentEditor"; // 独立模块，打断循环依赖
 import { avRender } from "../../protyle/render/av/render";
 import { setTitle } from "../../util/processTitle";
-import {isEncryptedBox} from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 import {getNavigationHistoryState} from "../../navigation/history/NavigationHistoryRegistry";
 
 const focusStack = (backStack: IBackStack) => {

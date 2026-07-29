@@ -25,7 +25,7 @@ import {
     生成平板按钮HTML,
 } from "./breadcrumb.helpers";
 import type { 录音器上下文 } from "./breadcrumb.types";
-import {withEncryptedNotebook} from "../../util/pathName";
+import {withEncryptedNotebook} from "../../util/file/notebook/store";
 
 // ==================== 录音相关函数 ====================
 

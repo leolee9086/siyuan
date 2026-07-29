@@ -1,5 +1,5 @@
 import * as path from "path";
-import {useShell} from "../../util/pathName";
+import {useShell} from "../../util/file/pathName";
 import type {SettingTabBuilder} from "../setting/builder";
 import {Constants} from "../../constants";
 import {resetLayout} from "../../layout/util";

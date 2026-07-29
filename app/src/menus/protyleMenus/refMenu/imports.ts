@@ -306,7 +306,7 @@ export { popSearch };
  * 使用范围：标签菜单“重命名”动作。
  * 解耦评估：重命名逻辑集中封装，业务层仅传标签文本。
  */
-import { renameTag } from "../../../util/platform/noRelyPCFunction";
+import { renameTag } from "../../../menus/tag.actions";
 /** 导出 renameTag 供 refMenu 子模块复用 */
 export { renameTag };
 
@@ -315,7 +315,7 @@ export { renameTag };
  * 使用范围：标签菜单输入框中输入时显示匹配标签。
  * 解耦评估：标签列表逻辑独立封装，业务层只负责展示与交互。
  */
-import { genTagList } from "../../../util/platform/noRelyPCFunction";
+import { genTagList } from "../../../menus/tag.actions";
 /** 导出 genTagList 供 refMenu 子模块复用 */
 export { genTagList };
 

@@ -10,7 +10,7 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment"
 import { 语义搜索, 获取语义搜索配置 } from "../layout/dock/embeddingDock/semanticSearch.api";
 import type { ISemanticSearchResult } from "../layout/dock/embeddingDock/embeddingDock.types";
 import { onSearch } from "./utils/onSearch";
-import {isEncryptedBox} from "../util/pathName";
+import {isEncryptedBox} from "../util/file/notebook/store";
 
 /**
  * 用途：描述本地块搜索接口的可选响应字段。

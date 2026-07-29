@@ -3,7 +3,7 @@ import {Constants} from "../../constants";
 import {fetchPost} from "../../util/network/fetch";
 import {openModel} from "./model";
 import {escapeHtml} from "../../util/DOM/escape";
-import {isEncryptedBox} from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 import {unicode2Emoji} from "../../emoji";
 import {activeBlur} from "../keyboard/activeBlur";
 import type { AppFacade } from "../../app/AppFacade.types";

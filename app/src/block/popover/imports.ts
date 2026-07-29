@@ -14,7 +14,7 @@ import { fetchSyncPost } from "../../util/network/fetch";
 // 用途：发送异步 POST 请求到后端 API；使用范围：tooltip.ts 中获取资源信息和笔记本信息；解耦评估：网络请求基础设施，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
 import { fetchPost } from "../../util/network/fetch";
 // 用途：解析思源协议 URL；使用范围：refDefs.ts 中处理思源协议链接时解析 ID；解耦评估：纯函数工具，通过参数传递即可使用，已充分解耦
-import { parseSiYuanUriInfo } from "../../util/pathName";
+import {parseSiYuanUriInfo} from "../../util/uri/protocol";
 // 用途：判断路径是否为本地路径；使用范围：tooltip.ts 中判断链接是否需要显示本地资源信息；解耦评估：纯函数工具，通过参数传递即可使用，已充分解耦
 import { isLocalPath } from "../../util/file/pathName";
 // 用途：隐藏 tooltip；使用范围：tooltip.ts 中需要隐藏提示时调用；解耦评估：UI操作函数，可通过事件机制解耦，但作为全局UI基础设施直接导入更合理

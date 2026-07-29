@@ -3,7 +3,7 @@ import {Dialog} from "../runtime/dialog.port";
 import {confirmDialog, showMessage} from "../runtime/dialog.port";
 import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {isMobile} from "../../util/functions";
-import {isEncryptedBox} from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 import {saveExportFile} from "../util/compatibility";
 
 // 导出参数对话框 https://github.com/siyuan-note/siyuan/issues/17031

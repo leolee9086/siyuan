@@ -12,7 +12,7 @@ import type {AppFacade} from "../../app/AppFacade.types";
 import {checkFold} from "../../block/fold/checkFold";
 import { Editor } from "../../editor";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getDocDisplayName } from "../../util/pathName";
+import {getDocDisplayName} from "../../util/file/pathName";
 import {graphModelBrand} from "./graph/graph.types";
 
 declare const vis: any;

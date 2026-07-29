@@ -6,7 +6,7 @@ import {isMobile} from "../../util/platform/functions";
 import {hasClosestBlock, hasClosestByClassName} from "../util/hasClosest";
 import {stickyRow} from "../render/av/row";
 import {trimAVRowsSync} from "../render/av/virtualScroll";
-import {isEncryptedBox} from "../../util/pathName";
+import {isEncryptedBox} from "../../util/file/notebook/store";
 
 let getIndexTimeout: number;
 const avScrollPending = new WeakSet<HTMLElement>();
