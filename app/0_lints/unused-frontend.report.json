@@ -1,240 +1,102 @@
 {
-  "generatedAt": "2026-03-18T09:27:22.151Z",
+  "generatedAt": "2026-07-29T05:44:10.435Z",
   "entryFiles": [
-    "src/config/configSchemas/fileTree.ts",
+    "src/agent-standalone/index.ts",
+    "src/agent-standalone/panel-runtime/index.ts",
+    "src/bazaar-source/index.ts",
+    "src/config/configSchemas/fileTree/schema.ts",
     "src/dialog/index.ts",
-    "src/dialog/message.ts",
-    "src/inNotePlugin/index.ts",
     "src/index.ts",
     "src/layout/tabUtil.ts",
     "src/magi/entry/index.ts",
     "src/magi/entry/mobile.ts",
+    "src/magi/identity-access/standalone.ts",
     "src/magi/panel/magiStatusButton.ts",
     "src/mobile/index.ts",
+    "src/protyle-standalone/index.ts",
     "src/protyle/method.ts",
     "src/registry/contentRenderer/registerBuiltinRenderers.ts",
+    "src/sforge/colors/init.ts",
     "src/sforge/panel/index.ts",
     "src/triggers/styleBrush.ts",
-    "src/util/DOM/setPosition.ts",
+    "src/util/DOM/positioning/setPosition.ts",
     "src/util/network/cronjobApi.ts",
     "src/util/network/fetch.ts",
-    "src/window/index.ts",
-    "src/window/setHeader.ts"
+    "src/window/index.ts"
   ],
   "totals": {
-    "files": 135,
-    "dependencies": 8,
-    "devDependencies": 6,
-    "exports": 591
+    "files": 0,
+    "dependencies": 5,
+    "devDependencies": 8,
+    "exports": 823
   },
-  "files": [
-    "src/ai/deps.ts",
-    "src/ai/prompts/toolList/fullToolList.builder.ts",
-    "src/ai/prompts/toolList/schema.formatter.ts",
-    "src/apis/modelscope/index.ts",
-    "src/asset/imports.ts",
-    "src/asset/tags/assetTags.ts",
-    "src/asset/tags/assetTags.types.ts",
-    "src/components/composables/useDragable.ts",
-    "src/components/masonry/components/SelectionBox.vue",
-    "src/components/masonry/components/SelectionWrapper.vue",
-    "src/components/masonry/components/VirtualMasonryDataProvider.ctx.ts",
-    "src/components/masonry/components/VirtualMasonryDataProvider.types.ts",
-    "src/components/masonry/components/VirtualMasonryDataProvider.vue",
-    "src/components/masonry/composables/layout-engines/grid/index.ts",
-    "src/components/masonry/composables/layout-engines/index.ts",
-    "src/components/masonry/composables/layout-engines/justified/index.ts",
-    "src/components/masonry/composables/layout-engines/list/index.ts",
-    "src/components/masonry/composables/layout-engines/masonry/index.ts",
-    "src/components/masonry/composables/select-engines/index.ts",
-    "src/components/masonry/composables/select-engines/spatial-cache.ts",
-    "src/components/masonry/composables/select-engines/spatial-hash.ts",
-    "src/components/masonry/composables/select-engines/spatial-query.ts",
-    "src/components/masonry/composables/select-engines/spatial-utils.ts",
-    "src/components/masonry/composables/select-engines/types.ts",
-    "src/components/masonry/composables/useMasonryLayout.ts",
-    "src/components/masonry/composables/usePositionObserver.ts",
-    "src/components/masonry/composables/useSelectionBox.ts",
-    "src/components/masonry/composables/useSelectionObserver.ts",
-    "src/components/masonry/composables/useSelectionSystem.ts",
-    "src/components/masonry/composables/useVirtualDataSource.ts",
-    "src/components/masonry/index.ts",
-    "src/components/masonry/utils/binarySearch.ts",
-    "src/components/panels/imageEditor.scss",
-    "src/config/configSchemas/ai.schema.ts",
-    "src/config/configSchemas/appearance.ts",
-    "src/config/configSchemas/editor.ts",
-    "src/config/configSchemas/export.ts",
-    "src/config/configSchemas/flashcard.ts",
-    "src/config/configSchemas/graph.ts",
-    "src/config/configSchemas/index.ts",
-    "src/config/configSchemas/keyMap.general.ts",
-    "src/config/configSchemas/keymap.editor.general.ts",
-    "src/config/configSchemas/keymap.editor.heading.ts",
-    "src/config/configSchemas/keymap.editor.insert.ts",
-    "src/config/configSchemas/keymap.editor.list.ts",
-    "src/config/configSchemas/keymap.editor.table.ts",
-    "src/config/configSchemas/keymap.editor.ts",
-    "src/config/configSchemas/keymap.utils.ts",
-    "src/config/configSchemas/search.ts",
-    "src/config/configSchemas/sync.ts",
-    "src/config/configSchemas/system.ts",
-    "src/layout/dock/Files/msgCallbackHandlers.types.ts",
-    "src/layout/dock/Forwardlink.types.ts",
-    "src/layout/dock/embeddingDock/embeddingDock.util.ts",
-    "src/layout/dock/embeddingDock/index.ts",
-    "src/layout/layout-deserialization.types.ts",
-    "src/magi/adapters/rawOpenAIStandardLLMAdapter.ts",
-    "src/magi/components/magi-main-panel/MagiMainPanelHeader.vue",
-    "src/magi/components/persona/SSETextDisplay.ctx.ts",
-    "src/magi/components/persona/SSETextDisplay.guard.ts",
-    "src/magi/components/persona/SSETextDisplay.types.ts",
-    "src/magi/components/persona/SSETextDisplay.vue",
-    "src/magi/components/seel-panel/imports.ts",
-    "src/magi/composables/root/MagiRoot.windowControls.ts",
-    "src/magi/core/configLoader.guard.ts",
-    "src/magi/core/configLoader.ts",
-    "src/magi/core/dummySys/dummySys.ts",
-    "src/magi/core/dummySys/persona.ts",
-    "src/magi/core/dummySys/rei.ts",
-    "src/magi/core/marduk.ts",
-    "src/magi/core/nerv/nerv.helpers.ts",
-    "src/magi/core/nerv/nerv.ops.ts",
-    "src/magi/core/nerv/nerv.ts",
-    "src/magi/core/nerv/nerv.types.ts",
-    "src/magi/core/wise/baseWise.ts",
-    "src/magi/core/wise/promptTemplates/Balthazar.ts",
-    "src/magi/data/_backup/questionnaire-sections/balthazar/index.ts",
-    "src/magi/data/_backup/questionnaire-sections/balthazar/part1.ts",
-    "src/magi/data/_backup/questionnaire-sections/balthazar/part2.ts",
-    "src/magi/data/_backup/questionnaire-sections/balthazar/part3.ts",
-    "src/magi/data/_backup/questionnaire-sections/balthazar/prompts.ts",
-    "src/magi/data/_backup/questionnaire-sections/calculateScore.ts",
-    "src/magi/data/_backup/questionnaire-sections/casper/index.ts",
-    "src/magi/data/_backup/questionnaire-sections/casper/part1.ts",
-    "src/magi/data/_backup/questionnaire-sections/casper/part2.ts",
-    "src/magi/data/_backup/questionnaire-sections/casper/part3.ts",
-    "src/magi/data/_backup/questionnaire-sections/casper/part4.ts",
-    "src/magi/data/_backup/questionnaire-sections/casper/part5.ts",
-    "src/magi/data/_backup/questionnaire-sections/casper/part6.ts",
-    "src/magi/data/_backup/questionnaire-sections/casper/prompts.ts",
-    "src/magi/data/_backup/questionnaire-sections/melchior/index.ts",
-    "src/magi/data/_backup/questionnaire-sections/melchior/part1.ts",
-    "src/magi/data/_backup/questionnaire-sections/melchior/part2.ts",
-    "src/magi/data/_backup/questionnaire-sections/melchior/part3.ts",
-    "src/magi/data/_backup/questionnaire-sections/melchior/prompts.ts",
-    "src/magi/data/_backup/questionnaire-sections/questionnaire.guard.ts",
-    "src/magi/data/_backup/questionnaire-sections/trinity/assessment.ts",
-    "src/magi/data/_backup/questionnaire-sections/trinity/basic.ts",
-    "src/magi/data/_backup/questionnaire-sections/trinity/identity.ts",
-    "src/magi/data/_backup/questionnaire-sections/trinity/index.ts",
-    "src/magi/data/_backup/questionnaire-sections/trinity/prompts.ts",
-    "src/magi/data/_backup/questionnaire-sections/trinity/roles.ts",
-    "src/magi/data/diff/diff.types.ts",
-    "src/magi/data/diff/index.ts",
-    "src/magi/data/questionnaire-sections.ts",
-    "src/magi/prompts/decisionTemplate.ts",
-    "src/menus/protyleMenus/protyle.contentMenu.guard.ts",
-    "src/plugin/ProtyleMethod.ts",
-    "src/plugin/customBlockRender.ts",
-    "src/protyle/render/av/col.showColMenu.actions.ts",
-    "src/protyle/wysiwyg/keydown.av.ts",
-    "src/protyle/wysiwyg/keydown.list.ts",
-    "src/protyle/wysiwyg/keydown.list/index.ts",
-    "src/search/utils/genSearch/handlers/index.ts",
-    "src/search/utils/genSearch/index.ts",
-    "src/util/DOM/matchCondition.ts",
-    "src/util/DOM/matchIf.ts",
-    "src/util/DOM/range.copyWithResolvedCSS.ts",
-    "src/util/assets/css/extractCSSVariables.environment.ts",
-    "src/util/assets/css/extractCSSVariables.guard.ts",
-    "src/util/assets/css/extractCSSVariables.ts",
-    "src/util/assets/css/extractCSSVariables.types.ts",
-    "src/util/lib/embedding/vectorApi.ts",
-    "src/util/lib/embedding/vectorApi.types.ts",
-    "src/util/lib/zodMethodDefinedClass/deepEqual.ts",
-    "src/util/lib/zodMethodDefinedClass/deepRaw.ts",
-    "src/util/lib/zodMethodDefinedClass/isSub.ts",
-    "src/util/lib/zodMethodDefinedClass/layer.ts",
-    "src/util/lib/zodMethodDefinedClass/modeRouter.guard.ts",
-    "src/util/lib/zodMethodDefinedClass/modeRouter.internal.ts",
-    "src/util/lib/zodMethodDefinedClass/modeRouter.ts",
-    "src/util/lib/zodMethodDefinedClass/modeRouter.types.ts",
-    "src/util/vue/context.model.ts",
-    "src/util/vue/wrapper/io.ts",
-    "src/util/zodMethodDefinedClass/deepEqual.ts"
-  ],
+  "files": [],
   "dependencies": [
     {
-      "name": "-",
-      "line": 120,
-      "col": 6
-    },
-    {
       "name": "@leolee9086/everything-client-http",
-      "line": 122,
-      "col": 6
-    },
-    {
-      "name": "@leolee9086/image-dehazing",
-      "line": 123,
+      "line": 165,
       "col": 6
     },
     {
       "name": "@leolee9086/siyuan-kernel-sdk",
-      "line": 124,
+      "line": 167,
       "col": 6
     },
     {
       "name": "@modelcontextprotocol/sdk",
-      "line": 125,
+      "line": 168,
       "col": 6
     },
     {
       "name": "@types/filesize",
-      "line": 126,
-      "col": 6
-    },
-    {
-      "name": "calibur-router",
-      "line": 128,
+      "line": 169,
       "col": 6
     },
     {
       "name": "url",
-      "line": 135,
+      "line": 178,
       "col": 6
     }
   ],
   "devDependencies": [
     {
-      "name": "@vue/compiler-sfc",
-      "line": 86,
+      "name": "@typescript-eslint/eslint-plugin",
+      "line": 117,
       "col": 6
     },
     {
       "name": "encoding",
-      "line": 93,
+      "line": 129,
       "col": 6
     },
     {
       "name": "iconv-lite",
-      "line": 101,
+      "line": 138,
+      "col": 6
+    },
+    {
+      "name": "ifdef-loader",
+      "line": 139,
       "col": 6
     },
     {
       "name": "safer-buffer",
-      "line": 105,
+      "line": 145,
+      "col": 6
+    },
+    {
+      "name": "sharp",
+      "line": 148,
       "col": 6
     },
     {
       "name": "ts-jest",
-      "line": 108,
+      "line": 150,
       "col": 6
     },
     {
       "name": "webpack-bundle-analyzer",
-      "line": 116,
+      "line": 160,
       "col": 6
     }
   ],
@@ -284,13 +146,25 @@
     {
       "file": "src/ai/types.ts",
       "name": "aiConfigSchema",
-      "line": 24,
+      "line": 25,
+      "col": 14
+    },
+    {
+      "file": "src/ai/types.ts",
+      "name": "selectorOperationConfigSchema",
+      "line": 148,
+      "col": 14
+    },
+    {
+      "file": "src/ai/types.ts",
+      "name": "aiActionConfigSchema",
+      "line": 175,
       "col": 14
     },
     {
       "file": "src/apis/modelscope/client.guard.ts",
       "name": "检查思源代理请求响应",
-      "line": 29,
+      "line": 30,
       "col": 14
     },
     {
@@ -300,58 +174,10 @@
       "col": 23
     },
     {
-      "file": "src/apis/modelscope/constants.ts",
-      "name": "MODEL_SCOPE_BASE_URL",
-      "line": 43,
-      "col": 14
-    },
-    {
-      "file": "src/apis/modelscope/constants.ts",
-      "name": "HEADERS",
-      "line": 44,
-      "col": 14
-    },
-    {
-      "file": "src/apis/modelscope/constants.ts",
-      "name": "CONTENT_TYPE_JSON",
-      "line": 45,
-      "col": 14
-    },
-    {
-      "file": "src/apis/modelscope/constants.ts",
-      "name": "TASK_TYPE_IMAGE_GENERATION",
-      "line": 46,
-      "col": 14
-    },
-    {
-      "file": "src/apis/modelscope/constants.ts",
-      "name": "DEFAULT_MODEL",
-      "line": 47,
-      "col": 14
-    },
-    {
-      "file": "src/apis/modelscope/constants.ts",
-      "name": "ENDPOINTS",
-      "line": 48,
-      "col": 14
-    },
-    {
-      "file": "src/apis/modelscope/constants.ts",
-      "name": "DEFAULT_PARAMS",
-      "line": 49,
-      "col": 14
-    },
-    {
-      "file": "src/apis/modelscope/constants.ts",
-      "name": "SIYUAN_PROXY_ENDPOINT",
-      "line": 50,
-      "col": 14
-    },
-    {
       "file": "src/apis/modelscope/utils.ts",
       "name": "解码Base64",
-      "line": 41,
-      "col": 17
+      "line": 43,
+      "col": 23
     },
     {
       "file": "src/asset/anno/anno.guard.ts",
@@ -374,25 +200,19 @@
     {
       "file": "src/asset/anno/index.ts",
       "name": "handleContainerClick",
-      "line": 50,
+      "line": 17,
       "col": 14
     },
     {
       "file": "src/asset/anno/index.ts",
       "name": "handleContainerContextMenu",
-      "line": 64,
+      "line": 30,
       "col": 14
     },
     {
       "file": "src/asset/anno/index.ts",
       "name": "handleContainerMouseUp",
-      "line": 94,
-      "col": 14
-    },
-    {
-      "file": "src/asset/assetDialog.ts",
-      "name": "closeAssetDialog",
-      "line": 82,
+      "line": 60,
       "col": 14
     },
     {
@@ -404,49 +224,385 @@
     {
       "file": "src/asset/image/index.ts",
       "name": "default",
-      "line": 20,
+      "line": 30,
       "col": 16
+    },
+    {
+      "file": "src/asset/imports.ts",
+      "name": "ImageViewer",
+      "line": 5,
+      "col": 10
+    },
+    {
+      "file": "src/bazaar-hub/imports.ts",
+      "name": "showMessage",
+      "line": 40,
+      "col": 10
+    },
+    {
+      "file": "src/bazaar-hub/imports.ts",
+      "name": "getFrontend",
+      "line": 49,
+      "col": 10
+    },
+    {
+      "file": "src/bazaar-hub/imports.ts",
+      "name": "confirmDialog",
+      "line": 120,
+      "col": 10
+    },
+    {
+      "file": "src/bazaar-hub/imports.ts",
+      "name": "escapeAttr",
+      "line": 129,
+      "col": 10
+    },
+    {
+      "file": "src/bazaar-hub/imports.ts",
+      "name": "escapeHtml",
+      "line": 138,
+      "col": 10
+    },
+    {
+      "file": "src/bazaar-hub/open.ts",
+      "name": "getLocalBazaarSourcePageURL",
+      "line": 209,
+      "col": 14
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "openNewWindowById",
+      "line": 106,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "checkFold",
+      "line": 108,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "isElectron",
+      "line": 110,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "siyuanI18n",
+      "line": 112,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "genUUID",
+      "line": 118,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "moveResize",
+      "line": 122,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "getEditorRange",
+      "line": 124,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "getUndoFocusContext",
+      "line": 126,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "getTopAloneElement",
+      "line": 128,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "incrementSiyuanZIndex",
+      "line": 134,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "Protyle",
+      "line": 146,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "genListItemElement",
+      "line": 148,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "getContenteditableElement",
+      "line": 150,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "blockRender",
+      "line": 152,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "mathRender",
+      "line": 154,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "focusByWbr",
+      "line": 156,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "getParentBlock",
+      "line": 158,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "getEmbedChildOperationParentID",
+      "line": 160,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "getPreviousBlockSibling",
+      "line": 162,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "fetchSyncPost",
+      "line": 164,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "updateListOrder",
+      "line": 212,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "transaction",
+      "line": 217,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "turnsIntoOneTransaction",
+      "line": 221,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "updateTransaction",
+      "line": 225,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "scrollCenter",
+      "line": 230,
+      "col": 10
+    },
+    {
+      "file": "src/block/imports.ts",
+      "name": "fetchPost",
+      "line": 235,
+      "col": 10
+    },
+    {
+      "file": "src/block/panel/imports.ts",
+      "name": "moveResize",
+      "line": 14,
+      "col": 10
+    },
+    {
+      "file": "src/block/panel/imports.ts",
+      "name": "isMobile",
+      "line": 19,
+      "col": 10
+    },
+    {
+      "file": "src/block/panel/imports.ts",
+      "name": "incrementSiyuanZIndex",
+      "line": 39,
+      "col": 10
+    },
+    {
+      "file": "src/block/panel/imports.ts",
+      "name": "setPosition",
+      "line": 49,
+      "col": 10
+    },
+    {
+      "file": "src/block/panel/imports.ts",
+      "name": "Constants",
+      "line": 54,
+      "col": 10
+    },
+    {
+      "file": "src/block/panel/imports.ts",
+      "name": "updateHotkeyAfterTip",
+      "line": 59,
+      "col": 10
+    },
+    {
+      "file": "src/block/panel/imports.ts",
+      "name": "getSiyuanConfig",
+      "line": 69,
+      "col": 10
+    },
+    {
+      "file": "src/block/panel/imports.ts",
+      "name": "getWindowInnerHeight",
+      "line": 74,
+      "col": 10
+    },
+    {
+      "file": "src/block/panel/imports.ts",
+      "name": "checkClassListContain",
+      "line": 79,
+      "col": 10
+    },
+    {
+      "file": "src/block/panel/imports.ts",
+      "name": "isHTMLElement",
+      "line": 106,
+      "col": 10
+    },
+    {
+      "file": "src/block/panel/imports.ts",
+      "name": "setTimeout",
+      "line": 111,
+      "col": 10
+    },
+    {
+      "file": "src/block/panel/imports.ts",
+      "name": "clearTimeout",
+      "line": 113,
+      "col": 10
+    },
+    {
+      "file": "src/block/panel/imports.ts",
+      "name": "fetchPost",
+      "line": 118,
+      "col": 10
+    },
+    {
+      "file": "src/block/panel/imports.ts",
+      "name": "showMessage",
+      "line": 123,
+      "col": 10
+    },
+    {
+      "file": "src/block/panel/render/imports.ts",
+      "name": "Constants",
+      "line": 12,
+      "col": 9
     },
     {
       "file": "src/block/popover/imports.ts",
       "name": "hideTooltip",
-      "line": 72,
+      "line": 70,
       "col": 10
     },
     {
       "file": "src/block/popover/target.ts",
       "name": "findBlockRefTarget",
-      "line": 58,
+      "line": 60,
       "col": 14
     },
     {
       "file": "src/block/popover/target.ts",
       "name": "findLinkTarget",
-      "line": 77,
+      "line": 79,
       "col": 14
     },
     {
       "file": "src/block/popover/target.ts",
       "name": "findTargetFromPropagatedLink",
-      "line": 89,
+      "line": 91,
       "col": 14
     },
     {
       "file": "src/block/popover/target.ts",
       "name": "isSpecialElement",
-      "line": 107,
+      "line": 109,
       "col": 14
     },
     {
       "file": "src/block/popover/target.ts",
       "name": "hasBlockingAVPanel",
-      "line": 121,
+      "line": 124,
       "col": 14
     },
     {
       "file": "src/block/popover/target.ts",
       "name": "hasBlockingMenu",
-      "line": 138,
+      "line": 141,
+      "col": 14
+    },
+    {
+      "file": "src/block/util.ts",
+      "name": "genEmptyBlock",
+      "line": 26,
+      "col": 10
+    },
+    {
+      "file": "src/block/util.ts",
+      "name": "genEmptyElement",
+      "line": 26,
+      "col": 25
+    },
+    {
+      "file": "src/block/util.ts",
+      "name": "genHeadingElement",
+      "line": 26,
+      "col": 42
+    },
+    {
+      "file": "src/boot/globalEvent/keydown/editKeydown/imports.ts",
+      "name": "focusByOffset",
+      "line": 47,
+      "col": 5
+    },
+    {
+      "file": "src/boot/globalEvent/keydown/editKeydown/imports.ts",
+      "name": "getSelectionOffset",
+      "line": 52,
+      "col": 5
+    },
+    {
+      "file": "src/boot/globalEvent/keydown/windowKeyDown/route/index.ts",
+      "name": "WINDOW_KEY_DOWN_ROUTE_DOMAINS",
+      "line": 79,
+      "col": 14
+    },
+    {
+      "file": "src/boot/globalEvent/keydown/windowKeyDown/route/index.ts",
+      "name": "routeWindowKeyDownDomain",
+      "line": 108,
+      "col": 14
+    },
+    {
+      "file": "src/boot/globalEvent/keydown/windowKeyDown/route/index.ts",
+      "name": "resolveWindowKeyDownCommands",
+      "line": 121,
       "col": 14
     },
     {
@@ -468,45 +624,57 @@
       "col": 17
     },
     {
+      "file": "src/config/bazzar/bazaar.ts",
+      "name": "bazaar",
+      "line": 12,
+      "col": 14
+    },
+    {
       "file": "src/config/bazzar/bazaarInstallHandlers.ts",
       "name": "handleSwitch",
-      "line": 14,
+      "line": 15,
       "col": 14
     },
     {
       "file": "src/config/bazzar/bazaarInstallHandlers.ts",
       "name": "handleUninstall",
-      "line": 46,
+      "line": 47,
       "col": 14
     },
     {
       "file": "src/config/bazzar/bazaarInstallHandlers.ts",
       "name": "handleInstall",
-      "line": 78,
+      "line": 79,
       "col": 14
     },
     {
       "file": "src/config/bazzar/bazaarInstallHandlers.ts",
       "name": "handlePluginEnable",
-      "line": 160,
+      "line": 162,
       "col": 14
     },
     {
       "file": "src/config/bazzar/bazaarInstallHandlers.ts",
       "name": "handlePluginsEnable",
-      "line": 191,
+      "line": 190,
+      "col": 14
+    },
+    {
+      "file": "src/config/bazzar/bazaarInstallHandlers.ts",
+      "name": "handleExportLocalPackage",
+      "line": 218,
       "col": 14
     },
     {
       "file": "src/config/bazzar/bazaarUIHandlers.ts",
       "name": "handleOpen",
-      "line": 14,
+      "line": 16,
       "col": 14
     },
     {
       "file": "src/config/bazzar/bazaarUIHandlers.ts",
       "name": "handleTabSwitch",
-      "line": 65,
+      "line": 67,
       "col": 14
     },
     {
@@ -522,81 +690,291 @@
       "col": 14
     },
     {
-      "file": "src/config/search.guard.ts",
-      "name": "isHTMLElementSafe",
-      "line": 19,
+      "file": "src/config/fileTree.ts",
+      "name": "fileTree",
+      "line": 10,
       "col": 14
     },
     {
-      "file": "src/config/sforge.global.ts",
-      "name": "获取SForge全局对象",
-      "line": 16,
-      "col": 17
+      "file": "src/config/imports.ts",
+      "name": "isHTMLInputElement",
+      "line": 6,
+      "col": 10
+    },
+    {
+      "file": "src/config/imports.ts",
+      "name": "isInputEvent",
+      "line": 8,
+      "col": 10
+    },
+    {
+      "file": "src/config/imports.ts",
+      "name": "fetchSyncPost",
+      "line": 13,
+      "col": 10
+    },
+    {
+      "file": "src/config/imports.ts",
+      "name": "fetchSyncPostRaw",
+      "line": 17,
+      "col": 10
+    },
+    {
+      "file": "src/config/imports.ts",
+      "name": "getFrontend",
+      "line": 21,
+      "col": 10
+    },
+    {
+      "file": "src/config/imports.ts",
+      "name": "showMessage",
+      "line": 25,
+      "col": 10
+    },
+    {
+      "file": "src/config/imports.ts",
+      "name": "escapeHtml",
+      "line": 29,
+      "col": 10
+    },
+    {
+      "file": "src/config/imports.ts",
+      "name": "genUUID",
+      "line": 33,
+      "col": 10
+    },
+    {
+      "file": "src/config/index.ts",
+      "name": "openBazaarReadme",
+      "line": 21,
+      "col": 9
     },
     {
       "file": "src/config/sforge.guard.ts",
       "name": "asStyleBrushHandlers",
-      "line": 23,
+      "line": 25,
       "col": 17
     },
     {
       "file": "src/config/sforge.init.ts",
       "name": "isSForgeInitialized",
-      "line": 105,
-      "col": 17
+      "line": 110,
+      "col": 23
     },
     {
       "file": "src/config/sforge.ts",
       "name": "获取SForge全局对象",
-      "line": 14,
-      "col": 5
+      "line": 24,
+      "col": 10
+    },
+    {
+      "file": "src/config/tabs/syncRuntime.ts",
+      "name": "syncTabElement",
+      "line": 13,
+      "col": 12
     },
     {
       "file": "src/dialog/dialogHelpers.events.ts",
       "name": "创建遮罩点击处理器",
-      "line": 74,
+      "line": 76,
       "col": 17
     },
     {
       "file": "src/dialog/dialogHelpers.events.ts",
       "name": "创建关闭按钮点击处理器",
-      "line": 93,
+      "line": 96,
       "col": 17
     },
     {
       "file": "src/dialog/dialogHelpers.events.ts",
       "name": "创建全屏按钮点击处理器",
-      "line": 116,
+      "line": 120,
       "col": 17
     },
     {
       "file": "src/dialog/dialogHelpers.ts",
       "name": "设置ResizeHandles显示状态",
-      "line": 27,
+      "line": 26,
       "col": 17
+    },
+    {
+      "file": "src/dialog/imports.ts",
+      "name": "setTimeout",
+      "line": 127,
+      "col": 10
+    },
+    {
+      "file": "src/dialog/imports.ts",
+      "name": "clearTimeout",
+      "line": 129,
+      "col": 10
+    },
+    {
+      "file": "src/dialog/processSystem.ts",
+      "name": "refreshFileTree",
+      "line": 23,
+      "col": 29
+    },
+    {
+      "file": "src/dialog/processSystem.ts",
+      "name": "setRefDynamicText",
+      "line": 25,
+      "col": 14
+    },
+    {
+      "file": "src/dialog/processSystem.ts",
+      "name": "forceQuit",
+      "line": 130,
+      "col": 14
+    },
+    {
+      "file": "src/dialog/processSystem.ts",
+      "name": "downloadProgress",
+      "line": 321,
+      "col": 14
+    },
+    {
+      "file": "src/editor/imports.ts",
+      "name": "isLayoutDomain",
+      "line": 30,
+      "col": 9
+    },
+    {
+      "file": "src/editor/imports.ts",
+      "name": "isLayoutWindow",
+      "line": 30,
+      "col": 38
+    },
+    {
+      "file": "src/editor/imports.ts",
+      "name": "useShell",
+      "line": 96,
+      "col": 10
+    },
+    {
+      "file": "src/editor/imports.ts",
+      "name": "showTooltip",
+      "line": 156,
+      "col": 10
+    },
+    {
+      "file": "src/editor/imports.ts",
+      "name": "Model",
+      "line": 168,
+      "col": 10
+    },
+    {
+      "file": "src/editor/imports.ts",
+      "name": "ipcInvoke",
+      "line": 178,
+      "col": 10
+    },
+    {
+      "file": "src/editor/imports.ts",
+      "name": "getWndByLayout",
+      "line": 184,
+      "col": 10
+    },
+    {
+      "file": "src/editor/imports.ts",
+      "name": "getSafeSiyuanConfig",
+      "line": 189,
+      "col": 10
+    },
+    {
+      "file": "src/editor/imports.ts",
+      "name": "getSafeSiyuanLayout",
+      "line": 191,
+      "col": 10
+    },
+    {
+      "file": "src/editor/imports.ts",
+      "name": "ipcSend",
+      "line": 238,
+      "col": 10
+    },
+    {
+      "file": "src/editor/imports.ts",
+      "name": "getIdFromSYProtocol",
+      "line": 245,
+      "col": 10
+    },
+    {
+      "file": "src/editor/imports.ts",
+      "name": "isSYProtocol",
+      "line": 249,
+      "col": 10
+    },
+    {
+      "file": "src/editor/imports.ts",
+      "name": "parseSiYuanUriInfo",
+      "line": 253,
+      "col": 10
+    },
+    {
+      "file": "src/editor/openLink.ts",
+      "name": "processSiYuanUri",
+      "line": 40,
+      "col": 14
+    },
+    {
+      "file": "src/editor/openLink.ts",
+      "name": "processSYLink",
+      "line": 42,
+      "col": 14
     },
     {
       "file": "src/emoji/emoji.dynamic.ts",
       "name": "genWeekdayOptions",
-      "line": 29,
+      "line": 30,
+      "col": 14
+    },
+    {
+      "file": "src/history/history.panel.ts",
+      "name": "clearHistoryEditor",
+      "line": 24,
       "col": 14
     },
     {
       "file": "src/history/history.render.ts",
       "name": "renderRepoItem",
-      "line": 99,
+      "line": 151,
       "col": 14
     },
     {
+      "file": "src/inNotePlugin/compiler.ts",
+      "name": "是插件文档",
+      "line": 120,
+      "col": 17
+    },
+    {
+      "file": "src/inNotePlugin/compiler.ts",
+      "name": "获取文档属性",
+      "line": 128,
+      "col": 23
+    },
+    {
       "file": "src/inNotePlugin/permissionManager.ts",
-      "name": "PersistentPermissionManager",
-      "line": 13,
-      "col": 14
+      "name": "createPersistentPermissionManager",
+      "line": 70,
+      "col": 17
+    },
+    {
+      "file": "src/inNotePlugin/siyuanApi.ts",
+      "name": "cleanupSiyuanApiUrl",
+      "line": 70,
+      "col": 17
     },
     {
       "file": "src/layout/dock-utils.ts",
       "name": "initInternalDock",
-      "line": 104,
+      "line": 31,
+      "col": 14
+    },
+    {
+      "file": "src/layout/dock/agent/AgentMessageRenderer.ts",
+      "name": "addCopyButtons",
+      "line": 218,
       "col": 14
     },
     {
@@ -660,81 +1038,75 @@
       "col": 14
     },
     {
+      "file": "src/layout/dock/customBlockLists/customLists.helper.ts",
+      "name": "getClosestByClassUpward",
+      "line": 16,
+      "col": 14
+    },
+    {
+      "file": "src/layout/dock/customBlockLists/customLists.helper.ts",
+      "name": "getCustomListKey",
+      "line": 31,
+      "col": 14
+    },
+    {
       "file": "src/layout/dock/dock.button.ts",
       "name": "generateButtonHTML",
       "line": 14,
       "col": 17
     },
     {
-      "file": "src/layout/dock/dock.button.ts",
-      "name": "generatePinButtonHTML",
-      "line": 53,
-      "col": 17
+      "file": "src/layout/dock/dock.environment.ts",
+      "name": "incrementSiyuanZIndex",
+      "line": 30,
+      "col": 14
     },
     {
       "file": "src/layout/dock/dock.factory.ts",
       "name": "createModel",
-      "line": 210,
+      "line": 265,
       "col": 14
     },
     {
       "file": "src/layout/dock/dock.factory.ts",
       "name": "safeCreateModel",
-      "line": 245,
+      "line": 303,
       "col": 14
     },
     {
       "file": "src/layout/dock/dock.guard.ts",
       "name": "isStylableElement",
-      "line": 12,
+      "line": 24,
       "col": 10
     },
     {
       "file": "src/layout/dock/dock.init.ts",
       "name": "initActiveElements",
-      "line": 23,
+      "line": 24,
       "col": 17
     },
     {
       "file": "src/layout/dock/dock.init.ts",
       "name": "initNoActiveElements",
-      "line": 40,
+      "line": 41,
       "col": 17
     },
     {
       "file": "src/layout/dock/dock.init.ts",
-      "name": "renderPinButton",
-      "line": 165,
+      "name": "insertSourceElement",
+      "line": 132,
       "col": 17
     },
     {
       "file": "src/layout/dock/dock.init.ts",
       "name": "initDockFiles",
-      "line": 191,
+      "line": 150,
       "col": 17
     },
     {
       "file": "src/layout/dock/dock.init.ts",
       "name": "initDockActiveState",
-      "line": 312,
-      "col": 17
-    },
-    {
-      "file": "src/layout/dock/dock.layout.ts",
-      "name": "resetDockPositionStyle",
-      "line": 82,
-      "col": 17
-    },
-    {
-      "file": "src/layout/dock/dock.layout.ts",
-      "name": "setDockShowPosition",
-      "line": 102,
-      "col": 17
-    },
-    {
-      "file": "src/layout/dock/dock.layout.ts",
-      "name": "setDockHideTransform",
-      "line": 122,
+      "line": 276,
       "col": 17
     },
     {
@@ -812,140 +1184,14 @@
     {
       "file": "src/layout/dock/dock.relation.ts",
       "name": "executePanelRelationsUpdate",
-      "line": 137,
+      "line": 141,
       "col": 17
     },
     {
       "file": "src/layout/dock/dock.size.ts",
       "name": "getSizeForItem",
-      "line": 73,
+      "line": 75,
       "col": 17
-    },
-    {
-      "file": "src/layout/dock/dock.toggle.ts",
-      "name": "executePanelRelationsUpdate",
-      "line": 33,
-      "col": 5
-    },
-    {
-      "file": "src/layout/dock/dock.toggle.ts",
-      "name": "triggerToggleHide",
-      "line": 115,
-      "col": 17
-    },
-    {
-      "file": "src/layout/dock/dock.toggle.ts",
-      "name": "triggerToggleShow",
-      "line": 142,
-      "col": 17
-    },
-    {
-      "file": "src/layout/dock/dock.toggle.ts",
-      "name": "executeToggleHide",
-      "line": 167,
-      "col": 17
-    },
-    {
-      "file": "src/layout/dock/dock.toggle.ts",
-      "name": "executeToggleShow",
-      "line": 194,
-      "col": 17
-    },
-    {
-      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
-      "name": "getDatasets",
-      "line": 24,
-      "col": 14
-    },
-    {
-      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
-      "name": "保存数据集列表",
-      "line": 29,
-      "col": 14
-    },
-    {
-      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
-      "name": "saveDatasets",
-      "line": 32,
-      "col": 14
-    },
-    {
-      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
-      "name": "addDataset",
-      "line": 42,
-      "col": 14
-    },
-    {
-      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
-      "name": "removeDataset",
-      "line": 51,
-      "col": 14
-    },
-    {
-      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
-      "name": "updateDataset",
-      "line": 62,
-      "col": 14
-    },
-    {
-      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
-      "name": "getPendingBlocks",
-      "line": 99,
-      "col": 14
-    },
-    {
-      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
-      "name": "pushBlocksWithVectors",
-      "line": 129,
-      "col": 14
-    },
-    {
-      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
-      "name": "获取嵌入状态",
-      "line": 134,
-      "col": 14
-    },
-    {
-      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
-      "name": "getDatasetStatus",
-      "line": 149,
-      "col": 14
-    },
-    {
-      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
-      "name": "获取后端数据集列表",
-      "line": 156,
-      "col": 14
-    },
-    {
-      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
-      "name": "getBackendDatasets",
-      "line": 168,
-      "col": 14
-    },
-    {
-      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
-      "name": "getEmbeddedBlocks",
-      "line": 198,
-      "col": 14
-    },
-    {
-      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
-      "name": "删除嵌入集合",
-      "line": 203,
-      "col": 14
-    },
-    {
-      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
-      "name": "deleteEmbeddingCollection",
-      "line": 225,
-      "col": 14
-    },
-    {
-      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
-      "name": "queryBlocksWithVector",
-      "line": 272,
-      "col": 14
     },
     {
       "file": "src/layout/dock/embeddingDock/semanticSearch.api.ts",
@@ -996,15 +1242,9 @@
       "col": 14
     },
     {
-      "file": "src/layout/dock/ErrorPlaceholder.ts",
-      "name": "isErrorPlaceholderType",
-      "line": 123,
-      "col": 17
-    },
-    {
       "file": "src/layout/dock/Files/eventHandlers.closeElement.ts",
       "name": "createCloseElementClickHandler",
-      "line": 188,
+      "line": 197,
       "col": 17
     },
     {
@@ -1070,13 +1310,13 @@
     {
       "file": "src/layout/dock/Files/onLsHTML.ts",
       "name": "refreshExpandedFileList",
-      "line": 66,
+      "line": 67,
       "col": 17
     },
     {
       "file": "src/layout/dock/Files/onLsHTML.ts",
       "name": "expandFileList",
-      "line": 97,
+      "line": 98,
       "col": 17
     },
     {
@@ -1118,19 +1358,19 @@
     {
       "file": "src/layout/dock/Files/wsHandlers.dom.ts",
       "name": "getFolderEmoji",
-      "line": 29,
+      "line": 30,
       "col": 14
     },
     {
       "file": "src/layout/dock/Files/wsHandlers.dom.ts",
       "name": "getFileEmoji",
-      "line": 38,
+      "line": 39,
       "col": 14
     },
     {
       "file": "src/layout/dock/Files/wsHandlers.dom.ts",
       "name": "updateParentStateAfterChildRemoval",
-      "line": 106,
+      "line": 107,
       "col": 14
     },
     {
@@ -1148,422 +1388,464 @@
     {
       "file": "src/layout/dock/forwardlink/Forwardlink.helpers.ts",
       "name": "折叠列表项",
-      "line": 64,
+      "line": 63,
       "col": 17
     },
     {
       "file": "src/layout/dock/forwardlink/Forwardlink.helpers.ts",
       "name": "获取并渲染块列表",
-      "line": 98,
+      "line": 97,
       "col": 23
     },
     {
       "file": "src/layout/dock/forwardlink/Forwardlink.helpers.ts",
       "name": "渲染块编辑器",
-      "line": 134,
+      "line": 133,
       "col": 17
+    },
+    {
+      "file": "src/layout/dock/imports.ts",
+      "name": "Model",
+      "line": 30,
+      "col": 10
+    },
+    {
+      "file": "src/layout/dock/imports.ts",
+      "name": "saveLayout",
+      "line": 84,
+      "col": 10
     },
     {
       "file": "src/layout/dock/outline/Outline.helpers.ts",
       "name": "处理事务",
-      "line": 87,
+      "line": 97,
       "col": 17
     },
     {
       "file": "src/layout/layout-deserialization.environment.ts",
       "name": "getSiyuanLayoutLayout",
-      "line": 32,
+      "line": 33,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.guard.ts",
       "name": "isLayoutInstance",
-      "line": 13,
+      "line": 14,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.guard.ts",
       "name": "isWndInstance",
-      "line": 18,
+      "line": 19,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.guard.ts",
       "name": "isModelInstance",
-      "line": 28,
+      "line": 29,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.guard.ts",
       "name": "hasObjectChildren",
-      "line": 149,
+      "line": 171,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.guard.ts",
       "name": "hasEmptyChildren",
-      "line": 166,
+      "line": 188,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.guard.ts",
       "name": "isBacklinkType",
-      "line": 244,
+      "line": 267,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.guard.ts",
       "name": "isGraphType",
-      "line": 249,
+      "line": 272,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.guard.ts",
       "name": "isOutlineType",
-      "line": 254,
+      "line": 277,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.guard.ts",
       "name": "getObjectChildren",
-      "line": 276,
+      "line": 299,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.handlers.ts",
       "name": "handleBookmarkInstance",
-      "line": 240,
+      "line": 242,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.handlers.ts",
       "name": "handleFilesInstance",
-      "line": 248,
+      "line": 250,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.handlers.ts",
       "name": "handleTagInstance",
-      "line": 276,
+      "line": 278,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.layout.ts",
       "name": "removeUnpinnedTabsOnStart",
-      "line": 36,
+      "line": 39,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.layout.ts",
       "name": "isPluginModelRegistered",
-      "line": 59,
+      "line": 62,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.layout.ts",
       "name": "createMissingPluginPlaceholder",
-      "line": 74,
+      "line": 77,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.layout.ts",
       "name": "findLatestActiveTabHeader",
-      "line": 156,
+      "line": 180,
       "col": 14
     },
     {
       "file": "src/layout/layout-deserialization.layout.ts",
       "name": "switchToTab",
-      "line": 180,
+      "line": 204,
       "col": 14
     },
     {
       "file": "src/layout/layout-serialization.serializers.ts",
       "name": "serializeLayoutInstance",
-      "line": 28,
+      "line": 35,
       "col": 14
     },
     {
       "file": "src/layout/layout-serialization.serializers.ts",
       "name": "serializeWndInstance",
-      "line": 52,
+      "line": 62,
       "col": 14
     },
     {
       "file": "src/layout/layout-serialization.serializers.ts",
       "name": "serializeTabInstance",
-      "line": 92,
+      "line": 105,
       "col": 14
     },
     {
       "file": "src/layout/layout-serialization.serializers.ts",
       "name": "serializeEditorInstance",
-      "line": 111,
+      "line": 124,
       "col": 14
     },
     {
       "file": "src/layout/layout-serialization.serializers.ts",
       "name": "serializeAssetInstance",
-      "line": 129,
+      "line": 143,
       "col": 14
     },
     {
       "file": "src/layout/layout-serialization.serializers.ts",
       "name": "serializeBacklinkInstance",
-      "line": 139,
+      "line": 153,
       "col": 14
     },
     {
       "file": "src/layout/layout-serialization.serializers.ts",
       "name": "serializeGraphInstance",
-      "line": 147,
+      "line": 161,
       "col": 14
     },
     {
       "file": "src/layout/layout-serialization.serializers.ts",
       "name": "serializeOutlineInstance",
-      "line": 155,
-      "col": 14
-    },
-    {
-      "file": "src/layout/layout-serialization.serializers.ts",
-      "name": "serializeSearchInstance",
-      "line": 163,
-      "col": 14
-    },
-    {
-      "file": "src/layout/layout-serialization.serializers.ts",
-      "name": "serializeCustomInstance",
       "line": 169,
       "col": 14
     },
     {
       "file": "src/layout/layout-serialization.serializers.ts",
-      "name": "serializeErrorPlaceholderInstance",
-      "line": 176,
+      "name": "serializeSearchInstance",
+      "line": 177,
+      "col": 14
+    },
+    {
+      "file": "src/layout/layout-serialization.serializers.ts",
+      "name": "serializeCustomInstance",
+      "line": 183,
       "col": 14
     },
     {
       "file": "src/layout/layout-serialization.serializers.ts",
       "name": "serializeSimpleInstance",
-      "line": 185,
+      "line": 190,
       "col": 14
     },
     {
       "file": "src/layout/layout.guard.ts",
+      "name": "ensureDirection",
+      "line": 8,
+      "col": 9
+    },
+    {
+      "file": "src/layout/layout.guard.ts",
+      "name": "ensureSize",
+      "line": 8,
+      "col": 26
+    },
+    {
+      "file": "src/layout/layout.guard.ts",
+      "name": "ensureType",
+      "line": 8,
+      "col": 38
+    },
+    {
+      "file": "src/layout/layout.guard.ts",
       "name": "isStylableElement",
-      "line": 10,
+      "line": 11,
       "col": 10
     },
     {
       "file": "src/layout/layout.guard.ts",
-      "name": "isWnd",
-      "line": 30,
+      "name": "isHTMLElement",
+      "line": 17,
       "col": 17
+    },
+    {
+      "file": "src/layout/layout.guard.ts",
+      "name": "isWnd",
+      "line": 31,
+      "col": 17
+    },
+    {
+      "file": "src/layout/protyleLayoutPort.factory.ts",
+      "name": "registerSiyuanProtyleLayoutPort",
+      "line": 197,
+      "col": 14
+    },
+    {
+      "file": "src/layout/status.ts",
+      "name": "countSelectWord",
+      "line": 185,
+      "col": 14
+    },
+    {
+      "file": "src/layout/status.ts",
+      "name": "countBlockWord",
+      "line": 196,
+      "col": 14
+    },
+    {
+      "file": "src/layout/status.ts",
+      "name": "clearCounter",
+      "line": 219,
+      "col": 14
     },
     {
       "file": "src/layout/status.ts",
       "name": "renderStatusbarCounter",
-      "line": 199,
+      "line": 229,
+      "col": 14
+    },
+    {
+      "file": "src/layout/tabFloat.port.ts",
+      "name": "getLayoutTabFloatPort",
+      "line": 21,
+      "col": 14
+    },
+    {
+      "file": "src/layout/tabFloat.registry.ts",
+      "name": "unregisterTabFloatFactory",
+      "line": 28,
+      "col": 14
+    },
+    {
+      "file": "src/layout/tabFloat.registry.ts",
+      "name": "resetTabFloatFactories",
+      "line": 41,
+      "col": 14
+    },
+    {
+      "file": "src/layout/tabOpen.port.ts",
+      "name": "getLayoutTabOpenPort",
+      "line": 10,
       "col": 14
     },
     {
       "file": "src/layout/ui-utils.environment.ts",
       "name": "getWindowInnerHeight",
-      "line": 15,
+      "line": 13,
       "col": 14
     },
     {
       "file": "src/layout/ui-utils.environment.ts",
       "name": "hasSiyuanLayout",
-      "line": 52,
+      "line": 50,
       "col": 14
     },
     {
       "file": "src/layout/util.environment.ts",
       "name": "getSiyuanLayout",
-      "line": 14,
+      "line": 12,
       "col": 14
     },
     {
       "file": "src/layout/util.environment.ts",
       "name": "getSiyuanConfig",
-      "line": 17,
+      "line": 15,
       "col": 14
     },
     {
       "file": "src/layout/util.environment.ts",
       "name": "getSiyuanLanguages",
-      "line": 20,
+      "line": 18,
       "col": 14
     },
     {
       "file": "src/layout/util.environment.ts",
       "name": "getSiyuanStorage",
-      "line": 23,
+      "line": 21,
+      "col": 14
+    },
+    {
+      "file": "src/layout/util.environment.ts",
+      "name": "findInstanceInLayout",
+      "line": 36,
+      "col": 14
+    },
+    {
+      "file": "src/layout/util.guard.ts",
+      "name": "isLayoutValue",
+      "line": 18,
+      "col": 14
+    },
+    {
+      "file": "src/layout/util.guard.ts",
+      "name": "isWndValue",
+      "line": 29,
+      "col": 14
+    },
+    {
+      "file": "src/layout/util.guard.ts",
+      "name": "hasChildren",
+      "line": 40,
+      "col": 14
+    },
+    {
+      "file": "src/layout/util.guard.ts",
+      "name": "isTabValue",
+      "line": 52,
       "col": 14
     },
     {
       "file": "src/layout/util.guard.ts",
       "name": "hasId",
-      "line": 54,
+      "line": 63,
       "col": 14
     },
     {
       "file": "src/layout/util.guard.ts",
       "name": "isValidProtyleActions",
-      "line": 140,
+      "line": 130,
       "col": 14
     },
     {
       "file": "src/layout/util.ts",
-      "name": "dockToJSON",
-      "line": 189,
+      "name": "switchWnd",
+      "line": 164,
+      "col": 9
+    },
+    {
+      "file": "src/layout/util.ts",
+      "name": "setPanelFocus",
+      "line": 167,
       "col": 10
     },
     {
-      "file": "src/layout/util.ts",
-      "name": "initInternalDock",
-      "line": 189,
-      "col": 22
+      "file": "src/layout/utils/iframeInteractionLock.ts",
+      "name": "IFRAME_INTERACTION_LOCK_CLASS",
+      "line": 2,
+      "col": 14
     },
     {
-      "file": "src/layout/util.ts",
-      "name": "JSONToDock",
+      "file": "src/layout/window-utils.ts",
+      "name": "getWndByLayout",
+      "line": 10,
+      "col": 9
+    },
+    {
+      "file": "src/layout/window-utils.ts",
+      "name": "switchWnd",
       "line": 189,
-      "col": 40
+      "col": 17
     },
     {
       "file": "src/layout/Wnd.tabAction.ts",
       "name": "destroyModel",
-      "line": 46,
+      "line": 41,
       "col": 17
     },
     {
       "file": "src/layout/Wnd.tabAction.ts",
       "name": "removeTabAction",
-      "line": 81,
-      "col": 17
-    },
-    {
-      "file": "src/magi/adapters/imports.ts",
-      "name": "createAvatarRuntime",
-      "line": 181,
-      "col": 10
-    },
-    {
-      "file": "src/magi/adapters/imports.ts",
-      "name": "appendConsensusMessage",
-      "line": 196,
-      "col": 10
-    },
-    {
-      "file": "src/magi/adapters/imports.ts",
-      "name": "sendUserMessageWithConsensus",
-      "line": 198,
-      "col": 10
-    },
-    {
-      "file": "src/magi/adapters/magiStandardLLMAdapter.backend.ts",
-      "name": "buildRandomIdentitySegment",
-      "line": 57,
-      "col": 17
-    },
-    {
-      "file": "src/magi/adapters/magiStandardLLMAdapter.backend.ts",
-      "name": "resolveMagiTargetLabel",
-      "line": 66,
-      "col": 17
-    },
-    {
-      "file": "src/magi/adapters/magiStandardLLMAdapter.backend.ts",
-      "name": "resolveRuntimeOrigin",
-      "line": 102,
-      "col": 17
-    },
-    {
-      "file": "src/magi/adapters/magiStandardLLMAdapter.backend.ts",
-      "name": "buildSourceSimulationBackendEndpoint",
-      "line": 114,
-      "col": 17
-    },
-    {
-      "file": "src/magi/adapters/magiStandardLLMAdapter.backend.ts",
-      "name": "buildRequestInterfaceIdentity",
-      "line": 137,
-      "col": 17
-    },
-    {
-      "file": "src/magi/adapters/magiStandardLLMAdapter.backend.ts",
-      "name": "buildMagiBackendRequestBody",
-      "line": 162,
-      "col": 17
-    },
-    {
-      "file": "src/magi/adapters/magiStandardLLMAdapter.backend.ts",
-      "name": "buildMagiBackendHeaders",
-      "line": 182,
+      "line": 71,
       "col": 17
     },
     {
       "file": "src/magi/adapters/magiStandardLLMAdapter.helpers.ts",
       "name": "parseSourceSimulationFromSystemMessages",
-      "line": 177,
+      "line": 171,
       "col": 17
     },
     {
       "file": "src/magi/adapters/magiStandardLLMAdapter.helpers.ts",
-      "name": "buildRequestId",
-      "line": 199,
+      "name": "buildFullContentChunk",
+      "line": 220,
       "col": 17
     },
     {
-      "file": "src/magi/components/magi-main-panel/MagiMainPanel.guard.ts",
-      "name": "isVoteDetail",
-      "line": 14,
-      "col": 17
-    },
-    {
-      "file": "src/magi/components/magi-main-panel/MagiMainPanel.guard.ts",
-      "name": "isVoteStatusMeta",
-      "line": 36,
-      "col": 17
-    },
-    {
-      "file": "src/magi/components/magi-main-panel/MagiMainPanel.guard.ts",
-      "name": "isSseStreamMeta",
-      "line": 78,
+      "file": "src/magi/adapters/magiStandardLLMAdapter.helpers.ts",
+      "name": "buildFinishChunk",
+      "line": 244,
       "col": 17
     },
     {
       "file": "src/magi/components/seel-panel/SeelPanel.ctx.ts",
       "name": "svgToPixels",
-      "line": 40,
+      "line": 45,
       "col": 23
     },
     {
       "file": "src/magi/components/seel-panel/SeelPanelVoteContent.ctx.ts",
       "name": "formatVoteTime",
-      "line": 12,
+      "line": 18,
       "col": 23
     },
     {
-      "file": "src/magi/composables/magiConsensus.guard.ts",
-      "name": "isVoteResult",
-      "line": 17,
-      "col": 14
+      "file": "src/magi/components/trinity-monitor-panel/TrinityMonitorPanel.ctx.ts",
+      "name": "isRawEventMonitorMessage",
+      "line": 440,
+      "col": 17
     },
     {
       "file": "src/magi/core/dummySys/zhi.ts",
       "name": "织",
       "line": 6,
       "col": 14
-    },
-    {
-      "file": "src/magi/core/nerv/avatarRuntime/avatar.toolset.ts",
-      "name": "extractAvatarReportPayloadFromArguments",
-      "line": 85,
-      "col": 17
     },
     {
       "file": "src/magi/core/wise/mockWise.ops.ts",
@@ -1574,37 +1856,49 @@
     {
       "file": "src/magi/core/wise/mockWise.subclass.ts",
       "name": "创建MockMelchior实例",
-      "line": 103,
+      "line": 104,
       "col": 14
     },
     {
       "file": "src/magi/core/wise/mockWise.subclass.ts",
       "name": "创建MockBalthazar实例",
-      "line": 144,
+      "line": 145,
       "col": 14
     },
     {
       "file": "src/magi/core/wise/mockWise.subclass.ts",
       "name": "创建MockCasper实例",
-      "line": 180,
+      "line": 181,
       "col": 14
     },
     {
       "file": "src/magi/core/wise/mockWise.subclass.ts",
       "name": "创建MockTrinity实例",
-      "line": 217,
+      "line": 218,
       "col": 14
     },
     {
       "file": "src/magi/core/wise/mockWise.ts",
       "name": "合并MockWISE配置",
-      "line": 34,
+      "line": 32,
+      "col": 14
+    },
+    {
+      "file": "src/magi/core/wise/trinity.toolset.ts",
+      "name": "TRINITY_SPEAK_TOOL_NAME",
+      "line": 10,
       "col": 14
     },
     {
       "file": "src/magi/core/wise/trinity.toolset.ts",
       "name": "extractSpeakContentFromArguments",
       "line": 86,
+      "col": 17
+    },
+    {
+      "file": "src/magi/core/wise/trinity.toolset.ts",
+      "name": "extractSpeakPayloadFromArguments",
+      "line": 92,
       "col": 17
     },
     {
@@ -1686,46 +1980,88 @@
       "col": 14
     },
     {
+      "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.draft.ts",
+      "name": "createLoadDraftHandler",
+      "line": 128,
+      "col": 17
+    },
+    {
       "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
       "name": "hasAllSideDescriptions",
-      "line": 109,
+      "line": 111,
       "col": 14
     },
     {
       "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
       "name": "isQuestionnaireProgressAboveOneThird",
-      "line": 125,
+      "line": 127,
+      "col": 14
+    },
+    {
+      "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
+      "name": "buildSubjectCognitiveStances",
+      "line": 222,
       "col": 14
     },
     {
       "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
       "name": "toProfileSubject",
-      "line": 205,
+      "line": 248,
       "col": 14
     },
     {
       "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
       "name": "ensurePrivateDir",
-      "line": 220,
+      "line": 264,
       "col": 14
     },
     {
       "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
       "name": "resolveNextSampleIndex",
-      "line": 234,
+      "line": 278,
       "col": 14
     },
     {
       "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
       "name": "writeJsonFile",
-      "line": 263,
+      "line": 307,
       "col": 14
+    },
+    {
+      "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
+      "name": "collectMissingCognitiveStanceFieldLabels",
+      "line": 393,
+      "col": 14
+    },
+    {
+      "file": "src/magi/entry/rootctx/imports.ts",
+      "name": "watch",
+      "line": 12,
+      "col": 10
+    },
+    {
+      "file": "src/magi/entry/rootctx/MagiRoot.workspace.ts",
+      "name": "bootstrapMagiState",
+      "line": 111,
+      "col": 23
+    },
+    {
+      "file": "src/magi/entry/rootctx/MagiRoot.workspace.ts",
+      "name": "refreshWorkspaceAIMainNotebookState",
+      "line": 143,
+      "col": 23
     },
     {
       "file": "src/magi/events/magiEventBus.ts",
       "name": "magiEventDefines",
-      "line": 29,
+      "line": 31,
       "col": 14
+    },
+    {
+      "file": "src/magi/identity-access/adapters/imports.ts",
+      "name": "getSiyuanWebSocket",
+      "line": 25,
+      "col": 10
     },
     {
       "file": "src/magi/prompts/personaPromptBuilder.ts",
@@ -1746,15 +2082,39 @@
       "col": 23
     },
     {
-      "file": "src/magi/service/magiIdentitySession.ts",
-      "name": "listMagiIdentities",
-      "line": 163,
+      "file": "src/magi/service/magiExternalChannels.ts",
+      "name": "listAccounts",
+      "line": 100,
+      "col": 23
+    },
+    {
+      "file": "src/magi/service/magiExternalChannels.ts",
+      "name": "reloginChannel",
+      "line": 120,
       "col": 23
     },
     {
       "file": "src/magi/service/magiIdentitySession.ts",
-      "name": "setActiveMagiArmorSession",
-      "line": 264,
+      "name": "listMagiIdentities",
+      "line": 266,
+      "col": 23
+    },
+    {
+      "file": "src/magi/service/magiIdentitySession.ts",
+      "name": "bindChannelIdentity",
+      "line": 566,
+      "col": 23
+    },
+    {
+      "file": "src/magi/service/magiIdentitySession.ts",
+      "name": "unbindChannelIdentity",
+      "line": 578,
+      "col": 23
+    },
+    {
+      "file": "src/magi/utils/lute.ts",
+      "name": "getLute",
+      "line": 30,
       "col": 17
     },
     {
@@ -1764,82 +2124,40 @@
       "col": 23
     },
     {
+      "file": "src/magi/utils/messageFactory.ts",
+      "name": "createStreamMessage",
+      "line": 50,
+      "col": 23
+    },
+    {
       "file": "src/magi/utils/messageFormat.ts",
       "name": "validMessageTypes",
-      "line": 13,
+      "line": 19,
       "col": 14
     },
     {
       "file": "src/magi/utils/messageFormat.ts",
       "name": "validStatusTypes",
-      "line": 27,
+      "line": 33,
       "col": 14
     },
     {
       "file": "src/magi/utils/messageFormat.ts",
       "name": "validAlignments",
-      "line": 37,
+      "line": 43,
       "col": 14
     },
     {
       "file": "src/magi/utils/messageFormat.ts",
       "name": "getMessageStyleClasses",
-      "line": 70,
+      "line": 76,
       "col": 23
     },
     {
-      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
-      "name": "createReStructuredTextExportMenuItem",
-      "line": 48,
-      "col": 14
-    },
-    {
-      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
-      "name": "createAsciiDocExportMenuItem",
-      "line": 72,
-      "col": 14
-    },
-    {
-      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
-      "name": "createTextileExportMenuItem",
-      "line": 96,
-      "col": 14
-    },
-    {
-      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
-      "name": "createOPMLExportMenuItem",
-      "line": 120,
-      "col": 14
-    },
-    {
-      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
-      "name": "createOrgModeExportMenuItem",
-      "line": 144,
-      "col": 14
-    },
-    {
-      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
-      "name": "createMediaWikiExportMenuItem",
-      "line": 168,
-      "col": 14
-    },
-    {
-      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
-      "name": "createODTExportMenuItem",
-      "line": 192,
-      "col": 14
-    },
-    {
-      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
-      "name": "createRTFExportMenuItem",
-      "line": 216,
-      "col": 14
-    },
-    {
-      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
-      "name": "createEPUBExportMenuItem",
-      "line": 240,
-      "col": 14
+      "file": "src/menus/commonMenuItem/export/imports.ts",
+      "name": "getSiyuanConfig",
+      "line": 45,
+      "col": 9
     },
     {
       "file": "src/menus/commonMenuItem/imports.ts",
@@ -1849,284 +2167,554 @@
     },
     {
       "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "isElectron",
+      "line": 24,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "isMobile",
+      "line": 33,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "isInAndroid",
+      "line": 43,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "isInHarmony",
+      "line": 52,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "isInIOS",
+      "line": 61,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "isInMobileApp",
+      "line": 70,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "openByMobile",
+      "line": 80,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "saveExportFile",
+      "line": 82,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
       "name": "writeText",
-      "line": 88,
+      "line": 91,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "confirmDialog",
+      "line": 101,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "Dialog",
+      "line": 110,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "showMessage",
+      "line": 119,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "hideMessage",
+      "line": 128,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "MenuItem",
+      "line": 137,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "fetchSyncPost",
+      "line": 161,
       "col": 10
     },
     {
       "file": "src/menus/commonMenuItem/imports.ts",
       "name": "isLocalPath",
-      "line": 163,
+      "line": 171,
       "col": 10
     },
     {
       "file": "src/menus/commonMenuItem/imports.ts",
-      "name": "openAsset",
-      "line": 228,
+      "name": "moveToPath",
+      "line": 180,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "pathPosix",
+      "line": 189,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "movePathTo",
+      "line": 198,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "onExport",
+      "line": 208,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "saveExport",
+      "line": 217,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "exportImage",
+      "line": 226,
       "col": 10
     },
     {
       "file": "src/menus/commonMenuItem/imports.ts",
       "name": "openBy",
-      "line": 237,
+      "line": 241,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "rename",
+      "line": 250,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "replaceFileName",
+      "line": 259,
       "col": 10
     },
     {
       "file": "src/menus/commonMenuItem/imports.ts",
       "name": "dayjs",
-      "line": 265,
+      "line": 269,
       "col": 10
     },
     {
-      "file": "src/menus/Menu.uills.ts",
-      "name": "updateMaxHeight",
-      "line": 147,
-      "col": 14
-    },
-    {
-      "file": "src/menus/navigation.ts",
-      "name": "genImportMenu",
-      "line": 634,
-      "col": 14
-    },
-    {
-      "file": "src/menus/protyle.ts",
-      "name": "refMenu",
-      "line": 41,
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "Constants",
+      "line": 279,
       "col": 10
     },
     {
-      "file": "src/menus/protyle.ts",
-      "name": "tagMenu",
-      "line": 42,
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "siyuanI18n",
+      "line": 288,
       "col": 10
     },
     {
-      "file": "src/menus/protyle.ts",
-      "name": "inlineMathMenu",
-      "line": 43,
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "getSiyuanConfig",
+      "line": 297,
       "col": 10
     },
     {
-      "file": "src/menus/protyle.ts",
-      "name": "genImageWidthMenu",
-      "line": 44,
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "getSiyuanIsPublish",
+      "line": 306,
       "col": 10
     },
     {
-      "file": "src/menus/protyle.ts",
-      "name": "genImageHeightMenu",
-      "line": 45,
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "getSiyuanStorage",
+      "line": 315,
       "col": 10
     },
     {
-      "file": "src/menus/protyle.ts",
-      "name": "iframeMenu",
-      "line": 46,
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "getLocationProtocol",
+      "line": 324,
       "col": 10
     },
     {
-      "file": "src/menus/protyle.ts",
-      "name": "zoomOut",
-      "line": 47,
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "getLocationHost",
+      "line": 333,
       "col": 10
     },
     {
-      "file": "src/menus/protyle.ts",
-      "name": "assetMenu",
-      "line": 50,
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "getWindowJSAndroid",
+      "line": 342,
       "col": 10
     },
     {
-      "file": "src/menus/protyle.ts",
-      "name": "renderAssetList",
-      "line": 50,
-      "col": 21
-    },
-    {
-      "file": "src/menus/protyle.ts",
-      "name": "contentMenu",
-      "line": 51,
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "getWindowJSHarmony",
+      "line": 351,
       "col": 10
     },
     {
-      "file": "src/menus/protyle.ts",
-      "name": "enterBack",
-      "line": 52,
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "getWindowWebkit",
+      "line": 360,
       "col": 10
     },
     {
-      "file": "src/menus/protyle.ts",
-      "name": "fileAnnotationRefMenu",
-      "line": 53,
-      "col": 10
-    },
-    {
-      "file": "src/menus/protyle.ts",
-      "name": "imgMenu",
-      "line": 54,
-      "col": 10
-    },
-    {
-      "file": "src/menus/protyle.ts",
-      "name": "linkMenu",
-      "line": 55,
-      "col": 10
-    },
-    {
-      "file": "src/menus/protyleMenus/protyle.asset.guard.ts",
+      "file": "src/menus/protyleMenus/assetMenu/protyle.asset.guard.ts",
       "name": "isAssetItem",
-      "line": 12,
+      "line": 17,
       "col": 14
     },
     {
-      "file": "src/menus/protyleMenus/protyle.asset.ts",
+      "file": "src/menus/protyleMenus/assetMenu/protyle.asset.ts",
       "name": "renderAssetList",
-      "line": 138,
+      "line": 173,
       "col": 14
     },
     {
-      "file": "src/menus/protyleMenus/protyle.linkMenu.items.ts",
+      "file": "src/menus/protyleMenus/assetMenu/protyle.asset.view.ts",
+      "name": "生成资源列表HTML",
+      "line": 42,
+      "col": 14
+    },
+    {
+      "file": "src/menus/protyleMenus/assetMenu/protyle.asset.view.ts",
+      "name": "应该隐藏预览区域",
+      "line": 146,
+      "col": 14
+    },
+    {
+      "file": "src/menus/protyleMenus/contentMenu/protyle.contentMenu.guard.ts",
+      "name": "isHTMLTableCellElement",
+      "line": 17,
+      "col": 14
+    },
+    {
+      "file": "src/menus/protyleMenus/imageMenu/imports.ts",
+      "name": "focusBlock",
+      "line": 95,
+      "col": 10
+    },
+    {
+      "file": "src/menus/protyleMenus/imageMenu/imports.ts",
+      "name": "img3115",
+      "line": 212,
+      "col": 10
+    },
+    {
+      "file": "src/menus/protyleMenus/linkMenu/protyle.linkMenu.items.ts",
       "name": "添加剪切菜单项",
-      "line": 59,
+      "line": 149,
       "col": 14
     },
     {
-      "file": "src/menus/protyleMenus/protyle.linkMenu.items.ts",
+      "file": "src/menus/protyleMenus/linkMenu/protyle.linkMenu.items.ts",
       "name": "添加删除菜单项",
-      "line": 75,
+      "line": 168,
       "col": 14
     },
     {
-      "file": "src/menus/protyleMenus/protyle.linkMenu.items.ts",
+      "file": "src/menus/protyleMenus/linkMenu/protyle.linkMenu.items.ts",
       "name": "添加重命名菜单项",
-      "line": 93,
+      "line": 192,
       "col": 14
     },
     {
-      "file": "src/menus/protyleMenus/protyle.linkMenu.items.ts",
+      "file": "src/menus/protyleMenus/linkMenu/protyle.linkMenu.items.ts",
       "name": "添加转换为引用菜单项",
-      "line": 142,
+      "line": 248,
       "col": 14
     },
     {
-      "file": "src/menus/protyleMenus/protyle.linkMenu.items.ts",
+      "file": "src/menus/protyleMenus/linkMenu/protyle.linkMenu.items.ts",
       "name": "添加转换为文本菜单项",
-      "line": 183,
+      "line": 292,
       "col": 14
     },
     {
-      "file": "src/menus/protyleMenus/protyle.linkMenu.utils.ts",
+      "file": "src/menus/protyleMenus/linkMenu/protyle.linkMenu.utils.ts",
       "name": "生成链接编辑区域HTML",
-      "line": 28,
+      "line": 70,
       "col": 14
     },
     {
-      "file": "src/menus/protyleMenus/protyle.linkMenu.utils.ts",
+      "file": "src/menus/protyleMenus/linkMenu/protyle.linkMenu.utils.ts",
       "name": "绑定链接编辑区域",
-      "line": 152,
+      "line": 194,
       "col": 14
     },
     {
       "file": "src/mobile/dock/MobileFiles.event.ts",
       "name": "genSort",
-      "line": 20,
+      "line": 24,
       "col": 17
     },
     {
       "file": "src/mobile/dock/MobileFiles.render.ts",
       "name": "genFileHTML",
-      "line": 15,
+      "line": 16,
+      "col": 17
+    },
+    {
+      "file": "src/mobile/dock/MobileFiles.ws.ts",
+      "name": "updateDocActionElement",
+      "line": 55,
       "col": 17
     },
     {
       "file": "src/mobile/dock/MobileOutline.contextMenu.ts",
       "name": "getProtyleAndBlockElement",
-      "line": 24,
+      "line": 25,
       "col": 17
     },
     {
       "file": "src/mobile/dock/MobileOutline.contextMenu.ts",
       "name": "genHeadingTransform",
-      "line": 41,
+      "line": 52,
       "col": 17
     },
     {
       "file": "src/mobile/dock/MobileOutline.expand.ts",
       "name": "expandToLevel",
-      "line": 104,
+      "line": 108,
       "col": 17
+    },
+    {
+      "file": "src/mobile/menu/search.ts",
+      "name": "updateSearchResult",
+      "line": 21,
+      "col": 14
     },
     {
       "file": "src/platform/electron/shell.ts",
       "name": "openPath",
-      "line": 58,
+      "line": 60,
       "col": 23
+    },
+    {
+      "file": "src/plugin/api/imports.ts",
+      "name": "Files",
+      "line": 98,
+      "col": 10
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "fetchSyncPost",
+      "line": 147,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "resizeTopBar",
+      "line": 150,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "setTabPosition",
+      "line": 153,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "saveLayout",
+      "line": 156,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "getAllEditor",
+      "line": 159,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "isHuawei",
+      "line": 162,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "setStorageVal",
+      "line": 165,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "openSetting",
+      "line": 168,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "Constants",
+      "line": 171,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "settingTabToMenuId",
+      "line": 174,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "getSiyuanConfig",
+      "line": 177,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "getSiyuanLanguages",
+      "line": 180,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "getSiyuanMenus",
+      "line": 183,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "getSiyuanStorage",
+      "line": 186,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "getFrontend",
+      "line": 192,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "isWindow",
+      "line": 195,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "getSiyuanLayout",
+      "line": 198,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "getPluginCustomHotkey",
+      "line": 201,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "MenuItem",
+      "line": 232,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "subMenu",
+      "line": 235,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "getSiyuanGlobalMenus",
+      "line": 238,
+      "col": 9
+    },
+    {
+      "file": "src/plugin/imports.ts",
+      "name": "siyuanI18n",
+      "line": 241,
+      "col": 9
     },
     {
       "file": "src/plugin/imports.ts",
       "name": "graphvizRender",
-      "line": 305,
+      "line": 321,
       "col": 9
     },
     {
       "file": "src/plugin/imports.ts",
       "name": "highlightRender",
-      "line": 308,
+      "line": 324,
       "col": 9
     },
     {
       "file": "src/plugin/imports.ts",
       "name": "mathRender",
-      "line": 311,
+      "line": 327,
       "col": 9
     },
     {
       "file": "src/plugin/imports.ts",
       "name": "mermaidRender",
-      "line": 314,
+      "line": 330,
       "col": 9
     },
     {
       "file": "src/plugin/imports.ts",
       "name": "flowchartRender",
-      "line": 317,
+      "line": 333,
       "col": 9
     },
     {
       "file": "src/plugin/imports.ts",
       "name": "chartRender",
-      "line": 320,
+      "line": 336,
       "col": 9
     },
     {
       "file": "src/plugin/imports.ts",
       "name": "abcRender",
-      "line": 323,
+      "line": 339,
       "col": 9
     },
     {
       "file": "src/plugin/imports.ts",
       "name": "htmlRender",
-      "line": 326,
+      "line": 342,
       "col": 9
     },
     {
       "file": "src/plugin/imports.ts",
       "name": "mindmapRender",
-      "line": 329,
+      "line": 345,
       "col": 9
     },
     {
       "file": "src/plugin/imports.ts",
       "name": "plantumlRender",
-      "line": 332,
+      "line": 348,
       "col": 9
     },
     {
       "file": "src/plugin/imports.ts",
       "name": "avRender",
-      "line": 335,
+      "line": 351,
       "col": 9
     },
     {
@@ -2138,14 +2726,14 @@
     {
       "file": "src/plugin/openTopBarMenu.helpers.ts",
       "name": "extractMenuIcon",
-      "line": 130,
+      "line": 132,
       "col": 14
     },
     {
       "file": "src/plugin/platformUtils.ts",
       "name": "openByMobile",
-      "line": 6,
-      "col": 5
+      "line": 5,
+      "col": 9
     },
     {
       "file": "src/plugin/platformUtils.ts",
@@ -2167,105 +2755,219 @@
     },
     {
       "file": "src/plugin/platformUtils.ts",
-      "name": "getEventName",
+      "name": "isOnlyMeta",
       "line": 10,
       "col": 5
     },
     {
       "file": "src/plugin/platformUtils.ts",
-      "name": "isOnlyMeta",
+      "name": "isNotCtrl",
       "line": 11,
       "col": 5
     },
     {
       "file": "src/plugin/platformUtils.ts",
-      "name": "isNotCtrl",
+      "name": "isHuawei",
       "line": 12,
       "col": 5
     },
     {
       "file": "src/plugin/platformUtils.ts",
-      "name": "isHuawei",
+      "name": "isMac",
       "line": 13,
       "col": 5
     },
     {
       "file": "src/plugin/platformUtils.ts",
-      "name": "isIPhone",
+      "name": "isInAndroid",
       "line": 14,
       "col": 5
     },
     {
       "file": "src/plugin/platformUtils.ts",
-      "name": "isIPad",
+      "name": "isInIOS",
       "line": 15,
       "col": 5
     },
     {
       "file": "src/plugin/platformUtils.ts",
-      "name": "isMac",
+      "name": "updateHotkeyTip",
       "line": 16,
       "col": 5
     },
     {
       "file": "src/plugin/platformUtils.ts",
-      "name": "isInAndroid",
+      "name": "getLocalStorage",
       "line": 17,
       "col": 5
     },
     {
       "file": "src/plugin/platformUtils.ts",
-      "name": "isInIOS",
-      "line": 18,
-      "col": 5
-    },
-    {
-      "file": "src/plugin/platformUtils.ts",
-      "name": "updateHotkeyTip",
-      "line": 19,
-      "col": 5
-    },
-    {
-      "file": "src/plugin/platformUtils.ts",
-      "name": "getLocalStorage",
+      "name": "getEventName",
       "line": 20,
-      "col": 5
+      "col": 9
     },
     {
       "file": "src/plugin/platformUtils.ts",
-      "name": "setStorageVal",
-      "line": 21,
-      "col": 5
+      "name": "isIPad",
+      "line": 20,
+      "col": 23
     },
     {
       "file": "src/plugin/platformUtils.ts",
-      "name": "sendNotification",
-      "line": 24,
+      "name": "isIPhone",
+      "line": 20,
+      "col": 31
+    },
+    {
+      "file": "src/plugin/platformUtils.ts",
+      "name": "getStorageVal",
+      "line": 22,
       "col": 14
     },
     {
       "file": "src/plugin/platformUtils.ts",
       "name": "cancelNotification",
-      "line": 83,
+      "line": 89,
       "col": 14
     },
     {
       "file": "src/protyle/breadcrumb/breadcrumb.helpers.ts",
       "name": "生成面包屑项HTML",
-      "line": 118,
+      "line": 120,
       "col": 17
     },
     {
       "file": "src/protyle/breadcrumb/imports.ts",
       "name": "isElement",
-      "line": 38,
+      "line": 51,
       "col": 10
     },
     {
       "file": "src/protyle/breadcrumb/imports.ts",
       "name": "isSVGElement",
-      "line": 44,
+      "line": 57,
       "col": 10
+    },
+    {
+      "file": "src/protyle/breadcrumb/menu/imports.ts",
+      "name": "openFile",
+      "line": 180,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/breadcrumb/menu/imports.ts",
+      "name": "EXPORT_PREVIEW_TAB_TYPE",
+      "line": 182,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/export/exportMd.ts",
+      "name": "openExportOptionsDialog",
+      "line": 26,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/export/image/exportImage.ratio.ts",
+      "name": "EXPORT_IMAGE_RATIO_AUTO",
+      "line": 6,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/export/image/exportImage.ratio.ts",
+      "name": "EXPORT_IMAGE_RATIO_OPTIONS",
+      "line": 8,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/export/image/imports.ts",
+      "name": "escapeHtml",
+      "line": 53,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/export/image/imports.ts",
+      "name": "useShell",
+      "line": 91,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/export/image/imports.ts",
+      "name": "isElectron",
+      "line": 95,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/export/imports.ts",
+      "name": "fetchPost",
+      "line": 47,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/export/imports.ts",
+      "name": "Dialog",
+      "line": 49,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/export/imports.ts",
+      "name": "addScript",
+      "line": 51,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/export/imports.ts",
+      "name": "isMobile",
+      "line": 53,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/export/imports.ts",
+      "name": "highlightRender",
+      "line": 57,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/export/imports.ts",
+      "name": "contentRendererRegistry",
+      "line": 59,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/export/imports.ts",
+      "name": "isIPhone",
+      "line": 61,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/export/imports.ts",
+      "name": "isSafari",
+      "line": 63,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/export/imports.ts",
+      "name": "openByMobile",
+      "line": 65,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/export/imports.ts",
+      "name": "setStorageVal",
+      "line": 67,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/export/imports.ts",
+      "name": "getHtmlToImage",
+      "line": 77,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/gutter/addBlockToAgent.ts",
+      "name": "addBlockToAgent",
+      "line": 29,
+      "col": 14
     },
     {
       "file": "src/protyle/gutter/buildGutterStyleBrushMenu.ts",
@@ -2276,7 +2978,7 @@
     {
       "file": "src/protyle/gutter/buildGutterStyleMenu.ts",
       "name": "buildGutterHeightsMenu",
-      "line": 246,
+      "line": 253,
       "col": 14
     },
     {
@@ -2304,6 +3006,24 @@
       "col": 14
     },
     {
+      "file": "src/protyle/gutter/imports.ts",
+      "name": "openByMobile",
+      "line": 76,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/gutter/imports.ts",
+      "name": "hideMessage",
+      "line": 119,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/gutter/imports.ts",
+      "name": "生成块内容图片",
+      "line": 155,
+      "col": 10
+    },
+    {
       "file": "src/protyle/gutter/menus/aiImageHelpers.ts",
       "name": "上传图片",
       "line": 64,
@@ -2316,33 +3036,39 @@
       "col": 23
     },
     {
+      "file": "src/protyle/gutter/menus/blockBackground.style.ts",
+      "name": "mergeBlockBackgroundStyle",
+      "line": 165,
+      "col": 14
+    },
+    {
       "file": "src/protyle/gutter/menus/imports.ts",
       "name": "提交生成任务",
-      "line": 171,
+      "line": 216,
       "col": 10
     },
     {
       "file": "src/protyle/gutter/menus/imports.ts",
       "name": "轮询任务直到完成",
-      "line": 180,
+      "line": 225,
       "col": 10
     },
     {
       "file": "src/protyle/gutter/menus/imports.ts",
       "name": "获取图片",
-      "line": 189,
+      "line": 234,
       "col": 10
     },
     {
       "file": "src/protyle/gutter/menus/imports.ts",
       "name": "提取图片URL",
-      "line": 198,
+      "line": 243,
       "col": 10
     },
     {
       "file": "src/protyle/gutter/menus/imports.ts",
       "name": "showMessage",
-      "line": 218,
+      "line": 263,
       "col": 10
     },
     {
@@ -2366,19 +3092,19 @@
     {
       "file": "src/protyle/header/background/tags.ts",
       "name": "removeTag",
-      "line": 37,
+      "line": 161,
       "col": 14
     },
     {
       "file": "src/protyle/header/background/tags.ts",
       "name": "openTag",
-      "line": 131,
+      "line": 255,
       "col": 14
     },
     {
       "file": "src/protyle/hint/index.render.ts",
       "name": "getKey",
-      "line": 98,
+      "line": 110,
       "col": 17
     },
     {
@@ -2388,82 +3114,202 @@
       "col": 14
     },
     {
+      "file": "src/protyle/render/av/action/click/dataType.advanced.ts",
+      "name": "handleBlockMoreClick",
+      "line": 77,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/render/av/action/imports.ts",
+      "name": "addDragFill",
+      "line": 23,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/action/imports.ts",
+      "name": "cellValueIsEmpty",
+      "line": 25,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/action/imports.ts",
+      "name": "renderCell",
+      "line": 27,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/action/imports.ts",
+      "name": "renderCellAttr",
+      "line": 29,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/action/imports.ts",
+      "name": "updateHeaderCell",
+      "line": 31,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/action/imports.ts",
+      "name": "Constants",
+      "line": 56,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/action/imports.ts",
+      "name": "dayjs",
+      "line": 61,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/action/imports.ts",
+      "name": "showMessage",
+      "line": 66,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/action/imports.ts",
+      "name": "siyuanI18n",
+      "line": 71,
+      "col": 10
+    },
+    {
       "file": "src/protyle/render/av/cell.value.ts",
       "name": "getCellValueContent",
       "line": 86,
       "col": 14
     },
     {
-      "file": "src/protyle/render/av/col.addCol.ts",
+      "file": "src/protyle/render/av/col/add/menu.factory.ts",
       "name": "addColMenuItems",
-      "line": 44,
+      "line": 59,
       "col": 14
     },
     {
-      "file": "src/protyle/render/av/col.editPanel.ts",
+      "file": "src/protyle/render/av/col/col.editPanel.ts",
       "name": "getSelectTypeEditHTML",
       "line": 39,
       "col": 14
     },
     {
-      "file": "src/protyle/render/av/col.editPanel.ts",
+      "file": "src/protyle/render/av/col/col.editPanel.ts",
       "name": "getNumberTypeEditHTML",
       "line": 73,
       "col": 14
     },
     {
-      "file": "src/protyle/render/av/col.editPanel.ts",
+      "file": "src/protyle/render/av/col/col.editPanel.ts",
       "name": "getTemplateTypeEditHTML",
       "line": 93,
       "col": 14
     },
     {
-      "file": "src/protyle/render/av/col.editPanel.ts",
+      "file": "src/protyle/render/av/col/col.editPanel.ts",
       "name": "getRelationTypeEditHTML",
       "line": 112,
       "col": 14
     },
     {
-      "file": "src/protyle/render/av/col.editPanel.ts",
+      "file": "src/protyle/render/av/col/col.editPanel.ts",
       "name": "getDateTypeEditHTML",
       "line": 145,
       "col": 14
     },
     {
-      "file": "src/protyle/render/av/col.editPanel.ts",
+      "file": "src/protyle/render/av/col/col.editPanel.ts",
       "name": "getTimestampTypeEditHTML",
       "line": 170,
       "col": 14
     },
     {
-      "file": "src/protyle/render/av/col.editPanel.ts",
+      "file": "src/protyle/render/av/col/col.editPanel.ts",
       "name": "getRollupTypeEditHTML",
       "line": 193,
       "col": 14
     },
     {
-      "file": "src/protyle/render/av/col.showColMenu.ts",
+      "file": "src/protyle/render/av/col/col.showColMenu.ts",
       "name": "applyColIcon",
-      "line": 46,
+      "line": 53,
       "col": 14
     },
     {
-      "file": "src/protyle/render/av/col.showColMenu.ts",
+      "file": "src/protyle/render/av/col/col.showColMenu.ts",
       "name": "bindDescEvents",
-      "line": 66,
+      "line": 73,
       "col": 14
     },
     {
-      "file": "src/protyle/render/av/col.showColMenu.ts",
+      "file": "src/protyle/render/av/col/col.showColMenu.ts",
       "name": "buildTwoWayRelationDialogContent",
-      "line": 177,
+      "line": 193,
       "col": 14
     },
     {
-      "file": "src/protyle/render/av/col.showColMenu.ts",
+      "file": "src/protyle/render/av/col/col.showColMenu.ts",
       "name": "handleRelationDialogAction",
-      "line": 219,
+      "line": 235,
       "col": 14
+    },
+    {
+      "file": "src/protyle/render/av/col/imports.ts",
+      "name": "unicode2Emoji",
+      "line": 88,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/col/imports.ts",
+      "name": "setPosition",
+      "line": 91,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/col/imports.ts",
+      "name": "getEditHTML",
+      "line": 94,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/col/imports.ts",
+      "name": "bindEditEvent",
+      "line": 97,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/col/imports.ts",
+      "name": "getColIconByType",
+      "line": 100,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/col/imports.ts",
+      "name": "getColNameByType",
+      "line": 103,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/col/imports.ts",
+      "name": "genColDataByType",
+      "line": 106,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/col/imports.ts",
+      "name": "getFieldsByData",
+      "line": 116,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/col/imports.ts",
+      "name": "getSiyuanMenus",
+      "line": 119,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/av/col/imports.ts",
+      "name": "removeSiyuanMenu",
+      "line": 122,
+      "col": 10
     },
     {
       "file": "src/protyle/render/av/filter.operator.ts",
@@ -2474,26 +3320,134 @@
     {
       "file": "src/protyle/render/av/keydown.ts",
       "name": "avKeydown",
-      "line": 10,
+      "line": 13,
       "col": 14
+    },
+    {
+      "file": "src/protyle/render/av/newItemTemplate.ts",
+      "name": "openNewItemTemplateDialog",
+      "line": 546,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/render/av/render.ts",
+      "name": "getGroupTitleHTML",
+      "line": 16,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/render/av/render.ts",
+      "name": "updateSearch",
+      "line": 242,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/render/av/row.ts",
+      "name": "duplicateRows",
+      "line": 797,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/render/av/virtualScroll.ts",
+      "name": "trimAVRows",
+      "line": 361,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/render/imports.ts",
+      "name": "hasClosestByTag",
+      "line": 20,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/render/imports.ts",
+      "name": "hasClosestBlock",
+      "line": 23,
+      "col": 10
     },
     {
       "file": "src/protyle/render/util.ts",
       "name": "setCodeTheme",
-      "line": 53,
+      "line": 54,
       "col": 14
     },
     {
-      "file": "src/protyle/ui/initUI.ts",
-      "name": "getPadding",
-      "line": 8,
-      "col": 49
+      "file": "src/protyle/runtime/dialog.port.ts",
+      "name": "closeAssetDialog",
+      "line": 321,
+      "col": 14
     },
     {
-      "file": "src/protyle/util/dnd/onDrop.helper.avDrop.ts",
-      "name": "resolveColId",
-      "line": 25,
+      "file": "src/protyle/runtime/layout.port.ts",
+      "name": "getProtyleLayoutPort",
+      "line": 33,
       "col": 14
+    },
+    {
+      "file": "src/protyle/runtime/menu.visibility.ts",
+      "name": "PROTYLE_MENU_CONTEXT_KEY",
+      "line": 31,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/runtime/status.port.ts",
+      "name": "getProtyleStatusPort",
+      "line": 16,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/runtime/status.port.ts",
+      "name": "resetProtyleStatusPort",
+      "line": 26,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/toolbar/showRender/index.ts",
+      "name": "检查固定状态",
+      "line": 16,
+      "col": 5
+    },
+    {
+      "file": "src/protyle/toolbar/showRender/showRender.utils.ts",
+      "name": "检查固定状态",
+      "line": 108,
+      "col": 17
+    },
+    {
+      "file": "src/protyle/undo/globalUndo.ts",
+      "name": "getActiveProtyle",
+      "line": 151,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/util/compatibility.ts",
+      "name": "getEventName",
+      "line": 19,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/util/compatibility.ts",
+      "name": "isIPad",
+      "line": 20,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/util/compatibility.ts",
+      "name": "isIPhone",
+      "line": 21,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/util/compatibility.ts",
+      "name": "saveZipExport",
+      "line": 173,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/util/dnd/drag.helpers.ts",
+      "name": "mergeAndApplySuperBlock",
+      "line": 197,
+      "col": 23
     },
     {
       "file": "src/protyle/util/dnd/onDrop.helper.routing.ts",
@@ -2502,75 +3456,69 @@
       "col": 14
     },
     {
-      "file": "src/protyle/util/publishAccess.ts",
-      "name": "openPublishAccessDialog",
-      "line": 69,
-      "col": 14
-    },
-    {
       "file": "src/protyle/util/selection.focus.ts",
       "name": "聚焦工具栏范围",
-      "line": 40,
+      "line": 39,
       "col": 30
     },
     {
       "file": "src/protyle/util/selection.ts",
       "name": "聚焦工具栏范围",
-      "line": 239,
+      "line": 126,
       "col": 45
     },
     {
-      "file": "src/protyle/util/table.fix.navigation.helpers.ts",
+      "file": "src/protyle/util/table/table.fix.navigation.helpers.ts",
       "name": "findFirstContentChild",
       "line": 105,
       "col": 14
     },
     {
-      "file": "src/protyle/util/table.fix.navigation.helpers.ts",
+      "file": "src/protyle/util/table/table.fix.navigation.helpers.ts",
       "name": "findLastContentChild",
       "line": 128,
       "col": 14
     },
     {
-      "file": "src/protyle/util/table.fix.structure.helpers.ts",
+      "file": "src/protyle/util/table/table.fix.structure.helpers.ts",
       "name": "analyzeRowSpans",
       "line": 23,
       "col": 14
     },
     {
-      "file": "src/protyle/util/table.fix.structure.helpers.ts",
+      "file": "src/protyle/util/table/table.fix.structure.helpers.ts",
       "name": "isColumnPure",
       "line": 62,
       "col": 14
     },
     {
-      "file": "src/protyle/util/table.fix.structure.helpers.ts",
+      "file": "src/protyle/util/table/table.fix.structure.helpers.ts",
       "name": "getStructurePreviousRow",
       "line": 93,
       "col": 14
     },
     {
-      "file": "src/protyle/util/table.fix.structure.helpers.ts",
+      "file": "src/protyle/util/table/table.fix.structure.helpers.ts",
       "name": "getStructureNextRow",
       "line": 120,
       "col": 14
     },
     {
-      "file": "src/protyle/util/table.row.helpers.ts",
+      "file": "src/protyle/util/table/table.row.helpers.ts",
       "name": "replaceTagInRow",
       "line": 103,
       "col": 14
     },
     {
-      "file": "src/protyle/util/table.title.update.ts",
+      "file": "src/protyle/util/table/table.title.update.ts",
       "name": "buildDialogContent",
-      "line": 18,
+      "line": 21,
       "col": 14
     },
     {
-      "file": "src/protyle/util/table.title.update.ts",
+      "file": "src/protyle/util/table/table.title.update.ts",
       "name": "handleTitleConfirm",
-      "line": 60,
+      "line": 63,
       "col": 14
     },
     {
@@ -2584,6 +3532,30 @@
       "name": "updateSubsequentMarkers",
       "line": 20,
       "col": 14
+    },
+    {
+      "file": "src/protyle/wysiwyg/imports.ts",
+      "name": "createPoint",
+      "line": 102,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/wysiwyg/imports.ts",
+      "name": "createBoundingRect",
+      "line": 104,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/wysiwyg/index.copy.helpers.ts",
+      "name": "processSingleBlock",
+      "line": 83,
+      "col": 23
+    },
+    {
+      "file": "src/protyle/wysiwyg/index.copy.helpers.ts",
+      "name": "wrapListItem",
+      "line": 106,
+      "col": 17
     },
     {
       "file": "src/protyle/wysiwyg/keydown.expandSelect.ts",
@@ -2640,100 +3612,148 @@
       "col": 14
     },
     {
-      "file": "src/protyle/wysiwyg/keydown.list/logger.ts",
+      "file": "src/protyle/wysiwyg/keydown.guards.ts",
+      "name": "htmlBlockGuard",
+      "line": 5,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/wysiwyg/keydown.list/executors.transform.ts",
+      "name": "handleSingleSelectToUL",
+      "line": 66,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/wysiwyg/keydown.list/executors.transform.ts",
+      "name": "handleSingleSelectToOL",
+      "line": 150,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/wysiwyg/keydown.list/executors.transform.ts",
+      "name": "handleSingleSelectToTL",
+      "line": 234,
+      "col": 14
+    },
+    {
+      "file": "src/protyle/wysiwyg/keydown.list/imports.ts",
       "name": "LogLevel",
-      "line": 11,
-      "col": 5
+      "line": 88,
+      "col": 10
     },
     {
-      "file": "src/protyle/wysiwyg/keydown.list/logger.ts",
+      "file": "src/protyle/wysiwyg/keydown.list/imports.ts",
       "name": "setLogLevel",
-      "line": 13,
-      "col": 5
+      "line": 96,
+      "col": 10
     },
     {
-      "file": "src/protyle/wysiwyg/keydown.list/logger.ts",
+      "file": "src/protyle/wysiwyg/keydown.list/imports.ts",
       "name": "getLogLevel",
-      "line": 14,
-      "col": 5
+      "line": 100,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/wysiwyg/keydown.list/imports.ts",
+      "name": "updateTransaction",
+      "line": 124,
+      "col": 10
+    },
+    {
+      "file": "src/protyle/wysiwyg/keydown.list/imports.ts",
+      "name": "dayjs",
+      "line": 144,
+      "col": 10
     },
     {
       "file": "src/protyle/wysiwyg/keydown.list/types.ts",
       "name": "CheckToggleStateSchema",
-      "line": 42,
+      "line": 130,
       "col": 14
     },
     {
       "file": "src/protyle/wysiwyg/keydown.list/types.ts",
       "name": "OutdentStateSchema",
-      "line": 69,
+      "line": 157,
       "col": 14
     },
     {
       "file": "src/protyle/wysiwyg/keydown.list/types.ts",
       "name": "IndentStateSchema",
-      "line": 105,
+      "line": 193,
       "col": 14
     },
     {
       "file": "src/protyle/wysiwyg/keydown.list/types.ts",
       "name": "TransformStateSchema",
-      "line": 145,
+      "line": 233,
       "col": 14
     },
     {
       "file": "src/protyle/wysiwyg/keydown.list/unified/index.ts",
       "name": "UnifiedListStateSchema",
-      "line": 53,
+      "line": 143,
       "col": 10
     },
     {
       "file": "src/protyle/wysiwyg/keydown.list/unified/index.ts",
       "name": "listMasterRouter",
-      "line": 65,
+      "line": 155,
       "col": 5
     },
     {
       "file": "src/protyle/wysiwyg/keydown.list/unified/index.ts",
       "name": "checkToggleSubRouter",
-      "line": 66,
+      "line": 156,
       "col": 5
     },
     {
       "file": "src/protyle/wysiwyg/keydown.list/unified/index.ts",
       "name": "outdentSubRouter",
-      "line": 67,
+      "line": 157,
       "col": 5
     },
     {
       "file": "src/protyle/wysiwyg/keydown.list/unified/index.ts",
       "name": "indentSubRouter",
-      "line": 68,
+      "line": 158,
       "col": 5
     },
     {
       "file": "src/protyle/wysiwyg/keydown.list/unified/index.ts",
       "name": "transformSubRouter",
-      "line": 69,
+      "line": 159,
       "col": 5
     },
     {
       "file": "src/protyle/wysiwyg/keydown.list/unified/index.ts",
       "name": "extractUnifiedListState",
-      "line": 81,
+      "line": 171,
       "col": 10
     },
     {
-      "file": "src/protyle/wysiwyg/transaction.ts",
-      "name": "processFold",
-      "line": 49,
-      "col": 10
+      "file": "src/protyle/wysiwyg/keydown.ts",
+      "name": "getContentByInlineHTML",
+      "line": 62,
+      "col": 9
     },
     {
-      "file": "src/protyle/wysiwyg/transaction.ts",
-      "name": "removeUnfoldRepeatBlock",
-      "line": 49,
-      "col": 23
+      "file": "src/protyle/wysiwyg/remove.ts",
+      "name": "getOperationParentID",
+      "line": 40,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/wysiwyg/remove.ts",
+      "name": "moveToPrevious",
+      "line": 41,
+      "col": 9
+    },
+    {
+      "file": "src/protyle/wysiwyg/renderBacklink.ts",
+      "name": "genBreadcrumb",
+      "line": 80,
+      "col": 9
     },
     {
       "file": "src/registry/contentRenderer/ContentRendererRegistry.ts",
@@ -2823,6 +3843,12 @@
       "file": "src/registry/index.ts",
       "name": "unregisterTabType",
       "line": 17,
+      "col": 5
+    },
+    {
+      "file": "src/registry/index.ts",
+      "name": "createTabModel",
+      "line": 18,
       "col": 5
     },
     {
@@ -2984,67 +4010,73 @@
     {
       "file": "src/registry/TabRegistry.ts",
       "name": "注册Tab类型",
-      "line": 51,
+      "line": 58,
       "col": 17
     },
     {
       "file": "src/registry/TabRegistry.ts",
       "name": "获取Tab注册信息",
-      "line": 69,
+      "line": 78,
       "col": 17
     },
     {
       "file": "src/registry/TabRegistry.ts",
       "name": "Tab类型已注册",
-      "line": 77,
+      "line": 87,
       "col": 17
     },
     {
       "file": "src/registry/TabRegistry.ts",
       "name": "注销Tab类型",
-      "line": 85,
+      "line": 96,
       "col": 17
     },
     {
       "file": "src/registry/TabRegistry.ts",
       "name": "创建TabModel",
-      "line": 99,
+      "line": 111,
       "col": 17
     },
     {
       "file": "src/registry/TabRegistry.ts",
       "name": "获取所有Tab类型",
-      "line": 138,
-      "col": 17
+      "line": 129,
+      "col": 14
     },
     {
       "file": "src/registry/TabRegistry.ts",
       "name": "registerTabType",
-      "line": 153,
+      "line": 148,
       "col": 14
     },
     {
       "file": "src/registry/TabRegistry.ts",
       "name": "getTabRegistration",
-      "line": 154,
+      "line": 151,
       "col": 14
     },
     {
       "file": "src/registry/TabRegistry.ts",
       "name": "hasTabType",
-      "line": 155,
+      "line": 154,
       "col": 14
     },
     {
       "file": "src/registry/TabRegistry.ts",
       "name": "unregisterTabType",
-      "line": 156,
+      "line": 157,
+      "col": 14
+    },
+    {
+      "file": "src/registry/TabRegistry.ts",
+      "name": "createTabModel",
+      "line": 160,
       "col": 14
     },
     {
       "file": "src/registry/TabRegistry.ts",
       "name": "getAllTabTypes",
-      "line": 158,
+      "line": 166,
       "col": 14
     },
     {
@@ -3152,7 +4184,109 @@
     {
       "file": "src/search/assets.openSearchAsset.ts",
       "name": "打开搜索资源面板",
-      "line": 191,
+      "line": 192,
+      "col": 14
+    },
+    {
+      "file": "src/search/webSearchRenderer.ts",
+      "name": "safeURL",
+      "line": 5,
+      "col": 14
+    },
+    {
+      "file": "src/search/webSearchRenderer.ts",
+      "name": "cleanSnippet",
+      "line": 15,
+      "col": 14
+    },
+    {
+      "file": "src/sforge/colors/apply.ts",
+      "name": "applyRgbColor",
+      "line": 82,
+      "col": 14
+    },
+    {
+      "file": "src/sforge/colors/colorEngine.ts",
+      "name": "hexToRgb",
+      "line": 13,
+      "col": 14
+    },
+    {
+      "file": "src/sforge/colors/colorEngine.ts",
+      "name": "rgbToHsv",
+      "line": 66,
+      "col": 14
+    },
+    {
+      "file": "src/sforge/colors/colorEngine.ts",
+      "name": "rgbToHsl",
+      "line": 87,
+      "col": 14
+    },
+    {
+      "file": "src/sforge/colors/colorEngine.ts",
+      "name": "relativeLuminance",
+      "line": 108,
+      "col": 14
+    },
+    {
+      "file": "src/sforge/colors/colorEngine.ts",
+      "name": "contrastRatio",
+      "line": 113,
+      "col": 14
+    },
+    {
+      "file": "src/sforge/colors/colorEngine.ts",
+      "name": "contrastPair",
+      "line": 125,
+      "col": 14
+    },
+    {
+      "file": "src/sforge/colors/colorEngine.ts",
+      "name": "sortByHue",
+      "line": 131,
+      "col": 14
+    },
+    {
+      "file": "src/sforge/colors/colorEngine.ts",
+      "name": "kMeans",
+      "line": 204,
+      "col": 14
+    },
+    {
+      "file": "src/sforge/colors/colorEngine.ts",
+      "name": "sampleImagePixels",
+      "line": 306,
+      "col": 14
+    },
+    {
+      "file": "src/sforge/colors/exporter.ts",
+      "name": "downloadDataUrl",
+      "line": 112,
+      "col": 14
+    },
+    {
+      "file": "src/sforge/colors/imports.ts",
+      "name": "MenuItem",
+      "line": 18,
+      "col": 9
+    },
+    {
+      "file": "src/sforge/colors/imports.ts",
+      "name": "getSiyuanConfig",
+      "line": 26,
+      "col": 9
+    },
+    {
+      "file": "src/sforge/colors/store.guards.ts",
+      "name": "isStoredPalette",
+      "line": 20,
+      "col": 14
+    },
+    {
+      "file": "src/sforge/colors/store.ts",
+      "name": "cloneColors",
+      "line": 49,
       "col": 14
     },
     {
@@ -3170,13 +4304,13 @@
     {
       "file": "src/sync/syncGuide.ts",
       "name": "addCloudName",
-      "line": 15,
+      "line": 14,
       "col": 14
     },
     {
       "file": "src/util/assets/assets.ts",
       "name": "setCodeTheme",
-      "line": 20,
+      "line": 22,
       "col": 26
     },
     {
@@ -3194,110 +4328,176 @@
     {
       "file": "src/util/assets/backgrounds.ts/index.ts",
       "name": "geometricBgs",
-      "line": 153,
+      "line": 154,
       "col": 10
     },
     {
       "file": "src/util/assets/backgrounds.ts/index.ts",
       "name": "gradientBgs",
-      "line": 153,
+      "line": 154,
       "col": 24
     },
     {
       "file": "src/util/assets/backgrounds.ts/index.ts",
       "name": "textureBgs",
-      "line": 153,
+      "line": 154,
       "col": 37
     },
     {
       "file": "src/util/assets/backgrounds.ts/index.ts",
       "name": "modernBgs",
-      "line": 153,
+      "line": 154,
       "col": 49
     },
     {
-      "file": "src/util/DOM/blockDecorations.ts",
+      "file": "src/util/assets/imports.ts",
+      "name": "Constants",
+      "line": 5,
+      "col": 10
+    },
+    {
+      "file": "src/util/assets/imports.ts",
+      "name": "addStyle",
+      "line": 10,
+      "col": 10
+    },
+    {
+      "file": "src/util/assets/imports.ts",
+      "name": "fetchSyncPost",
+      "line": 20,
+      "col": 10
+    },
+    {
+      "file": "src/util/blockReferenceDrop.guard.ts",
+      "name": "isBlockReferenceDropData",
+      "line": 10,
+      "col": 14
+    },
+    {
+      "file": "src/util/DOM/helpers/blockDecorations.ts",
       "name": "createBlockMask",
       "line": 7,
       "col": 14
     },
     {
-      "file": "src/util/DOM/blockLikeElements.ts",
+      "file": "src/util/DOM/helpers/blockLikeElements.ts",
       "name": "getElementBlockId",
       "line": 7,
       "col": 14
     },
     {
-      "file": "src/util/DOM/fnClasses.ts",
+      "file": "src/util/DOM/helpers/fnClasses.ts",
       "name": "checkClassListContainAll",
-      "line": 30,
+      "line": 32,
       "col": 14
     },
     {
-      "file": "src/util/DOM/fnClasses.ts",
+      "file": "src/util/DOM/helpers/fnClasses.ts",
       "name": "checkClassListContainAny",
-      "line": 39,
+      "line": 48,
       "col": 14
     },
     {
-      "file": "src/util/DOM/rangeOperations.ts",
-      "name": "补充BR换行空格",
-      "line": 91,
-      "col": 14
-    },
-    {
-      "file": "src/util/DOM/rangeOperations.ts",
-      "name": "提取Range为转义文本",
-      "line": 136,
-      "col": 14
-    },
-    {
-      "file": "src/util/DOM/rangeOperations.ts",
-      "name": "processBrElement",
-      "line": 149,
-      "col": 14
-    },
-    {
-      "file": "src/util/DOM/scroll.ts",
+      "file": "src/util/DOM/helpers/scroll.ts",
       "name": "horizontalScrollFirst",
-      "line": 1,
+      "line": 32,
       "col": 17
     },
     {
-      "file": "src/util/DOM/scroll.ts",
+      "file": "src/util/DOM/helpers/scroll.ts",
       "name": "verticalScrollFirst",
-      "line": 22,
+      "line": 58,
       "col": 17
     },
     {
-      "file": "src/util/DOM/scroll.ts",
+      "file": "src/util/DOM/helpers/scroll.ts",
       "name": "verticalScroll",
-      "line": 40,
+      "line": 83,
       "col": 17
     },
     {
-      "file": "src/util/file/newFile.ts",
-      "name": "getNewFilePath",
-      "line": 17,
+      "file": "src/util/file/pathName.ts",
+      "name": "getIdZoomInByPath",
+      "line": 36,
       "col": 14
     },
     {
-      "file": "src/util/lib/code/executor.factory.ts",
-      "name": "SecurityError",
-      "line": 9,
-      "col": 10
+      "file": "src/util/functions.ts",
+      "name": "isKernelInContainer",
+      "line": 5,
+      "col": 14
     },
     {
-      "file": "src/util/lib/code/executor.factory.ts",
-      "name": "createTemporaryModule",
+      "file": "src/util/functions.ts",
+      "name": "getBackend",
       "line": 14,
-      "col": 23
+      "col": 14
     },
     {
-      "file": "src/util/lib/code/executor.factory.ts",
-      "name": "createDynamicSecureTemporaryModule",
-      "line": 81,
-      "col": 23
+      "file": "src/util/functions.ts",
+      "name": "getFrontend",
+      "line": 23,
+      "col": 14
+    },
+    {
+      "file": "src/util/functions.ts",
+      "name": "isWindow",
+      "line": 40,
+      "col": 14
+    },
+    {
+      "file": "src/util/functions.ts",
+      "name": "isTouchDevice",
+      "line": 44,
+      "col": 14
+    },
+    {
+      "file": "src/util/functions.ts",
+      "name": "isArrayEqual",
+      "line": 48,
+      "col": 14
+    },
+    {
+      "file": "src/util/functions.ts",
+      "name": "getRandom",
+      "line": 52,
+      "col": 14
+    },
+    {
+      "file": "src/util/functions.ts",
+      "name": "isDynamicRef",
+      "line": 71,
+      "col": 14
+    },
+    {
+      "file": "src/util/functions.ts",
+      "name": "isFileAnnotation",
+      "line": 75,
+      "col": 14
+    },
+    {
+      "file": "src/util/functions.ts",
+      "name": "isValidCustomAttrName",
+      "line": 79,
+      "col": 14
+    },
+    {
+      "file": "src/util/functions.ts",
+      "name": "looseJsonParse",
+      "line": 84,
+      "col": 14
+    },
+    {
+      "file": "src/util/functions.ts",
+      "name": "duplicateNameAddOne",
+      "line": 111,
+      "col": 14
+    },
+    {
+      "file": "src/util/functions.ts",
+      "name": "setToolbarLeftMac",
+      "line": 126,
+      "col": 14
     },
     {
       "file": "src/util/lib/code/executor.helpers.ts",
@@ -3325,15 +4525,45 @@
     },
     {
       "file": "src/util/lib/code/executor.ts",
+      "name": "SecurityError",
+      "line": 183,
+      "col": 14
+    },
+    {
+      "file": "src/util/lib/code/executor.ts",
       "name": "createTemporaryModule",
-      "line": 190,
-      "col": 3
+      "line": 191,
+      "col": 23
+    },
+    {
+      "file": "src/util/lib/code/executor.ts",
+      "name": "createSecureTemporaryModule",
+      "line": 211,
+      "col": 23
     },
     {
       "file": "src/util/lib/code/executor.ts",
       "name": "createDynamicSecureTemporaryModule",
-      "line": 192,
-      "col": 3
+      "line": 246,
+      "col": 23
+    },
+    {
+      "file": "src/util/lib/code/executor.types.ts",
+      "name": "UnauthorizedImportStrategySchema",
+      "line": 6,
+      "col": 14
+    },
+    {
+      "file": "src/util/lib/code/executor.types.ts",
+      "name": "ImportHandlingOptionsSchema",
+      "line": 11,
+      "col": 14
+    },
+    {
+      "file": "src/util/lib/code/executor.types.ts",
+      "name": "ModuleRedirectConfigSchema",
+      "line": 21,
+      "col": 14
     },
     {
       "file": "src/util/lib/code/executor.types.ts",
@@ -3343,38 +4573,38 @@
     },
     {
       "file": "src/util/lib/code/executor.types.ts",
+      "name": "SecureModuleCreatorConfigSchema",
+      "line": 47,
+      "col": 14
+    },
+    {
+      "file": "src/util/lib/code/executor.types.ts",
       "name": "ConfigManagerConfigSchema",
       "line": 71,
       "col": 14
     },
     {
-      "file": "src/util/lib/code/looseJsonParse.ts",
-      "name": "packageCacheManager",
-      "line": 171,
+      "file": "src/util/lib/code/executor.types.ts",
+      "name": "ConfigSummarySchema",
+      "line": 83,
+      "col": 14
+    },
+    {
+      "file": "src/util/lib/code/executor.types.ts",
+      "name": "TemporaryModuleSchema",
+      "line": 98,
+      "col": 14
+    },
+    {
+      "file": "src/util/lib/code/executor.types.ts",
+      "name": "ImportSpecSchema",
+      "line": 114,
       "col": 14
     },
     {
       "file": "src/util/lib/code/object.guard.ts",
       "name": "isSeriesItem",
       "line": 15,
-      "col": 14
-    },
-    {
-      "file": "src/util/lib/embedding/transformer.ts",
-      "name": "splitText",
-      "line": 105,
-      "col": 14
-    },
-    {
-      "file": "src/util/lib/embedding/transformer.ts",
-      "name": "normalizeVector",
-      "line": 117,
-      "col": 14
-    },
-    {
-      "file": "src/util/lib/embedding/transformer.ts",
-      "name": "calculateWeightedAverageVector",
-      "line": 128,
       "col": 14
     },
     {
@@ -3404,109 +4634,67 @@
     {
       "file": "src/util/lib/events/eventEmitter.guard.ts",
       "name": "isValidEventData",
-      "line": 27,
+      "line": 33,
       "col": 17
     },
     {
-      "file": "src/util/lib/logger/core.ts",
-      "name": "setLogLevel",
-      "line": 35,
-      "col": 14
+      "file": "src/util/lib/zodMethodDefinedClass/deepRaw.ts",
+      "name": "isSubschemaOf",
+      "line": 71,
+      "col": 17
     },
     {
-      "file": "src/util/lib/logger/core.ts",
-      "name": "getLogLevel",
-      "line": 50,
-      "col": 14
-    },
-    {
-      "file": "src/util/lib/logger/index.ts",
-      "name": "LogLevel",
-      "line": 8,
-      "col": 10
-    },
-    {
-      "file": "src/util/lib/logger/index.ts",
-      "name": "formatHotkey",
-      "line": 12,
-      "col": 5
-    },
-    {
-      "file": "src/util/lib/logger/index.ts",
-      "name": "extractCallerInfo",
-      "line": 13,
-      "col": 5
-    },
-    {
-      "file": "src/util/lib/logger/index.ts",
-      "name": "getBlockTypeDescription",
-      "line": 14,
-      "col": 5
-    },
-    {
-      "file": "src/util/lib/logger/index.ts",
-      "name": "getCommandDescription",
-      "line": 15,
-      "col": 5
-    },
-    {
-      "file": "src/util/lib/logger/index.ts",
-      "name": "getTaskStatusDescription",
-      "line": 16,
-      "col": 5
-    },
-    {
-      "file": "src/util/lib/logger/index.ts",
-      "name": "setLogLevel",
-      "line": 21,
-      "col": 5
-    },
-    {
-      "file": "src/util/lib/logger/index.ts",
-      "name": "getLogLevel",
-      "line": 22,
-      "col": 5
+      "file": "src/util/lib/zodMethodDefinedClass/deepRaw.ts",
+      "name": "isStrictSubschemaOf",
+      "line": 106,
+      "col": 17
     },
     {
       "file": "src/util/network/processMessage.ts",
       "name": "handlePublishServiceClosed",
-      "line": 213,
-      "col": 14
-    },
-    {
-      "file": "src/util/pathRouter/core/layerLike.types.ts",
-      "name": "layerLikeSchema",
-      "line": 46,
+      "line": 256,
       "col": 14
     },
     {
       "file": "src/util/pathRouter/core/types.ts",
       "name": "createRequestLikeSchema",
-      "line": 75,
+      "line": 73,
       "col": 14
     },
     {
       "file": "src/util/pathRouter/core/types.ts",
       "name": "requestLikeSchema",
-      "line": 110,
+      "line": 108,
       "col": 14
     },
     {
       "file": "src/util/pathRouter/core/types.ts",
       "name": "createResponseLikeSchema",
-      "line": 159,
+      "line": 157,
       "col": 14
     },
     {
       "file": "src/util/pathRouter/core/types.ts",
       "name": "responseLikeSchema",
-      "line": 193,
+      "line": 191,
       "col": 14
     },
     {
       "file": "src/util/pathRouter/core/types.ts",
       "name": "contextSchema",
+      "line": 262,
+      "col": 14
+    },
+    {
+      "file": "src/util/pathRouter/core/types.ts",
+      "name": "routeOptionsSchema",
       "line": 264,
+      "col": 14
+    },
+    {
+      "file": "src/util/pathRouter/core/types.ts",
+      "name": "routerOptionsSchema",
+      "line": 277,
       "col": 14
     },
     {
@@ -3522,9 +4710,15 @@
       "col": 14
     },
     {
+      "file": "src/util/platform/imports.ts",
+      "name": "getRandomValues",
+      "line": 5,
+      "col": 10
+    },
+    {
       "file": "src/util/platform/pinyin.ts",
       "name": "convertToPinyin",
-      "line": 8,
+      "line": 10,
       "col": 14
     },
     {
@@ -3537,12 +4731,6 @@
       "file": "src/util/siyuanEnvironments/forgeI18n.getI18n.environment.ts",
       "name": "initForgeI18n",
       "line": 84,
-      "col": 14
-    },
-    {
-      "file": "src/util/siyuanEnvironments/getSiyuanConfig.environment.ts",
-      "name": "getSiyuanEditorIsFullscreen",
-      "line": 266,
       "col": 14
     },
     {
@@ -3662,7 +4850,7 @@
     {
       "file": "src/util/siyuanEnvironments/window.environment.ts",
       "name": "reloadWindow",
-      "line": 77,
+      "line": 101,
       "col": 17
     },
     {
@@ -3680,13 +4868,13 @@
     {
       "file": "src/util/vue/mount.ts",
       "name": "createWrappedVueComponentLoader",
-      "line": 159,
+      "line": 274,
       "col": 14
     },
     {
       "file": "src/util/vue/mount.ts",
       "name": "createCustomWrappedVueComponentLoader",
-      "line": 194,
+      "line": 311,
       "col": 14
     },
     {
@@ -3784,6 +4972,72 @@
       "name": "optimizeWrapper",
       "line": 281,
       "col": 17
+    },
+    {
+      "file": "src/window/imports.ts",
+      "name": "ipcSend",
+      "line": 131,
+      "col": 10
+    },
+    {
+      "file": "src/window/imports.ts",
+      "name": "isWindow",
+      "line": 149,
+      "col": 10
+    },
+    {
+      "file": "src/window/imports.ts",
+      "name": "layoutToJSON",
+      "line": 164,
+      "col": 10
+    },
+    {
+      "file": "src/window/imports.ts",
+      "name": "isElectron",
+      "line": 169,
+      "col": 10
+    },
+    {
+      "file": "src/window/imports.ts",
+      "name": "fetchSyncPost",
+      "line": 174,
+      "col": 10
+    },
+    {
+      "file": "src/window/imports.ts",
+      "name": "showMessage",
+      "line": 179,
+      "col": 10
+    },
+    {
+      "file": "src/window/imports.ts",
+      "name": "getDisplayName",
+      "line": 184,
+      "col": 10
+    },
+    {
+      "file": "src/window/imports.ts",
+      "name": "pathPosix",
+      "line": 189,
+      "col": 10
+    },
+    {
+      "file": "src/window/imports.ts",
+      "name": "getSearch",
+      "line": 194,
+      "col": 10
+    },
+    {
+      "file": "src/window/imports.ts",
+      "name": "getLocationProtocol",
+      "line": 199,
+      "col": 10
+    },
+    {
+      "file": "src/window/imports.ts",
+      "name": "getLocationHost",
+      "line": 204,
+      "col": 10
     }
   ]
 }

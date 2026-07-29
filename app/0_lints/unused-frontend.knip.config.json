@@ -1,24 +1,27 @@
 {
   "entry": [
-    "src/config/configSchemas/fileTree.ts",
+    "src/agent-standalone/index.ts",
+    "src/agent-standalone/panel-runtime/index.ts",
+    "src/bazaar-source/index.ts",
+    "src/config/configSchemas/fileTree/schema.ts",
     "src/dialog/index.ts",
-    "src/dialog/message.ts",
-    "src/inNotePlugin/index.ts",
     "src/index.ts",
     "src/layout/tabUtil.ts",
     "src/magi/entry/index.ts",
     "src/magi/entry/mobile.ts",
+    "src/magi/identity-access/standalone.ts",
     "src/magi/panel/magiStatusButton.ts",
     "src/mobile/index.ts",
+    "src/protyle-standalone/index.ts",
     "src/protyle/method.ts",
     "src/registry/contentRenderer/registerBuiltinRenderers.ts",
+    "src/sforge/colors/init.ts",
     "src/sforge/panel/index.ts",
     "src/triggers/styleBrush.ts",
-    "src/util/DOM/setPosition.ts",
+    "src/util/DOM/positioning/setPosition.ts",
     "src/util/network/cronjobApi.ts",
     "src/util/network/fetch.ts",
-    "src/window/index.ts",
-    "src/window/setHeader.ts"
+    "src/window/index.ts"
   ],
   "project": [
     "src/**/*.{ts,tsx,js,jsx,vue,scss,css}"
