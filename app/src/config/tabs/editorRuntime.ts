@@ -1,6 +1,6 @@
 import {Constants} from "../../constants";
 import {getAllEditor} from "../../layout/getAll";
-import {setInlineStyle} from "../../util/assets";
+import {setInlineStyle} from "../../util/assets/setInlineStyle";
 import {reloadProtyle} from "../../protyle/util/reload";
 import {resize} from "../../protyle/util/resize";
 import {createConfigNamespaceApi} from "../util/namespaceApi";

@@ -3,7 +3,7 @@ import {adjustDockPadding} from "../../layout/dock/util";
 import {exportLayout} from "../../layout/export/exportLayout";
 import {syncHideToolbarLayout, updateBarModeIcon} from "../../layout/topBar";
 import {fetchPost} from "../../util/network/fetch";
-import {loadAssets} from "../../util/assets";
+import {loadAssets} from "../../util/assets/assets";
 import {remountOpenSettingTab} from "../setting/remount";
 import {createConfigNamespaceApi} from "../util/namespaceApi";
 import {isMobile} from "../../platform";

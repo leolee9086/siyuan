@@ -1,3 +1,4 @@
+/** 本模块是原 `util/assets.ts` 中代码主题样式切换职责的唯一现行所有者。 */
 /** 用途：应用常量定义。使用范围：setCodeTheme 使用 CDN 和主题列表。解耦评估：直接依赖纯常量模块。 */
 import { Constants } from "../../constants";
 /** 用途：添加样式到文档。使用范围：setCodeTheme 动态加载 CSS。解耦评估：直接依赖纯 DOM 工具。 */

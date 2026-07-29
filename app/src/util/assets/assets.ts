@@ -1,3 +1,4 @@
+/** 本模块承接原 `util/assets.ts` 的资源初始化、主题模式和工作空间正文高亮职责。 */
 import { Constants } from "../../constants";
 import { addScript } from "../../protyle/util/addScript";
 import { addStyle } from "../../protyle/util/addStyle";

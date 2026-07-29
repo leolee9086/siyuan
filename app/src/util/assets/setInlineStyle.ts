@@ -1,3 +1,4 @@
+/** 本模块是原 `util/assets.ts` 中编辑器内联样式生成与应用职责的唯一现行所有者。 */
 import {isWin11} from "../../protyle/util/compatibility";
 import {isMac} from "../platform/hotkey/format";
 import {isIPad, isIPhone} from "../platform/functions";
