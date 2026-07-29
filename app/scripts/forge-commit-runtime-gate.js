@@ -125,11 +125,15 @@ const persistOperation = (root, operation, message) => {
     fs.appendFileSync(logPath, `[${operation.updatedAt}] ${message}\n`, "utf8");
 };
 
-const runFrontendUpdate = (root, run = execFileSync) => {
-    const executable = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const runFrontendUpdate = (root, _changedPaths, run = execFileSync) => {
     const options = {cwd: path.join(root, "app"), stdio: "inherit", windowsHide: true};
-    run(executable, ["run", "test"], options);
-    run(executable, ["run", "dev:once"], options);
+    for (const script of ["test", "dev:once"]) {
+        if (process.platform === "win32") {
+            run(process.env.ComSpec || "cmd.exe", ["/d", "/s", "/c", "pnpm.cmd", "run", script], options);
+        } else {
+            run("pnpm", ["run", script], options);
+        }
+    }
     return {tests: "pnpm test", build: "pnpm dev:once"};
 };
 
@@ -147,13 +151,65 @@ const probePages = async (port, fetchImpl) => {
     return results;
 };
 
+const waitForSupervisorReadiness = async ({
+    ownership,
+    probeSupervisor,
+    fetchImpl,
+    isRetryableError,
+    report = () => undefined,
+    timeoutMs = 20_000,
+    intervalMs = 250,
+    requiredConsecutiveSuccesses = 2,
+    now = Date.now,
+    wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+}) => {
+    const startedAt = now();
+    let attempts = 0;
+    let consecutiveSuccesses = 0;
+    let transientFailures = 0;
+    let lastError;
+    while (now() - startedAt <= timeoutMs) {
+        attempts += 1;
+        try {
+            const status = await probeSupervisor(ownership, fetchImpl);
+            consecutiveSuccesses += 1;
+            if (consecutiveSuccesses >= requiredConsecutiveSuccesses) {
+                return {
+                    status,
+                    attempts,
+                    transientFailures,
+                    elapsedMs: now() - startedAt,
+                };
+            }
+        } catch (error) {
+            if (!isRetryableError(error)) {
+                throw error;
+            }
+            lastError = error;
+            consecutiveSuccesses = 0;
+            transientFailures += 1;
+            report(`Supervisor readiness attempt ${attempts} failed: ${error.message}`);
+        }
+        const remainingMs = timeoutMs - (now() - startedAt);
+        if (remainingMs <= 0) {
+            break;
+        }
+        await wait(Math.min(intervalMs, remainingMs));
+    }
+    throw new Error(
+        `Forge Supervisor did not become stably reachable within ${timeoutMs}ms after ${attempts} attempts: ${lastError?.message || "no successful readiness sample"}`,
+        {cause: lastError},
+    );
+};
+
 const runtimeDependencies = () => {
     const forgeStart = require("./forge-start");
     return {
         readOwnership: forgeStart.readOwnership,
         probeSupervisor: forgeStart.probeSupervisor,
         synchronizeExistingSupervisor: forgeStart.synchronizeExistingSupervisor,
-        inspectKernelUpdate: forgeStart.inspectKernelUpdate,
+        inspectCommittedKernelUpdate: forgeStart.inspectCommittedKernelUpdate,
+        isSupervisorUnreachableError: forgeStart.isSupervisorUnreachableError,
         probeKernel: forgeStart.probeKernel,
     };
 };
@@ -189,12 +245,12 @@ const runPreCommitGate = async (root = repoRoot, dependencies = {}) => {
     return {head, activeRevision: supervisor.activeVersion.revision};
 };
 
-const runPostCommitGate = async (root = repoRoot, dependencies = {}) => {
+const runPostCommitGate = async (root = repoRoot, dependencies = {}, trigger = "post-commit") => {
     const runtime = {...runtimeDependencies(), ...dependencies};
     const fetchImpl = dependencies.fetchImpl || globalThis.fetch.bind(globalThis);
     const head = gitOutput(root, ["rev-parse", "HEAD"]);
     const previousState = readGateState(root);
-    const operation = createOperation(root, head, "post-commit");
+    const operation = createOperation(root, head, trigger);
     persistOperation(root, operation, "commit runtime gate started");
     try {
         const ownership = runtime.readOwnership(path.join(root, ".forge-runtime"));
@@ -209,7 +265,7 @@ const runPostCommitGate = async (root = repoRoot, dependencies = {}) => {
         const frontendBaseRevision = previousState?.status === "completed" &&
             previousState.frontend?.activeRevision ? previousState.frontend.activeRevision : activeRevision;
         const frontendChanges = changedPaths(root, frontendBaseRevision, head).filter(isFrontendRuntimePath);
-        const update = await runtime.inspectKernelUpdate(root, activeRevision);
+        const update = await runtime.inspectCommittedKernelUpdate(root, activeRevision);
         operation.kernel = {
             previousRevision: activeRevision,
             runtimeChanges: update.runtimeChanges,
@@ -230,14 +286,27 @@ const runPostCommitGate = async (root = repoRoot, dependencies = {}) => {
             persistOperation(root, operation, "frontend tests and development build completed");
         }
         operation.frontend.activeRevision = head;
-        const kernelResult = await runtime.synchronizeExistingSupervisor({
-            root,
+        let kernelResult;
+        if (update.runtimeChanges.length > 0) {
+            kernelResult = await runtime.synchronizeExistingSupervisor({
+                root,
+                ownership,
+                status: before,
+                fetchImpl,
+                report: (message) => persistOperation(root, operation, message),
+            });
+        } else {
+            kernelResult = {kind: "current", revision: update.revision};
+            persistOperation(root, operation, "committed range contains no Kernel runtime changes; existing Kernel retained");
+        }
+        const readiness = await (dependencies.waitForSupervisorReadiness || waitForSupervisorReadiness)({
             ownership,
-            status: before,
+            probeSupervisor: runtime.probeSupervisor,
             fetchImpl,
+            isRetryableError: runtime.isSupervisorUnreachableError,
             report: (message) => persistOperation(root, operation, message),
         });
-        const after = await runtime.probeSupervisor(ownership, fetchImpl);
+        const after = readiness.status;
         if (update.runtimeChanges.length > 0 && after.activeVersion?.revision !== head) {
             throw new Error(`Kernel hot replacement ended at ${after.activeVersion?.revision || "unknown"}, expected ${head}`);
         }
@@ -251,7 +320,16 @@ const runPostCommitGate = async (root = repoRoot, dependencies = {}) => {
         };
         await runtime.probeKernel(Number(ownership.port), fetchImpl);
         const pages = await (dependencies.probePages || probePages)(Number(ownership.port), fetchImpl);
-        operation.health = {kernel: "passed", pages};
+        operation.health = {
+            supervisor: {
+                status: "passed",
+                attempts: readiness.attempts,
+                transientFailures: readiness.transientFailures,
+                elapsedMs: readiness.elapsedMs,
+            },
+            kernel: "passed",
+            pages,
+        };
         operation.status = "completed";
         operation.finishedAt = new Date().toISOString();
         persistOperation(root, operation, "commit runtime gate completed");
@@ -263,6 +341,15 @@ const runPostCommitGate = async (root = repoRoot, dependencies = {}) => {
         persistOperation(root, operation, `commit runtime gate failed: ${operation.error}`);
         throw error;
     }
+};
+
+const retryFailedPostCommitGate = async (root = repoRoot, dependencies = {}) => {
+    const head = gitOutput(root, ["rev-parse", "HEAD"]);
+    const state = readGateState(root);
+    if (!state || state.status !== "failed" || state.commit !== head) {
+        throw new Error(`No failed commit runtime gate exists for current HEAD ${head}`);
+    }
+    return runPostCommitGate(root, dependencies, "retry-post-commit");
 };
 
 const main = async () => {
@@ -279,7 +366,11 @@ const main = async () => {
         await runPostCommitGate();
         return;
     }
-    throw new Error("Expected install, pre-commit or post-commit");
+    if (mode === "retry-post-commit") {
+        await retryFailedPostCommitGate();
+        return;
+    }
+    throw new Error("Expected install, pre-commit, post-commit or retry-post-commit");
 };
 
 if (require.main === module) {
@@ -296,9 +387,11 @@ module.exports = {
     isFrontendRuntimePath,
     probePages,
     readGateState,
+    retryFailedPostCommitGate,
     runFrontendUpdate,
     runPostCommitGate,
     runPreCommitGate,
     uncommittedRuntimePaths,
     validateCommitRuntimeHooks,
+    waitForSupervisorReadiness,
 };

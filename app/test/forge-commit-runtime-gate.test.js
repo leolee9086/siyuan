@@ -9,10 +9,12 @@ const {
     installCommitRuntimeHooks,
     isFrontendRuntimePath,
     readGateState,
+    retryFailedPostCommitGate,
     runFrontendUpdate,
     runPostCommitGate,
     runPreCommitGate,
     validateCommitRuntimeHooks,
+    waitForSupervisorReadiness,
 } = require("../scripts/forge-commit-runtime-gate");
 
 const git = (root, args) => execFileSync("git", args, {cwd: root, encoding: "utf8"}).trim();
@@ -49,7 +51,7 @@ const runtimeMocks = ({base, head, failRestart = false}) => {
                 job: {id: "restart-job"},
             };
         },
-        inspectKernelUpdate: async () => ({revision: head, runtimeChanges: ["kernel/main.go"]}),
+        inspectCommittedKernelUpdate: async () => ({revision: head, runtimeChanges: ["kernel/main.go"]}),
         synchronizeExistingSupervisor: async ({report}) => {
             report("hot replacement phase: go_test_core");
             if (failRestart) {
@@ -72,16 +74,75 @@ test("Frontend runtime path classification excludes tooling-only changes", () =>
 
 test("Frontend runtime update uses a terminating development build", () => {
     const calls = [];
-    const result = runFrontendUpdate("D:/repo", (executable, args, options) => {
+    const result = runFrontendUpdate("D:/repo", ["app/src/index.ts"], (executable, args, options) => {
         calls.push({executable, args, cwd: options.cwd});
     });
 
-    assert.deepEqual(calls.map((call) => call.args), [
-        ["run", "test"],
-        ["run", "dev:once"],
-    ]);
+    if (process.platform === "win32") {
+        assert.deepEqual(calls.map((call) => call.executable), [process.env.ComSpec || "cmd.exe", process.env.ComSpec || "cmd.exe"]);
+        assert.deepEqual(calls.map((call) => call.args), [
+            ["/d", "/s", "/c", "pnpm.cmd", "run", "test"],
+            ["/d", "/s", "/c", "pnpm.cmd", "run", "dev:once"],
+        ]);
+    } else {
+        assert.deepEqual(calls.map((call) => call.executable), ["pnpm", "pnpm"]);
+        assert.deepEqual(calls.map((call) => call.args), [
+            ["run", "test"],
+            ["run", "dev:once"],
+        ]);
+    }
     assert.equal(calls.every((call) => call.cwd === path.join("D:/repo", "app")), true);
     assert.deepEqual(result, {tests: "pnpm test", build: "pnpm dev:once"});
+});
+
+test("Supervisor readiness waits for consecutive success after transient build pressure", async () => {
+    let clock = 0;
+    let calls = 0;
+    const reports = [];
+    const result = await waitForSupervisorReadiness({
+        ownership: {processId: 1234},
+        fetchImpl: async () => undefined,
+        probeSupervisor: async () => {
+            calls += 1;
+            if (calls <= 2) {
+                const error = new Error(`connection unavailable ${calls}`);
+                error.code = "FORGE_SUPERVISOR_UNREACHABLE";
+                throw error;
+            }
+            return {processId: 1234};
+        },
+        isRetryableError: (error) => error.code === "FORGE_SUPERVISOR_UNREACHABLE",
+        report: (message) => reports.push(message),
+        timeoutMs: 1_000,
+        intervalMs: 100,
+        now: () => clock,
+        wait: async (milliseconds) => {
+            clock += milliseconds;
+        },
+    });
+
+    assert.equal(calls, 4);
+    assert.equal(result.attempts, 4);
+    assert.equal(result.transientFailures, 2);
+    assert.equal(result.elapsedMs, 300);
+    assert.equal(result.status.processId, 1234);
+    assert.equal(reports.length, 2);
+});
+
+test("Supervisor readiness immediately rejects deterministic control-plane errors", async () => {
+    let waits = 0;
+    await assert.rejects(waitForSupervisorReadiness({
+        ownership: {processId: 1234},
+        fetchImpl: async () => undefined,
+        probeSupervisor: async () => {
+            throw new Error("Forge Supervisor authentication failed with HTTP 401");
+        },
+        isRetryableError: () => false,
+        wait: async () => {
+            waits += 1;
+        },
+    }), /authentication failed with HTTP 401/);
+    assert.equal(waits, 0);
 });
 
 test("Post-commit gate updates frontend and hot-switches every backend commit", async (context) => {
@@ -135,8 +196,10 @@ test("Frontend-only commits retain freshness without advancing the Kernel revisi
         fetchImpl: async () => ({ok: true}),
         readOwnership: () => ({port: 6806}),
         probeSupervisor: async () => ({activeVersion: {id: "kernel", revision: kernelRevision, sha256: "kernel-sha"}}),
-        inspectKernelUpdate: async () => ({revision: frontendRevision, runtimeChanges: []}),
-        synchronizeExistingSupervisor: async () => ({kind: "current", revision: frontendRevision}),
+        inspectCommittedKernelUpdate: async () => ({revision: frontendRevision, runtimeChanges: []}),
+        synchronizeExistingSupervisor: async () => {
+            throw new Error("frontend-only post-commit must not enter Kernel synchronization");
+        },
         probeKernel: async () => true,
         probePages: async () => [{path: "/", status: 200}],
         runFrontendUpdate: async () => {
@@ -154,6 +217,51 @@ test("Frontend-only commits retain freshness without advancing the Kernel revisi
     const preCommit = await runPreCommitGate(repository.root, runtime);
     assert.equal(preCommit.head, frontendRevision);
     assert.equal(preCommit.activeRevision, kernelRevision);
+});
+
+test("Failed frontend-only gates can be retried without weakening the next Kernel commit", async (context) => {
+    const repository = createRepository();
+    context.after(() => fs.rmSync(repository.root, {recursive: true, force: true}));
+    const kernelRevision = repository.head;
+    fs.writeFileSync(path.join(repository.root, "app", "src", "index.ts"), "export const ready = 'retry';\n");
+    git(repository.root, ["add", "app/src/index.ts"]);
+    git(repository.root, ["commit", "-m", "frontend retry target"]);
+    const frontendRevision = git(repository.root, ["rev-parse", "HEAD"]);
+    const runtime = {
+        fetchImpl: async () => ({ok: true}),
+        readOwnership: () => ({port: 6806}),
+        probeSupervisor: async () => ({activeVersion: {id: "kernel", revision: kernelRevision, sha256: "kernel-sha"}}),
+        probeKernel: async () => true,
+        probePages: async () => [{path: "/", status: 200}],
+        runFrontendUpdate: async () => {
+            throw new Error("run is not a function");
+        },
+    };
+    await assert.rejects(runPostCommitGate(repository.root, runtime), /run is not a function/);
+
+    fs.writeFileSync(path.join(repository.root, "kernel", "main.go"), "package main\n\nfunc main() { println(1) }\n");
+    let frontendUpdates = 0;
+    const operation = await retryFailedPostCommitGate(repository.root, {
+        ...runtime,
+        runFrontendUpdate: async () => {
+            frontendUpdates += 1;
+            return {tests: "passed", build: "updated"};
+        },
+        synchronizeExistingSupervisor: async () => {
+            throw new Error("retry must not hot-replace an uncommitted Kernel");
+        },
+    });
+
+    assert.equal(frontendUpdates, 1);
+    assert.equal(operation.status, "completed");
+    assert.equal(operation.trigger, "retry-post-commit");
+    assert.equal(operation.commit, frontendRevision);
+    assert.equal(operation.kernel.result, "current");
+    await assert.rejects(runPreCommitGate(repository.root, runtime), /unstaged or untracked Kernel runtime changes/);
+
+    git(repository.root, ["add", "kernel/main.go"]);
+    const preCommit = await runPreCommitGate(repository.root, runtime);
+    assert.equal(preCommit.head, frontendRevision);
 });
 
 test("Pre-commit gate blocks runtime drift from the previous commit", async (context) => {

@@ -8,7 +8,10 @@ const {
     assertForgeStartRepositoryClean,
     createForgeRuntimeOptions,
     inspectKernelUpdate,
+    isSupervisorUnreachableError,
+    probeSupervisor,
     resolveForgeStartup,
+    runCommitRuntimeHookInstaller,
     synchronizeExistingSupervisor,
 } = require("../scripts/forge-start");
 const {
@@ -57,6 +60,23 @@ test("Forge startup requires the entire Git working tree and index to be clean",
             /Forge startup requires a clean Git working tree and index/,
         );
     }
+});
+
+test("Forge startup installs runtime hooks through the standalone gate command", () => {
+    const calls = [];
+    runCommitRuntimeHookInstaller("D:/repo", (executable, args, options) => {
+        calls.push({executable, args, options});
+    });
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].executable, process.execPath);
+    assert.deepEqual(calls[0].args, [
+        path.join("D:/repo", "app", "scripts", "forge-commit-runtime-gate.js"),
+        "install",
+    ]);
+    assert.equal(calls[0].options.cwd, "D:/repo");
+    assert.equal(calls[0].options.stdio, "inherit");
+    assert.equal(calls[0].options.windowsHide, true);
 });
 
 test("Existing Supervisor update inspection identifies committed Kernel runtime changes", async () => {
@@ -205,6 +225,29 @@ test("Forge startup reuses an authenticated Supervisor for the same workspace", 
 
     assert.equal(startup.kind, "reuse");
     assert.equal(startup.port, 6806);
+});
+
+test("Supervisor probe preserves the network cause for readiness diagnostics", async () => {
+    const root = temporaryRoot();
+    const ownership = {
+        schemaVersion: 1,
+        processId: 1234,
+        repoRoot: root,
+        workspace: path.join(root, ".dev-workspace"),
+        port: 6806,
+        controlURL: "http://127.0.0.1:19785",
+        cliToken: "owned-cli-token",
+    };
+    const networkCause = Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:19785"), {code: "ECONNREFUSED"});
+    await assert.rejects(probeSupervisor(ownership, async () => {
+        throw new TypeError("fetch failed", {cause: networkCause});
+    }), (error) => {
+        assert.equal(isSupervisorUnreachableError(error), true);
+        assert.match(error.message, /fetch failed/);
+        assert.match(error.message, /ECONNREFUSED/);
+        assert.equal(error.cause.cause, networkCause);
+        return true;
+    });
 });
 
 test("Forge startup recognizes a healthy legacy Kernel holding the default workspace", async () => {

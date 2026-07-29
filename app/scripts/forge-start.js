@@ -2,11 +2,17 @@
 const net = require("net");
 const fs = require("fs");
 const path = require("path");
-const {execFile} = require("child_process");
+const {execFile, execFileSync} = require("child_process");
 const {ForgeRuntimeSupervisor, SUPERVISOR_TOKEN_HEADER, isKernelRuntimePath, parseLines} = require("./forge-runtime-supervisor");
-const {installCommitRuntimeHooks} = require("./forge-commit-runtime-gate");
 
 const repoRoot = path.resolve(__dirname, "../..");
+const SUPERVISOR_UNREACHABLE_ERROR = "FORGE_SUPERVISOR_UNREACHABLE";
+
+const runCommitRuntimeHookInstaller = (root, run = execFileSync) => run(
+    process.execPath,
+    [path.join(root, "app", "scripts", "forge-commit-runtime-gate.js"), "install"],
+    {cwd: root, stdio: "inherit", windowsHide: true},
+);
 
 const isValidPort = (port) => Number.isInteger(port) && port > 0 && port <= 65535;
 
@@ -157,30 +163,37 @@ const probeSupervisor = async (ownership, fetchImpl) => {
     if (ownership?.schemaVersion !== 1 || !ownership.controlURL || !ownership.cliToken) {
         throw new Error("Forge runtime ownership descriptor is incomplete");
     }
+    let response;
     try {
-        const response = await fetchImpl(`${ownership.controlURL}/status`, {
+        response = await fetchImpl(`${ownership.controlURL}/status`, {
             headers: {[SUPERVISOR_TOKEN_HEADER]: ownership.cliToken},
             signal: AbortSignal.timeout(3_000),
         });
-        if (!response.ok) {
-            throw new Error(`authentication failed with HTTP ${response.status}`);
-        }
-        const status = await response.json();
-        const matches = status.mode === "forge-source-supervisor" &&
-            status.processId === ownership.processId &&
-            typeof status.repoRoot === "string" &&
-            path.resolve(status.repoRoot) === path.resolve(ownership.repoRoot) &&
-            typeof status.workspace === "string" &&
-            path.resolve(status.workspace) === path.resolve(ownership.workspace) &&
-            Number(status.port) === Number(ownership.port);
-        if (!matches) {
-            throw new Error("descriptor does not match the responding Supervisor");
-        }
-        return status;
     } catch (error) {
-        throw new Error(`Forge runtime ownership is stale or unreachable: ${error.message}`);
+        const cause = error?.cause;
+        const causeMessage = cause ? `; cause=${cause.code ? `${cause.code}: ` : ""}${cause.message || String(cause)}` : "";
+        const unreachable = new Error(`Forge runtime ownership is stale or unreachable: ${error.message}${causeMessage}`, {cause: error});
+        unreachable.code = SUPERVISOR_UNREACHABLE_ERROR;
+        throw unreachable;
     }
+    if (!response.ok) {
+        throw new Error(`Forge Supervisor authentication failed with HTTP ${response.status}`);
+    }
+    const status = await response.json();
+    const matches = status.mode === "forge-source-supervisor" &&
+        status.processId === ownership.processId &&
+        typeof status.repoRoot === "string" &&
+        path.resolve(status.repoRoot) === path.resolve(ownership.repoRoot) &&
+        typeof status.workspace === "string" &&
+        path.resolve(status.workspace) === path.resolve(ownership.workspace) &&
+        Number(status.port) === Number(ownership.port);
+    if (!matches) {
+        throw new Error("Forge Supervisor descriptor does not match the responding process");
+    }
+    return status;
 };
+
+const isSupervisorUnreachableError = (error) => error?.code === SUPERVISOR_UNREACHABLE_ERROR;
 
 const callSupervisor = async (ownership, route, fetchImpl, init = {}) => {
     const response = await fetchImpl(`${ownership.controlURL}${route}`, {
@@ -201,14 +214,9 @@ const callSupervisor = async (ownership, route, fetchImpl, init = {}) => {
     return payload;
 };
 
-const inspectKernelUpdate = async (root, activeRevision, run = execFileOutput) => {
+const inspectCommittedKernelUpdate = async (root, activeRevision, run = execFileOutput) => {
     if (!activeRevision) {
         throw new Error("running Supervisor does not report an active Kernel revision");
-    }
-    const status = (await readRepositoryStatus(root, run)).split(/\r?\n/).filter(Boolean);
-    const uncommittedRuntimeChanges = status.flatMap(porcelainPaths).filter(isKernelRuntimePath);
-    if (uncommittedRuntimeChanges.length > 0) {
-        throw new Error(`Kernel source has uncommitted changes; create a verified commit before hot replacement: ${uncommittedRuntimeChanges.join(", ")}`);
     }
     const revision = (await run("git", ["-C", root, "rev-parse", "HEAD"])).trim();
     if (revision === activeRevision) {
@@ -216,6 +224,15 @@ const inspectKernelUpdate = async (root, activeRevision, run = execFileOutput) =
     }
     const changed = parseLines(await run("git", ["-C", root, "diff", "--name-only", `${activeRevision}..${revision}`, "--"]));
     return {revision, runtimeChanges: changed.filter(isKernelRuntimePath)};
+};
+
+const inspectKernelUpdate = async (root, activeRevision, run = execFileOutput) => {
+    const status = (await readRepositoryStatus(root, run)).split(/\r?\n/).filter(Boolean);
+    const uncommittedRuntimeChanges = status.flatMap(porcelainPaths).filter(isKernelRuntimePath);
+    if (uncommittedRuntimeChanges.length > 0) {
+        throw new Error(`Kernel source has uncommitted changes; create a verified commit before hot replacement: ${uncommittedRuntimeChanges.join(", ")}`);
+    }
+    return inspectCommittedKernelUpdate(root, activeRevision, run);
 };
 
 const synchronizeExistingSupervisor = async ({
@@ -346,7 +363,7 @@ const resolveForgeStartup = async ({
 
 const main = async () => {
     await assertForgeStartRepositoryClean(repoRoot);
-    installCommitRuntimeHooks(repoRoot);
+    runCommitRuntimeHookInstaller(repoRoot);
     const requestedPortArg = process.argv.find((argument) => argument.startsWith("--port="));
     const requestedPort = Number(requestedPortArg ? requestedPortArg.split("=")[1] : "6806");
     const noBrowser = process.argv.includes("--no-browser");
@@ -408,12 +425,15 @@ module.exports = {
     discoverPosixKernelProcesses,
     discoverWindowsKernelProcesses,
     isProcessAlive,
+    inspectCommittedKernelUpdate,
     inspectKernelUpdate,
+    isSupervisorUnreachableError,
     probeKernel,
     probeSupervisor,
     porcelainPaths,
     quarantineStaleOwnership,
     readOwnership,
     resolveForgeStartup,
+    runCommitRuntimeHookInstaller,
     synchronizeExistingSupervisor,
 };
