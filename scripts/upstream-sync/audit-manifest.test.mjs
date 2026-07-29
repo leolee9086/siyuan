@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {execFileSync} from "node:child_process";
-import {mkdtempSync, readFileSync, writeFileSync} from "node:fs";
+import {mkdtempSync, readFileSync, rmSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import test from "node:test";
@@ -15,8 +15,9 @@ const commitFile = (repo, name, content, subject) => {
     return git(repo, ["rev-parse", "HEAD"]);
 };
 
-test("generates and verifies a complete DAG while preserving audit decisions", () => {
+test("generates and verifies a complete DAG while preserving audit decisions", (context) => {
     const repo = mkdtempSync(join(tmpdir(), "sforge-audit-manifest-"));
+    context.after(() => rmSync(repo, {recursive: true, force: true}));
     git(repo, ["init", "--initial-branch=main"]);
     git(repo, ["config", "user.name", "Test Author"]);
     git(repo, ["config", "user.email", "test@example.com"]);
@@ -61,5 +62,69 @@ test("generates and verifies a complete DAG while preserving audit decisions", (
     writeAuditManifest({repo, output, cycle: {upstreamBase: base, upstreamTip: tip}, records});
     assert.equal(records[0].audit.status, "verified");
     assert.equal(records[0].audit.disposition, "ported-exact");
-    assert.deepEqual(verifyAuditManifest({repo, output}), {commitCount: 3, mergeCommitCount: 1});
+    assert.deepEqual(verifyAuditManifest({repo, output}), {
+        commitCount: 3,
+        mergeCommitCount: 1,
+        revertCommitCount: 0,
+        mappedUpstreamCommitCount: 0,
+    });
+});
+
+test("classifies reverts and derives local mappings from commit trailers deterministically", (context) => {
+    const repo = mkdtempSync(join(tmpdir(), "sforge-audit-mapping-"));
+    context.after(() => rmSync(repo, {recursive: true, force: true}));
+    git(repo, ["init", "--initial-branch=main"]);
+    git(repo, ["config", "user.name", "Test Author"]);
+    git(repo, ["config", "user.email", "test@example.com"]);
+    const upstreamBase = commitFile(repo, "base.txt", "base\n", "base");
+
+    git(repo, ["switch", "-c", "candidate"]);
+    const localBase = commitFile(repo, "local.txt", "local\n", "local base");
+    git(repo, ["switch", "-c", "upstream", upstreamBase]);
+    const upstreamCommit = commitFile(repo, "upstream.txt", "upstream\n", "upstream behavior");
+    git(repo, ["revert", "--no-edit", upstreamCommit]);
+    const upstreamTip = git(repo, ["rev-parse", "HEAD"]);
+
+    git(repo, ["switch", "candidate"]);
+    const message = [
+        "port upstream behavior",
+        "",
+        `Upstream-Commit: ${upstreamCommit}`,
+        "Upstream-Series: fixture/upstream-behavior",
+        "Upstream-Disposition: semantic-port",
+        "Upstream-Audit: docs/upstream-sync/fixture/commits.jsonl",
+    ].join("\n");
+    const candidateHead = commitFile(repo, "port.txt", "port\n", message);
+    const output = join(repo, "audit");
+    const build = () => buildAuditRecords({
+        repo,
+        upstreamBase,
+        upstreamTip,
+        localBase,
+        candidateHead,
+        existingManifestPath: join(output, "commits.jsonl"),
+    });
+
+    const records = build();
+    assert.equal(records.length, 2);
+    const portedRecord = records.find((record) => record.sha === upstreamCommit);
+    const revertRecord = records.find((record) => record.sha === upstreamTip);
+    assert.equal(revertRecord.commitType, "revert");
+    assert.deepEqual(revertRecord.audit.relationships.reverts, [upstreamCommit]);
+    assert.deepEqual(portedRecord.audit.relationships.revertedBy, [upstreamTip]);
+    assert.deepEqual(portedRecord.audit.localCommits, [candidateHead]);
+    assert.equal(portedRecord.audit.mappingEvidence[0].declaredDisposition, "semantic-port");
+
+    const cycle = {
+        upstreamBase,
+        upstreamTip,
+        localBase,
+        candidateHead,
+    };
+    writeAuditManifest({repo, output, cycle, records});
+    const firstCycle = readFileSync(join(output, "cycle.json"), "utf8");
+    const firstManifest = readFileSync(join(output, "commits.jsonl"), "utf8");
+    writeAuditManifest({repo, output, cycle, records: build()});
+    assert.equal(readFileSync(join(output, "cycle.json"), "utf8"), firstCycle);
+    assert.equal(readFileSync(join(output, "commits.jsonl"), "utf8"), firstManifest);
 });
