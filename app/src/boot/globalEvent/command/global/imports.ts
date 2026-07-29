@@ -7,7 +7,7 @@
 /** 用途：每日笔记入口；使用范围：common.ts；解耦评估：业务流程由文件模块封装。 */
 import { newDailyNote } from "../../../../util/file/mount";
 /** 用途：历史面板入口；使用范围：common.ts；解耦评估：历史 UI 由 history 模块封装。 */
-import { openHistory } from "../../../../history/history";
+import { openHistory } from "../../../../history/history.panel";
 /** 用途：移动端 Dock 入口；使用范围：mobile.ts；解耦评估：移动端 UI 事件由 dock 工具封装。 */
 import { openDock } from "../../../../mobile/dock/util";
 /** 用途：移动端主菜单入口；使用范围：mobile.ts；解耦评估：菜单 UI 由 mobile/menu 封装。 */

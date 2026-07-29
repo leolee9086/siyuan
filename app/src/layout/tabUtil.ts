@@ -17,7 +17,7 @@ import {Custom} from "./dock/custom/Custom";
 import { updateHotkeyTip } from "../protyle/util/compatibility";
 import { openSearch } from "../search/spread";
 import { openRecentDocs } from "../business/openRecentDocs";
-import { openHistory } from "../history/history";
+import { openHistory } from "../history/history.panel";
 import {mountHelp} from "../util/file/mount";
 import {newNotebook} from "../util/file/notebookCreation/newNotebook/newNotebook.factory";
 import { Constants } from "../constants";

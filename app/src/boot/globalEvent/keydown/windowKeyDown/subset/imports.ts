@@ -46,7 +46,7 @@ import { siyuanI18n } from "../../../../../util/siyuanEnvironments/i18n.getI18n.
 import { getSiyuanDialogs } from "../../../../../util/siyuanEnvironments/siyuanDialogs.environment";
 import { openRecentDocs } from "../../../../../business/openRecentDocs";
 import { historyKeydown } from "../../../../../history/keydown";
-import { openHistory } from "../../../../../history/history";
+import { openHistory } from "../../../../../history/history.panel";
 import { syncGuide } from "../../../../../sync/syncGuide";
 import { dialogArrow } from "../../dialogArrow";
 import { execByCommand } from "../../../command/panel";

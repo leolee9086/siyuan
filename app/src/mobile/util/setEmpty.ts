@@ -3,7 +3,7 @@ import {newNotebook} from "../../util/file/notebookCreation/newNotebook/newNoteb
 import {getOpenNotebookCount} from "../../util/file/pathName";
 import {popSearch} from "../menu/search";
 import {getRecentDocs} from "../menu/getRecentDocs";
-import {openHistory} from "../../history/history";
+import {openHistory} from "../../history/history.panel";
 import type { AppFacade } from "../../app/AppFacade.types";
 import { setTitle } from "../../util/processTitle";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";

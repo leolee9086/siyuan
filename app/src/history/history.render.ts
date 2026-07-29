@@ -1,70 +1,119 @@
 import {Constants} from "../constants";
-import * as dayjs from "dayjs";
+import dayjs from "dayjs";
 import {fetchPost} from "../util/network/fetch";
 import {escapeAttr, escapeHtml} from "../util/DOM/escape";
 import {isMobile} from "../util/platform/functions";
 import {platform} from "../platform";
 import {setStorageVal} from "../protyle/util/compatibility";
 import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import {getSiyuanStorage} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+import {requireHistoryElement} from "./history.dom";
+
+const setOperationOptionHidden = (
+    selectElement: HTMLSelectElement,
+    value: string,
+    hidden: boolean,
+) => {
+    requireHistoryElement(
+        selectElement.querySelector<HTMLOptionElement>(`option[value="${value}"]`),
+        `history operation option ${value}`,
+    ).classList.toggle("fn__none", hidden);
+};
+
+const requireHistoryList = (element: Element, description: string): Element =>
+    requireHistoryElement(element.lastElementChild, description);
 
 export const renderDoc = (element: HTMLElement, currentPage: number) => {
-    const previousElement = element.querySelector('[data-type="docprevious"]');
-    const nextElement = element.querySelector('[data-type="docnext"]');
+    const previousElement = requireHistoryElement(
+        element.querySelector<HTMLElement>('[data-type="docprevious"]'),
+        "document history previous-page action",
+    );
+    const nextElement = requireHistoryElement(
+        element.querySelector<HTMLElement>('[data-type="docnext"]'),
+        "document history next-page action",
+    );
     element.setAttribute("data-page", currentPage.toString());
     if (currentPage > 1) {
         previousElement.removeAttribute("disabled");
     } else {
         previousElement.setAttribute("disabled", "disabled");
     }
-    const pageBtn = element.querySelector('button[data-type="jumpHistoryPage"]');
+    const pageBtn = requireHistoryElement(
+        element.querySelector<HTMLButtonElement>('button[data-type="jumpHistoryPage"]'),
+        "document history page action",
+    );
     pageBtn.textContent = `${currentPage}`;
 
-    const inputElement = element.querySelector(".b3-text-field") as HTMLInputElement;
-    const opElement = element.querySelector('.b3-select[data-type="opselect"]') as HTMLSelectElement;
-    const typeElement = element.querySelector('.b3-select[data-type="typeselect"]') as HTMLSelectElement;
-    const notebookElement = element.querySelector('.b3-select[data-type="notebookselect"]') as HTMLSelectElement;
-    const docElement = element.querySelector('.history__text[data-type="docPanel"]');
-    const assetElement = element.querySelector('.history__text[data-type="assetPanel"]');
-    const mdElement = element.querySelector('.history__text[data-type="mdPanel"]') as HTMLTextAreaElement;
-    const listElement = element.querySelector(".b3-list");
-    element.querySelector(".protyle-title__input").classList.add("fn__none");
+    const inputElement = requireHistoryElement(
+        element.querySelector<HTMLInputElement>(".b3-text-field"),
+        "document history search input",
+    );
+    const opElement = requireHistoryElement(
+        element.querySelector<HTMLSelectElement>('.b3-select[data-type="opselect"]'),
+        "document history operation selector",
+    );
+    const typeElement = requireHistoryElement(
+        element.querySelector<HTMLSelectElement>('.b3-select[data-type="typeselect"]'),
+        "document history type selector",
+    );
+    const notebookElement = requireHistoryElement(
+        element.querySelector<HTMLSelectElement>('.b3-select[data-type="notebookselect"]'),
+        "document history notebook selector",
+    );
+    const docElement = requireHistoryElement(
+        element.querySelector<HTMLElement>('.history__text[data-type="docPanel"]'),
+        "document history preview",
+    );
+    const assetElement = requireHistoryElement(
+        element.querySelector<HTMLElement>('.history__text[data-type="assetPanel"]'),
+        "asset history preview",
+    );
+    const mdElement = requireHistoryElement(
+        element.querySelector<HTMLTextAreaElement>('.history__text[data-type="mdPanel"]'),
+        "large document history preview",
+    );
+    const listElement = requireHistoryElement(
+        element.querySelector<HTMLElement>(".b3-list"),
+        "document history result list",
+    );
+    requireHistoryElement(
+        element.querySelector<HTMLElement>(".protyle-title__input"),
+        "document history preview title",
+    ).classList.add("fn__none");
     assetElement.classList.add("fn__none");
     mdElement.classList.add("fn__none");
     docElement.classList.add("fn__none");
+    const localHistory = getSiyuanStorage()[Constants.LOCAL_HISTORY];
     if (typeElement.value === "2" || typeElement.value === "4") {
         notebookElement.setAttribute("disabled", "disabled");
-        if (window.siyuan.storage[Constants.LOCAL_HISTORY].type !== 2 && window.siyuan.storage[Constants.LOCAL_HISTORY].type !== 4) {
+        if (localHistory.type !== 2 && localHistory.type !== 4) {
             opElement.value = "all";
         }
-        if (typeElement.value === "4") {
-            opElement.querySelector('option[value="update"]').classList.add("fn__none");
-            opElement.querySelector('option[value="sync"]').classList.add("fn__none");
-        } else {
-            opElement.querySelector('option[value="update"]').classList.remove("fn__none");
-            opElement.querySelector('option[value="sync"]').classList.remove("fn__none");
-        }
-        opElement.querySelector('option[value="clean"]').classList.remove("fn__none");
-        opElement.querySelector('option[value="delete"]').classList.add("fn__none");
-        opElement.querySelector('option[value="format"]').classList.add("fn__none");
-        opElement.querySelector('option[value="replace"]').classList.add("fn__none");
-        opElement.querySelector('option[value="outline"]').classList.add("fn__none");
+        const isAttributeView = typeElement.value === "4";
+        setOperationOptionHidden(opElement, "update", isAttributeView);
+        setOperationOptionHidden(opElement, "sync", isAttributeView);
+        setOperationOptionHidden(opElement, "clean", false);
+        setOperationOptionHidden(opElement, "delete", true);
+        setOperationOptionHidden(opElement, "format", true);
+        setOperationOptionHidden(opElement, "replace", true);
+        setOperationOptionHidden(opElement, "outline", true);
     } else {
         notebookElement.removeAttribute("disabled");
-        if (window.siyuan.storage[Constants.LOCAL_HISTORY].type === 2 || window.siyuan.storage[Constants.LOCAL_HISTORY].type === 4) {
+        if (localHistory.type === 2 || localHistory.type === 4) {
             opElement.value = "all";
         }
-        opElement.querySelector('option[value="clean"]').classList.add("fn__none");
-        opElement.querySelector('option[value="update"]').classList.remove("fn__none");
-        opElement.querySelector('option[value="delete"]').classList.remove("fn__none");
-        opElement.querySelector('option[value="format"]').classList.remove("fn__none");
-        opElement.querySelector('option[value="sync"]').classList.remove("fn__none");
-        opElement.querySelector('option[value="replace"]').classList.remove("fn__none");
-        opElement.querySelector('option[value="outline"]').classList.remove("fn__none");
+        setOperationOptionHidden(opElement, "clean", true);
+        setOperationOptionHidden(opElement, "update", false);
+        setOperationOptionHidden(opElement, "delete", false);
+        setOperationOptionHidden(opElement, "format", false);
+        setOperationOptionHidden(opElement, "sync", false);
+        setOperationOptionHidden(opElement, "replace", false);
+        setOperationOptionHidden(opElement, "outline", false);
     }
-    window.siyuan.storage[Constants.LOCAL_HISTORY].notebookId = notebookElement.value;
-    window.siyuan.storage[Constants.LOCAL_HISTORY].type = parseInt(typeElement.value);
-    window.siyuan.storage[Constants.LOCAL_HISTORY].operation = opElement.value;
-    setStorageVal(Constants.LOCAL_HISTORY, window.siyuan.storage[Constants.LOCAL_HISTORY]);
+    localHistory.notebookId = notebookElement.value;
+    localHistory.type = parseInt(typeElement.value);
+    localHistory.operation = opElement.value;
+    setStorageVal(Constants.LOCAL_HISTORY, localHistory);
     fetchPost("/api/history/searchHistory", {
         notebook: notebookElement.value,
         query: inputElement.value,
@@ -78,7 +127,10 @@ export const renderDoc = (element: HTMLElement, currentPage: number) => {
             nextElement.setAttribute("disabled", "disabled");
         }
         pageBtn.setAttribute("data-totalpage", (response.data.pageCount || 1).toString());
-        const pageElement = nextElement.nextElementSibling.nextElementSibling;
+        const pageElement = requireHistoryElement(
+            nextElement.nextElementSibling?.nextElementSibling,
+            "document history page summary",
+        );
         pageElement.textContent = `${siyuanI18n.pageCountAndHistoryCount.replace("${x}", response.data.pageCount).replace("${y}", response.data.totalCount || 1)}`;
         pageElement.classList.remove("fn__none");
         if (response.data.histories.length === 0) {
@@ -97,8 +149,9 @@ export const renderDoc = (element: HTMLElement, currentPage: number) => {
 };
 
 export const renderRepoItem = (response: IWebSocketData, element: Element, type: string) => {
+    const resultList = requireHistoryList(element, "repository history result list");
     if (response.data.snapshots.length === 0) {
-        element.lastElementChild.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
+        resultList.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
         return;
     }
     let actionHTML = "";
@@ -195,7 +248,10 @@ export const renderRepoItem = (response: IWebSocketData, element: Element, type:
     let repoHTML = "";
     const isPhone = isMobile();
     const selectId: { id: string, time: string }[] = ["getRepoTagSnapshots", "getRepoSnapshots"].includes(type) ?
-        JSON.parse(element.querySelector(".b3-button[data-type='compare']").getAttribute("data-ids") || "[]") : [];
+        JSON.parse(requireHistoryElement(
+            element.querySelector<HTMLButtonElement>(".b3-button[data-type='compare']"),
+            "repository history compare button",
+        ).getAttribute("data-ids") || "[]") : [];
     response.data.snapshots.forEach((item: {
         memo: string,
         id: string,
@@ -238,7 +294,7 @@ ${statHTML}`;
         repoHTML += `<li class="b3-list-item${hasSelected ? " b3-list-item--focus" : ""}" data-type="repoitem" data-id="${item.id}" data-tag="${item.tag}">
 <div class="fn__flex-1">
     ${infoHTML}
-    <div class="fn__flex" style="height: 26px" data-type="repoitem"" data-id="${item.id}" data-tag="${item.tag}">
+    <div class="fn__flex" style="height: 26px" data-type="repoitem" data-id="${item.id}" data-tag="${item.tag}">
         ${actionHTML}
         <span class="b3-list-item__action" data-type="more">
             <svg><use xlink:href="#iconMore"></use></svg>
@@ -258,24 +314,27 @@ ${actionHTML}
 </li>`;
         }
     });
-    element.lastElementChild.innerHTML = `${repoHTML}`;
+    resultList.innerHTML = `${repoHTML}`;
 };
 
 const renderRepoSearchResult = (response: IWebSocketData, element: Element) => {
+    const resultList = requireHistoryList(element, "repository search result list");
     if (response.data.files.length === 0) {
-        element.lastElementChild.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
+        resultList.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
         return;
     }
     let html = "";
     response.data.files.forEach((item: {
         fileID: string,
+        indexID: string,
         title: string,
+        hPath: string,
         path: string,
         hSize: string,
         updated: number
     }) => {
         if (isMobile()) {
-            html += `<li class="b3-list-item" data-type="searchFileItem" data-id="${item.fileID}" data-created="${item.updated}">
+            html += `<li class="b3-list-item" data-type="searchFileItem" data-id="${item.fileID}" data-snapshot="${item.indexID}" data-created="${item.updated}">
     <div class="fn__flex-1">
         <div style="padding-top:8px" class="b3-list-item__text">${escapeHtml(item.title)}</div>
         <div class="b3-list-item__meta">
@@ -285,6 +344,11 @@ const renderRepoSearchResult = (response: IWebSocketData, element: Element) => {
         </div>
         <div class="fn__flex" style="height: 26px">
             <span class="fn__flex-1"></span>
+            <span class="b3-list-item__action" data-type="view">
+                <svg><use xlink:href="#iconEye"></use></svg>
+                <span class="fn__space"></span>${siyuanI18n.cardPreview}
+            </span>
+            <span class="fn__space"></span>
             <span class="b3-list-item__action" data-type="saveAs">
                 <svg><use xlink:href="#iconDownload"></use></svg>
                 <span class="fn__space"></span>${siyuanI18n.saveAs}
@@ -298,52 +362,80 @@ const renderRepoSearchResult = (response: IWebSocketData, element: Element) => {
     </div>
 </li>`;
         } else {
-            html += `<li class="b3-list-item b3-list-item--hide-action" data-type="searchFileItem" data-id="${item.fileID}" data-created="${item.updated}">
+            html += `<li class="b3-list-item b3-list-item--hide-action" data-type="searchFileItem" data-id="${item.fileID}" data-snapshot="${item.indexID}" data-created="${item.updated}">
     <div class="fn__flex-1">
         <span class="b3-list-item__text">${escapeHtml(item.title)}</span>
         <div class="b3-list-item__meta">
-            ${escapeHtml(item.path)}
+            ${escapeHtml(item.hPath)}
             <span class="fn__space"></span>
             ${item.hSize}
             <span class="fn__space"></span>
             ${dayjs(item.updated).format("YYYY-MM-DD HH:mm:ss")}
         </div>
     </div>
-    <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="rollback" aria-label="${siyuanI18n.rollback}">
-        <svg><use xlink:href="#iconUndo"></use></svg>
+    <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="view" aria-label="${siyuanI18n.cardPreview}">
+        <svg><use xlink:href="#iconEye"></use></svg>
     </span>
     <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="saveAs" aria-label="${siyuanI18n.saveAs}">
         <svg><use xlink:href="#iconDownload"></use></svg>
     </span>
+    <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="rollback" aria-label="${siyuanI18n.rollback}">
+        <svg><use xlink:href="#iconUndo"></use></svg>
+    </span>
 </li>`;
         }
     });
-    element.lastElementChild.innerHTML = html;
+    resultList.innerHTML = html;
 };
 
 export const renderRepo = (element: Element, currentPage: number) => {
-    const selectElement = element.querySelector(".b3-select") as HTMLSelectElement;
+    const selectElement = requireHistoryElement(
+        element.querySelector<HTMLSelectElement>(".b3-select"),
+        "repository history source selector",
+    );
     const selectValue = selectElement.value;
 
     selectElement.disabled = true;
-    element.lastElementChild.innerHTML = '<li style="position: relative;height: 100%;"><div class="fn__loading"><img width="64px" src="/stage/loading-pure.svg"></div></li>';
-    const pageBtn = element.querySelector('button[data-type="jumpRepoPage"]');
+    requireHistoryList(element, "repository history result list").innerHTML = '<li style="position: relative;height: 100%;"><div class="fn__loading"><img width="64px" src="/stage/loading-pure.svg"></div></li>';
+    const pageBtn = requireHistoryElement(
+        element.querySelector<HTMLButtonElement>('button[data-type="jumpRepoPage"]'),
+        "repository history page action",
+    );
     pageBtn.textContent = `${currentPage}`;
 
-    const previousElement = element.querySelector('[data-type="previous"]');
-    const nextElement = element.querySelector('[data-type="next"]');
-    const pageElement = nextElement.nextElementSibling.nextElementSibling;
+    const previousElement = requireHistoryElement(
+        element.querySelector<HTMLElement>('[data-type="previous"]'),
+        "repository history previous-page action",
+    );
+    const nextElement = requireHistoryElement(
+        element.querySelector<HTMLElement>('[data-type="next"]'),
+        "repository history next-page action",
+    );
+    const pageElement = requireHistoryElement(
+        nextElement.nextElementSibling?.nextElementSibling,
+        "repository history page summary",
+    );
     element.setAttribute("data-init", "true");
 
-    const searchInputElement = element.querySelector("input") as HTMLInputElement;
+    const searchInputElement = requireHistoryElement(
+        element.querySelector<HTMLInputElement>("input"),
+        "repository history search input",
+    );
+    const searchContainer = requireHistoryElement(
+        searchInputElement.parentElement,
+        "repository history search container",
+    );
     if (selectValue === "getRepoSnapshots") {
-        searchInputElement.parentElement.classList.remove("fn__none");
+        searchContainer.classList.remove("fn__none");
     } else {
-        searchInputElement.parentElement.classList.add("fn__none");
+        searchContainer.classList.add("fn__none");
     }
     const keyword = searchInputElement.value.trim();
     if (keyword && selectValue === "getRepoSnapshots") {
-        const searchBtnElement = searchInputElement.nextElementSibling as HTMLButtonElement;
+        const searchBtnElement = requireHistoryElement(
+            searchInputElement.nextElementSibling as HTMLButtonElement | null,
+            "repository history search button",
+        );
         searchBtnElement.disabled = true;
         previousElement.classList.remove("fn__none");
         nextElement.classList.remove("fn__none");

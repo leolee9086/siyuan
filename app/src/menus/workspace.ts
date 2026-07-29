@@ -2,7 +2,7 @@ import { MenuItem } from "./Menu.Item";
 import {ipcSend} from "../platform/electron/ipcRenderer";
 import {ipcInvoke} from "../platform/electron/ipcRenderer";
 import {isElectron} from "../platform";
-import {openHistory} from "../history/history";
+import {openHistory} from "../history/history.panel";
 import {getOpenNotebookCount, originalPath, pathPosix, useShell} from "../util/file/pathName";
 import {fetchNewDailyNote, mountHelp, newDailyNote} from "../util/file/mount";
 import {fetchPost} from "../util/network/fetch";

@@ -5,7 +5,7 @@ import {newEncryptedNotebook} from "../../util/file/notebookCreation/newEncrypte
 import {newNotebook} from "../../util/file/notebookCreation/newNotebook/newNotebook.factory";
 import {exitSiYuan, processSync} from "../../dialog/processSystem";
 import { lockScreen } from "../../dialog/processSystem/lockScreen";
-import {openHistory} from "../../history/history";
+import {openHistory} from "../../history/history.panel";
 import {syncGuide} from "../../sync/syncGuide";
 import {openCard} from "../../card/openCard";
 import {activeBlur} from "../keyboard/activeBlur";

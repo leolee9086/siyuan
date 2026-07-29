@@ -4,16 +4,23 @@ import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {renderAssetsPreview} from "../asset/renderAssets";
 import type {ProtyleDomain} from "../protyle/protyle.types";
 import {onGet} from "../protyle/util/onGet";
-import * as dayjs from "dayjs";
+import dayjs from "dayjs";
 import {fetchPost} from "../util/network/fetch";
 import {escapeAttr, escapeHtml} from "../util/DOM/escape";
-import {isMobile} from "../util/platform/functions";
 import {Dialog} from "../dialog";
 import {closeModel} from "../mobile/util/closePanel";
 import {isSupportCSSHL, searchMarkRender} from "../protyle/render/searchMarkRender";
 import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import {renderDoc, renderRmNotebook, renderRepo} from "./history.render";
 import type {IHistoryDocClickContext} from "./history.docEvent.types";
+import {requireHistoryAttribute, requireHistoryElement} from "./history.dom";
+import {getSiyuanConfig} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+
+const DOC_ROLLBACK_TYPES = ["assets", "doc", "av", "notebook"] as const;
+type DocRollbackType = typeof DOC_ROLLBACK_TYPES[number];
+
+const isDocRollbackType = (value: string | null): value is DocRollbackType =>
+    DOC_ROLLBACK_TYPES.some((type) => type === value);
 
 export const handleDocClick = (
     context: IHistoryDocClickContext<ProtyleDomain, Dialog>,
@@ -28,15 +35,42 @@ export const handleDocClick = (
         dialog,
         clearHistoryEditor,
     } = context;
-    const docElement = firstPanelElement.querySelector('.history__text[data-type="docPanel"]') as HTMLElement;
-    const assetElement = firstPanelElement.querySelector('.history__text[data-type="assetPanel"]');
-    const mdElement = firstPanelElement.querySelector('.history__text[data-type="mdPanel"]') as HTMLTextAreaElement;
-    const titleElement = firstPanelElement.querySelector(".protyle-title__input") as HTMLElement;
-    const historyElement = element.querySelector('#historyContainer [data-type="doc"]');
+    const docElement = requireHistoryElement(
+        firstPanelElement.querySelector<HTMLElement>('.history__text[data-type="docPanel"]'),
+        "document history preview",
+    );
+    const assetElement = requireHistoryElement(
+        firstPanelElement.querySelector<HTMLElement>('.history__text[data-type="assetPanel"]'),
+        "asset history preview",
+    );
+    const mdElement = requireHistoryElement(
+        firstPanelElement.querySelector<HTMLTextAreaElement>('.history__text[data-type="mdPanel"]'),
+        "large document history preview",
+    );
+    const titleElement = requireHistoryElement(
+        firstPanelElement.querySelector<HTMLElement>(".protyle-title__input"),
+        "history preview title",
+    );
+    const historyElement = requireHistoryElement(
+        element.querySelector<HTMLElement>('#historyContainer [data-type="doc"]'),
+        "document history panel",
+    );
 
     if (target.classList.contains("item")) {
-        target.parentElement.querySelector(".item--focus").classList.remove("item--focus");
-        Array.from(element.querySelector("#historyContainer").children).forEach((item: HTMLElement) => {
+        const tabBarElement = requireHistoryElement(target.parentElement, "history tab bar");
+        requireHistoryElement(
+            tabBarElement.querySelector<HTMLElement>(".item--focus"),
+            "active history tab",
+        ).classList.remove("item--focus");
+        const historyContainer = requireHistoryElement(
+            element.querySelector<HTMLElement>("#historyContainer"),
+            "history panel container",
+        );
+        Array.from(historyContainer.children).forEach((child) => {
+            const item = requireHistoryElement(
+                child instanceof HTMLElement ? child : null,
+                "history panel child",
+            );
             if (item.getAttribute("data-type") === type) {
                 item.classList.remove("fn__none");
                 item.classList.add("fn__block");
@@ -56,67 +90,87 @@ export const handleDocClick = (
         event.stopPropagation();
         event.preventDefault();
         return true;
-    } else if (target.classList.contains("b3-list-item__action") && type === "rollback" && !window.siyuan.config.readonly) {
-        const dataType = target.parentElement.getAttribute("data-type");
-        let name = target.previousElementSibling.previousElementSibling.textContent.trim();
-        let time = dayjs(parseInt(target.parentElement.getAttribute("data-created")) * 1000).format("YYYY-MM-DD HH:mm:ss");
+    } else if (target.classList.contains("b3-list-item__action") &&
+        type === "rollback" &&
+        isDocRollbackType(target.parentElement?.getAttribute("data-type") ?? null) &&
+        !getSiyuanConfig().readonly) {
+        const itemElement = requireHistoryElement(
+            target.closest(".b3-list-item") as HTMLElement | null,
+            "document history rollback item",
+        );
+        const dataType = requireHistoryAttribute(itemElement, "data-type") as DocRollbackType;
+        const name = requireHistoryElement(
+            itemElement.querySelector<HTMLElement>(".b3-list-item__text"),
+            "document history rollback title",
+        ).textContent.trim();
+        let time: string;
         if (dataType === "notebook") {
-            time = target.parentElement.parentElement.previousElementSibling.textContent.trim();
-        } else if (dataType === "repoitem") {
-            name = siyuanI18n.workspaceData;
-            time = (isMobile() ? target.parentElement.parentElement : target.parentElement).querySelector("span[data-type='hCreated']").textContent.trim();
+            const notebookGroup = requireHistoryElement(itemElement.parentElement, "removed notebook history group");
+            time = requireHistoryElement(
+                notebookGroup.previousElementSibling,
+                "removed notebook history timestamp",
+            ).textContent.trim();
+        } else {
+            time = dayjs(parseInt(requireHistoryAttribute(itemElement, "data-created")) * 1000)
+                .format("YYYY-MM-DD HH:mm:ss");
         }
         const confirmTip = siyuanI18n.rollbackConfirm.replace("${name}", name)
             .replace("${time}", time);
         confirmDialog("⚠️ " + siyuanI18n.rollback, confirmTip, () => {
             if (dataType === "assets") {
                 fetchPost("/api/history/rollbackAssetsHistory", {
-                    historyPath: target.parentElement.getAttribute("data-path")
+                    historyPath: requireHistoryAttribute(itemElement, "data-path")
                 });
             } else if (dataType === "doc") {
                 fetchPost("/api/history/rollbackDocHistory", {
-                    notebook: target.parentElement.getAttribute("data-notebook-id"),
-                    historyPath: target.parentElement.getAttribute("data-path")
+                    historyPath: requireHistoryAttribute(itemElement, "data-path")
                 });
             } else if (dataType === "av") {
                 fetchPost("/api/history/rollbackAttributeViewHistory", {
-                    historyPath: target.parentElement.getAttribute("data-path")
-                });
-            } else if (dataType === "notebook") {
-                fetchPost("/api/history/rollbackNotebookHistory", {
-                    historyPath: target.parentElement.getAttribute("data-path")
+                    historyPath: requireHistoryAttribute(itemElement, "data-path")
                 });
             } else {
-                fetchPost("/api/repo/checkoutRepo", {
-                    id: target.parentElement.getAttribute("data-id")
+                fetchPost("/api/history/rollbackNotebookHistory", {
+                    historyPath: requireHistoryAttribute(itemElement, "data-path")
                 });
             }
         });
         event.stopPropagation();
         event.preventDefault();
         return true;
-    } else if (type === "more") {
-        target.parentElement.parentElement.querySelectorAll(".b3-list-item__meta").forEach(item => {
-            item.classList.toggle("fn__none");
-        });
-        event.stopPropagation();
-        event.preventDefault();
-        return true;
     } else if (type === "toggle") {
-        const iconElement = target.firstElementChild.firstElementChild;
+        const iconElement = requireHistoryElement(
+            target.firstElementChild?.firstElementChild,
+            "document history group toggle icon",
+        );
         if (iconElement.classList.contains("b3-list-item__arrow--open")) {
-            target.nextElementSibling.classList.add("fn__none");
+            requireHistoryElement(
+                target.nextElementSibling,
+                "expanded document history group",
+            ).classList.add("fn__none");
             iconElement.classList.remove("b3-list-item__arrow--open");
         } else {
             if (target.nextElementSibling && target.nextElementSibling.tagName === "UL") {
                 target.nextElementSibling.classList.remove("fn__none");
                 iconElement.classList.add("b3-list-item__arrow--open");
             } else {
-                const inputElement = firstPanelElement.querySelector(".b3-text-field") as HTMLInputElement;
-                const opElement = firstPanelElement.querySelector('.b3-select[data-type="opselect"]') as HTMLSelectElement;
-                const typeElement = firstPanelElement.querySelector('.b3-select[data-type="typeselect"]') as HTMLSelectElement;
-                const notebookElement = firstPanelElement.querySelector('.b3-select[data-type="notebookselect"]') as HTMLSelectElement;
-                const created = target.getAttribute("data-created");
+                const inputElement = requireHistoryElement(
+                    firstPanelElement.querySelector<HTMLInputElement>(".b3-text-field"),
+                    "document history search input",
+                );
+                const opElement = requireHistoryElement(
+                    firstPanelElement.querySelector<HTMLSelectElement>('.b3-select[data-type="opselect"]'),
+                    "document history operation selector",
+                );
+                const typeElement = requireHistoryElement(
+                    firstPanelElement.querySelector<HTMLSelectElement>('.b3-select[data-type="typeselect"]'),
+                    "document history type selector",
+                );
+                const notebookElement = requireHistoryElement(
+                    firstPanelElement.querySelector<HTMLSelectElement>('.b3-select[data-type="notebookselect"]'),
+                    "document history notebook selector",
+                );
+                const created = requireHistoryAttribute(target, "data-created");
                 fetchPost("/api/history/getHistoryItems", {
                     notebook: notebookElement.value,
                     query: inputElement.value,
@@ -173,18 +227,29 @@ export const handleDocClick = (
         event.preventDefault();
         return true;
     } else if (type === "rmtoggle") {
-        target.nextElementSibling.classList.toggle("fn__none");
-        target.firstElementChild.firstElementChild.classList.toggle("b3-list-item__arrow--open");
+        requireHistoryElement(
+            target.nextElementSibling,
+            "removed notebook history group",
+        ).classList.toggle("fn__none");
+        requireHistoryElement(
+            target.firstElementChild?.firstElementChild,
+            "removed notebook history group toggle icon",
+        ).classList.toggle("b3-list-item__arrow--open");
         event.stopPropagation();
         event.preventDefault();
         return true;
-    } else if (target.classList.contains("b3-list-item") && ["assets", "doc", "av"].includes(type)) {
-        const dataPath = target.getAttribute("data-path");
+    } else if (target.classList.contains("b3-list-item") &&
+        type !== null &&
+        ["assets", "doc", "av"].includes(type)) {
+        const dataPath = requireHistoryAttribute(target, "data-path");
         if (type === "assets") {
             assetElement.classList.remove("fn__none");
             assetElement.innerHTML = renderAssetsPreview(dataPath);
         } else if (type === "doc") {
-            const k = (firstPanelElement.querySelector(".b3-text-field") as HTMLInputElement).value;
+            const k = requireHistoryElement(
+                firstPanelElement.querySelector<HTMLInputElement>(".b3-text-field"),
+                "document history search input",
+            ).value;
             fetchPost("/api/history/getDocHistoryContent", {
                 historyPath: dataPath,
                 highlight: !isSupportCSSHL(),
@@ -197,7 +262,11 @@ export const handleDocClick = (
                 } else {
                     mdElement.classList.add("fn__none");
                     docElement.classList.remove("fn__none");
-                    historyEditor.protyle.options.history.created = target.dataset.created;
+                    const historyOptions = historyEditor.protyle.options.history;
+                    if (!historyOptions) {
+                        throw new Error("History view invariant failed: editor history options");
+                    }
+                    historyOptions.created = requireHistoryAttribute(target, "data-created");
                     onGet({
                         data: response,
                         protyle: historyEditor.protyle,
@@ -209,11 +278,19 @@ export const handleDocClick = (
         } else if (type === "av") {
             mdElement.classList.add("fn__none");
             docElement.classList.remove("fn__none");
-            historyEditor.protyle.options.history.created = target.dataset.created;
+            const historyOptions = historyEditor.protyle.options.history;
+            if (!historyOptions) {
+                throw new Error("History view invariant failed: editor history options");
+            }
+            historyOptions.created = requireHistoryAttribute(target, "data-created");
+            const attributeViewTitle = requireHistoryElement(
+                target.querySelector<HTMLElement>(".b3-list-item__text"),
+                "attribute view history title",
+            ).textContent;
             onGet({
                 data: {
                     data: {
-                        content: `<div class="av" data-node-id="${Lute.NewNodeID()}" data-av-id="${target.querySelector(".b3-list-item__text").textContent}" data-type="NodeAttributeView" data-av-type="table"><div spellcheck="true"></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`,
+                        content: `<div class="av" data-node-id="${Lute.NewNodeID()}" data-av-id="${attributeViewTitle}" data-type="NodeAttributeView" data-av-type="table"><div spellcheck="true"></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`,
                         id: Lute.NewNodeID(),
                         rootID: Lute.NewNodeID(),
                     },
@@ -225,28 +302,35 @@ export const handleDocClick = (
             });
         }
         titleElement.classList.remove("fn__none");
-        titleElement.textContent = target.querySelector(".b3-list-item__text").textContent;
-        let currentItem = hasClosestByClassName(target, "b3-list") as HTMLElement;
-        if (currentItem) {
-            currentItem = currentItem.querySelector(".b3-list-item--focus");
-            if (currentItem) {
-                currentItem.classList.remove("b3-list-item--focus");
-            }
-        }
+        titleElement.textContent = requireHistoryElement(
+            target.querySelector<HTMLElement>(".b3-list-item__text"),
+            "history item title",
+        ).textContent;
+        const listElement = requireHistoryElement(
+            hasClosestByClassName(target, "b3-list") as HTMLElement | null,
+            "history item list",
+        );
+        listElement.querySelector<HTMLElement>(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
         target.classList.add("b3-list-item--focus");
         event.stopPropagation();
         event.preventDefault();
         return true;
     } else if (type === "jumpHistoryPage") {
-        const currentPage = parseInt(historyElement.getAttribute("data-page"));
+        const currentPage = parseInt(requireHistoryAttribute(historyElement, "data-page"));
         const totalPage = parseInt(target.getAttribute("data-totalpage") || "1");
 
         if (totalPage > 1) {
             confirmDialog(
-                siyuanI18n.jumpToPage.replace("${x}", totalPage),
+                siyuanI18n.jumpToPage.replace("${x}", totalPage.toString()),
                 `<input class="b3-text-field fn__block" type="number" min="1" max="${totalPage}" value="${currentPage}">`,
                 (confirmD) => {
-                    const inputElement = confirmD.element.querySelector(".b3-text-field") as HTMLInputElement;
+                    if (!confirmD) {
+                        throw new Error("History view invariant failed: page jump dialog");
+                    }
+                    const inputElement = requireHistoryElement(
+                        confirmD.element.querySelector<HTMLInputElement>(".b3-text-field"),
+                        "history page jump input",
+                    );
                     if (inputElement.value === "") {
                         return;
                     }
@@ -258,7 +342,7 @@ export const handleDocClick = (
         }
         return true;
     } else if ((type === "docprevious" || type === "docnext") && target.getAttribute("disabled") !== "disabled") {
-        const currentPage = parseInt(firstPanelElement.getAttribute("data-page"));
+        const currentPage = parseInt(requireHistoryAttribute(firstPanelElement, "data-page"));
         renderDoc(firstPanelElement, type === "docprevious" ? currentPage - 1 : currentPage + 1);
         event.stopPropagation();
         event.preventDefault();

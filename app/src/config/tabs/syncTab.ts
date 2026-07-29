@@ -11,7 +11,7 @@ import {Dialog} from "../../dialog";
 import {genConfigItemMainHtml, genConfigItemName} from "../render/fragments";
 import {getSyncProviderConfigKeywords} from "./syncUi";
 import {patchSyncConfig} from "./syncRuntime";
-import {openHistory} from "../../history/history";
+import {openHistory} from "../../history/history.panel";
 
 const registerSyncGroup = (tab: SettingTabBuilder) => {
     const group = tab.group("sync", window.siyuan.languages.configGroupSync);
