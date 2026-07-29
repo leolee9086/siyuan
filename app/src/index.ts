@@ -27,7 +27,7 @@ import {
     setDefRefCount,
     transactionError
 } from "./dialog/processSystem";
-import {kernelError} from "./dialog/processSystem/index";
+import {kernelError} from "./util/kernelFault";
 import { downloadProgress } from "./dialog/processSystem/downloadProgress";
 import { setTitle } from "./util/processTitle";
 import { reloadSync } from "./dialog/processSystem/reloadSync";

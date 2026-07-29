@@ -17,7 +17,7 @@ import { fetchPost } from "../util/network/fetch";
 import { initFramework } from "./util/initFramework";
 import { initAssets } from "../util/assets/assets";
 import { bootSync, lockScreen } from "../dialog/processSystem";
-import {kernelError} from "../dialog/processSystem/index";
+import {kernelError} from "../util/kernelFault";
 import { reloadSync } from "../dialog/processSystem/reloadSync";
 import { hideMessage, initMessage, showMessage } from "../dialog/message";
 import { confirmDialog } from "../dialog/confirmDialog";

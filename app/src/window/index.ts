@@ -17,7 +17,7 @@ import {
     setDefRefCount,
     transactionError
 } from "../dialog/processSystem";
-import {kernelError} from "../dialog/processSystem/index";
+import {kernelError} from "../util/kernelFault";
 import { setTitle } from "../util/processTitle";
 import { reloadSync } from "../dialog/processSystem/reloadSync";
 import { setRefDynamicText } from "../dialog/processSystem/setRefDynamicText";
