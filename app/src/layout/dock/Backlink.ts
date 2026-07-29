@@ -149,7 +149,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                 });
                 this.mTree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
             },
-            altClick(element) {
+            altClick: (element) => {
                 options.app.openBlock({
                     id: element.getAttribute("data-node-id"),
                     position: "right",
@@ -158,7 +158,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                 });
                 this.mTree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
             },
-            shiftClick(element) {
+            shiftClick: (element) => {
                 options.app.openBlock({
                     id: element.getAttribute("data-node-id"),
                     position: "bottom",
@@ -181,7 +181,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                 this.setFocus();
                 this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
             },
-            ctrlClick(element) {
+            ctrlClick: (element) => {
                 options.app.openBlock({
                     id: element.getAttribute("data-node-id"),
                     action: [Constants.CB_GET_CONTEXT],
@@ -189,7 +189,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                 });
                 this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
             },
-            altClick(element) {
+            altClick: (element) => {
                 options.app.openBlock({
                     id: element.getAttribute("data-node-id"),
                     position: "right",
@@ -198,7 +198,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                 });
                 this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
             },
-            shiftClick(element) {
+            shiftClick: (element) => {
                 options.app.openBlock({
                     id: element.getAttribute("data-node-id"),
                     position: "bottom",
