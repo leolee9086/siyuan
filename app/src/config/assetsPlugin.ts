@@ -1,5 +1,6 @@
 import type {CustomDomain} from "../layout/dock/custom/custom.types";
 import {Plugin} from "../plugin";
+import {adaptSiyuanPlugin} from "../plugin/compatibility/adaptSiyuanPlugin";
 import {bindAssetTabEvent, genAssetTabHTML, image} from "./assets";
 
 /** 资源配置页签的插件注册组合根；资源渲染模块本身不加载 Plugin class。 */
@@ -44,5 +45,5 @@ document.addEventListener("app-ready", () => {
             }
         },
     });
-    window.siyuan.ws.app.plugins.push(plugin);
+    window.siyuan.ws.app.plugins.push(adaptSiyuanPlugin(plugin));
 });
