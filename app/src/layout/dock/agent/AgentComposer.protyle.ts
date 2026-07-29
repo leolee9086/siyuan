@@ -211,6 +211,11 @@ export function mountProtyleComposer(
             updatePlaceholder();
             history.resetCursor();
         },
+        insertText: (text: string) => {
+            if (text) {
+                protyle.insert(escapeHtml(text).replaceAll("\n", "<br>"));
+            }
+        },
         pushHistory: (text: string) => history.push(text),
         getHistory: () => history.get(),
         clearHistory: () => history.clear(),

@@ -9,9 +9,16 @@ import type {ProtyleDomain} from "../../../protyle/protyle.types";
 import {getAllEditor} from "../../getAll";
 import {isMobile} from "../../../platform";
 import {agentOwnerHeaders, SessionStore, setAgentOwnerTokenProvider} from "./SessionStore";
-import type {AgentSession} from "./SessionStore.types";
-import {createAgentSessionPanelController} from "./session-panel/controller";
+import type {
+    AgentSession,
+    AgentTaskDirectoryCapabilities,
+    TaskDirectoryBinding,
+    TaskDirectoryMenuAction,
+} from "./SessionStore.types";
+import {createAgentSessionPanelController, runAgentTaskDirectoryAction} from "./session-panel/controller";
 import type {AgentSessionPanelController} from "./session-panel/types";
+import {buildTaskDirectoryMenuActions} from "./session-panel/menu.actions";
+import {formatAgentUploadedFileMarkdown} from "./AgentUploadedFile.markdown";
 import {isActiveAgentPanelRequest} from "./runtime/agentPanel.request.guard";
 import {applyAgentPanelInteractionLock} from "./runtime/agentPanel.interactionLock";
 import {canRetryLastUserTurn} from "./runtime/agentPanel.retryPolicy";
@@ -69,6 +76,7 @@ import type {
     AgentPanelCapabilities,
     AgentPanelConversation,
     AgentPanelConversationKind,
+    PanelMenuItem,
 } from "./runtime/agentPanel.ports.types";
 setAgentOwnerTokenProvider(() => {
     const session = getActiveMagiArmorSession();
@@ -121,6 +129,10 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
     private composer: ReturnType<typeof mountComposer> | null = null;
     private sendBtn!: HTMLElement;
     private stopBtn!: HTMLElement;
+    private sessionFilesBtn!: HTMLButtonElement;
+    private sessionFilesInput!: HTMLInputElement;
+    private sessionFileOperationSerial = 0;
+    private sessionFileOperationPending = false;
     private newSessionBtn!: HTMLElement;
     private guardianAuthBtn!: HTMLElement;
     private identityLabelElement!: HTMLElement;
@@ -289,6 +301,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         this.guardianAuthBtn?.classList.toggle("fn__none", !this.capabilities.identityAccess);
         this.tabBtn?.classList.toggle("fn__none", !this.capabilities.tabOpen);
         this.floatingBtn?.classList.toggle("fn__none", !this.capabilities.floatOpen);
+        this.sessionFilesBtn?.classList.toggle("fn__none", !this.capabilities.menu);
         const minimize = this.parent.panelElement.querySelector<HTMLElement>('[data-type="min"]');
         minimize?.classList.toggle("fn__none", !this.capabilities.dockVisibility);
         this.parent.panelElement.classList.toggle("agent-panel-runtime--no-menu", !this.capabilities.menu);
@@ -431,6 +444,8 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
             '<div class="agent-chat__input-area">' +
             '<div class="agent-chat__composer-host"></div>' +
             '<div class="agent-chat__buttons">' +
+            '<button class="agent-chat__session-files b3-button b3-button--icon b3-button--cancel b3-tooltips b3-tooltips__n" data-type="session-files" aria-label="' + (L.upload || "Upload") + ' ' + (L.agentCatFile || "file") + '"><svg><use xlink:href="#iconUpload"></use></svg></button>' +
+            '<input class="agent-chat__session-files-input fn__none" type="file" multiple>' +
             '<span class="fn__flex-1"></span>' +
             '<span class="agent-chat__tokens fn__none b3-button b3-button--icon b3-button--cancel" aria-label="' + (L.tokenUsage || "Context Usage") + '">' +
             '<svg viewBox="0 0 24 24">' +
@@ -451,6 +466,8 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         this.composerHost = panel.querySelector(".agent-chat__composer-host") as HTMLElement;
         this.sendBtn = panel.querySelector(".agent-chat__send") as HTMLElement;
         this.stopBtn = panel.querySelector(".agent-chat__stop") as HTMLElement;
+        this.sessionFilesBtn = panel.querySelector(".agent-chat__session-files") as HTMLButtonElement;
+        this.sessionFilesInput = panel.querySelector(".agent-chat__session-files-input") as HTMLInputElement;
         this.guardianAuthBtn = panel.querySelector('.block__icon[data-type="guardian-auth"]') as HTMLElement;
         this.identityLabelElement = panel.querySelector('[data-type="magi-identity-label"]') as HTMLElement;
         this.newSessionBtn = panel.querySelector('.block__icon[data-type="new-session"]') as HTMLElement;
@@ -531,6 +548,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
                     }
                     await SessionStore.rename(id, title);
                 },
+                onError: (error) => this.reportSessionFileError(error),
             },
         });
         this.initialization = this.initSessions();
@@ -692,6 +710,8 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
             return;
         }
         this.agentDestroyed = true;
+        this.sessionFileOperationSerial++;
+        this.sessionFileOperationPending = false;
         this.abortController?.abort();
         this.abortController = null;
         this.magiConversationLoadController?.abort();
@@ -710,6 +730,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         this.settingDialogObserver = null;
         window.removeEventListener("focus", this.checkConfigChangedHandler);
         window.removeEventListener(MAGI_IDENTITY_SESSION_CHANGED_EVENT, this.handleMagiIdentitySessionChanged);
+        this.capabilities.menu?.close("agent-current-session-files");
         this.sessionPanel?.destroy();
         this.composer?.destroy();
         this.composer = null;
@@ -1094,6 +1115,21 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
             e.stopPropagation();
             this.sendMessage();
         });
+        this.sessionFilesBtn.addEventListener("click", (e: MouseEvent) => {
+            e.stopPropagation();
+            if (this.isStreaming || this.sessionFileOperationPending ||
+                this.sessionFilesBtn.getAttribute("aria-disabled") === "true") {
+                return;
+            }
+            void this.openSessionFilesMenu().catch((error) => this.reportSessionFileError(error));
+        });
+        this.sessionFilesInput.addEventListener("change", () => {
+            const files = Array.from(this.sessionFilesInput.files || []);
+            this.sessionFilesInput.value = "";
+            if (files.length > 0) {
+                void this.uploadSessionFiles(files).catch((error) => this.reportSessionFileError(error));
+            }
+        });
         this.stopBtn.addEventListener("click", (e: MouseEvent) => {
             e.stopPropagation();
             void this.stopGeneration();
@@ -1213,8 +1249,8 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         this.scrollToBottom(true);
     }
 
-    private async saveSession(commitTurnID?: string): Promise<AgentSession | null> {
-        if (this.conversationKind === "magi" || this.entries.length === 0) {
+    private async saveSession(commitTurnID?: string, allowEmpty = false): Promise<AgentSession | null> {
+        if (this.conversationKind === "magi" || (!allowEmpty && this.entries.length === 0)) {
             return null;
         }
         const sessionID = this.sessionId;
@@ -2047,6 +2083,186 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
             return session.entries as any as SessionEntry[];
         }
         return [];
+    }
+
+    /** 打开当前会话文件菜单；新增目录动作由 Kernel 对本次连接的同设备判断决定。 */
+    private async openSessionFilesMenu() {
+        const menu = this.capabilities.menu;
+        if (!menu) {
+            return;
+        }
+        const requestSessionID = this.sessionId;
+        const requestTargetKind = this.conversationKind;
+        const operationID = this.beginSessionFileOperation();
+        try {
+            let directoryCapabilities: AgentTaskDirectoryCapabilities | null = null;
+            let taskDirectory: TaskDirectoryBinding | null = null;
+            if (requestTargetKind === "native-agent") {
+                [directoryCapabilities, taskDirectory] = await Promise.all([
+                    SessionStore.getTaskDirectoryCapabilities(),
+                    SessionStore.listTaskDirectories(requestSessionID),
+                ]);
+            }
+            if (!this.isCurrentSessionFileOperation(operationID, requestSessionID, requestTargetKind) || this.isStreaming) {
+                return;
+            }
+            const items = this.buildCurrentSessionFileMenuItems(
+                requestSessionID,
+                requestTargetKind,
+                directoryCapabilities,
+                taskDirectory,
+            );
+            menu.popup("agent-current-session-files", this.sessionFilesBtn, items);
+        } finally {
+            this.finishSessionFileOperation(operationID);
+        }
+    }
+
+    /** 组合上传入口与当前会话已有目录 grant，新增动作只来自 Kernel 返回的 capability。 */
+    private buildCurrentSessionFileMenuItems(
+        sessionID: string,
+        targetKind: AgentPanelConversationKind,
+        directoryCapabilities: AgentTaskDirectoryCapabilities | null,
+        taskDirectory: TaskDirectoryBinding | null,
+    ) {
+        const menu = this.capabilities.menu;
+        const L = window.siyuan.languages;
+        const items: PanelMenuItem[] = [{
+            label: `${L.upload || "Upload"} ${L.agentCatFile || "file"}`,
+            icon: "iconUpload",
+            click: () => {
+                menu?.close("agent-current-session-files");
+                this.sessionFilesInput.click();
+            },
+        }];
+        if (targetKind !== "native-agent" || !directoryCapabilities) {
+            return items;
+        }
+        const actions = buildTaskDirectoryMenuActions({
+            id: sessionID,
+            title: this.sessionTitle,
+            createdAt: this.sessionCreatedAt,
+            updatedAt: Date.now(),
+            ...(taskDirectory ? {taskDirectory} : {}),
+        }, directoryCapabilities);
+        for (const action of actions) {
+            items.push({
+                label: action.label,
+                icon: action.icon,
+                warning: action.action === "unbind",
+                disabled: action.disabled,
+                click: () => {
+                    if (action.action === "summary") {
+                        return;
+                    }
+                    menu?.close("agent-current-session-files");
+                    void this.runCurrentSessionTaskDirectoryAction(sessionID, action)
+                        .catch((error) => this.reportSessionFileError(error));
+                },
+            });
+        }
+        return items;
+    }
+
+    /** 在目录选择和后端变更期间锁定文件入口，并复用当前会话的持久化与刷新语义。 */
+    private async runCurrentSessionTaskDirectoryAction(sessionID: string, action: TaskDirectoryMenuAction) {
+        const requestTargetKind = this.conversationKind;
+        const operationID = this.beginSessionFileOperation();
+        try {
+            await runAgentTaskDirectoryAction(sessionID, action, {
+                beforeBind: this.ensureCurrentSessionPersisted.bind(this, sessionID),
+                onChanged: this.sessionPanel.refresh,
+            });
+            if (!this.isCurrentSessionFileOperation(operationID, sessionID, requestTargetKind)) {
+                return;
+            }
+        } finally {
+            this.finishSessionFileOperation(operationID);
+        }
+    }
+
+    /** 新会话首次绑定目录前先创建空 session 文件，避免 capability 脱离会话生命周期。 */
+    private async ensureCurrentSessionPersisted(sessionID: string) {
+        if (this.conversationKind !== "native-agent" || sessionID !== this.sessionId) {
+            throw new Error("The active session changed before directory binding");
+        }
+        if (SessionStore.getRevision(sessionID) > 0) {
+            return;
+        }
+        await this.saveSession(undefined, true);
+        if (SessionStore.getRevision(sessionID) < 1) {
+            throw new Error("Failed to create the agent session before directory binding");
+        }
+    }
+
+    /** 上传完成后把附件 Markdown 链接追加到输入框，保留已有文本和块引用。 */
+    private async uploadSessionFiles(files: File[]) {
+        const requestSessionID = this.sessionId;
+        const requestTargetKind = this.conversationKind;
+        const operationID = this.beginSessionFileOperation();
+        try {
+            const result = await SessionStore.uploadFiles(files);
+            if (!this.isCurrentSessionFileOperation(operationID, requestSessionID, requestTargetKind)) {
+                return;
+            }
+            if (result.uploaded.length > 0) {
+                if (!this.composer) {
+                    throw new Error("Agent Composer is not available after file upload");
+                }
+                const prefix = this.hasComposerInput() ? "\n" : "";
+                this.composer.insertText(prefix + result.uploaded.map(formatAgentUploadedFileMarkdown).join("\n") + " ");
+                this.composer.focus();
+                this.updateSendButtonState();
+                this.capabilities.message?.show(`${window.siyuan.languages.upload}: ${result.uploaded.length}`, 2000);
+            }
+            if (result.failed.length > 0) {
+                const failureMessage = result.message ||
+                    `${result.failed.join(", ")} ${window.siyuan.languages.uploadError}`;
+                if (result.uploaded.length === 0) {
+                    throw new Error(failureMessage);
+                }
+                this.reportSessionFileError(new Error(failureMessage));
+            }
+        } finally {
+            this.finishSessionFileOperation(operationID);
+        }
+    }
+
+    private beginSessionFileOperation() {
+        const operationID = ++this.sessionFileOperationSerial;
+        this.sessionFileOperationPending = true;
+        this.updateSessionFileActionState();
+        return operationID;
+    }
+
+    private finishSessionFileOperation(operationID: number) {
+        if (operationID !== this.sessionFileOperationSerial) {
+            return;
+        }
+        this.sessionFileOperationPending = false;
+        this.updateSessionFileActionState();
+    }
+
+    private isCurrentSessionFileOperation(
+        operationID: number,
+        sessionID: string,
+        targetKind: AgentPanelConversationKind,
+    ) {
+        return !this.agentDestroyed && operationID === this.sessionFileOperationSerial &&
+            sessionID === this.sessionId && targetKind === this.conversationKind;
+    }
+
+    private updateSessionFileActionState() {
+        this.sessionFilesBtn?.setAttribute(
+            "aria-disabled",
+            this.isStreaming || this.sessionFileOperationPending ? "true" : "false",
+        );
+    }
+
+    private reportSessionFileError(error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("[AgentChat] session file operation failed", error);
+        this.capabilities.message?.show(message, 5000);
     }
 
     private async createSession() {
@@ -4547,11 +4763,15 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
 
     private setStreaming(streaming: boolean) {
         this.isStreaming = streaming;
+        if (streaming) {
+            this.capabilities.menu?.close("agent-current-session-files");
+        }
         applyAgentPanelInteractionLock({
             targetSelect: this.targetSelect,
-            conversationButtons: [this.newSessionBtn, this.sessionMenuBtn],
+            conversationButtons: [this.newSessionBtn, this.sessionMenuBtn, this.sessionFilesBtn],
             closeSessionPanel: this.sessionPanel?.close,
         }, streaming);
+        this.updateSessionFileActionState();
         this.sendBtn.classList.toggle("fn__none", streaming);
         this.stopBtn.classList.toggle("fn__none", !streaming);
         this.updateSendButtonState();

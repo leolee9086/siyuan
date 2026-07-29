@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -41,13 +42,54 @@ func TestAgentTaskDirectoryEndpointsDoNotTreatRemoteTransportAsAuthorization(t *
 			context, recorder := newAgentTaskDirectoryTestContext("192.0.2.10:6806", "localhost:6806")
 			test.handler(context)
 			if test.name == "bind" {
-				if recorder.Code != http.StatusForbidden || !strings.Contains(recorder.Body.String(), "guardian") {
-					t.Fatalf("remote bind without guardian must be rejected by authorization: status=%d body=%s", recorder.Code, recorder.Body.String())
+				if recorder.Code != http.StatusForbidden || !strings.Contains(recorder.Body.String(), "same device") {
+					t.Fatalf("remote bind must be rejected by the device boundary: status=%d body=%s", recorder.Code, recorder.Body.String())
 				}
 				return
 			}
 			if recorder.Code != http.StatusBadRequest || strings.Contains(recorder.Body.String(), "local device") {
 				t.Fatalf("remote unbind should fail for missing binding, not transport: status=%d body=%s", recorder.Code, recorder.Body.String())
+			}
+		})
+	}
+}
+
+func TestAgentKernelDeviceRequestUsesConnectionSourceOnly(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	originalDeviceIPs := getAgentKernelDeviceIPs
+	getAgentKernelDeviceIPs = func() []net.IP {
+		return []net.IP{net.ParseIP("192.168.50.8"), net.ParseIP("fd00::8")}
+	}
+	t.Cleanup(func() { getAgentKernelDeviceIPs = originalDeviceIPs })
+
+	for _, test := range []struct {
+		name       string
+		remoteAddr string
+		forwarded  bool
+		want       bool
+	}{
+		{name: "ipv4 loopback", remoteAddr: "127.0.0.1:6806", want: true},
+		{name: "ipv6 loopback", remoteAddr: "[::1]:6806", want: true},
+		{name: "kernel ipv4", remoteAddr: "192.168.50.8:6806", want: true},
+		{name: "kernel ipv6", remoteAddr: "[fd00::8]:6806", want: true},
+		{name: "remote", remoteAddr: "203.0.113.10:6806", want: false},
+		{name: "remote with loopback metadata", remoteAddr: "203.0.113.10:6806", forwarded: true, want: false},
+		{name: "loopback with forwarded metadata", remoteAddr: "127.0.0.1:6806", forwarded: true, want: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodPost, "http://localhost/api/ai/agent/taskDirectoryCapabilities", nil)
+			request.RemoteAddr = test.remoteAddr
+			request.Header.Set("Origin", "http://localhost:6806")
+			request.Header.Set("X-Forwarded-Host", "localhost:6806")
+			if test.forwarded {
+				request.Header.Set("X-Forwarded-For", "203.0.113.10")
+			}
+			context, _ := gin.CreateTestContext(recorder)
+			context.Request = request
+
+			if got := isAgentKernelDeviceRequest(context); got != test.want {
+				t.Fatalf("unexpected device result: remote=%s got=%t want=%t", test.remoteAddr, got, test.want)
 			}
 		})
 	}
@@ -94,7 +136,7 @@ func TestAgentTaskDirectoryBindingRequiresGuardianOnLocalTransport(t *testing.T)
 	}
 }
 
-func TestAgentTaskDirectoryRemoteGuardianCanBindMultipleDirectories(t *testing.T) {
+func TestAgentTaskDirectoryRemoteGuardianManagesExistingDirectories(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	baseDir := t.TempDir()
 	originalWorkspaceDir, originalDataDir, originalConfDir, originalStore, originalModelConf := util.WorkspaceDir, util.DataDir, util.ConfDir, globalMagiIdentityStore, model.Conf
@@ -123,14 +165,14 @@ func TestAgentTaskDirectoryRemoteGuardianCanBindMultipleDirectories(t *testing.T
 	globalMagiIdentityStore = &magiIdentityStore{}
 	model.Conf = &model.AppConf{Api: &conf.API{Token: "remote-test-workspace-token"}}
 	token := issueTestArmorToken(t, "remote-owner", magiRouteClassGuardian, magiRequestChannelMainUI)
-	callJSON := func(handler gin.HandlerFunc, body []byte, authToken string, secure bool) *httptest.ResponseRecorder {
+	callJSON := func(handler gin.HandlerFunc, body []byte, authToken string, secure bool, remoteAddr string) *httptest.ResponseRecorder {
 		recorder := httptest.NewRecorder()
 		scheme := "https"
 		if !secure {
 			scheme = "http"
 		}
 		request := httptest.NewRequest(http.MethodPost, scheme+"://remote.example/api/ai/agent/bindTaskDirectory", strings.NewReader(string(body)))
-		request.RemoteAddr = "203.0.113.10:6806"
+		request.RemoteAddr = remoteAddr
 		request.Header.Set(agentOwnerTokenHeader, authToken)
 		context, _ := gin.CreateTestContext(recorder)
 		context.Request = request
@@ -139,19 +181,39 @@ func TestAgentTaskDirectoryRemoteGuardianCanBindMultipleDirectories(t *testing.T
 	}
 	call := func(handler gin.HandlerFunc, payload map[string]string, authToken string) *httptest.ResponseRecorder {
 		body, _ := json.Marshal(payload)
-		return callJSON(handler, body, authToken, true)
+		return callJSON(handler, body, authToken, true, "203.0.113.10:6806")
 	}
-	mainResult := call(bindAgentTaskDirectory, map[string]string{"sessionID": sessionID, "path": mainDir}, token)
+	callLocal := func(handler gin.HandlerFunc, payload map[string]string, authToken string) *httptest.ResponseRecorder {
+		body, _ := json.Marshal(payload)
+		return callJSON(handler, body, authToken, false, "127.0.0.1:6806")
+	}
+	mainResult := callLocal(bindAgentTaskDirectory, map[string]string{"sessionID": sessionID, "path": mainDir}, token)
 	if mainResult.Code != http.StatusOK || strings.Contains(mainResult.Body.String(), mainDir) {
-		t.Fatalf("remote guardian main bind failed or leaked path: status=%d body=%s", mainResult.Code, mainResult.Body.String())
+		t.Fatalf("local guardian main bind failed or leaked path: status=%d body=%s", mainResult.Code, mainResult.Body.String())
 	}
-	addResult := call(addAgentTaskDirectory, map[string]string{"sessionID": sessionID, "path": readDir, "permission": "read-only"}, token)
+	addResult := callLocal(addAgentTaskDirectory, map[string]string{"sessionID": sessionID, "path": readDir, "permission": "read-only"}, token)
 	if addResult.Code != http.StatusOK || strings.Contains(addResult.Body.String(), readDir) {
-		t.Fatalf("remote guardian additional bind failed or leaked path: status=%d body=%s", addResult.Code, addResult.Body.String())
+		t.Fatalf("local guardian additional bind failed or leaked path: status=%d body=%s", addResult.Code, addResult.Body.String())
 	}
 	binding, err := agent.GetTaskDirectoryBinding(sessionID)
 	if err != nil || binding == nil || binding.Main == nil || len(binding.Directories) != 1 {
-		t.Fatalf("remote binds not persisted: binding=%+v err=%v", binding, err)
+		t.Fatalf("local binds not persisted: binding=%+v err=%v", binding, err)
+	}
+	remoteBindResult := call(bindAgentTaskDirectory, map[string]string{"sessionID": sessionID, "path": mainDir}, token)
+	if remoteBindResult.Code != http.StatusForbidden || !strings.Contains(remoteBindResult.Body.String(), "same device") {
+		t.Fatalf("remote guardian must not replace the main binding: status=%d body=%s", remoteBindResult.Code, remoteBindResult.Body.String())
+	}
+	remoteAddResult := call(addAgentTaskDirectory, map[string]string{"sessionID": sessionID, "path": readDir, "permission": "read-only"}, token)
+	if remoteAddResult.Code != http.StatusForbidden || !strings.Contains(remoteAddResult.Body.String(), "same device") {
+		t.Fatalf("remote guardian must not add a binding: status=%d body=%s", remoteAddResult.Code, remoteAddResult.Body.String())
+	}
+	localCapabilities := callLocal(getAgentTaskDirectoryCapabilities, map[string]string{}, token)
+	if localCapabilities.Code != http.StatusOK || !strings.Contains(localCapabilities.Body.String(), `"canBindTaskDirectories":true`) {
+		t.Fatalf("local guardian should receive bind capability: status=%d body=%s", localCapabilities.Code, localCapabilities.Body.String())
+	}
+	remoteCapabilities := call(getAgentTaskDirectoryCapabilities, map[string]string{}, token)
+	if remoteCapabilities.Code != http.StatusOK || !strings.Contains(remoteCapabilities.Body.String(), `"canBindTaskDirectories":false`) {
+		t.Fatalf("remote guardian should not receive bind capability: status=%d body=%s", remoteCapabilities.Code, remoteCapabilities.Body.String())
 	}
 	listResult := call(listAgentTaskDirectories, map[string]string{"id": sessionID}, token)
 	if listResult.Code != http.StatusOK || strings.Contains(listResult.Body.String(), mainDir) || strings.Contains(listResult.Body.String(), readDir) {
@@ -176,7 +238,7 @@ func TestAgentTaskDirectoryRemoteGuardianCanBindMultipleDirectories(t *testing.T
 		Models:  []*conf.Model{{Name: "test-model", Enabled: true}},
 	}}}
 	chatPayload, _ := json.Marshal(map[string]interface{}{"sessionID": sessionID, "message": "protected task"})
-	if result := callJSON(agentChat, chatPayload, wrongToken, true); result.Code != http.StatusForbidden {
+	if result := callJSON(agentChat, chatPayload, wrongToken, true, "203.0.113.10:6806"); result.Code != http.StatusForbidden {
 		t.Fatalf("cross-owner chat must be rejected before model execution: status=%d body=%s", result.Code, result.Body.String())
 	}
 	ownerSaveResult := call(saveSession, map[string]string{"id": sessionID, "title": "remote-updated"}, token)
@@ -210,7 +272,7 @@ func TestAgentTaskDirectoryRemoteGuardianCanBindMultipleDirectories(t *testing.T
 		t.Fatalf("expired guardian token must be rejected: status=%d body=%s", expiredResult.Code, expiredResult.Body.String())
 	}
 	insecureBody, _ := json.Marshal(map[string]string{"id": sessionID})
-	insecureRecorder := callJSON(listAgentTaskDirectories, insecureBody, token, false)
+	insecureRecorder := callJSON(listAgentTaskDirectories, insecureBody, token, false, "203.0.113.10:6806")
 	if insecureRecorder.Code != http.StatusForbidden || !strings.Contains(insecureRecorder.Body.String(), "HTTPS") {
 		t.Fatalf("remote HTTP owner token must be rejected: status=%d body=%s", insecureRecorder.Code, insecureRecorder.Body.String())
 	}
@@ -222,24 +284,24 @@ func TestAgentTaskDirectoryRemoteGuardianCanBindMultipleDirectories(t *testing.T
 		return body
 	}
 	confirmPayload := controlPayload(map[string]interface{}{"sessionID": sessionID, "confirmID": "confirm-1", "approved": true, "always": false})
-	if result := callJSON(agentChatConfirm, confirmPayload, token, true); result.Code != http.StatusConflict || !strings.Contains(result.Body.String(), "confirmation expired") {
+	if result := callJSON(agentChatConfirm, confirmPayload, token, true, "203.0.113.10:6806"); result.Code != http.StatusConflict || !strings.Contains(result.Body.String(), "confirmation expired") {
 		t.Fatalf("owner confirm should pass authorization and report the missing waiter: status=%d body=%s", result.Code, result.Body.String())
 	}
-	if result := callJSON(agentChatConfirm, confirmPayload, wrongToken, true); result.Code != http.StatusForbidden {
+	if result := callJSON(agentChatConfirm, confirmPayload, wrongToken, true, "203.0.113.10:6806"); result.Code != http.StatusForbidden {
 		t.Fatalf("cross-owner confirm must be rejected: status=%d body=%s", result.Code, result.Body.String())
 	}
 	questionPayload := controlPayload(map[string]interface{}{"sessionID": sessionID, "questionID": "question-1", "answers": []string{"yes"}})
-	if result := callJSON(agentChatQuestion, questionPayload, token, true); result.Code != http.StatusConflict || !strings.Contains(result.Body.String(), "question expired") {
+	if result := callJSON(agentChatQuestion, questionPayload, token, true, "203.0.113.10:6806"); result.Code != http.StatusConflict || !strings.Contains(result.Body.String(), "question expired") {
 		t.Fatalf("owner question should pass authorization and report the missing waiter: status=%d body=%s", result.Code, result.Body.String())
 	}
-	if result := callJSON(agentChatQuestion, questionPayload, wrongToken, true); result.Code != http.StatusForbidden {
+	if result := callJSON(agentChatQuestion, questionPayload, wrongToken, true, "203.0.113.10:6806"); result.Code != http.StatusForbidden {
 		t.Fatalf("cross-owner question answer must be rejected: status=%d body=%s", result.Code, result.Body.String())
 	}
 	frontendPayload := controlPayload(map[string]interface{}{"sessionID": sessionID, "callID": "call-1", "result": "ok", "isError": false})
-	if result := callJSON(agentChatFrontendResult, frontendPayload, token, true); result.Code != http.StatusConflict || !strings.Contains(result.Body.String(), "frontend tool call expired") {
+	if result := callJSON(agentChatFrontendResult, frontendPayload, token, true, "203.0.113.10:6806"); result.Code != http.StatusConflict || !strings.Contains(result.Body.String(), "frontend tool call expired") {
 		t.Fatalf("owner frontend result should pass authorization and report the missing waiter: status=%d body=%s", result.Code, result.Body.String())
 	}
-	if result := callJSON(agentChatFrontendResult, frontendPayload, wrongToken, true); result.Code != http.StatusForbidden {
+	if result := callJSON(agentChatFrontendResult, frontendPayload, wrongToken, true, "203.0.113.10:6806"); result.Code != http.StatusForbidden {
 		t.Fatalf("cross-owner frontend result must be rejected: status=%d body=%s", result.Code, result.Body.String())
 	}
 	sessionsMu.Lock()

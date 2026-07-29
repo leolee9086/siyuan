@@ -589,6 +589,8 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/ai/agent/lsSessions", model.CheckAuth, model.CheckAdminRole, lsSessions)
 	ginServer.Handle("POST", "/api/ai/agent/getSession", model.CheckAuth, model.CheckAdminRole, getSession)
 	ginServer.Handle("POST", "/api/ai/agent/lsTaskDirectories", model.CheckAuth, model.CheckAdminRole, listAgentTaskDirectories)
+	ginServer.Handle("POST", "/api/ai/agent/taskDirectoryCapabilities", model.CheckAuth, model.CheckAdminRole, getAgentTaskDirectoryCapabilities)
+	ginServer.Handle("POST", "/api/ai/agent/uploadFiles", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, uploadAgentFiles)
 	ginServer.Handle("POST", "/api/ai/agent/saveSession", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, saveSession)
 	ginServer.Handle("POST", "/api/ai/agent/removeSession", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, removeSession)
 	ginServer.Handle("POST", "/api/ai/agent/bindTaskDirectory", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, bindAgentTaskDirectory)

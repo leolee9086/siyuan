@@ -415,16 +415,14 @@ export const fetchSyncPost = async (
     await acquire();
     let released = false;
     try {
-        const init = await createPostRequestInit({url, data, headers, signal: undefined});
-        const res = await fetch(url, init);
-        const jsonResult: unknown = await res.json();
-        if (!isWebSocketData(jsonResult)) {
+        const {responseData} = await requestPostResponse({url, data, headers, signal: undefined});
+        if (!isWebSocketData(responseData)) {
             throw new Error(`fetchSyncPost: 响应格式不符合预期 (url: ${url})`);
         }
         release(); 
         released = true;
-        await processMessage(jsonResult, {fetchPost});
-        return jsonResult;
+        await processMessage(responseData, {fetchPost});
+        return responseData;
     } catch (e) {
         if (!released) {
             release();

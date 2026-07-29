@@ -1,4 +1,4 @@
-import {Editor} from "@tiptap/core";
+import {Editor, type JSONContent} from "@tiptap/core";
 import Document from "@tiptap/extension-document";
 import Paragraph from "@tiptap/extension-paragraph";
 import Text from "@tiptap/extension-text";
@@ -377,6 +377,21 @@ export function mountTiptapComposer(host: HTMLElement, onSend: () => void, onCha
                 content: line ? [{type: "text", text: line}] : [],
             }));
             editor.commands.setContent({type: "doc", content});
+        },
+        insertText: function (text: string) {
+            if (text) {
+                const lines = text.split("\n");
+                const content: JSONContent[] = [];
+                for (let index = 0; index < lines.length; index++) {
+                    if (index > 0) {
+                        content.push({type: "hardBreak"});
+                    }
+                    if (lines[index]) {
+                        content.push({type: "text", text: lines[index]});
+                    }
+                }
+                editor.chain().focus().insertContent(content).run();
+            }
         },
         pushHistory: (text: string) => history.push(text),
         getHistory: () => history.get(),

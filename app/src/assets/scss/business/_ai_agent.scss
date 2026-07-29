@@ -37,6 +37,7 @@
 
 .agent-panel-runtime--no-menu {
   .agent-chat__reasoning-effort,
+  .agent-chat__session-files,
   .agent-session-more {
     display: none;
   }
@@ -900,6 +901,10 @@
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+.agent-chat__session-files {
+  flex: 0 0 28px;
 }
 
 // 思考强度：iconBrain 图标嵌入原生 select 左侧，与旁边的模型 select 外观一致。

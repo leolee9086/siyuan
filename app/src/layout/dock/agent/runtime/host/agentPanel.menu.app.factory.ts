@@ -14,6 +14,7 @@ const popupAppPanelMenu = (name: string, anchor: HTMLElement, items: PanelMenuIt
             icon: item.icon,
             current: item.current,
             warning: item.warning,
+            disabled: item.disabled,
             click: item.click,
         }).element);
     }

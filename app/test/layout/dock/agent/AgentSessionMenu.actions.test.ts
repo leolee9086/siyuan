@@ -8,7 +8,7 @@ function session(taskDirectory?: SessionIndexItem["taskDirectory"]): SessionInde
 }
 
 describe("Agent session task directory menu", () => {
-    it("always exposes the main directory binding command without a frontend authorization gate", () => {
+    it("exposes the main directory binding command when the Kernel grants the capability", () => {
         expect(buildTaskDirectoryMenuActions(session())).toEqual([{
             action: "bind-main",
             icon: "iconWorkspace",
@@ -21,7 +21,13 @@ describe("Agent session task directory menu", () => {
             main: {id: "main", name: "main", permission: "read-write", external: true, boundAt: 1},
         }));
 
-        expect(actions.map((action) => action.action)).toEqual(["bind-main", "add", "add", "add", "unbind"]);
+        expect(actions.map((action) => action.action)).toEqual(["summary", "bind-main", "add", "add", "add", "unbind"]);
+        expect(actions[0]).toEqual({
+            action: "summary",
+            icon: "iconWorkspace",
+            label: "主任务目录：main (read-write)",
+            disabled: true,
+        });
         expect(actions.filter((action) => action.action === "add").map((action) => action.permission)).toEqual([
             "read-only",
             "read-write",
@@ -42,5 +48,21 @@ describe("Agent session task directory menu", () => {
             directoryID: "docs",
         });
         expect(actions.some((action) => action.directoryID === "main")).toBe(false);
+    });
+
+    it("hides authorization-expanding actions remotely while preserving summaries and removal", () => {
+        const actions = buildTaskDirectoryMenuActions(session({
+            main: {id: "main", name: "main", permission: "read-write", external: true, boundAt: 1},
+            directories: [{id: "docs", name: "docs", permission: "read-only", external: true, boundAt: 2}],
+        }), {canBindTaskDirectories: false});
+
+        expect(actions.map((action) => action.action)).toEqual(["summary", "unbind"]);
+        expect(actions[0]).toEqual(expect.objectContaining({disabled: true}));
+        expect(actions[1]).toEqual(expect.objectContaining({directoryID: "docs"}));
+        expect(actions.some((action) => action.action === "bind-main" || action.action === "add")).toBe(false);
+    });
+
+    it("shows no directory action remotely before a session has a binding", () => {
+        expect(buildTaskDirectoryMenuActions(session(), {canBindTaskDirectories: false})).toEqual([]);
     });
 });

@@ -214,6 +214,15 @@ func InsertLocalAssets(id string, assetAbsPaths []string, isUpload bool) (succMa
 }
 
 func Upload(c *gin.Context) {
+	upload(c, "")
+}
+
+// UploadToNotebook 将 multipart 文件固定写入指定笔记本的附件目录。
+func UploadToNotebook(c *gin.Context, boxID string) {
+	upload(c, strings.TrimSpace(boxID))
+}
+
+func upload(c *gin.Context, targetBoxID string) {
 	ret := gulu.Ret.NewResult()
 	defer c.JSON(200, ret)
 
@@ -226,7 +235,10 @@ func Upload(c *gin.Context) {
 	}
 	assetsDirPath := filepath.Join(util.DataDir, "assets")
 	var uploadBoxID string // 记录上传目标 boxID，供 writeAssetFile 判断是否需加密
-	if nil != form.Value["id"] {
+	if targetBoxID != "" {
+		uploadBoxID = targetBoxID
+		assetsDirPath = filepath.Join(util.DataDir, targetBoxID, "assets")
+	} else if nil != form.Value["id"] {
 		id := form.Value["id"][0]
 		bt := treenode.GetBlockTree(id)
 		if nil == bt {
@@ -249,7 +261,7 @@ func Upload(c *gin.Context) {
 	}
 
 	relAssetsDirPath := "assets"
-	if nil != form.Value["assetsDirPath"] {
+	if targetBoxID == "" && nil != form.Value["assetsDirPath"] {
 		relAssetsDirPath = form.Value["assetsDirPath"][0]
 		assetsDirPath = filepath.Join(util.DataDir, relAssetsDirPath)
 		if !util.IsAbsPathInWorkspace(assetsDirPath) {
@@ -323,7 +335,10 @@ func Upload(c *gin.Context) {
 			hash = "random_1_" + gulu.Rand.String(12)
 		}
 
-		existAssetPath := GetAssetPathByHash(hash, uploadBoxID)
+		existAssetPath := ""
+		if targetBoxID == "" {
+			existAssetPath = GetAssetPathByHash(hash, uploadBoxID)
+		}
 		if "" != existAssetPath {
 			originalName := util.RemoveID(filepath.Base(existAssetPath))
 			if strings.ToLower(fName) != strings.ToLower(originalName) {
@@ -457,11 +472,11 @@ func Upload(c *gin.Context) {
 			}
 
 			p := strings.TrimPrefix(path.Join(relAssetsDirPath, fName), "/")
-			if uploadBoxID != "" && IsEncryptedBox(uploadBoxID) {
+			if uploadBoxID != "" && (targetBoxID != "" || IsEncryptedBox(uploadBoxID)) {
 				p += "?box=" + uploadBoxID
 			}
 			succMap[baseName] = p
-			if uploadBoxID == "" || !IsEncryptedBox(uploadBoxID) {
+			if targetBoxID == "" && (uploadBoxID == "" || !IsEncryptedBox(uploadBoxID)) {
 				cache.SetAssetHash(hash, p) // 加密笔记本不写全局 cache
 			}
 		}

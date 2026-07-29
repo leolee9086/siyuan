@@ -8,15 +8,28 @@ import type {TaskDirectoryMenuAction} from "../SessionStore.types";
  * 用户点击“更多”时必须同步生成完整菜单项，异步化会造成空菜单闪烁并破坏当前菜单生命周期。
  * @同步豁免: UI构建
  */
-export function buildTaskDirectoryMenuActions(session: SessionIndexItem) {
+export function buildTaskDirectoryMenuActions(session: SessionIndexItem, options: {canBindTaskDirectories?: boolean} = {}) {
     const binding = session.taskDirectory;
-    const actions: TaskDirectoryMenuAction[] = [{
-        action: "bind-main",
-        icon: "iconWorkspace",
-        label: binding?.main ? "更换主任务目录" : "绑定主任务目录",
-    }];
-    // 只有主目录建立后，附加目录才有明确的任务根和权限上下文。
+    const actions: TaskDirectoryMenuAction[] = [];
+    const canBindTaskDirectories = options.canBindTaskDirectories !== false;
+    // 已有主目录摘要对本地和远程端都可见，不代表扩大或新增授权。
     if (binding?.main) {
+        actions.push({
+            action: "summary",
+            icon: "iconWorkspace",
+            label: `主任务目录：${binding.main.name} (${binding.main.permission})`,
+            disabled: true,
+        });
+    }
+    if (canBindTaskDirectories) {
+        actions.push({
+            action: "bind-main",
+            icon: "iconWorkspace",
+            label: binding?.main ? "更换主任务目录" : "绑定主任务目录",
+        });
+    }
+    // 只有主目录建立后，附加目录才有明确的任务根和权限上下文。
+    if (binding?.main && canBindTaskDirectories) {
         actions.push(
             {action: "add", icon: "iconPreview", label: "添加只读目录", permission: "read-only"},
             {action: "add", icon: "iconEdit", label: "添加读写目录", permission: "read-write"},

@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -38,6 +39,9 @@ import (
 )
 
 const agentOwnerTokenHeader = "X-SiYuan-Agent-Owner-Token"
+
+var resolveAgentUploadNotebook = model.ResolveActiveWorkspaceAIMainNotebook
+var getAgentKernelDeviceIPs = agentKernelDeviceIPs
 
 type agentOwnerAuthorization struct {
 	IdentityID string
@@ -88,7 +92,65 @@ func isAgentOwnerTransportSecure(c *gin.Context) bool {
 	if c.Request.TLS != nil {
 		return true
 	}
-	return util.IsLocalHost(c.Request.RemoteAddr) && util.IsLocalHost(c.Request.Host)
+	return isAgentKernelDeviceRequest(c)
+}
+
+// isAgentKernelDeviceRequest 只使用真实连接来源判断 WebUI 是否与 Kernel 位于同一设备。
+func isAgentKernelDeviceRequest(c *gin.Context) bool {
+	if c == nil || c.Request == nil {
+		return false
+	}
+	remoteIP := parseAgentRemoteIP(c.Request.RemoteAddr)
+	if remoteIP == nil {
+		return false
+	}
+	if remoteIP.IsLoopback() {
+		return true
+	}
+	for _, localIP := range getAgentKernelDeviceIPs() {
+		if localIP != nil && remoteIP.Equal(localIP) {
+			return true
+		}
+	}
+	return false
+}
+
+func parseAgentRemoteIP(remoteAddr string) net.IP {
+	remoteAddr = strings.TrimSpace(remoteAddr)
+	if remoteAddr == "" {
+		return nil
+	}
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		host = remoteAddr
+	}
+	if zoneIndex := strings.LastIndex(host, "%"); zoneIndex >= 0 {
+		host = host[:zoneIndex]
+	}
+	return net.ParseIP(strings.Trim(host, "[]"))
+}
+
+func agentKernelDeviceIPs() []net.IP {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return nil
+	}
+	ret := []net.IP{}
+	for _, networkInterface := range interfaces {
+		if networkInterface.Flags&net.FlagUp == 0 {
+			continue
+		}
+		addresses, addrErr := networkInterface.Addrs()
+		if addrErr != nil {
+			continue
+		}
+		for _, address := range addresses {
+			if ip, _, parseErr := net.ParseCIDR(address.String()); parseErr == nil {
+				ret = append(ret, ip)
+			}
+		}
+	}
+	return ret
 }
 
 func requireAgentSessionAccess(c *gin.Context, sessionID string) (*agentOwnerAuthorization, *agent.TaskDirectoryBinding, bool) {
@@ -566,6 +628,32 @@ func listAgentTaskDirectories(c *gin.Context) {
 	c.JSON(http.StatusOK, ret)
 }
 
+func getAgentTaskDirectoryCapabilities(c *gin.Context) {
+	ownerAuth, authErr := optionalAgentOwnerAuthorization(c)
+	if authErr != nil {
+		writeMagiSourceAuthError(c, authErr)
+		return
+	}
+	ret := gulu.Ret.NewResult()
+	ret.Data = map[string]bool{"canBindTaskDirectories": ownerAuth != nil && isAgentKernelDeviceRequest(c)}
+	c.JSON(http.StatusOK, ret)
+}
+
+func uploadAgentFiles(c *gin.Context) {
+	notebook, _, err := resolveAgentUploadNotebook()
+	if err != nil || notebook == nil || strings.TrimSpace(notebook.ID) == "" {
+		ret := gulu.Ret.NewResult()
+		ret.Code = -1
+		ret.Msg = "AI main notebook is not ready"
+		if err != nil {
+			ret.Msg = err.Error()
+		}
+		c.JSON(http.StatusOK, ret)
+		return
+	}
+	model.UploadToNotebook(c, notebook.ID)
+}
+
 func sanitizeSessionForResponse(session map[string]interface{}) map[string]interface{} {
 	if session == nil {
 		return nil
@@ -891,6 +979,10 @@ func bindAgentTaskDirectoryGrant(c *gin.Context, main bool) {
 	var req agentTaskDirectoryReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "invalid request"})
+		return
+	}
+	if !isAgentKernelDeviceRequest(c) {
+		c.JSON(http.StatusForbidden, gin.H{"code": -1, "msg": "new task-directory bindings require WebUI and Kernel on the same device"})
 		return
 	}
 	ownerAuth, _, ok := requireAgentSessionAccess(c, req.SessionID)

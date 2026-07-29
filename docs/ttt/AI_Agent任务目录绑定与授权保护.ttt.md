@@ -1,6 +1,6 @@
 # AI Agent 会话外部任务目录绑定与所有者授权保护执行跟踪 (TikTocTak)
 
-> **目标**: 允许远程设备在提供有效 guardian 身份授权后访问 s-forge 任务 Agent；每个 Agent 会话支持一个主任务目录，以及多个只读、读写或命令权限目录，并确保只有对应 owner 才能绑定、查看和执行目录操作。
+> **目标**: 允许远程设备在提供有效 guardian 身份授权后访问已有绑定的 S-Forge 任务 Agent；每个 Agent 会话支持一个主任务目录，以及多个只读、读写或命令权限目录。新增、更换和追加目录绑定只允许与 Kernel 同设备的 WebUI 发起，并继续要求对应 guardian owner 授权；远程 HTTPS owner 可以使用和管理已有授权，但不能扩张目录授权集合。
 >
 > **范围**: 后端 capability 存储与鉴权、task-directory 工具、Agent 会话访问控制、SSE 授权过期处理、前端目录绑定入口，以及本任务涉及的测试和编译修复。
 
@@ -22,7 +22,9 @@ GUI (网页端/Electron)
   -> task_directory_* 工具
 ```
 
-外部目录会话必须同时满足本地设备或 HTTPS 传输、MAGI guardian 身份、`magi-main-ui` 通道和绑定时记录的 `OwnerIdentityID`。绑定 capability 必须存放在工作空间内的内核私有区域，不能写入 `session.json`、`index.json`，也不能依赖前端隐藏入口形成安全边界。
+外部目录会话的访问必须同时满足同设备连接或 HTTPS 传输、MAGI guardian 身份、`magi-main-ui` 通道和绑定时记录的 `OwnerIdentityID`。新增、更换主目录和追加附加目录还必须满足真实连接源来自 Kernel 同设备；解除已有绑定不扩张授权集合，允许远程 HTTPS owner 执行。绑定 capability 必须存放在工作空间内的内核私有区域，不能写入 `session.json`、`index.json`，也不能依赖前端隐藏入口形成安全边界。
+
+同设备判断只读取服务端观察到的真实连接源地址及 Kernel 主机网络接口，不信任 `Origin`、`Host`、`X-Forwarded-For` 或 `X-Forwarded-Host`。前端 `canBindTaskDirectories` 只投影当前连接是否满足新增绑定的设备条件；实际变更仍由服务端逐请求校验 guardian owner、channel、route class 和会话归属。
 
 ## 角色与可达性契约
 
@@ -41,8 +43,8 @@ Avatar 的真实含义是协议角色而不是独立运行时：所有不是 MAG
 
 ## 当前同步状态 (2026-07-19)
 
-- **总体状态**: workspace 自持、多目录 capability、远程 guardian 绑定、目录工具权限和后端 owner 矩阵已落地；真实 Electron 已完成登录、菜单绑定、脱敏查询、workspace store 校验、解除与清理闭环；手机/Web 端到端交互仍需用户验收，尚不能归档整个任务。
-- **当前残余**: 需要在真实远程设备上完成 guardian 登录、会话发现、发任务和目录增删查改验收；完整 `go test ./api` 的 MAGI runtime/vector 测试，以及 `AgentChat.ts`/`SessionStore.ts` 的仓库级前端 lint 仍有既有失败。Electron 菜单裁剪、前端授权门禁和会话面板代码规模问题已修复，不再列为待验收项。
+- **总体状态**: workspace 自持、多目录 capability、同设备新增绑定、远程 guardian 使用已有绑定、目录工具权限和后端 owner 矩阵已落地；真实 Electron 已完成登录、菜单绑定、脱敏查询、workspace store 校验、解除与清理闭环；手机/Web 端到端交互仍需用户验收，尚不能归档整个任务。
+- **当前残余**: 完成同设备连接源能力矩阵、远程 HTTPS owner 使用和解除已有绑定、伪造转发头无效的自动回归；再在真实远程设备上完成 guardian 登录、会话发现、发任务和已有目录读写验收。远程客户端不承担新增、更换或追加目录授权的验收。
 - **工作区约束**: 当前未提交修改全部视为本任务内容，不回退、不覆盖无关改动。
 - **验证基线**: `go test ./agent`、`go test ./mcp/tools` 和目录绑定相关 API 测试已通过；完整 API 测试已完成编译，但仍有 MAGI runtime/vector 运行失败。
 
@@ -75,12 +77,12 @@ Avatar 的真实含义是协议角色而不是独立运行时：所有不是 MAG
     - **行动**: 直接采用 version 2 workspace 私有 store，不读取旧用户配置路径；每次 bind、list、get、chat、工具执行前重新检查目录存在性、工作空间边界、符号链接和 `OwnerIdentityID`；新 store 损坏、路径逸出或身份不匹配时默认拒绝。
     - **验收结果**: malformed store、目录失效、符号链接、owner 不匹配和过期 token 默认拒绝；删除会话会清理主目录和全部附加 grant；不存在旧路径 fallback。
   - [ ] **Phase 5.3 全客户端 Agent 入口与授权判断解耦 (P1)**
-    - **当前状态**: 已完成入口改造、workspace API token 透传、MAGI 身份会话变化后的列表刷新；所有客户端常显目录命令，会话“更多”由顶层标准菜单承载。真实 Electron 已验证 Agent 钥匙入口、guardian `magi-main-ui` 登录、菜单绑定、绑定后菜单刷新和解除流程；仅剩手机/Web 远程操作验收。
-    - **行动**: 所有支持 Agent 的客户端都允许发现会话和任务目录操作入口；前端不以 Electron、移动端或菜单隐藏判断授权，绑定结果、错误和可用能力以后端鉴权响应为准。Electron 只提供可选的原生目录选择器，非 Electron 使用路径输入或后端目录管理交互。普通 Agent（含 Avatar）均可在获得 capability 后读写目录；MAGI 不暴露 task-directory capability。Agent chat、SSE、confirm、question 和工具结果回传在手机端与桌面端使用同一 owner headers 链路。
-    - **验收标准**: 后端远程 HTTPS guardian 绑定主目录和附加目录测试已通过；仍需在手机/Web 客户端验证加载、查看、发任务和目录操作，且无 owner authorization 时由后端拒绝。
+  - **当前状态**: 已完成入口改造、workspace API token 透传、MAGI 身份会话变化后的列表刷新；新增绑定动作由 `canBindTaskDirectories` 按真实连接源裁剪，已有绑定的解除动作不随该能力隐藏。真实 Electron 已验证 Agent 钥匙入口、guardian `magi-main-ui` 登录、菜单绑定、绑定后菜单刷新和解除流程；仅剩手机/Web 远程使用已有授权的验收。
+  - **行动**: 所有支持 Agent 的客户端都允许发现 owner 可达的已有会话和目录摘要；只有与 Kernel 同设备的 WebUI 显示新增、更换和追加目录动作，Electron 仅额外提供原生目录选择器。远程 HTTPS guardian 可以使用和解除已有绑定，不能新增、更换或追加授权。普通 Agent（含 Avatar）均可在获得 capability 后读写目录；MAGI 不暴露 task-directory capability。Agent chat、SSE、confirm、question 和工具结果回传在手机端与桌面端使用同一 owner headers 链路。
+  - **验收标准**: 后端测试证明同设备 WebUI 可新增主目录与附加目录、远程 HTTPS guardian 新增绑定被设备边界拒绝、远程 owner 可使用和解除已有绑定、伪造转发头不能改变结论；手机/Web 客户端验证加载、查看和执行已有授权任务。
   - [ ] **Phase 5.4 后端鉴权矩阵回归 (P0)**
     - **当前状态**: bind/unbind/list/get/chat/confirm/question/frontendToolResult/save/remove 的 owner、channel、route class、token 过期和传输矩阵已覆盖；仍待真实远程 owner chat 成功路径验收和错误码枚举收敛。
-    - **行动**: 增加 bind、unbind、list、get、chat、confirm、question、frontendToolResult、save、remove 的矩阵测试，覆盖缺失/过期/错误 channel/错误 route class/错误 owner/远程来源/运行中会话/伪造 session 字段；单独验证手机/Web 在 owner authorization 有效时可以使用已有绑定会话，并明确新绑定路径是针对 kernel 所在主机还是客户端设备。
+  - **行动**: 增加 bind、add、unbind、list、get、chat、confirm、question、frontendToolResult、save、remove 的矩阵测试，覆盖缺失/过期/错误 channel/错误 route class/错误 owner/远程来源/运行中会话/伪造 session 字段；单独验证手机/Web 在 owner authorization 有效时可以使用已有绑定会话，而新增、更换和追加目录只能由 Kernel 同设备 WebUI 完成。
     - **验收标准**: 测试直接调用后端 handler 或路由，不构造前端菜单状态；每个拒绝分支验证状态码和稳定错误码；授权成功路径验证实际 capability 使用。
   - [x] **Phase 5.5 workspace 自持行为验证 (P1)**
     - **当前状态**: 已完成临时 workspace fixture 验证。
@@ -156,17 +158,17 @@ Avatar 的真实含义是协议角色而不是独立运行时：所有不是 MAG
 1. 手机/Web 客户端的实际远程交互仍需验收，见 Phase 5.3；Electron 桌面绑定闭环已完成。
 2. Phase 5.4 的成功 owner chat 需要真实模型配置做端到端验证；当前自动测试证明跨 owner chat 在模型执行前被拒绝，并覆盖其余控制接口。
 3. MAGI 尚未在 task-directory 工具注册、全量 Avatar 历史读取、`report2magi` 和 Agent 通信层显式落实特殊边界，见 Phase 5.6-5.7；这些不影响当前普通 Agent 目录验收。
-4. 完整 API 测试仍有 `magi_runtime_test.go` 和 `vector_test.go` 的既有行为失败；它们不涉及目录绑定鉴权。
+4. 最新完整 Kernel 短测试与 vet 已通过；目录绑定测试已按“仅同设备 WebUI 可新增、更换或追加绑定”的既定边界覆盖远程 403、owner、armor、会话与本地传输条件。
 5. 会话面板五个新模块的 lint 已清零；整份 `AgentChat.ts` 仍有历史大文件/类设计等规则错误，`SessionStore.ts` 仍有模块级状态容器错误，需要后续独立重构。
 
 ## 待用户远程验收
 
-以下验收应在可通过 HTTPS 访问 kernel 的手机或 Web 浏览器完成。目录路径指 **kernel 所在主机** 的绝对路径，不是远程客户端本地路径；远程客户端只提交路径字符串，实际目录操作由 kernel 执行。
+以下验收应在可通过 HTTPS 访问 Kernel 的手机或 Web 浏览器完成。远程客户端只使用同设备 WebUI 已经建立的目录授权，不输入目录路径，也不新增、更换或追加绑定；实际目录操作由 Kernel 执行。
 
 1. 使用正常工作空间打开独立 Identity Access、Tab 或 Dock 并取得 guardian 身份，确认会话为 `routeClass=guardian`、`channel=magi-main-ui`；确认不依赖 Electron，手机/Web 也能打开 Agent 会话列表。
-2. 新建或选择一个 Agent 会话，绑定主任务目录；刷新页面、重新登录后仍能看到该会话和脱敏后的目录名称/权限，响应中不出现绝对路径、owner 身份或 capability 文件内容。
+2. 先在 Kernel 同设备 WebUI 为 Agent 会话绑定主任务目录，再从远程客户端刷新页面或重新登录；应能看到该会话和脱敏后的目录名称/权限，但不出现新增、更换或追加目录动作，响应中不出现绝对路径、owner 身份或 capability 文件内容。
 3. 在主目录创建、读取、编辑、删除一个测试文件；每个写入或命令操作都应出现确认流程，确认后文件结果正确。
-4. 依次添加只读、读写、命令三个附加目录：只读目录可列出/读取/搜索但写入、编辑、删除被拒绝；读写目录可完成增删查改；命令目录只能执行受边界保护的命令工具，不能通过相对路径逃出目录。
+4. 附加目录同样先由 Kernel 同设备 WebUI 添加；远程客户端验证只读目录可列出/读取/搜索但写入、编辑、删除被拒绝，读写目录可完成增删查改，命令目录只能执行受边界保护的命令工具且不能通过相对路径逃出目录。
 5. 验证边界：目录内放置符号链接指向 workspace 外部或尝试 `..`、绝对路径、其它目录 `directoryID`，均应失败；普通 forge/frontend/HTTP 工具不能绕过 task-directory capability。
 6. 用另一 guardian 身份、无 owner armor token、过期 token、错误 channel 或 avatar-only 身份访问同一会话；列表、读取、聊天、confirm/question、工具结果回传、保存和删除都应被后端拒绝。
 7. 删除附加目录后再解除主目录；删除 Agent 会话后重新查询，所有目录 capability 应消失，普通 Agent WebSocket 不应收到该受保护会话的路径或活动信息。
@@ -227,3 +229,4 @@ app/test/lint/class-policy.test.mjs
 - 2026-07-19：明确 class 策略为“最好不存在，存在则必须长得漂亮”：`no-class` 保留默认禁令和至少 500 字符的 `@允许类:` 显式豁免，移除 abstract class 自动豁免；类豁免只允许 class 存在，私有字段可保存状态，TypeScript `private` 与 ES `#` 私有方法仍被独立规则禁止。新增 5 项规则测试并通过。
 - 2026-07-19：替换 Web/移动端 task-directory 的原生 `window.prompt`，新增统一主题 Dialog、文件夹图标、等宽路径输入、空值错误态和主机路径提示；Electron 继续使用原生目录选择器，后端仍负责路径与授权校验。
 - 2026-07-19：修复独立 `magi-identity` 启动时重复加载身份数据：刷新函数拒绝并发重入，同一注意态窗口合并多个 BroadcastChannel `identity-required` 回放，并在首次刷新前注册监听以免产生竞态。清理 2026-07-19 遗留的第二套 `pnpm dev` watcher，保留 2026-07-17 原开发 watcher，避免两个 Webpack 实例同时清理和写入同一构建目录。
+- 2026-07-29：重新核对绑定边界并修正回归契约：新增、更换和追加任务目录只接受 Kernel 同设备 WebUI，远程 WebUI 只消费既有授权；这属于既定需求，不把远程 guardian 身份误当作新增绑定授权。Agent API 专项、`go test -short -tags fts5 ./...` 与 `go vet -tags fts5 ./...` 均通过。活动 Kernel 尚未热切换，因此前端调用新 `taskDirectoryCapabilities` 路由仍收到 200 空正文；当前功能阻断归属于关联任务 `AI模块改进/Forge模式后端热重启与版本回退.ttt.md` 的 Phase 6。

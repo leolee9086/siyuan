@@ -65,6 +65,108 @@ describe("Agent owner request headers", () => {
         });
     });
 
+    it("requests the Kernel-derived task-directory bind capability with owner headers", async () => {
+        mockedGetSafeSiyuanConfig.mockReturnValue({api: {token: "workspace-api-token"}});
+        const fetchModule = await import("../../../../src/util/network/fetch");
+        const fetchSyncPost = vi.mocked(fetchModule.fetchSyncPost);
+        fetchSyncPost.mockResolvedValue({code: 0, data: {canBindTaskDirectories: false}, msg: ""});
+        const {SessionStore, setAgentOwnerTokenProvider} = await import("../../../../src/layout/dock/agent/SessionStore");
+        setAgentOwnerTokenProvider(() => "magi-armor-token");
+
+        await expect(SessionStore.getTaskDirectoryCapabilities()).resolves.toEqual({canBindTaskDirectories: false});
+        expect(fetchSyncPost).toHaveBeenCalledWith("/api/ai/agent/taskDirectoryCapabilities", {}, {
+            Authorization: "Bearer workspace-api-token",
+            "X-SiYuan-Agent-Owner-Token": "magi-armor-token",
+        });
+    });
+
+    it("uploads multiple files as multipart data with workspace and owner headers", async () => {
+        mockedGetSafeSiyuanConfig.mockReturnValue({api: {token: "workspace-api-token"}});
+        const fetchModule = await import("../../../../src/util/network/fetch");
+        const fetchSyncPost = vi.mocked(fetchModule.fetchSyncPost);
+        fetchSyncPost.mockResolvedValue({
+            code: 0,
+            data: {succMap: {"one.txt": "assets/one.txt?box=box-1", "two.txt": "assets/two.txt?box=box-1"}, errFiles: []},
+            msg: "",
+        });
+        const {SessionStore, setAgentOwnerTokenProvider} = await import("../../../../src/layout/dock/agent/SessionStore");
+        setAgentOwnerTokenProvider(() => "magi-armor-token");
+
+        await expect(SessionStore.uploadFiles([
+            new File(["one"], "one.txt"),
+            new File(["two"], "two.txt"),
+        ])).resolves.toEqual({
+            uploaded: [
+                {name: "one.txt", path: "assets/one.txt?box=box-1"},
+                {name: "two.txt", path: "assets/two.txt?box=box-1"},
+            ],
+            failed: [],
+            message: "",
+        });
+        const call = fetchSyncPost.mock.calls[0];
+        expect(call?.[0]).toBe("/api/ai/agent/uploadFiles");
+        expect(call?.[1]).toBeInstanceOf(FormData);
+        expect((call?.[1] as FormData).getAll("file[]")).toHaveLength(2);
+        expect(call?.[2]).toEqual({
+            "X-SiYuan-App-ID": "test-app",
+            Authorization: "Bearer workspace-api-token",
+            "X-SiYuan-Agent-Owner-Token": "magi-armor-token",
+        });
+    });
+
+    it("preserves successful files and explicit failures from a partial upload", async () => {
+        mockedGetSafeSiyuanConfig.mockReturnValue({});
+        const fetchModule = await import("../../../../src/util/network/fetch");
+        vi.mocked(fetchModule.fetchSyncPost).mockResolvedValue({
+            code: 0,
+            data: {succMap: {"ok.txt": "assets/ok.txt?box=box-1"}, errFiles: ["failed.txt"]},
+            msg: "disk write failed",
+        });
+        const {SessionStore} = await import("../../../../src/layout/dock/agent/SessionStore");
+
+        await expect(SessionStore.uploadFiles([
+            new File(["ok"], "ok.txt"),
+            new File(["failed"], "failed.txt"),
+        ])).resolves.toEqual({
+            uploaded: [{name: "ok.txt", path: "assets/ok.txt?box=box-1"}],
+            failed: ["failed.txt"],
+            message: "disk write failed",
+        });
+    });
+
+    it("rejects capability failures instead of presenting them as a remote-device decision", async () => {
+        mockedGetSafeSiyuanConfig.mockReturnValue({});
+        const fetchModule = await import("../../../../src/util/network/fetch");
+        vi.mocked(fetchModule.fetchSyncPost).mockResolvedValue({code: 1, msg: "identity service unavailable"});
+        const {SessionStore} = await import("../../../../src/layout/dock/agent/SessionStore");
+
+        await expect(SessionStore.getTaskDirectoryCapabilities()).rejects.toThrow("identity service unavailable");
+    });
+
+    it("rejects an empty upload response", async () => {
+        mockedGetSafeSiyuanConfig.mockReturnValue({});
+        const fetchModule = await import("../../../../src/util/network/fetch");
+        vi.mocked(fetchModule.fetchSyncPost).mockResolvedValue({code: 0, data: {succMap: {}, errFiles: []}, msg: ""});
+        const {SessionStore} = await import("../../../../src/layout/dock/agent/SessionStore");
+
+        await expect(SessionStore.uploadFiles([new File(["data"], "empty.txt")]))
+            .rejects.toThrow("returned no file result");
+    });
+
+    it.each([
+        ["bindTaskDirectory", ["session-1", "C:/task"]],
+        ["addTaskDirectory", ["session-1", "C:/task", "read-only"]],
+        ["unbindTaskDirectory", ["session-1", "main"]],
+    ] as const)("propagates %s API failures", async (method, args) => {
+        mockedGetSafeSiyuanConfig.mockReturnValue({});
+        const fetchModule = await import("../../../../src/util/network/fetch");
+        vi.mocked(fetchModule.fetchSyncPost).mockResolvedValue({code: 1, msg: "directory operation failed"});
+        const {SessionStore} = await import("../../../../src/layout/dock/agent/SessionStore");
+
+        await expect((SessionStore[method] as (...input: never[]) => Promise<unknown>)(...(args as never[])))
+            .rejects.toThrow("directory operation failed");
+    });
+
     it("combines checkpoint, app, workspace and owner headers when saving", async () => {
         mockedGetSafeSiyuanConfig.mockReturnValue({api: {token: "workspace-api-token"}});
         const fetchModule = await import("../../../../src/util/network/fetch");

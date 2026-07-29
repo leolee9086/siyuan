@@ -26,6 +26,7 @@ export function createAgentSessionPanelController(options: types.AgentSessionPan
         isLoadingMore: false,
         searchTimer: null,
         searchKeyword: "",
+        canBindTaskDirectories: false,
     };
     return {
         toggle: toggleAgentSessionPanel.bind(null, state),
@@ -44,7 +45,13 @@ function toggleAgentSessionPanel(state: types.AgentSessionPanelState) {
         closeAgentSessionPanel(state);
         return;
     }
-    void renderAgentSessionPanel(state);
+    void renderAgentSessionPanel(state).catch(reportAgentSessionPanelError.bind(null, state));
+}
+
+/** 将异步会话面板故障交给宿主的可见错误出口，并保留控制台诊断上下文。 */
+function reportAgentSessionPanelError(state: types.AgentSessionPanelState, error: unknown) {
+    console.error("[AgentSessionPanel] operation failed", error);
+    state.options.callbacks.onError(error);
 }
 
 /** 关闭会话弹层并重置分页、搜索和菜单状态。 */
@@ -70,11 +77,15 @@ async function renderAgentSessionPanel(state: types.AgentSessionPanelState) {
     state.isRendering = true;
     closeAgentSessionPanel(state);
     try {
-        const result = await imports.SessionStore.list({
-            page: 1,
-            pageSize: 30,
-            targetKind: state.options.getTargetKind(),
-        });
+        const [result, capabilities] = await Promise.all([
+            imports.SessionStore.list({
+                page: 1,
+                pageSize: 30,
+                targetKind: state.options.getTargetKind(),
+            }),
+            imports.SessionStore.getTaskDirectoryCapabilities(),
+        ]);
+        state.canBindTaskDirectories = capabilities.canBindTaskDirectories;
         state.items = result.sessions;
         state.total = result.total;
         state.page = 1;
@@ -215,6 +226,7 @@ function showAgentSessionMoreMenu(state: types.AgentSessionPanelState, anchor: H
     anchor.setAttribute("aria-expanded", "true");
     menu.removeCB = () => anchor.setAttribute("aria-expanded", "false");
     const nativeAgent = state.options.getTargetKind() === "native-agent";
+    // 原生桌面端额外提供会话文件夹入口，WebUI 只保留跨平台会话和授权动作。
     if (nativeAgent && imports.isElectron) {
         menu.addItem({
             icon: "iconFolder",
@@ -226,10 +238,13 @@ function showAgentSessionMoreMenu(state: types.AgentSessionPanelState, anchor: H
         });
     }
     if (nativeAgent) {
-        for (const action of buildTaskDirectoryMenuActions(session)) {
+        for (const action of buildTaskDirectoryMenuActions(session, {
+            canBindTaskDirectories: state.canBindTaskDirectories,
+        })) {
             menu.addItem({
                 icon: action.icon,
                 label: action.label,
+                disabled: action.disabled,
                 click: runTaskDirectoryAction.bind(null, state, id, action),
             });
         }
@@ -252,38 +267,43 @@ async function deleteAgentSession(state: types.AgentSessionPanelState, id: strin
 
 /** 按菜单动作类型分流主目录绑定、附加目录和解除操作。 */
 function runTaskDirectoryAction(state: types.AgentSessionPanelState, id: string, action: imports.TaskDirectoryMenuAction) {
-    // 主目录绑定固定为读写权限，不使用附加目录的 permission 字段。
-    if (action.action === "bind-main") {
-        void bindAgentTaskDirectory(state, {id, main: true, permission: ""});
-        return;
-    }
-    // 附加目录按菜单携带的显式权限绑定。
-    if (action.action === "add") {
-        void bindAgentTaskDirectory(state, {id, main: false, permission: action.permission || "read-only"});
-        return;
-    }
-    void unbindAgentTaskDirectory(state, id, action.directoryID || "main");
+    void runAgentTaskDirectoryAction(id, action, {
+        onChanged: refreshAgentSessionPanel.bind(null, state),
+    });
 }
 
-/** 请求用户选择的目录并调用主目录或附加目录 API。 */
-async function bindAgentTaskDirectory(state: types.AgentSessionPanelState, input: types.AgentSessionDirectoryBindInput) {
+/** 执行现有目录菜单动作；当前会话入口和历史会话入口共用同一选择、权限与刷新流程。 */
+export async function runAgentTaskDirectoryAction(
+    id: string,
+    action: imports.TaskDirectoryMenuAction,
+    options: types.AgentTaskDirectoryActionOptions = {},
+) {
+    if (action.action === "summary") {
+        return;
+    }
+    // 解除操作不需要选择新路径，本地和远程 owner 都沿用现有 grant 管理链。
+    if (action.action === "unbind") {
+        await imports.SessionStore.unbindTaskDirectory(id, action.directoryID || "main");
+        await options.onChanged?.();
+        return;
+    }
     const selectedPath = await selectAgentTaskDirectoryPath();
     if (!selectedPath) {
         return;
     }
-    if (input.main) {
-        await imports.SessionStore.bindTaskDirectory(input.id, selectedPath);
-        await refreshAgentSessionPanel(state);
+    await options.beforeBind?.();
+    // 主目录使用固定读写权限，附加目录才携带菜单选择的权限等级。
+    if (action.action === "bind-main") {
+        await imports.SessionStore.bindTaskDirectory(id, selectedPath);
+        await options.onChanged?.();
         return;
     }
-    await imports.SessionStore.addTaskDirectory(input.id, selectedPath, input.permission);
-    await refreshAgentSessionPanel(state);
-}
-
-/** 解除指定目录 grant 后重读会话摘要。 */
-async function unbindAgentTaskDirectory(state: types.AgentSessionPanelState, id: string, directoryID: string) {
-    await imports.SessionStore.unbindTaskDirectory(id, directoryID);
-    await refreshAgentSessionPanel(state);
+    await imports.SessionStore.addTaskDirectory(
+        id,
+        selectedPath,
+        action.permission || "read-only",
+    );
+    await options.onChanged?.();
 }
 
 /** 在 Electron 使用原生目录选择器，Web/移动端则输入 kernel 主机绝对路径。 */

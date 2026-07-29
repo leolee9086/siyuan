@@ -4,6 +4,8 @@ import {postRender} from "./imports";
 import {openIdentityAccessStandalone} from "./imports";
 /** 用途：创建浏览器重载动作；使用范围：仅前端重载 capability；解耦评估：工厂返回无参 Port，避免核心访问 Location。 */
 import {createBrowserHostReload} from "./imports";
+/** 用途：创建独立浏览器锚点菜单；使用范围：聊天面板文件和目录权限入口；解耦评估：工厂产出的 PanelMenuPort 已作为能力注入核心。 */
+import {createBrowserPanelMenuPort} from "./panel-menu.browser.factory";
 /** 用途：集中创建浏览器通知；使用范围：仅独立页通知 capability；解耦评估：实例化隔离在 factory，核心仅依赖 NotificationPort。 */
 import {createBrowserNotification} from "./notification.browser.factory";
 /** 显示独立页面的轻量消息提示，定时关闭属于用户可感知的展示时长。 */
@@ -40,6 +42,7 @@ export const createBrowserAgentPanelCapabilities = () => ({
     identityAccess: {openIdentityAccess: openIdentityAccessStandalone},
     message: {show: showToast},
     confirm: {confirm: confirmInBrowser},
+    menu: createBrowserPanelMenuPort(),
     notification: {notify: notifyInBrowser},
     frontendReload: {reload: createBrowserHostReload()},
     contentRender: {postRender},

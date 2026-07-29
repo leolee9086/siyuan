@@ -2,19 +2,42 @@
 import {fetchSyncPost} from "../../../util/network/fetch";
 /** 用途：取得当前应用实例标识；使用范围：会话广播去重；解耦评估：常量依赖稳定且仅用于请求元数据，无需额外注入层。 */
 import {Constants} from "../../../constants";
+/** 用途：读取当前工作空间 API token；使用范围：仅在 Agent 请求发出前生成授权头；解耦评估：动态配置必须按请求读取，注入静态值会在工作空间切换后失效。 */
 import {getSafeSiyuanConfig} from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import type {AgentSession, SessionIndexItem, SessionListResult} from "./SessionStore.types";
+/** 用途：约束 Agent 会话、上传及目录接口的数据边界；使用范围：仅 SessionStore 的请求和本地 revision 队列。 */
+import type {
+    AgentAPIResponse,
+    AgentSession,
+    AgentTaskDirectoryCapabilities,
+    SessionSaveResult,
+    SessionListResult,
+    TaskDirectoryBinding,
+} from "./SessionStore.types";
 
 const API = "/api/ai/agent";
 const sessionRevisions = new Map<string, number>();
 const sessionRuntimeRevisions = new Map<string, number>();
 const sessionSaveQueues = new Map<string, Promise<SessionSaveResult>>();
 
-interface SessionSaveResult {
-    revision: number;
-    session?: AgentSession;
+/** 对 Agent API 的统一成功包络做确定性校验，避免各调用点以不同默认值吞掉服务端故障。 */
+function requireAgentAPIData<T>(response: AgentAPIResponse<T> | null | undefined, operation: string) {
+    if (!response || response.code !== 0) {
+        throw new Error(response?.msg || `${operation} failed`);
+    }
+    if (!Object.prototype.hasOwnProperty.call(response, "data") || typeof response.data === "undefined") {
+        throw new Error(`${operation} returned no data`);
+    }
+    return response.data;
 }
 
+/** 校验无需响应数据的 Agent API 调用。 */
+function requireAgentAPISuccess(response: AgentAPIResponse<unknown> | null | undefined, operation: string) {
+    if (!response || response.code !== 0) {
+        throw new Error(response?.msg || `${operation} failed`);
+    }
+}
+
+/** 等待同会话已经排队的保存结束，避免读取、删除或后续写入越过旧 revision。 */
 async function waitForPendingSave(id: string) {
     const pending = sessionSaveQueues.get(id);
     if (pending) {
@@ -43,7 +66,8 @@ export function setAgentOwnerTokenProvider(provider: () => string) {
     ownerTokenProvider = provider;
 }
 
-function workspaceAPIToken(): string {
+/** 在每次 Agent 请求前读取当前工作空间 API token，避免缓存工作空间切换前的值。 */
+function workspaceAPIToken() {
     try {
         return String(getSafeSiyuanConfig()?.api?.token ?? "").trim();
     } catch {
@@ -54,8 +78,9 @@ function workspaceAPIToken(): string {
 /** @同步豁免: 生命周期 */
 /** 合并普通请求头和当前 owner token，供受保护的 Agent API 请求使用。 */
 export function agentOwnerHeaders(extra?: Record<string, string>) {
-    const headers = {...(extra || {})};
+    const headers: Record<string, string> = {...(extra || {})};
     const apiToken = workspaceAPIToken();
+    // 调用方没有显式提供授权时才补入工作空间 token，保留专用请求覆盖能力。
     if (apiToken && !headers.Authorization) {
         headers.Authorization = `Bearer ${apiToken}`;
     }
@@ -74,7 +99,7 @@ function newSessionId() {
 /** 提供 Agent 会话的查询、持久化、删除、改名和任务目录绑定 API。 */
 export const SessionStore = {
     /** 初始化会话面板时读取最新列表。 */
-    async init(): Promise<SessionIndexItem[]> {
+    async init() {
         const result = await SessionStore.list({page: 1, pageSize: 1});
         return result.sessions;
     },
@@ -85,32 +110,27 @@ export const SessionStore = {
         pageSize?: number,
         keyword?: string,
         targetKind?: "native-agent" | "magi",
-    }): Promise<SessionListResult> {
+    }) {
         const resp = await fetchSyncPost(API + "/lsSessions", {
             page: opts?.page || 1,
             pageSize: opts?.pageSize || 30,
             keyword: opts?.keyword || "",
             targetKind: opts?.targetKind || "native-agent",
-        }, agentOwnerHeaders()) as {code: number; data: SessionListResult};
-        if (resp && resp.code === 0) {
-            return resp.data;
-        }
-        return {sessions: [], total: 0, page: 1, pageSize: opts?.pageSize || 30};
+        }, agentOwnerHeaders());
+        return requireAgentAPIData<SessionListResult>(resp, "List agent sessions");
     },
 
     /** 读取指定会话，并拒绝用旧 revision 覆盖当前实例已经观察到的状态。 */
-    async load(id: string): Promise<AgentSession | null> {
+    async load(id: string) {
         for (let attempt = 0; attempt < 3; attempt++) {
             await waitForPendingSave(id);
-            const resp = await fetchSyncPost(API + "/getSession", {id}, agentOwnerHeaders()) as {
-                code: number;
-                data: AgentSession;
-            };
+            const resp = await fetchSyncPost(API + "/getSession", {id}, agentOwnerHeaders());
             if (!resp || resp.code !== 0) {
                 return null;
             }
-            const revision = resp.data.revision ?? 0;
-            const runtimeRevision = resp.data.recoveryRevision ?? 0;
+            const session = requireAgentAPIData<AgentSession>(resp, "Load agent session");
+            const revision = session.revision ?? 0;
+            const runtimeRevision = session.recoveryRevision ?? 0;
             const knownRevision = sessionRevisions.get(id) ?? 0;
             const knownRuntimeRevision = sessionRuntimeRevisions.get(id) ?? 0;
             if (revision < knownRevision ||
@@ -119,7 +139,7 @@ export const SessionStore = {
             }
             sessionRevisions.set(id, revision);
             sessionRuntimeRevisions.set(id, runtimeRevision);
-            return resp.data;
+            return session;
         }
         // 连续写入期间若三次读取都落后于本地已知版本，则不返回旧数据覆盖界面。
         return null;
@@ -128,35 +148,64 @@ export const SessionStore = {
     /** 读取后端返回的目录 capability 摘要，路径和 owner 仍由后端隐藏。 */
     async listTaskDirectories(id: string) {
         const resp = await fetchSyncPost(API + "/lsTaskDirectories", {id}, agentOwnerHeaders());
-        return (resp && resp.code === 0) ? resp.data : null;
+        return requireAgentAPIData<TaskDirectoryBinding | null>(resp, "List agent task directories");
+    },
+
+    /** 由 Kernel 验证当前 guardian 身份是否可新增或更换任务目录绑定。 */
+    async getTaskDirectoryCapabilities() {
+        const resp = await fetchSyncPost(API + "/taskDirectoryCapabilities", {}, agentOwnerHeaders());
+        const capabilities = requireAgentAPIData<AgentTaskDirectoryCapabilities>(
+            resp,
+            "Read agent task-directory capabilities",
+        );
+        if (typeof capabilities?.canBindTaskDirectories !== "boolean") {
+            throw new Error("Read agent task-directory capabilities returned invalid data");
+        }
+        return capabilities;
+    },
+
+    /** 将浏览器选择的文件内容上传到 Kernel 解析出的 AI 主笔记本附件目录。 */
+    async uploadFiles(files: File[]) {
+        const formData = new FormData();
+        for (const file of files) {
+            formData.append("file[]", file);
+        }
+        const resp = await fetchSyncPost(API + "/uploadFiles", formData, agentOwnerHeaders(APP_HEADERS));
+        const result = requireAgentAPIData<{succMap?: Record<string, string>; errFiles?: string[]}>(
+            resp,
+            "Upload agent files",
+        );
+        const uploaded = Object.entries(result.succMap || {}).map(([name, path]) => ({name, path}));
+        const failed = result.errFiles || [];
+        if (uploaded.length === 0 && failed.length === 0) {
+            throw new Error(resp.msg || "Upload agent files returned no file result");
+        }
+        return {uploaded, failed, message: resp.msg || ""};
     },
 
     /** 按会话串行保存深拷贝快照，使用服务端 revision 作为下一次写入前置条件。 */
-    async save(session: AgentSession): Promise<SessionSaveResult> {
-        const snapshot = JSON.parse(JSON.stringify(session)) as AgentSession;
+    async save(session: AgentSession) {
+        const snapshot: AgentSession = JSON.parse(JSON.stringify(session));
         snapshot.updatedAt = Date.now();
         const baseRevision = snapshot.expectedRevision ?? sessionRevisions.get(snapshot.id) ?? snapshot.revision ?? 0;
         const previous = sessionSaveQueues.get(snapshot.id);
+        /** 使用前序保存返回的 revision 提交当前深拷贝快照。 */
+        // @柯里化：需要捕获当前不可变快照，并由同会话保存队列注入前序 revision。
         const persist = async (expectedRevision: number) => {
             snapshot.expectedRevision = expectedRevision;
             const resp = await fetchSyncPost(
                 API + "/saveSession",
                 snapshot,
                 agentOwnerHeaders(CHECKPOINT_HEADERS),
-            ) as {
-                code: number;
-                msg?: string;
-                data?: {revision?: number; session?: AgentSession};
-            };
-            if (!resp || resp.code !== 0) {
-                throw new Error(resp?.msg || "Failed to save agent session");
-            }
-            const revision = resp.data?.revision ?? expectedRevision;
+            );
+            const data = requireAgentAPIData<{revision?: number; session?: AgentSession}>(resp, "Save agent session");
+            const revision = data.revision ?? expectedRevision;
             sessionRevisions.set(snapshot.id, revision);
+            // 提交或恢复操作会清空临时运行态，后续读取从服务端重新建立 recovery revision。
             if (snapshot.commitTurnID || snapshot.recoveryTurnID) {
                 sessionRuntimeRevisions.set(snapshot.id, 0);
             }
-            const savedSession = resp.data?.session;
+            const savedSession = data.session;
             return savedSession ? {revision, session: savedSession} : {revision};
         };
         const save = previous ? previous.then((result) => persist(result.revision)) : persist(baseRevision);
@@ -164,6 +213,7 @@ export const SessionStore = {
         try {
             return await save;
         } finally {
+            // 仅由当前保存释放自身队列项，避免晚完成的旧请求删除新请求。
             if (sessionSaveQueues.get(snapshot.id) === save) {
                 sessionSaveQueues.delete(snapshot.id);
             }
@@ -171,16 +221,14 @@ export const SessionStore = {
     },
 
     /** 等待同会话保存完成后删除；保存失败会直接阻断删除并向调用方传播。 */
-    async remove(id: string): Promise<void> {
+    async remove(id: string) {
         await waitForPendingSave(id);
         const resp = await fetchSyncPost(
             API + "/removeSession",
             {id},
             agentOwnerHeaders(CHECKPOINT_HEADERS),
-        ) as {code: number; msg?: string};
-        if (!resp || resp.code !== 0) {
-            throw new Error(resp?.msg || "Failed to remove agent session");
-        }
+        );
+        requireAgentAPISuccess(resp, "Remove agent session");
         sessionRevisions.delete(id);
         sessionRuntimeRevisions.delete(id);
     },
@@ -198,21 +246,23 @@ export const SessionStore = {
     /** 请求后端将 owner 选择的外部主目录绑定到指定会话。 */
     async bindTaskDirectory(id: string, path: string) {
         const resp = await fetchSyncPost(API + "/bindTaskDirectory", {sessionID: id, path}, agentOwnerHeaders(APP_HEADERS));
-        return resp && resp.code === 0 ? resp.data : null;
+        return requireAgentAPIData<TaskDirectoryBinding>(resp, "Bind agent task directory");
     },
 
     /** 请求后端添加带权限的附加任务目录。 */
     async addTaskDirectory(id: string, path: string, permission: "read-only" | "read-write" | "command") {
         const resp = await fetchSyncPost(API + "/addTaskDirectory", {sessionID: id, path, permission}, agentOwnerHeaders(APP_HEADERS));
-        return resp && resp.code === 0 ? resp.data : null;
+        return requireAgentAPIData<TaskDirectoryBinding>(resp, "Add agent task directory");
     },
 
     /** 请求后端解除指定会话的主目录或附加目录 capability。 */
     async unbindTaskDirectory(id: string, directoryID = "main") {
-        await fetchSyncPost(API + "/unbindTaskDirectory", {sessionID: id, directoryID}, agentOwnerHeaders(APP_HEADERS));
+        const resp = await fetchSyncPost(API + "/unbindTaskDirectory", {sessionID: id, directoryID}, agentOwnerHeaders(APP_HEADERS));
+        requireAgentAPISuccess(resp, "Unbind agent task directory");
     },
 
-    getRevision(id: string): number {
+    /** 返回当前前端实例已确认的会话 revision，供首次目录绑定前判断是否需要落盘。 */
+    getRevision(id: string) {
         return sessionRevisions.get(id) ?? 0;
     },
 

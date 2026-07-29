@@ -160,6 +160,14 @@ describe("network fetch async contracts", () => {
         expect(runtime.processMessage).toHaveBeenCalledWith(response, {fetchPost});
     });
 
+    it("reports an empty synchronous response as an explicit protocol error", async () => {
+        fetchMock.mockResolvedValue(new Response("", {status: 200}));
+
+        await expect(fetchSyncPost("/api/ai/agent/taskDirectoryCapabilities", {}))
+            .rejects.toThrow("fetchSyncPost: 响应格式不符合预期 (url: /api/ai/agent/taskDirectoryCapabilities)");
+        expect(runtime.processMessage).not.toHaveBeenCalled();
+    });
+
     it("keeps the official callback GET entry and the internal Promise entry on one implementation", async () => {
         const response = {code: 0, data: {language: "zh_CN"}, msg: ""};
         fetchMock.mockResolvedValueOnce(createJsonResponse(response));

@@ -1,3 +1,4 @@
+/** 表示编辑器提交给 Agent 的文本、块 HTML 与块引用快照。 */
 export interface ComposerSendData {
     text: string;
     blockHTML: string;
@@ -11,6 +12,7 @@ export interface ComposerHandle {
     getSendData: () => ComposerSendData;
     clear: () => void;
     setText: (text: string) => void;
+    insertText: (text: string) => void;
     pushHistory: (text: string) => void;
     getHistory: () => string[];
     clearHistory: () => void;
@@ -20,4 +22,5 @@ export interface ComposerHandle {
     renderBlockHTML: (element: HTMLElement, onRender: () => void) => void;
 }
 
+/** 表示编辑器内容变化后的轻量通知，由聊天面板更新发送按钮状态。 */
 export type ComposerChangeCallback = () => void;

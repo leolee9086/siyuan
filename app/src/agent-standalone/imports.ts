@@ -26,6 +26,12 @@ import {postRender} from "../layout/dock/agent/AgentMessageRenderer";
 import {openIdentityAccessStandalone} from "../magi/identity-access/adapters/open";
 /** 用途：转发浏览器重载工厂；使用范围：浏览器 FrontendReloadPort；解耦评估：核心只接收无参重载函数。 */
 import {createBrowserHostReload} from "../layout/dock/agent/runtime/host/agentPanel.reload.browser.factory";
+/** 用途：在独立浏览器页面创建锚点菜单；使用范围：PanelMenuPort；解耦评估：通用菜单已支持自有 DOM 宿主。 */
+import {Menu} from "../menus/Menu";
+/** 用途：创建独立浏览器菜单项；使用范围：PanelMenuPort；解耦评估：复用通用菜单项交互与禁用状态。 */
+import {MenuItem} from "../menus/Menu.Item";
+/** 用途：约束独立浏览器菜单适配器输入；使用范围：PanelMenuPort；解耦评估：纯类型依赖。 */
+import type {PanelMenuItem} from "../layout/dock/agent/runtime/agentPanel.ports.types";
 
 /** 导出脚本加载能力供 Agent 启动流程使用。 */
 export {loadStandaloneScript};
@@ -53,3 +59,9 @@ export {postRender};
 export {openIdentityAccessStandalone};
 /** 导出浏览器重载工厂供浏览器 capability 使用。 */
 export {createBrowserHostReload};
+/** 导出通用菜单供独立浏览器 capability 使用。 */
+export {Menu};
+/** 导出通用菜单项供独立浏览器 capability 使用。 */
+export {MenuItem};
+/** 导出菜单项类型供独立浏览器 capability 使用。 */
+export type {PanelMenuItem};

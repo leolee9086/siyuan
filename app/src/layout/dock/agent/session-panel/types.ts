@@ -3,6 +3,7 @@ export interface AgentSessionPanelCallbacks {
     onSwitch: (id: string) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
     onRename: (id: string, title: string) => Promise<void>;
+    onError: (error: unknown) => void;
 }
 
 /** 表示会话面板的宿主节点、当前状态读取器和业务回调。 */
@@ -58,11 +59,10 @@ export interface AgentSessionPageRender {
     append: boolean;
 }
 
-/** 表示一次目录绑定请求，主目录与附加目录共用同一输入。 */
-export interface AgentSessionDirectoryBindInput {
-    id: string;
-    main: boolean;
-    permission: string;
+/** 表示复用目录菜单动作时的前置持久化与完成刷新钩子。 */
+export interface AgentTaskDirectoryActionOptions {
+    beforeBind?: () => Promise<void>;
+    onChanged?: () => void | Promise<void>;
 }
 
 /** 表示会话面板可变状态，仅由函数式控制器持有和更新。 */
@@ -76,6 +76,7 @@ export interface AgentSessionPanelState {
     isLoadingMore: boolean;
     searchTimer: number | null;
     searchKeyword: string;
+    canBindTaskDirectories: boolean;
 }
 
 /** 表示会话面板对 AgentChat 暴露的四个生命周期操作。 */

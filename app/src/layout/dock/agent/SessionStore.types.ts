@@ -13,6 +13,37 @@ export interface TaskDirectoryBinding {
     directories?: TaskDirectoryGrant[];
 }
 
+/** 表示 Kernel 按当前连接来源和 owner 状态计算的目录管理能力，用于控制新增绑定动作显隐。 */
+export interface AgentTaskDirectoryCapabilities {
+    canBindTaskDirectories: boolean;
+}
+
+/** 表示已进入 AI 主笔记本附件目录的文件摘要，供聊天输入框生成附件链接。 */
+export interface AgentUploadedFile {
+    name: string;
+    path: string;
+}
+
+/** 表示一次附件上传的完整结果，部分成功与逐文件失败必须同时保留。 */
+export interface AgentFileUploadResult {
+    uploaded: AgentUploadedFile[];
+    failed: string[];
+    message: string;
+}
+
+/** 表示会话持久化后的新 revision 及可选服务端规范化快照。 */
+export interface SessionSaveResult {
+    revision: number;
+    session?: AgentSession;
+}
+
+/** 表示 Agent API 的统一返回包络，供成功和 data 存在性校验复用。 */
+export interface AgentAPIResponse<T> {
+    code: number;
+    msg?: string;
+    data?: T;
+}
+
 /** 表示 Agent 会话列表中的元数据及可见的任务目录摘要。 */
 export interface SessionIndexItem {
     id: string;
@@ -33,9 +64,10 @@ export interface SessionListResult {
 
 /** 表示标准会话菜单中的目录操作描述，供视图映射为命令并由后端执行授权校验。 */
 export interface TaskDirectoryMenuAction {
-    action: "bind-main" | "add" | "unbind";
+    action: "bind-main" | "add" | "unbind" | "summary";
     icon: string;
     label: string;
+    disabled?: boolean;
     permission?: "read-only" | "read-write" | "command";
     directoryID?: string;
 }

@@ -47,6 +47,7 @@ export interface PanelMenuItem {
     icon?: string;
     current?: boolean;
     warning?: boolean;
+    disabled?: boolean;
     click: () => void;
 }
 
