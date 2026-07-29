@@ -353,6 +353,38 @@ test("Kernel runtime path classification excludes documentation and test-only ch
     assert.equal(isKernelRuntimePath("app/src/index.ts"), false);
 });
 
+test("Go format gate checks changed files and ignores Windows working-tree line endings", async () => {
+    const calls = [];
+    const supervisor = createSupervisor({
+        command: async (command, args, options) => {
+            calls.push({command, args, input: options.input});
+            return {stdout: options.input, stderr: ""};
+        },
+    });
+    fs.mkdirSync(path.join(supervisor.repoRoot, "kernel", "api"), {recursive: true});
+    fs.writeFileSync(path.join(supervisor.repoRoot, "kernel", "api", "changed.go"), "package api\r\n", "utf8");
+    fs.writeFileSync(path.join(supervisor.repoRoot, "kernel", "api", "unchanged.go"), "package  api\r\n", "utf8");
+
+    await supervisor.requireGoFormat({
+        changed: ["kernel/api/changed.go", "kernel/api/removed.go", "app/src/index.ts"],
+    });
+
+    assert.deepEqual(calls, [{command: "gofmt", args: [], input: "package api\n"}]);
+});
+
+test("Go format gate reports a changed Go file whose normalized source differs", async () => {
+    const supervisor = createSupervisor({
+        command: async () => ({stdout: "package api\n", stderr: ""}),
+    });
+    fs.mkdirSync(path.join(supervisor.repoRoot, "kernel", "api"), {recursive: true});
+    fs.writeFileSync(path.join(supervisor.repoRoot, "kernel", "api", "changed.go"), "package  api\r\n", "utf8");
+
+    await assert.rejects(
+        supervisor.requireGoFormat({changed: ["kernel/api/changed.go"]}),
+        /gofmt check failed:\nkernel\/api\/changed\.go/,
+    );
+});
+
 test("Restart protection covers every Kernel test and the gate implementation", () => {
     const policy = validateRestartPolicy(restartPolicyFixture());
     assert.deepEqual(readRestartPolicy(path.resolve(__dirname, "../..")), policy);

@@ -156,7 +156,7 @@ const runCommand = (command, args, options = {}) => new Promise((resolve, reject
         cwd: options.cwd,
         env: options.env,
         windowsHide: true,
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: [options.input === undefined ? "ignore" : "pipe", "pipe", "pipe"],
     });
     let stdout = "";
     let stderr = "";
@@ -169,6 +169,9 @@ const runCommand = (command, args, options = {}) => new Promise((resolve, reject
         options.onOutput?.(chunk.toString(), true);
     });
     child.once("error", reject);
+    if (options.input !== undefined) {
+        child.stdin.end(options.input);
+    }
     child.once("exit", (code, signal) => {
         if (code === 0) {
             resolve({stdout, stderr});
@@ -437,7 +440,7 @@ class ForgeRuntimeSupervisor {
             const source = await this.validateRestartSource();
             await this.requireProtectedTestApproval(job, source);
             this.updateJob(job, "running", "gofmt");
-            await this.requireGoFormat();
+            await this.requireGoFormat(source);
             this.updateJob(job, "running", "go_vet");
             await this.runLogged("go", ["vet", "-tags", "fts5", "./..."], this.kernelDir);
             this.updateJob(job, "running", "core_test_policy");
@@ -540,17 +543,24 @@ class ForgeRuntimeSupervisor {
         return readRestartPolicy(this.repoRoot);
     }
 
-    async requireGoFormat() {
-        const files = parseLines(await this.gitOutput(["ls-files", "--", "kernel/*.go", "kernel/**/*.go"]));
-        const batchSize = 100;
+    async requireGoFormat(source) {
+        const files = source.changed
+            .map((filePath) => filePath.replace(/\\/g, "/"))
+            .filter((filePath) => filePath.startsWith("kernel/") && filePath.endsWith(".go"))
+            .filter((filePath) => fs.existsSync(path.join(this.repoRoot, filePath)));
         const unformatted = [];
-        for (let index = 0; index < files.length; index += batchSize) {
-            const batch = files.slice(index, index + batchSize).map((file) => path.join(this.repoRoot, file));
-            if (batch.length === 0) {
-                continue;
+        for (const filePath of files) {
+            const sourcePath = path.join(this.repoRoot, filePath);
+            const normalizedSource = fs.readFileSync(sourcePath, "utf8").replace(/\r\n?/g, "\n");
+            let formatted;
+            try {
+                formatted = await this.command("gofmt", [], {cwd: this.repoRoot, input: normalizedSource});
+            } catch (error) {
+                throw new Error(`gofmt failed for ${filePath}: ${this.describeError(error)}`);
             }
-            const result = await this.command("gofmt", ["-l", ...batch], {cwd: this.repoRoot});
-            unformatted.push(...parseLines(result.stdout));
+            if (formatted.stdout !== normalizedSource) {
+                unformatted.push(filePath);
+            }
         }
         if (unformatted.length > 0) {
             throw new Error(`gofmt check failed:\n${unformatted.join("\n")}`);
