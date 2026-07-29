@@ -1,3 +1,6 @@
+/**
+ * 替代关系：本模块与 `aiUi.ts`、`aiRuntime.ts` 共同承接原 `config/ai.ts` 的 AI 设置注册、界面和持久化职责。
+ */
 import type {SettingTabBuilder} from "../setting/builder";
 import {confirmDialog} from "../../dialog/confirmDialog";
 import {showMessage} from "../../dialog/message";

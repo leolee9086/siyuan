@@ -1,3 +1,4 @@
+/** 本模块是原 `config/search.ts` 中设置搜索、页签切换与挂载流程的唯一现行所有者。 */
 import {getSettingTab, type TSettingTab} from "../setting/tabs";
 import {clearSettingTabSearch, type SettingTabMountContext} from "../setting/mount";
 import {getSearchKeywordsLower} from "./normalize";
