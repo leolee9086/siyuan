@@ -1,13 +1,13 @@
-import { fetchPost } from "../../card/imports";
+import {fetchPost} from "../../util/network/fetch";
 import { Constants } from "../../constants";
-import { Tab } from "../../window/imports";
+import type {LayoutTab} from "../../layout/layout.types";
 /**
  * 
  * @param rootID 
  * @param tab 
  * @param protyle 
  */
-export const updateTitle = (rootID: string, tab: Tab, protyle?: IProtyle) => {
+export const updateTitle = (rootID: string, tab: LayoutTab, protyle?: IProtyle) => {
     fetchPost("/api/block/getDocInfo", {
         id: rootID
     }, (response) => {
