@@ -1,4 +1,5 @@
 {
+	"deleteRefConfirm": "삭제하거나 잘라낼 내용에 참조된 블록이 있습니다. 계속하시겠습니까?",
 	"addAllAiModels": "모든 모델 추가",
 	"autoDetectProxy": "프록시 자동 감지",
 	"autoDetectProxyTip": "환경 변수 또는 로컬 프록시 포트에서 시스템 프록시 설정을 자동으로 감지합니다",

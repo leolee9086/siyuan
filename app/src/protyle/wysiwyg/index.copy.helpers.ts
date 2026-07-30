@@ -11,6 +11,7 @@ import {getTypeByCellElement} from "../render/av/cell/position";
 import {getCellText} from "../render/av/cell/render";
 import { removeZWJ } from "../util/normalizeText";
 import { enableLuteMarkdownSyntax, getTextStar, restoreLuteMarkdownSyntax } from "../util/paste";
+import type {CopyClipboardEvent} from "./index.copy.types";
 
 export function processSelectAV(nodeElement: HTMLElement) {
     let html = "";
@@ -210,12 +211,12 @@ export function collectSelectElements(
 
 export async function writeClipboardData(
     protyle: IProtyle,
-    event: ClipboardEvent & { target: HTMLElement },
+    event: CopyClipboardEvent,
     html: string,
     textPlain: string,
     selectTableElement: boolean | number,
     selectTableRange: boolean,
-    selectAVElement: HTMLElement,
+    selectAVElement: HTMLElement | null,
     needClipboardWrite: boolean,
 ) {
     enableLuteMarkdownSyntax(protyle);

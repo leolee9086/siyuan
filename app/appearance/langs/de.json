@@ -1,4 +1,5 @@
 {
+	"deleteRefConfirm": "Der zu löschende oder auszuschneidende Inhalt enthält referenzierte Blöcke. Möchten Sie fortfahren?",
 	"addAllAiModels": "Alle Modelle hinzufügen",
 	"autoDetectProxy": "Proxy automatisch erkennen",
 	"autoDetectProxyTip": "System-Proxy automatisch anhand von Umgebungsvariablen oder lokalen Proxy-Ports erkennen",

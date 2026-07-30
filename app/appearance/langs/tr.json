@@ -1,4 +1,5 @@
 {
+	"deleteRefConfirm": "Silinecek veya kesilecek içerik, başvurulan bloklar içeriyor. Devam etmek istiyor musunuz?",
 	"addAllAiModels": "Tüm modelleri ekle",
 	"autoDetectProxy": "Proxy'yi otomatik algıla",
 	"autoDetectProxyTip": "Sistem proxy yapılandırmasını ortam değişkenlerinden veya yerel proxy bağlantı noktalarından otomatik olarak algıla",

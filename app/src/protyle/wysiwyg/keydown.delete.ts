@@ -1,15 +1,22 @@
-import { hasClosestByAttribute, hasClosestByTag } from "../util/hasClosest";
+import { hasClosestBlock, hasClosestByAttribute, hasClosestByTag } from "../util/hasClosest";
 import { getContenteditableElement, getTopAloneElement, hasNextSibling, hasPreviousSibling } from "./getBlock";
 import { isEndOfBlock } from "./getBlock";
 import { getSelectionOffset } from "../util/selection";
 import { matchHotKey } from "../util/hotKey";
-import { removeBlock, removeImage } from "./remove";
+import {
+    getImageBlockRefCheckTargets,
+    getRangeBlockRefCheckTargets,
+    removeBlock,
+    removeCrossBlockRange,
+    removeImage,
+} from "./remove";
 import {updateTransaction} from "./transaction/update";
 import { clearTableCell } from "../util/table/table";
 import { getNextBlock } from "./getBlock";
 import { focusBlock, focusByWbr, setFirstNodeRange } from "../util/selection";
 import { Constants } from "../../constants";
 import { isOnlyMeta } from "../util/compatibility";
+import {confirmBlockRefForBlocks} from "../../util/checkBlockRef";
 
 export const deleteKeyMiddleware = async (
     event: KeyboardEvent,
@@ -24,6 +31,18 @@ export const deleteKeyMiddleware = async (
     if (
         (!event.altKey && (event.key === "Backspace" || event.key === "Delete")) ||
         matchHotKey("⌃D", event)) {
+        const endElement = hasClosestBlock(range.endContainer);
+        const isCrossBlock = Boolean(endElement && nodeElement !== endElement);
+        const rangeCheckTargets = !range.collapsed && endElement ?
+            getRangeBlockRefCheckTargets(protyle.wysiwyg.element, range, nodeElement, endElement, true) :
+            {elements: [], exactIDs: []};
+        if (endElement && ((isCrossBlock && selectText !== "") || rangeCheckTargets.elements.length > 0)) {
+            event.stopPropagation();
+            event.preventDefault();
+            controller.abort("删除跨块选区");
+            await removeCrossBlockRange(protyle, range, nodeElement, endElement);
+            return;
+        }
         if (protyle.wysiwyg?.element.querySelector(".protyle-wysiwyg--select")) {
             removeBlock(protyle, nodeElement, range, event.key === "Backspace" ? "Backspace" : "Delete");
             event.stopPropagation();
@@ -79,14 +98,29 @@ export const deleteKeyMiddleware = async (
         }
         const imgSelectElement = protyle.wysiwyg.element.querySelector(".img--select");
         if (imgSelectElement) {
-            imgSelectElement.classList.remove("img--select");
             if (nodeElement.contains(imgSelectElement)) {
+                const checkTargets = getImageBlockRefCheckTargets(nodeElement, imgSelectElement);
+                const checkIDs = checkTargets.elements.flatMap(item => {
+                    const id = item.getAttribute("data-node-id");
+                    return id ? [id] : [];
+                });
+                if (checkIDs.length > 0) {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    controller.abort("检查图片删除引用");
+                    if (!await confirmBlockRefForBlocks(protyle, checkIDs, checkTargets.exactIDs) ||
+                        checkTargets.elements.some(item => !item.isConnected)) {
+                        return;
+                    }
+                }
+                imgSelectElement.classList.remove("img--select");
                 removeImage(imgSelectElement, nodeElement, range, protyle);
                 event.stopPropagation();
                 event.preventDefault();
                 controller.abort("删除选中的图片");
                 return;
             }
+            imgSelectElement.classList.remove("img--select");
         } else if (selectText === "") {
 
             if (nodeElement.classList.contains("table")) {

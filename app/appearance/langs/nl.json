@@ -1,4 +1,5 @@
 {
+	"deleteRefConfirm": "De te verwijderen of te knippen inhoud bevat blokken waarnaar wordt verwezen. Wilt u doorgaan?",
 	"addAllAiModels": "Alle modellen toevoegen",
 	"autoDetectProxy": "Proxy automatisch detecteren",
 	"autoDetectProxyTip": "Detecteer de systeemproxy automatisch via omgevingsvariabelen of lokale proxypoorten",

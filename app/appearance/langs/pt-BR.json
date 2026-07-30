@@ -1,4 +1,5 @@
 {
+	"deleteRefConfirm": "O conteúdo a ser excluído ou recortado contém blocos referenciados. Deseja continuar?",
 	"addAllAiModels": "Adicionar todos os modelos",
 	"autoDetectProxy": "Detectar proxy automaticamente",
 	"autoDetectProxyTip": "Detectar automaticamente a configuração de proxy do sistema por meio de variáveis de ambiente ou portas de proxy locais",

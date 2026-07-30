@@ -1,4 +1,5 @@
 {
+	"deleteRefConfirm": "削除または切り取る内容には参照されているブロックが含まれています。続行しますか？",
 	"addAllAiModels": "すべてのモデルを追加",
 	"autoDetectProxy": "プロキシを自動検出",
 	"autoDetectProxyTip": "環境変数またはローカルプロキシポートからシステムのプロキシ設定を自動検出します",

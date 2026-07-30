@@ -9,6 +9,7 @@ import {transaction} from "./transaction/submit";
 import {updateTransaction} from "./transaction/update";
 import { turnsIntoOneTransaction } from "./transaction.turns";
 import { Constants } from "../../constants";
+import {confirmRefRemoval} from "./remove.refCheck";
 
 /**
  * 作用：处理首个子列表合并
@@ -16,7 +17,13 @@ import { Constants } from "../../constants";
  * 调用时机：首个子列表节点删除时调用
  * 问题/改进：无
  */
-const mergeFirstChildList = (protyle: IProtyle, blockEl: Element, range: Range, listEl: Element) => {
+const mergeFirstChildList = async (protyle: IProtyle, blockEl: Element, range: Range, listEl: Element) => {
+    const listItemElement = blockEl.parentElement;
+    if (!listItemElement || !await confirmRefRemoval(protyle,
+        [listItemElement.getAttribute("data-node-id")], [listItemElement],
+        [listItemElement.getAttribute("data-node-id")])) {
+        return;
+    }
     range.insertNode(document.createElement("wbr"));
     const htmlOld = listEl.outerHTML;
     const prevSib = listEl.previousElementSibling;
@@ -135,6 +142,12 @@ const appendMergeSuperBlockOperations = async (protyle: IProtyle, listEl: Elemen
  * 问题/改进：无
  */
 const topListFirstLineToBlock = async (protyle: IProtyle, blockEl: Element, range: Range, isDel: boolean, listEl: Element) => {
+    const listItemElement = blockEl.parentElement;
+    if (!listItemElement || !await confirmRefRemoval(protyle,
+        [listItemElement.getAttribute("data-node-id")], [listItemElement],
+        [listItemElement.getAttribute("data-node-id")])) {
+        return;
+    }
     moveToPrevious(blockEl, range, isDel);
     range.insertNode(document.createElement("wbr"));
     const htmlOld = listEl.outerHTML;
@@ -324,7 +337,7 @@ const moveFoldElAction = (protyle: IProtyle, foldEl: Element, doOps: IOperation[
  * 调用时机：中尾列表移除
  * 问题/改进：无
  */
-const mergeToPrev = (protyle: IProtyle, blockEl: Element, range: Range, isDel: boolean) => {
+const mergeToPrev = async (protyle: IProtyle, blockEl: Element, range: Range, isDel: boolean) => {
     const itemEl = blockEl.parentElement;
     const prevSib = itemEl?.previousElementSibling;
     // 拦截不符合的头部
@@ -335,6 +348,13 @@ const mergeToPrev = (protyle: IProtyle, blockEl: Element, range: Range, isDel: b
     const listEl = itemEl.parentElement;
     // 不包裹直接退
     if (!listEl) {
+        return;
+    }
+    const deleteFoldedListItem = prevSib.getAttribute("fold") !== "1" ||
+        ((getContenteditableElement(blockEl)?.textContent || "").trim() === "" &&
+            blockEl.nextElementSibling?.classList.contains("protyle-attr"));
+    if (deleteFoldedListItem && !await confirmRefRemoval(protyle,
+        [itemId], [itemEl], [itemId])) {
         return;
     }
     moveToPrevious(blockEl, range, isDel);
@@ -402,7 +422,7 @@ export const removeLi = async (protyle: IProtyle, blockEl: Element, range: Range
     const gpEl = pEl?.parentElement;
     // 合并子列表逻辑
     if (gpEl && !prevSib && gpEl.parentElement?.classList.contains("list")) {
-        mergeFirstChildList(protyle, blockEl, range, gpEl);
+        await mergeFirstChildList(protyle, blockEl, range, gpEl);
         return;
     }
     // 顶级脱离逻辑
@@ -414,5 +434,5 @@ export const removeLi = async (protyle: IProtyle, blockEl: Element, range: Range
         await topListFirstLineToBlock(protyle, blockEl, range, isDelete, gpEl);
         return;
     }
-    mergeToPrev(protyle, blockEl, range, isDelete);
+    await mergeToPrev(protyle, blockEl, range, isDelete);
 };

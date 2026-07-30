@@ -1,6 +1,6 @@
 import {enableLuteMarkdownSyntax, restoreLuteMarkdownSyntax} from "../util/paste";
 import {hasClosestBlock, hasClosestByAttribute, hasClosestByTag, isInEmbedBlock} from "../util/hasClosest";
-import {focusBlock, focusByWbr, getEditorRange, setInsertWbrHTML} from "../util/selection";
+import {focusBlock, focusByRange, focusByWbr, getEditorRange, setInsertWbrHTML} from "../util/selection";
 import {Constants} from "../../constants";
 import {removeEmbed} from "./removeEmbed";
 import {fetchSyncPost} from "../../util/network/fetch";
@@ -9,18 +9,64 @@ import {isIncludeCell} from "../util/table/selection/geometry";
 import {getTableRangeHTML} from "../util/table/grid/html";
 import {updateCellsValue} from "../render/av/cell.update";
 import {getContenteditableElement, getNextBlock, getTopAloneElement, hasNextSibling} from "./getBlock";
-import {removeBlock} from "./remove";
+import {getImageBlockRefCheckTargets, getRangeBlockRefCheckTargets, removeBlock} from "./remove";
 import {updateTransaction} from "./transaction/update";
 import {highlightRender} from "../render/highlightRender";
 import {mathRender} from "../render/mathRender";
 import {updateAVName} from "../render/av/action/name";
 import * as dayjs from "dayjs";
 import {nbsp2space, removeZWJ} from "../util/normalizeText";
-import {emojiToMd} from "./index.copy";
+import {emojiToMd, handleCopy} from "./index.copy";
+import type {CopyClipboardEvent} from "./index.copy.types";
+import {confirmBlockRefForBlocks} from "../../util/checkBlockRef";
+import {showMessage} from "../../dialog/message";
+
+const writeSelectionClipboardForCut = async (protyle: IProtyle) => {
+    const clipboardData = new DataTransfer();
+    const copyEvent = {
+        target: protyle.wysiwyg.element,
+        clipboardData,
+        preventDefault() {
+            // The data transfer is consumed by navigator.clipboard below.
+        },
+        stopPropagation() {
+            // The synthetic copy event is intentionally local to the cut flow.
+        },
+    } satisfies CopyClipboardEvent;
+    await handleCopy(protyle, copyEvent, true);
+    const textPlain = clipboardData.getData("text/plain");
+    const textHTML = clipboardData.getData("text/html");
+    if (!textPlain && !textHTML) {
+        showMessage(window.siyuan.languages.clipboardPermissionDenied, 7000, "error");
+        return false;
+    }
+    const clipboardItem: Record<string, string> = {};
+    if (textPlain) {
+        clipboardItem["text/plain"] = textPlain;
+    }
+    if (textHTML) {
+        clipboardItem["text/html"] = textHTML;
+    }
+    try {
+        if (navigator.clipboard?.write) {
+            await navigator.clipboard.write([new ClipboardItem(clipboardItem)]);
+        } else if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(textPlain || textHTML);
+        } else {
+            showMessage(window.siyuan.languages.clipboardPermissionDenied, 7000, "error");
+            return false;
+        }
+        return true;
+    } catch (error) {
+        console.error("Cut write clipboard error", error);
+        showMessage(error instanceof Error ? error.message : String(error), 7000, "error");
+        return false;
+    }
+};
 
 export async function handleCut(
     protyle: IProtyle,
-    event: ClipboardEvent & { target: HTMLElement },
+    event: CopyClipboardEvent,
 ) {
     window.siyuan.ctrlIsPressed = false; // https://github.com/siyuan-note/siyuan/issues/6373
     if (protyle.disabled) {
@@ -70,15 +116,48 @@ export async function handleCut(
     }
     let selectElements = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
     const cloneElement = range.cloneContents();
+    let autoSelectedBlock = false;
     if (selectElements.length === 0 && range.toString() === "" && !cloneElement.querySelector("img") &&
         !selectImgElement && !selectAVElement && !selectTableElement && !selectTableRange) {
         nodeElement.classList.add("protyle-wysiwyg--select");
         selectElements = [nodeElement];
+        autoSelectedBlock = true;
+    }
+    const selectedStateElements = [...selectElements];
+    let cutClipboardWritten = false;
+    if (selectedStateElements.length === 0 &&
+        (!range.collapsed || selectImgElement || selectAVElement || selectTableElement || selectTableRange)) {
+        if (!selectAVElement && !selectTableElement && !selectTableRange) {
+            const endElement = hasClosestBlock(range.endContainer);
+            const checkTargets = selectImgElement ?
+                getImageBlockRefCheckTargets(nodeElement, selectImgElement) :
+                (endElement ? getRangeBlockRefCheckTargets(protyle.wysiwyg.element, range, nodeElement, endElement) :
+                    {elements: [], exactIDs: []});
+            const checkIDs = checkTargets.elements.flatMap(item => {
+                const id = item.getAttribute("data-node-id");
+                return id ? [id] : [];
+            });
+            if (checkIDs.length > 0 && !await confirmBlockRefForBlocks(protyle, checkIDs, checkTargets.exactIDs)) {
+                return;
+            }
+            if (checkTargets.elements.some(item => !item.isConnected) ||
+                !protyle.wysiwyg.element.contains(range.startContainer) ||
+                !protyle.wysiwyg.element.contains(range.endContainer)) {
+                return;
+            }
+        }
+        focusByRange(range);
+        if (!await writeSelectionClipboardForCut(protyle)) {
+            return;
+        }
+        cutClipboardWritten = true;
     }
     let html = "";
     let textPlain = "";
     let isInCodeBlock = false;
     let needClipboardWrite = false;
+    let cutBlockSelection = false;
+    let cutNextElement: Element | undefined;
     if (selectElements.length > 0) {
         if (selectElements[0].getAttribute("data-type") === "NodeListItem" &&
             selectElements[0].parentElement.classList.contains("list") &&   // 反链复制列表项 https://github.com/siyuan-note/siyuan/issues/6555
@@ -93,20 +172,43 @@ export async function handleCut(
             }
         }
         let listHTML = "";
+        const checkIDs: string[] = [];
         for (let i = 0; i < selectElements.length; i++) {
             const item = getTopAloneElement(selectElements[i]);
+            const itemID = item.getAttribute("data-node-id");
+            if (!itemID) {
+                console.error("Cut selection contains a block without a block ID", item);
+                if (autoSelectedBlock) {
+                    nodeElement.classList.remove("protyle-wysiwyg--select");
+                }
+                return;
+            }
+            checkIDs.push(itemID);
             let itemHTML = "";
             if (item.getAttribute("data-type") === "NodeHeading" && item.getAttribute("fold") === "1") {
                 needClipboardWrite = true;
                 const response = await fetchSyncPost("/api/block/getHeadingChildrenDOM", {
-                    id: item.getAttribute("data-node-id"),
+                    id: itemID,
                     removeFoldAttr: false
                 });
                 itemHTML = response.data;
+                const deleteResponse = await fetchSyncPost("/api/block/getHeadingDeleteTransaction", {id: itemID});
+                if (deleteResponse.code !== 0 || !deleteResponse.data?.doOperations) {
+                    console.error("Failed to resolve folded heading deletion for cut", {itemID, deleteResponse});
+                    if (autoSelectedBlock) {
+                        nodeElement.classList.remove("protyle-wysiwyg--select");
+                    }
+                    return;
+                }
+                deleteResponse.data.doOperations.forEach((operation: IOperation) => {
+                    if (operation.action === "delete" && operation.id) {
+                        checkIDs.push(operation.id);
+                    }
+                });
             } else if (item.getAttribute("data-type") !== "NodeBlockQueryEmbed" && item.querySelector('[data-type="NodeHeading"][fold="1"]')) {
                 needClipboardWrite = true;
                 const response = await fetchSyncPost("/api/block/getBlockDOM", {
-                    id: item.getAttribute("data-node-id"),
+                    id: itemID,
                     notebook: protyle.notebookId,
                 });
                 itemHTML = response.data.dom;
@@ -129,12 +231,18 @@ export async function handleCut(
                 html += itemHTML;
             }
         }
-        const nextElement = getNextBlock(selectElements[selectElements.length - 1]);
-        removeBlock(protyle, nodeElement, range, "remove");
-        if (nextElement) {
-            // Ctrl+X 剪切后光标应跳到下一行行首 https://github.com/siyuan-note/siyuan/issues/5485
-            focusBlock(nextElement);
+        if (!await confirmBlockRefForBlocks(protyle, Array.from(new Set(checkIDs)))) {
+            if (autoSelectedBlock) {
+                nodeElement.classList.remove("protyle-wysiwyg--select");
+            }
+            return;
         }
+        if (selectedStateElements.some(item => !item.isConnected || !item.classList.contains("protyle-wysiwyg--select"))) {
+            return;
+        }
+        needClipboardWrite = true;
+        cutBlockSelection = true;
+        cutNextElement = getNextBlock(selectElements[selectElements.length - 1]) || undefined;
     } else if (selectAVElement) {
         needClipboardWrite = true;
         const cellsValue = await updateCellsValue(protyle, nodeElement);
@@ -337,7 +445,9 @@ export async function handleCut(
         }
     }
     textPlain = removeZWJ(nbsp2space(textPlain)); // Replace non-breaking spaces with normal spaces when copying https://github.com/siyuan-note/siyuan/issues/9382
-    event.clipboardData.setData("text/plain", textPlain);
+    if (!cutClipboardWritten) {
+        event.clipboardData.setData("text/plain", textPlain);
+    }
 
     if (!isInCodeBlock) {
         enableLuteMarkdownSyntax(protyle);
@@ -350,18 +460,32 @@ export async function handleCut(
             textSiyuan = html;
         }
         restoreLuteMarkdownSyntax(protyle);
-        event.clipboardData.setData("text/siyuan", textSiyuan);
+        if (!cutClipboardWritten) {
+            event.clipboardData.setData("text/siyuan", textSiyuan);
+        }
         // 在 text/html 中插入注释节点，用于右键菜单粘贴时获取 text/siyuan 数据
         const textHTML = `<!--data-siyuan='${encodeBase64(textSiyuan)}'-->` + removeZWJ((selectTableElement || selectTableRange) ? html : protyle.lute.BlockDOM2HTML(selectAVElement ? textPlain : html));
-        event.clipboardData.setData("text/html", textHTML);
-        if (needClipboardWrite) {
+        if (!cutClipboardWritten) {
+            event.clipboardData.setData("text/html", textHTML);
+        }
+        let clipboardWriteSucceeded = true;
+        if (needClipboardWrite && !cutClipboardWritten) {
             try {
                 await navigator.clipboard.write([new ClipboardItem({
                     ["text/plain"]: textPlain,
                     ["text/html"]: textHTML,
                 })]);
-            } catch (e) {
-                console.log("Cut write clipboard error:", e);
+            } catch (error) {
+                console.error("Cut write clipboard error", error);
+                showMessage(error instanceof Error ? error.message : String(error), 7000, "error");
+                clipboardWriteSucceeded = false;
+            }
+        }
+        if (cutBlockSelection && clipboardWriteSucceeded) {
+            const removed = await removeBlock(protyle, nodeElement, range, "remove", true);
+            if (removed && cutNextElement?.isConnected) {
+                // Ctrl+X 剪切后光标应跳到下一行行首 https://github.com/siyuan-note/siyuan/issues/5485
+                focusBlock(cutNextElement);
             }
         }
     }

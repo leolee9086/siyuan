@@ -6,6 +6,18 @@ export type InlineContentParams = {
     selectTypes: string[];
 };
 
+/**
+ * The copy pipeline only needs the event capabilities below. Keeping this
+ * contract structural allows the cut pipeline to build clipboard data before
+ * it mutates the document, without fabricating a browser ClipboardEvent.
+ */
+export type CopyClipboardEvent = {
+    target: HTMLElement;
+    clipboardData: DataTransfer;
+    preventDefault: () => void;
+    stopPropagation: () => void;
+};
+
 /** 复制内容路由参数 */
 export type RouteContentParams = {
     protyle: IProtyle;

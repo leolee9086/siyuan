@@ -1,4 +1,5 @@
 {
+	"deleteRefConfirm": "待刪除或剪下的內容中存在被引用的內容區塊，是否繼續？",
 	"addAllAiModels": "新增全部模型",
 	"autoDetectProxy": "自動偵測代理伺服器",
 	"autoDetectProxyTip": "自動從環境變數或本機代理伺服器連接埠偵測系統代理設定",

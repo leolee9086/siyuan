@@ -3,16 +3,17 @@ import { Constants } from "../../../constants";
 import { fetchPost } from "../../../util/network/fetch";
 import { genEmptyElement } from "../../../block/element.factory";
 import { focusBlock } from "../../../protyle/util/selection";
-import { isInAndroid, isInHarmony, writeText } from "../../../protyle/util/compatibility";
+import {writeBlockDOMClipboard} from "../../../protyle/util/compatibility";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { getWindowJSAndroid, getWindowJSHarmony } from "../../../util/siyuanEnvironments/windowNative.environment";
+import {showMessage} from "../../../dialog/message";
 import { isHTMLElement } from "../dock.guard";
 import type {OutlineDomain} from "./types";
 import type {ProtyleDomain} from "../../../protyle/protyle.types";
 /** 用途：解析 Outline 对应的编辑器与标题块；使用范围：复制、剪切和删除标题动作；解耦评估：直达独立编辑器上下文所有者，不再反向加载编辑菜单。 */
 import {getProtyleAndBlockElement} from "./editorContext/resolve";
+import {confirmBlockRefForBlocks} from "../../../util/checkBlockRef";
 
 /**
  * 将数据写入剪贴板
@@ -20,30 +21,15 @@ import {getProtyleAndBlockElement} from "./editorContext/resolve";
  * 意图：实现跨平台的剪贴板写入功能，特别适配移动端原生交互。
  * 调用时机：执行复制或剪切操作时调用。
  */
-const writeClipboard = (protyle: IProtyle, respData: string) => {
-    /**
-     * Android 环境检查
-     * 作用：检测当前是否在 Android 容器中运行
-     * 意图：Android 端需要通过原生桥接方法 writeHTMLClipboard 来写入剪贴板，以支持富文本。
-     * 生效场景：App 运行在 Android 设备上时。
-     */
-    if (isInAndroid()) {
-        getWindowJSAndroid()?.writeHTMLClipboard(protyle.lute?.BlockDOM2StdMd(respData).trimEnd() || "", respData + Constants.ZWSP);
-        return;
-    }
+const writeClipboard = async (protyle: IProtyle, respData: string) => {
+    return await writeBlockDOMClipboard({
+        text: protyle.lute?.BlockDOM2StdMd(respData).trimEnd() || "",
+        html: respData + Constants.ZWSP,
+    });
+};
 
-    /**
-     * HarmonyOS 环境检查
-     * 作用：检测当前是否在鸿蒙系统容器中运行
-     * 意图：鸿蒙端同样需要通过原生桥接方法 writeHTMLClipboard 来写入剪贴板。
-     * 生效场景：App 运行在鸿蒙设备上时。
-     */
-    if (isInHarmony()) {
-        getWindowJSHarmony()?.writeHTMLClipboard(protyle.lute?.BlockDOM2StdMd(respData).trimEnd() || "", respData + Constants.ZWSP);
-        return;
-    }
-
-    writeText(respData + Constants.ZWSP);
+const reportClipboardFailure = () => {
+    showMessage(siyuanI18n.clipboardPermissionDenied, 7000, "error");
 };
 
 /**
@@ -99,7 +85,26 @@ const 删除操作对应元素 = (protyle: IProtyle, operations: IOperation[]) =
  * 作用：处理删除标题的事务响应，删除 DOM 元素并记录事务
  * 调用时机：点击"删除"菜单项后，API 返回删除事务时调用
  */
-const 创建删除标题响应处理器 = (editor: ProtyleDomain) => (resp: IWebSocketData) => {
+const 确认标题删除仍然有效 = async (editor: ProtyleDomain, id: string, resp: IWebSocketData) => {
+    const protyle = editor.protyle;
+    const operations = resp.data?.doOperations as IOperation[] | undefined;
+    if (!operations?.length) {
+        console.error("Heading deletion transaction is missing operations", {id, resp});
+        return false;
+    }
+    if (!await confirmBlockRefForBlocks(
+        protyle,
+        operations.flatMap(operation => operation.id ? [operation.id] : []),
+    )) {
+        return false;
+    }
+    return Boolean(protyle.wysiwyg?.element.querySelector(`[data-node-id="${id}"]`));
+};
+
+const 创建删除标题响应处理器 = (editor: ProtyleDomain, id: string) => async (resp: IWebSocketData) => {
+    if (!await 确认标题删除仍然有效(editor, id, resp)) {
+        return;
+    }
     const protyle = editor.protyle;
     删除操作对应元素(protyle, resp.data.doOperations);
     handleEmptyContent(protyle, resp.data.doOperations, resp.data.undoOperations);
@@ -113,8 +118,18 @@ const 创建删除标题响应处理器 = (editor: ProtyleDomain) => (resp: IWeb
  */
 const 创建剪切标题内层处理器 = (editor: ProtyleDomain, id: string) => (resp: IWebSocketData) => {
     const protyle = editor.protyle;
-    writeClipboard(protyle, resp.data);
-    fetchPost("/api/block/getHeadingDeleteTransaction", { id }, 创建删除标题响应处理器(editor));
+    fetchPost("/api/block/getHeadingDeleteTransaction", {id}, async (deleteResp) => {
+        if (!await 确认标题删除仍然有效(editor, id, deleteResp)) {
+            return;
+        }
+        if (!await writeClipboard(protyle, resp.data)) {
+            reportClipboardFailure();
+            return;
+        }
+        删除操作对应元素(protyle, deleteResp.data.doOperations);
+        handleEmptyContent(protyle, deleteResp.data.doOperations, deleteResp.data.undoOperations);
+        editor.transaction(deleteResp.data.doOperations, deleteResp.data.undoOperations);
+    });
 };
 
 /**
@@ -128,8 +143,10 @@ const 处理复制标题点击 = (outline: OutlineDomain, element: HTMLElement, 
         return;
     }
     const foldAttr = data.blockElement.getAttribute("fold");
-    fetchPost("/api/block/getHeadingChildrenDOM", { id, removeFoldAttr: foldAttr !== "1" }, (resp) => {
-        writeClipboard(data.protyle, resp.data);
+    fetchPost("/api/block/getHeadingChildrenDOM", { id, removeFoldAttr: foldAttr !== "1" }, async (resp) => {
+        if (!await writeClipboard(data.protyle, resp.data)) {
+            reportClipboardFailure();
+        }
     });
 };
 
@@ -157,7 +174,7 @@ const 处理删除标题点击 = (outline: OutlineDomain, element: HTMLElement, 
     if (!data) {
         return;
     }
-    fetchPost("/api/block/getHeadingDeleteTransaction", { id }, 创建删除标题响应处理器(data.editor));
+    fetchPost("/api/block/getHeadingDeleteTransaction", {id}, 创建删除标题响应处理器(data.editor, id));
 };
 
 /** 添加复制/剪切/删除菜单项 */

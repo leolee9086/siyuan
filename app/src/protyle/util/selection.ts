@@ -124,6 +124,7 @@ export const getRangeByPoint = (x: number, y: number) => {
 export { focusByRange, focusBlock, getEditorRange, getSelectionOffset, setLastNodeRange };
 // 重导出不在本地使用的符号
 export { focusSideBlock, focusToolbarRange, 聚焦工具栏范围 } from "./selection.focus";
-export { setFirstNodeRange, focusByOffset, setInsertWbrHTML, focusByWbr } from "./selection.range";
+export { getBlockRanges, setFirstNodeRange, focusByOffset, setInsertWbrHTML, focusByWbr } from "./selection.range";
+export type {IBlockRange} from "./selection.range";
 export { getSelectionPosition } from "./selection.position";
 export { getUndoFocusContext, restoreUndoFocus } from "./selection.undo";

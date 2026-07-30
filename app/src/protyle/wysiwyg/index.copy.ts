@@ -12,6 +12,7 @@ import { collectSelectElements } from "./index.copy.helpers";
 import { writeClipboardData } from "./index.copy.helpers";
 /** 用途: 路由参数类型定义；使用范围: routeCopyContent；解耦评估: pure type */
 import type { RouteContentParams } from "./index.copy.types";
+import type { CopyClipboardEvent } from "./index.copy.types";
 /** 用途: 块级元素查找；使用范围: handleCopy 等；解耦评估: 与 DOM 结构耦合 */
 import { hasClosestBlock } from "../util/hasClosest";
 /** 用途: 属性匹配；使用范围: processGenericRange 等；解耦评估: 与 DOM 结构耦合 */
@@ -242,7 +243,8 @@ async function routeCopyContent(params: RouteContentParams) {
 /** 处理复制事件入口 */
 export async function handleCopy(
     protyle: IProtyle,
-    event: ClipboardEvent & { target: HTMLElement },
+    event: CopyClipboardEvent,
+    skipNativeClipboardWrite = false,
 ) {
     window.siyuan.ctrlIsPressed = false;
     // 编辑区外（PROTYLE-HTML 或 input 元素）不处理复制
@@ -276,6 +278,7 @@ export async function handleCopy(
     event.clipboardData.setData("text/plain", processed.textPlain);
     // 代码块内不写入 siyuan/html 格式
     if (!routeResult.isInCodeBlock) {
-        await writeClipboardData(protyle, event, processed.html, processed.textPlain, selectTableElement, tableRange.selectTableRange, selectAVElement, routeResult.needClipboardWrite);
+        await writeClipboardData(protyle, event, processed.html, processed.textPlain, selectTableElement, tableRange.selectTableRange,
+            selectAVElement, routeResult.needClipboardWrite && !skipNativeClipboardWrite);
     }
 }
