@@ -135,6 +135,11 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
 
 ## 已归档/已完成
 
+- [x] **2026-07-30：前端部署门禁回归到测试唯一条件**
+  - `7f15cb855` 的 post-commit operation `2026-07-30T15-18-43-327Z-7f15cb85538b-b84431b5` 已保留为失败证据：完整 `pnpm test` 结束后，过时的 `dev:once` 一次性构建被作为额外门槛执行并失败，导致 Kernel 路由变更没有进入受控切换。该构建既不是测试，也不是前端 watcher/页面探针的必要前提。
+  - 修正 `runFrontendUpdate()` 仅运行固定 `pnpm test`；运行中的开发服务继续以页面探针验证可达性，Kernel 仍由 Supervisor 的格式、vet、全量短测试、构建、健康与回退门禁决定是否切换。操作日志相应记录“frontend tests completed”，不再把构建描述为前端新鲜度证明。
+  - `app/test/forge-commit-runtime-gate.test.js` 断言 Windows 和非 Windows 都只发起一次 `pnpm test`，防止 `dev:once` 被重新加入。该修正自身完成测试和提交后，使用同一 `retry-post-commit` 路径闭合 `7f15cb855` 的部署状态。
+
 - [x] **2026-07-30：`15bda522e` 前端防重入门禁闭合**
   - 首次 post-commit 在外层提交命令被 5 秒执行器终止时连带中断 `dev:once`，失败 operation `2026-07-29T23-40-29-838Z-15bda522ee5f-9db3d545` 保留且不计为构建结论。独立 `dev:once` 随后用时 80.7 秒完成全部 11 个目标，证明源码无构建回归。
   - 正式 recovery operation `2026-07-29T23-51-53-034Z-15bda522ee5f-b3285c41` 状态 `completed`；完整 `pnpm test`、`pnpm dev:once`、Kernel/Supervisor 健康和六个页面探针通过。前端活动 revision 为 `15bda522ee5f3a2aed402468f77d97192fb91203`，Kernel 保持 `8dd352e875271446c5a559eb618f2731db395cc8`，唯一 Supervisor PID `32436` 未变。

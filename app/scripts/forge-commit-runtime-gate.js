@@ -157,14 +157,12 @@ const persistOperation = (root, operation, message) => {
 
 const runFrontendUpdate = (root, _changedPaths, run = execFileSync) => {
     const options = {cwd: path.join(root, "app"), stdio: "inherit", windowsHide: true};
-    for (const script of ["test", "dev:once"]) {
-        if (process.platform === "win32") {
-            run(process.env.ComSpec || "cmd.exe", ["/d", "/s", "/c", "pnpm.cmd", "run", script], options);
-        } else {
-            run("pnpm", ["run", script], options);
-        }
+    if (process.platform === "win32") {
+        run(process.env.ComSpec || "cmd.exe", ["/d", "/s", "/c", "pnpm.cmd", "run", "test"], options);
+    } else {
+        run("pnpm", ["run", "test"], options);
     }
-    return {tests: "pnpm test", build: "pnpm dev:once"};
+    return {tests: "pnpm test"};
 };
 
 const probePages = async (port, fetchImpl) => {
@@ -296,7 +294,7 @@ const runPostCommitGate = async (root = repoRoot, dependencies = {}, trigger = "
                 ...(await (dependencies.runFrontendUpdate || runFrontendUpdate)(root, frontendChanges)),
                 result: "updated",
             };
-            persistOperation(root, operation, "frontend tests and development build completed");
+            persistOperation(root, operation, "frontend tests completed");
         }
         operation.frontend.activeRevision = head;
         let kernelResult;

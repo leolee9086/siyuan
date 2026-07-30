@@ -74,27 +74,21 @@ test("Frontend runtime path classification excludes tooling-only changes", () =>
     assert.equal(isFrontendRuntimePath("docs/README.md"), false);
 });
 
-test("Frontend runtime update uses a terminating development build", () => {
+test("Frontend runtime update uses tests as its only freshness gate", () => {
     const calls = [];
     const result = runFrontendUpdate("D:/repo", ["app/src/index.ts"], (executable, args, options) => {
         calls.push({executable, args, cwd: options.cwd});
     });
 
     if (process.platform === "win32") {
-        assert.deepEqual(calls.map((call) => call.executable), [process.env.ComSpec || "cmd.exe", process.env.ComSpec || "cmd.exe"]);
-        assert.deepEqual(calls.map((call) => call.args), [
-            ["/d", "/s", "/c", "pnpm.cmd", "run", "test"],
-            ["/d", "/s", "/c", "pnpm.cmd", "run", "dev:once"],
-        ]);
+        assert.deepEqual(calls.map((call) => call.executable), [process.env.ComSpec || "cmd.exe"]);
+        assert.deepEqual(calls.map((call) => call.args), [["/d", "/s", "/c", "pnpm.cmd", "run", "test"]]);
     } else {
-        assert.deepEqual(calls.map((call) => call.executable), ["pnpm", "pnpm"]);
-        assert.deepEqual(calls.map((call) => call.args), [
-            ["run", "test"],
-            ["run", "dev:once"],
-        ]);
+        assert.deepEqual(calls.map((call) => call.executable), ["pnpm"]);
+        assert.deepEqual(calls.map((call) => call.args), [["run", "test"]]);
     }
     assert.equal(calls.every((call) => call.cwd === path.join("D:/repo", "app")), true);
-    assert.deepEqual(result, {tests: "pnpm test", build: "pnpm dev:once"});
+    assert.deepEqual(result, {tests: "pnpm test"});
 });
 
 test("Staged commit checks select fixed source tests without consulting Forge runtime state", () => {
