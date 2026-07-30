@@ -565,10 +565,10 @@ const mergeAuditMapping = (audit, mappings, revertTargets) => ({
         ...audit.relationships,
         reverts: [...new Set([...(audit.relationships?.reverts ?? []), ...revertTargets])].sort(),
     },
-    localCommits: [...new Set([
-        ...(audit.localCommits ?? []),
-        ...mappings.map((mapping) => mapping.localCommit),
-    ])].sort(),
+    // `localCommits` describes the live candidate mapping, not every abandoned
+    // pre-delivery attempt. Rebuild it from the current candidate head so a
+    // rebase cannot make an unreachable semantic commit appear deliverable.
+    localCommits: mappings.map((mapping) => mapping.localCommit).sort(),
     mappingEvidence: mappings,
 });
 
@@ -710,6 +710,14 @@ export const verifyAuditManifest = ({repo, output}) => {
 };
 
 const auditDecisionContractKeys = ["preconditions", "stateTransitions", "outputs", "invariants", "failures"];
+const finalAuditDispositions = new Set([
+    "ported-exact",
+    "ported-semantic",
+    "already-present",
+    "superseded-with-proof",
+    "acknowledged-no-code",
+    "not-applicable-approved",
+]);
 
 const validateStringList = (value, field, sha) => {
     if (!Array.isArray(value) || value.some((item) => typeof item !== "string" || item.length === 0)) {
@@ -721,10 +729,20 @@ const validateAuditDecision = (decision) => {
     if (!decision || typeof decision !== "object" || !/^[0-9a-f]{40}$/u.test(decision.sha ?? "")) {
         throw new Error("Audit decision must declare a full upstream SHA");
     }
-    for (const field of ["status", "intent", "disposition", "seriesId"]) {
+    if (!auditStatuses.has(decision.status) || decision.status === "pending") {
+        throw new Error(`Audit decision ${decision.sha} has unsupported status ${decision.status ?? "<missing>"}`);
+    }
+    for (const field of ["intent", "seriesId"]) {
         if (typeof decision[field] !== "string" || decision[field].length === 0) {
             throw new Error(`Audit decision ${decision.sha} has no ${field}`);
         }
+    }
+    validateStringList(decision.notes, "notes", decision.sha);
+    if (decision.status !== "verified") {
+        return;
+    }
+    if (!finalAuditDispositions.has(decision.disposition)) {
+        throw new Error(`Audit decision ${decision.sha} has unsupported final disposition ${decision.disposition ?? "<missing>"}`);
     }
     if (!decision.behaviorContract || typeof decision.behaviorContract !== "object") {
         throw new Error(`Audit decision ${decision.sha} has no behavior contract`);
@@ -734,7 +752,6 @@ const validateAuditDecision = (decision) => {
     }
     validateStringList(decision.codeEvidence, "codeEvidence", decision.sha);
     validateStringList(decision.testEvidence, "testEvidence", decision.sha);
-    validateStringList(decision.notes, "notes", decision.sha);
 };
 
 /** Applies versioned human-reviewed behavior evidence without touching generated Git mappings. */
@@ -764,13 +781,18 @@ export const applyAuditDecisions = ({repo, output, decisionsPath}) => {
             ...record.audit,
             status: decision.status,
             intent: decision.intent,
-            behaviorContract: decision.behaviorContract,
-            disposition: decision.disposition,
             seriesId: decision.seriesId,
-            codeEvidence: decision.codeEvidence,
-            testEvidence: decision.testEvidence,
             notes: decision.notes,
         };
+        if (decision.status === "verified") {
+            record.audit = {
+                ...record.audit,
+                behaviorContract: decision.behaviorContract,
+                disposition: decision.disposition,
+                codeEvidence: decision.codeEvidence,
+                testEvidence: decision.testEvidence,
+            };
+        }
     }
     writeAuditManifest({repo, output, cycle, records});
     verifyAuditManifest({repo, output});

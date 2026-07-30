@@ -257,6 +257,49 @@ test("refreshes the mapping endpoint from the current branch without losing cycl
     assert.deepEqual(refreshed.deliveryStrategy, {mode: "rolling-verified-series"});
 });
 
+test("drops abandoned mappings when an unintegrated candidate is rewritten", (context) => {
+    const repo = mkdtempSync(join(tmpdir(), "sforge-audit-rewrite-"));
+    context.after(() => rmSync(repo, {recursive: true, force: true}));
+    git(repo, ["init", "--initial-branch=main"]);
+    git(repo, ["config", "user.name", "Test Author"]);
+    git(repo, ["config", "user.email", "test@example.com"]);
+    const upstreamBase = commitFile(repo, "base.txt", "base\n", "base");
+    git(repo, ["switch", "-c", "upstream"]);
+    const upstreamTip = commitFile(repo, "upstream.txt", "upstream\n", "upstream behavior");
+    git(repo, ["switch", "-c", "candidate", upstreamBase]);
+    const localBase = commitFile(repo, "local.txt", "local\n", "local base");
+    const output = join(repo, "audit");
+    const message = [
+        "port upstream behavior",
+        "",
+        `Upstream-Commit: ${upstreamTip}`,
+        "Upstream-Series: fixture/rewrite",
+        "Upstream-Disposition: semantic-port",
+        "Upstream-Audit: audit/commits.jsonl",
+    ].join("\n");
+    const firstCandidate = commitFile(repo, "first-port.txt", "first\n", message);
+    writeAuditManifest({
+        repo,
+        output,
+        cycle: {upstreamBase, upstreamTip, localBase, candidateHead: firstCandidate},
+        records: buildAuditRecords({repo, upstreamBase, upstreamTip, localBase, candidateHead: firstCandidate}),
+    });
+
+    git(repo, ["reset", "--hard", localBase]);
+    const rewrittenCandidate = commitFile(repo, "rewritten-port.txt", "rewritten\n", message);
+    const records = buildAuditRecords({
+        repo,
+        upstreamBase,
+        upstreamTip,
+        localBase,
+        candidateHead: rewrittenCandidate,
+        existingManifestPath: join(output, "commits.jsonl"),
+    });
+
+    assert.deepEqual(records[0].audit.localCommits, [rewrittenCandidate]);
+    assert.deepEqual(records[0].audit.mappingEvidence.map((entry) => entry.localCommit), [rewrittenCandidate]);
+});
+
 test("advances an upstream tip without losing completed audits and rejects rewritten history", (context) => {
     const repo = mkdtempSync(join(tmpdir(), "sforge-audit-tip-"));
     context.after(() => rmSync(repo, {recursive: true, force: true}));
@@ -318,6 +361,45 @@ test("advances an upstream tip without losing completed audits and rejects rewri
         () => advanceAuditTip({repo, output, upstreamTip: rewrittenTip, fetchedAt}),
         /Refusing non-fast-forward upstream tip change/,
     );
+});
+
+test("records an active audit without inventing its final disposition", (context) => {
+    const repo = mkdtempSync(join(tmpdir(), "sforge-audit-in-progress-"));
+    context.after(() => rmSync(repo, {recursive: true, force: true}));
+    git(repo, ["init", "--initial-branch=main"]);
+    git(repo, ["config", "user.name", "Test Author"]);
+    git(repo, ["config", "user.email", "test@example.com"]);
+    const base = commitFile(repo, "base.txt", "base\n", "base");
+    const upstreamTip = commitFile(repo, "upstream.txt", "upstream\n", "upstream behavior");
+    const output = join(repo, "audit");
+    writeAuditManifest({
+        repo,
+        output,
+        cycle: {cycleId: "fixture", upstreamBase: base, upstreamTip},
+        records: buildAuditRecords({repo, upstreamBase: base, upstreamTip}),
+    });
+    const decisionsPath = join(repo, "decisions.json");
+    writeFileSync(decisionsPath, JSON.stringify({
+        cycleId: "fixture",
+        decisions: [{
+            sha: upstreamTip,
+            status: "in-progress",
+            intent: "Audit the upstream behavior before selecting a final disposition.",
+            seriesId: "fixture/behavior",
+            notes: ["No final disposition or verification evidence exists yet."],
+        }],
+    }, null, 2));
+
+    assert.deepEqual(applyAuditDecisions({repo, output, decisionsPath}), {
+        cycleId: "fixture",
+        appliedDecisionCount: 1,
+    });
+    const [record] = readFileSync(join(output, "commits.jsonl"), "utf8")
+        .trim().split("\n").map((line) => JSON.parse(line));
+    assert.equal(record.audit.status, "in-progress");
+    assert.equal(record.audit.disposition, null);
+    assert.deepEqual(record.audit.codeEvidence, []);
+    assert.deepEqual(record.audit.testEvidence, []);
 });
 
 test("derives semantic, delivery and topology coverage from verified Git relations", (context) => {
