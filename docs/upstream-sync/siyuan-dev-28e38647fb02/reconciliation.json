@@ -1,51 +1,51 @@
 {
   "schemaVersion": 1,
-  "sourceHead": "db85fb64dd7fa6791c897acaf24209285ffecb73",
+  "sourceHead": "339dbccc97e131715f743f9b61b3f8f0c9f79324",
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
-  "upstreamTip": "c7e58c6da597ea98b427d07e6afaf3fabe6bed9b",
+  "upstreamTip": "401d2928cab86a9d52ed1545610b183e78f7652a",
   "summary": {
-    "total": 570,
+    "total": 573,
     "stateCounts": {
-      "topology-integrated": 0,
+      "topology-integrated": 1,
       "delivery-integrated": 12,
       "delivery-git-integrated": 0,
       "delivery-in-progress": 0,
       "semantic-verified": 0,
       "audit-in-progress": 0,
       "audit-blocked": 0,
-      "audit-pending": 558
+      "audit-pending": 560
     },
     "semanticVerifiedPrefix": {
-      "count": 0,
-      "through": null,
+      "count": 1,
+      "through": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "blocker": {
-        "topoIndex": 1,
-        "sha": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
-        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 删除"
+        "topoIndex": 2,
+        "sha": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
+        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 link"
       }
     },
     "deliveryIntegratedPrefix": {
-      "count": 0,
-      "through": null,
+      "count": 1,
+      "through": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "blocker": {
-        "topoIndex": 1,
-        "sha": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
-        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 删除"
+        "topoIndex": 2,
+        "sha": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
+        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 link"
       }
     },
     "topologyIntegratedPrefix": {
-      "count": 0,
-      "through": null,
+      "count": 1,
+      "through": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "blocker": {
-        "topoIndex": 1,
-        "sha": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
-        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 删除"
+        "topoIndex": 2,
+        "sha": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
+        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 link"
       }
     },
     "firstActionable": {
-      "topoIndex": 1,
-      "sha": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
-      "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 删除",
+      "topoIndex": 2,
+      "sha": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
+      "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 link",
       "state": "audit-pending",
       "nextAction": "audit-upstream-behavior",
       "audit": {
@@ -63,6 +63,7 @@
   },
   "coverage": {
     "semanticVerified": [
+      "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "5437866299dba896b41b356abf4d28f059c9d89c",
       "b8543f5b959a94b830db45853751a52222a3df2b",
       "446be135969fc9676fd810968ba2f646a2ad9d55",
@@ -88,11 +89,13 @@
       "7e8d0c29c943e21c94009a5fb193e2a17f885401",
       "c61e68fbc8ad9868f3e6e9d7b6d94cc498fbefc7",
       "ace0528d1a801f42be4a1bad99c99ed67288c6e1",
-      "2b3da2fca489c72d36a0efba060ef2fe0219c889"
+      "2b3da2fca489c72d36a0efba060ef2fe0219c889",
+      "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0"
     ],
-    "topologyCovered": [],
+    "topologyCovered": [
+      "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0"
+    ],
     "pending": [
-      "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
       "484e3782963cae4095bfcd71add5e168fb51d5e3",
       "ab15722b032a53257c3ed6c3f076014335f72abe",
@@ -649,10 +652,12 @@
       "37d5e84d2ab4e96de5f1c122afad3f48ce9b3ecc",
       "cd2c9f8d8c1b1a124aa1f3396260e83f60d3b5b4",
       "1d77106dda1467f431b10f2a527b7eae541a33e2",
-      "c7e58c6da597ea98b427d07e6afaf3fabe6bed9b"
+      "c7e58c6da597ea98b427d07e6afaf3fabe6bed9b",
+      "df88a14c6061bf72858b6efb47a76c1d3b12cbdd",
+      "bb6dca9b53deaf177b0bd353aae595d151901a13",
+      "401d2928cab86a9d52ed1545610b183e78f7652a"
     ],
     "topologyLag": [
-      "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
       "484e3782963cae4095bfcd71add5e168fb51d5e3",
       "5437866299dba896b41b356abf4d28f059c9d89c",
@@ -1221,34 +1226,69 @@
       "37d5e84d2ab4e96de5f1c122afad3f48ce9b3ecc",
       "cd2c9f8d8c1b1a124aa1f3396260e83f60d3b5b4",
       "1d77106dda1467f431b10f2a527b7eae541a33e2",
-      "c7e58c6da597ea98b427d07e6afaf3fabe6bed9b"
+      "c7e58c6da597ea98b427d07e6afaf3fabe6bed9b",
+      "df88a14c6061bf72858b6efb47a76c1d3b12cbdd",
+      "bb6dca9b53deaf177b0bd353aae595d151901a13",
+      "401d2928cab86a9d52ed1545610b183e78f7652a"
     ],
     "deliveryIds": [
       "D001",
       "D002R",
-      "D002"
+      "D002",
+      "D003"
     ],
-    "checkpointIds": [],
-    "topologyThrough": null
+    "checkpointIds": [
+      "M001"
+    ],
+    "topologyThrough": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0"
   },
   "entries": [
     {
       "topoIndex": 1,
       "sha": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 删除",
-      "state": "audit-pending",
-      "nextAction": "audit-upstream-behavior",
+      "state": "topology-integrated",
+      "nextAction": "none",
       "audit": {
-        "status": "pending",
-        "disposition": null,
-        "seriesId": null,
-        "localCommits": [],
-        "mappingEvidence": [],
-        "codeEvidence": [],
-        "testEvidence": []
+        "status": "verified",
+        "disposition": "ported-semantic",
+        "seriesId": "cross-block-delete-8554",
+        "localCommits": [
+          "f9cb28f12b8f0168cfcad377e486dc1b0dd257d2"
+        ],
+        "mappingEvidence": [
+          {
+            "localCommit": "f9cb28f12b8f0168cfcad377e486dc1b0dd257d2",
+            "declaredDisposition": "semantic-port",
+            "series": "siyuan-dev-28e38647fb02/cross-block-delete-8554",
+            "audit": "docs/upstream-sync/siyuan-dev-28e38647fb02/commits.jsonl",
+            "patchId": null
+          }
+        ],
+        "codeEvidence": [
+          "app/src/protyle/wysiwyg/keydown.delete.ts",
+          "app/src/protyle/wysiwyg/keydown.delete.crossBlock.ts",
+          "app/src/protyle/intent/userOperationIntent.ts",
+          "app/src/protyle/wysiwyg/remove.ts"
+        ],
+        "testEvidence": [
+          "pnpm exec vitest --run test/protyle/crossBlockEditing.test.ts test/protyle/keydownDeleteMiddleware.test.ts test/protyle/keydownDeleteRouter.test.ts (3 files, 21 tests passed)"
+        ]
       },
-      "deliveries": [],
-      "topologyCheckpoints": []
+      "deliveries": [
+        {
+          "deliveryId": "D003",
+          "status": "integrated",
+          "integrationCommit": "a449cfa10117c44d377c6e799abf36bf5015c628",
+          "runtimeGateStatus": "passed"
+        }
+      ],
+      "topologyCheckpoints": [
+        {
+          "checkpointId": "M001",
+          "integrationCommit": "339dbccc97e131715f743f9b61b3f8f0c9f79324"
+        }
+      ]
     },
     {
       "topoIndex": 2,
@@ -1291,7 +1331,7 @@
       "sha": "5437866299dba896b41b356abf4d28f059c9d89c",
       "subject": ":bug: Prioritize case-insensitive exact matches in global search https://github.com/siyuan-note/siyuan/issues/18270",
       "state": "delivery-integrated",
-      "nextAction": "await-continuous-topology-prefix",
+      "nextAction": "create-topology-checkpoint",
       "audit": {
         "status": "verified",
         "disposition": "ported-exact",
@@ -1333,7 +1373,7 @@
       "sha": "b8543f5b959a94b830db45853751a52222a3df2b",
       "subject": ":art: Refine database filter option styles https://github.com/siyuan-note/siyuan/issues/18332",
       "state": "delivery-integrated",
-      "nextAction": "await-continuous-topology-prefix",
+      "nextAction": "create-topology-checkpoint",
       "audit": {
         "status": "verified",
         "disposition": "ported-semantic",
@@ -1375,7 +1415,7 @@
       "sha": "446be135969fc9676fd810968ba2f646a2ad9d55",
       "subject": ":art: Refine database attributes collapse control https://github.com/siyuan-note/siyuan/issues/11371",
       "state": "delivery-integrated",
-      "nextAction": "await-continuous-topology-prefix",
+      "nextAction": "create-topology-checkpoint",
       "audit": {
         "status": "verified",
         "disposition": "ported-semantic",
@@ -1453,7 +1493,7 @@
       "sha": "30e2e49de7f4539f7939d645bf7905ad38c6f69b",
       "subject": ":art: Align database attributes header https://github.com/siyuan-note/siyuan/issues/11371",
       "state": "delivery-integrated",
-      "nextAction": "await-continuous-topology-prefix",
+      "nextAction": "create-topology-checkpoint",
       "audit": {
         "status": "verified",
         "disposition": "ported-semantic",
@@ -9793,7 +9833,7 @@
       "sha": "025c6fe50afa5465a4ad58c0772682da6da058b0",
       "subject": ":art: Improve deletion confirmation for referenced blocks https://github.com/siyuan-note/siyuan/issues/13396",
       "state": "delivery-integrated",
-      "nextAction": "await-continuous-topology-prefix",
+      "nextAction": "create-topology-checkpoint",
       "audit": {
         "status": "verified",
         "disposition": "ported-semantic",
@@ -9864,7 +9904,7 @@
       "sha": "c9a93d53d53da90cbca2f45bc9fbf21e978070ec",
       "subject": ":bug: Fix referenced block deletion confirmation regressions https://github.com/siyuan-note/siyuan/issues/13396",
       "state": "delivery-integrated",
-      "nextAction": "await-continuous-topology-prefix",
+      "nextAction": "create-topology-checkpoint",
       "audit": {
         "status": "verified",
         "disposition": "ported-semantic",
@@ -9933,7 +9973,7 @@
       "sha": "9bfd9818accee05a74ac0433c052ea381f96bf84",
       "subject": ":bug: Warn before cutting referenced content across blocks https://github.com/siyuan-note/siyuan/issues/13396",
       "state": "delivery-integrated",
-      "nextAction": "await-continuous-topology-prefix",
+      "nextAction": "create-topology-checkpoint",
       "audit": {
         "status": "verified",
         "disposition": "ported-semantic",
@@ -10136,7 +10176,7 @@
       "sha": "9e8db0d591c30e4ffdb9acc70b55b0efb787c3c9",
       "subject": ":bug: Fix referenced block cut and deletion checks https://github.com/siyuan-note/siyuan/issues/13396",
       "state": "delivery-integrated",
-      "nextAction": "await-continuous-topology-prefix",
+      "nextAction": "create-topology-checkpoint",
       "audit": {
         "status": "verified",
         "disposition": "ported-semantic",
@@ -10405,7 +10445,7 @@
       "sha": "7e8d0c29c943e21c94009a5fb193e2a17f885401",
       "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 跨块剪切后撤销显示不完全",
       "state": "delivery-integrated",
-      "nextAction": "await-continuous-topology-prefix",
+      "nextAction": "create-topology-checkpoint",
       "audit": {
         "status": "verified",
         "disposition": "ported-semantic",
@@ -10697,7 +10737,7 @@
       "sha": "c61e68fbc8ad9868f3e6e9d7b6d94cc498fbefc7",
       "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554",
       "state": "delivery-integrated",
-      "nextAction": "await-continuous-topology-prefix",
+      "nextAction": "create-topology-checkpoint",
       "audit": {
         "status": "verified",
         "disposition": "ported-semantic",
@@ -10790,7 +10830,7 @@
       "sha": "ace0528d1a801f42be4a1bad99c99ed67288c6e1",
       "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554",
       "state": "delivery-integrated",
-      "nextAction": "await-continuous-topology-prefix",
+      "nextAction": "create-topology-checkpoint",
       "audit": {
         "status": "verified",
         "disposition": "ported-semantic",
@@ -11100,7 +11140,7 @@
       "sha": "2b3da2fca489c72d36a0efba060ef2fe0219c889",
       "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554",
       "state": "delivery-integrated",
-      "nextAction": "await-continuous-topology-prefix",
+      "nextAction": "create-topology-checkpoint",
       "audit": {
         "status": "verified",
         "disposition": "ported-semantic",
@@ -11787,6 +11827,60 @@
       "topoIndex": 570,
       "sha": "c7e58c6da597ea98b427d07e6afaf3fabe6bed9b",
       "subject": ":sparkles: Support block type locking for external updates https://github.com/siyuan-note/siyuan/issues/17450",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 571,
+      "sha": "df88a14c6061bf72858b6efb47a76c1d3b12cbdd",
+      "subject": ":bug: Fix caret placement when clicking beside blocks https://github.com/siyuan-note/siyuan/issues/18462",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 572,
+      "sha": "bb6dca9b53deaf177b0bd353aae595d151901a13",
+      "subject": ":bug: Preserve bottom backlink visibility at document boundaries https://github.com/siyuan-note/siyuan/issues/18461",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 573,
+      "sha": "401d2928cab86a9d52ed1545610b183e78f7652a",
+      "subject": ":bug: Preserve escaped elements in replacement text https://github.com/siyuan-note/siyuan/issues/15256",
       "state": "audit-pending",
       "nextAction": "audit-upstream-behavior",
       "audit": {

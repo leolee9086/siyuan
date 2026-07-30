@@ -350,7 +350,7 @@ export const deriveUpstreamReconciliation = ({repo, output, mainHead}) => {
     const deriveNextAction = (record, state) => {
         switch (state) {
             case "topology-integrated": return "none";
-            case "delivery-integrated": return "await-continuous-topology-prefix";
+            case "delivery-integrated": return "create-topology-checkpoint";
             case "delivery-git-integrated": return "complete-runtime-gate";
             case "delivery-in-progress": return "complete-delivery-verification";
             case "semantic-verified": return "create-rolling-delivery";

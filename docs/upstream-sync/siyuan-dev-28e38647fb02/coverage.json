@@ -1,11 +1,12 @@
 {
   "schemaVersion": 2,
-  "sourceHead": "db85fb64dd7fa6791c897acaf24209285ffecb73",
+  "sourceHead": "339dbccc97e131715f743f9b61b3f8f0c9f79324",
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
-  "upstreamTip": "c7e58c6da597ea98b427d07e6afaf3fabe6bed9b",
+  "upstreamTip": "401d2928cab86a9d52ed1545610b183e78f7652a",
   "semanticVerified": {
-    "count": 12,
+    "count": 13,
     "shas": [
+      "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "5437866299dba896b41b356abf4d28f059c9d89c",
       "b8543f5b959a94b830db45853751a52222a3df2b",
       "446be135969fc9676fd810968ba2f646a2ad9d55",
@@ -21,11 +22,12 @@
     ]
   },
   "deliveryIntegrated": {
-    "count": 12,
+    "count": 13,
     "deliveryIds": [
       "D001",
       "D002R",
-      "D002"
+      "D002",
+      "D003"
     ],
     "shas": [
       "5437866299dba896b41b356abf4d28f059c9d89c",
@@ -39,19 +41,23 @@
       "7e8d0c29c943e21c94009a5fb193e2a17f885401",
       "c61e68fbc8ad9868f3e6e9d7b6d94cc498fbefc7",
       "ace0528d1a801f42be4a1bad99c99ed67288c6e1",
-      "2b3da2fca489c72d36a0efba060ef2fe0219c889"
+      "2b3da2fca489c72d36a0efba060ef2fe0219c889",
+      "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0"
     ]
   },
   "topologyCovered": {
-    "count": 0,
-    "checkpointIds": [],
-    "through": null,
-    "shas": []
+    "count": 1,
+    "checkpointIds": [
+      "M001"
+    ],
+    "through": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
+    "shas": [
+      "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0"
+    ]
   },
   "pending": {
-    "count": 558,
+    "count": 560,
     "shas": [
-      "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
       "484e3782963cae4095bfcd71add5e168fb51d5e3",
       "ab15722b032a53257c3ed6c3f076014335f72abe",
@@ -608,13 +614,15 @@
       "37d5e84d2ab4e96de5f1c122afad3f48ce9b3ecc",
       "cd2c9f8d8c1b1a124aa1f3396260e83f60d3b5b4",
       "1d77106dda1467f431b10f2a527b7eae541a33e2",
-      "c7e58c6da597ea98b427d07e6afaf3fabe6bed9b"
+      "c7e58c6da597ea98b427d07e6afaf3fabe6bed9b",
+      "df88a14c6061bf72858b6efb47a76c1d3b12cbdd",
+      "bb6dca9b53deaf177b0bd353aae595d151901a13",
+      "401d2928cab86a9d52ed1545610b183e78f7652a"
     ]
   },
   "topologyLag": {
-    "count": 570,
+    "count": 572,
     "shas": [
-      "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
       "484e3782963cae4095bfcd71add5e168fb51d5e3",
       "5437866299dba896b41b356abf4d28f059c9d89c",
@@ -1183,52 +1191,55 @@
       "37d5e84d2ab4e96de5f1c122afad3f48ce9b3ecc",
       "cd2c9f8d8c1b1a124aa1f3396260e83f60d3b5b4",
       "1d77106dda1467f431b10f2a527b7eae541a33e2",
-      "c7e58c6da597ea98b427d07e6afaf3fabe6bed9b"
+      "c7e58c6da597ea98b427d07e6afaf3fabe6bed9b",
+      "df88a14c6061bf72858b6efb47a76c1d3b12cbdd",
+      "bb6dca9b53deaf177b0bd353aae595d151901a13",
+      "401d2928cab86a9d52ed1545610b183e78f7652a"
     ]
   },
   "reconciliation": {
-    "total": 570,
+    "total": 573,
     "stateCounts": {
-      "topology-integrated": 0,
+      "topology-integrated": 1,
       "delivery-integrated": 12,
       "delivery-git-integrated": 0,
       "delivery-in-progress": 0,
       "semantic-verified": 0,
       "audit-in-progress": 0,
       "audit-blocked": 0,
-      "audit-pending": 558
+      "audit-pending": 560
     },
     "semanticVerifiedPrefix": {
-      "count": 0,
-      "through": null,
+      "count": 1,
+      "through": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "blocker": {
-        "topoIndex": 1,
-        "sha": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
-        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 删除"
+        "topoIndex": 2,
+        "sha": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
+        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 link"
       }
     },
     "deliveryIntegratedPrefix": {
-      "count": 0,
-      "through": null,
+      "count": 1,
+      "through": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "blocker": {
-        "topoIndex": 1,
-        "sha": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
-        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 删除"
+        "topoIndex": 2,
+        "sha": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
+        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 link"
       }
     },
     "topologyIntegratedPrefix": {
-      "count": 0,
-      "through": null,
+      "count": 1,
+      "through": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "blocker": {
-        "topoIndex": 1,
-        "sha": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
-        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 删除"
+        "topoIndex": 2,
+        "sha": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
+        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 link"
       }
     },
     "firstActionable": {
-      "topoIndex": 1,
-      "sha": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
-      "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 删除",
+      "topoIndex": 2,
+      "sha": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
+      "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 link",
       "state": "audit-pending",
       "nextAction": "audit-upstream-behavior",
       "audit": {

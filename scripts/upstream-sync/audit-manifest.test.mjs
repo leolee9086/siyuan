@@ -449,6 +449,10 @@ test("derives semantic, delivery and topology coverage from verified Git relatio
         deliveryId: "D1", status: "integrated", upstreamCommits: [upstreamFirst, upstreamTip],
         mainBase: localBase, seriesHead, integrationCommit: delivery,
     })}\n`);
+    const deliveryOnlyReconciliation = deriveUpstreamReconciliation({repo, output});
+    assert.equal(deliveryOnlyReconciliation.entries[0].state, "delivery-integrated");
+    assert.equal(deliveryOnlyReconciliation.entries[0].nextAction, "create-topology-checkpoint");
+    assert.equal(deliveryOnlyReconciliation.summary.firstActionable.sha, upstreamFirst);
     writeFileSync(join(output, "topology-checkpoints.jsonl"), `${JSON.stringify({
         checkpointId: "C1", status: "integrated", upstreamBase, upstreamTip,
         mainBase: delivery, integrationCommit: topologyCheckpoint,
