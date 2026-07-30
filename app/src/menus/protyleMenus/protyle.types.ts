@@ -79,9 +79,12 @@ export interface IInlineMenuContext {
 export interface LinkMenuContext {
     protyle: IProtyle;
     linkElement: HTMLElement;
+    linkElements: readonly HTMLElement[];
+    linkBlockElements: readonly HTMLElement[];
     nodeElement: HTMLElement;
     id: string;
     html: string;
     linkAddress: string | null;
+    oldHTMLs?: ReadonlyMap<string, string>;
     inputElements?: NodeListOf<HTMLTextAreaElement>;
 }

@@ -4,6 +4,7 @@ import { hasClosestBlock, hasClosestByAttribute } from "../util/hasClosest";
 import { readClipboard } from "../util/compatibility";
 import { Constants } from "../../constants";
 import { genLinkText, resolveLinkDest } from "./util";
+import {reportProtyleUserOperationIntent} from "../intent/userOperationIntent";
 
 /**
  * 创建链接工具栏项
@@ -15,11 +16,14 @@ import { genLinkText, resolveLinkDest } from "./util";
 export const createLinkToolbarItem = (protyle: IProtyle, menuItem: IMenuItem): HTMLElement => {
     const element = createToolbarItemElement(protyle, menuItem);
     // 不能用 getEventName，否则会导致光标位置变动到点击的文档中
-    element.addEventListener("click", async (event: MouseEvent & { changedTouches: MouseEvent[] }) => {
+    element.addEventListener("click", async (event: MouseEvent) => {
         protyle.toolbar.element.classList.add("fn__none");
         event.stopPropagation();
 
         const range = protyle.toolbar.range;
+        if (!range) {
+            return;
+        }
         const nodeElement = hasClosestBlock(range.startContainer);
         if (!nodeElement) {
             return;
@@ -38,26 +42,27 @@ export const createLinkToolbarItem = (protyle: IProtyle, menuItem: IMenuItem): H
             dataHref = protyle.lute.GetLinkDest(dataText);
             if (!dataHref) {
                 const clipObject = await readClipboard();
-                const html = clipObject.textHTML || protyle.lute.Md2BlockDOM(clipObject.textPlain);
+                const clipboardText = clipObject.textPlain ?? "";
+                const html = clipObject.textHTML || protyle.lute.Md2BlockDOM(clipboardText);
                 if (html) {
                     const tempElement = document.createElement("template");
                     tempElement.innerHTML = html;
                     const linkElement = tempElement.content.querySelector('span[data-type~="a"], a');
                     if (linkElement) {
-                        dataText = dataText || linkElement.textContent;
-                        dataHref = linkElement.getAttribute("data-href") || linkElement.getAttribute("href");
+                        dataText = dataText || linkElement.textContent || "";
+                        dataHref = linkElement.getAttribute("data-href") || linkElement.getAttribute("href") || "";
                     }
                 }
                 if (!dataHref) {
-                    dataHref = resolveLinkDest(clipObject.textPlain, protyle.lute);
+                    dataHref = resolveLinkDest(clipboardText, protyle.lute);
                 }
                 if (!dataHref) {
                     // 360
-                    const lastSpace = clipObject.textPlain.lastIndexOf(" ");
+                    const lastSpace = clipboardText.lastIndexOf(" ");
                     if (lastSpace > -1) {
-                        dataHref = protyle.lute.GetLinkDest(clipObject.textPlain.substring(lastSpace));
+                        dataHref = protyle.lute.GetLinkDest(clipboardText.substring(lastSpace));
                         if (dataHref && !dataText) {
-                            dataText = clipObject.textPlain.substring(0, lastSpace);
+                            dataText = clipboardText.substring(0, lastSpace);
                         }
                     }
                 }
@@ -67,15 +72,29 @@ export const createLinkToolbarItem = (protyle: IProtyle, menuItem: IMenuItem): H
                     showMenu = true;
                 }
             }
-        } catch (e) {
-            console.log(e);
+        } catch (error) {
+            console.error("Failed to inspect clipboard while applying an inline link", error);
         }
         const linkElements = protyle.toolbar.setInlineMark(protyle, "a", "range", {
             type: "a",
             color: dataHref + (dataText ? Constants.ZWSP + dataText : "")
         });
-        if (showMenu) {
-            linkMenu(protyle, linkElements[0] as HTMLElement, true);
+        const createdLinkElements = (linkElements ?? []).filter((node): node is HTMLElement =>
+            node instanceof HTMLElement && (node.getAttribute("data-type") ?? "").split(" ").includes("a"));
+        if (linkElements && linkElements.length > 0) {
+            reportProtyleUserOperationIntent(protyle, {
+                actor: "user",
+                surface: "editor",
+                source: "toolbar",
+                operation: "toggle-inline-link",
+                trigger: "toolbar-click",
+                blockIds: [nodeElement.getAttribute("data-node-id")],
+                linkCount: createdLinkElements.length,
+            });
+        }
+        const [firstCreatedLinkElement] = createdLinkElements;
+        if (showMenu && firstCreatedLinkElement) {
+            linkMenu(protyle, firstCreatedLinkElement, true, createdLinkElements);
         }
     });
     return element;
