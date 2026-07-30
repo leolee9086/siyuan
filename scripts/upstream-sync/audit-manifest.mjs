@@ -1,6 +1,18 @@
 import {execFileSync} from "node:child_process";
-import {existsSync, mkdirSync, readFileSync, writeFileSync} from "node:fs";
-import {resolve} from "node:path";
+import {
+    closeSync,
+    existsSync,
+    mkdirSync,
+    mkdtempSync,
+    openSync,
+    readFileSync,
+    rmdirSync,
+    statSync,
+    unlinkSync,
+    writeFileSync,
+} from "node:fs";
+import {tmpdir} from "node:os";
+import {join, resolve} from "node:path";
 import {pathToFileURL} from "node:url";
 import {parseArgs} from "node:util";
 
@@ -126,17 +138,43 @@ const getStablePatchId = (repo, sha, isMerge) => {
     if (isMerge) {
         return null;
     }
-    const patch = runGit(repo, [
-        "show", "--pretty=format:", "--no-ext-diff", "--no-textconv",
-        "--no-renames", "--full-index", "--binary", sha,
-    ], {
-        encoding: null,
-    });
-    if (patch.length === 0) {
-        return null;
+    const temporaryDirectory = mkdtempSync(join(tmpdir(), "sforge-upstream-patch-id-"));
+    const patchPath = join(temporaryDirectory, "patch");
+    try {
+        const patchOutput = openSync(patchPath, "w");
+        try {
+            execFileSync("git", [
+                "show", "--pretty=format:", "--no-ext-diff", "--no-textconv",
+                "--no-renames", "--full-index", "--binary", sha,
+            ], {
+                cwd: repo,
+                maxBuffer: MAX_BUFFER,
+                stdio: ["ignore", patchOutput, "pipe"],
+            });
+        } finally {
+            closeSync(patchOutput);
+        }
+        if (statSync(patchPath).size === 0) {
+            return null;
+        }
+        const patchInput = openSync(patchPath, "r");
+        try {
+            const output = execFileSync("git", ["patch-id", "--stable"], {
+                cwd: repo,
+                encoding: "utf8",
+                maxBuffer: MAX_BUFFER,
+                stdio: [patchInput, "pipe", "pipe"],
+            }).trim();
+            return output ? output.split(/\s+/, 1)[0] : null;
+        } finally {
+            closeSync(patchInput);
+        }
+    } finally {
+        if (existsSync(patchPath)) {
+            unlinkSync(patchPath);
+        }
+        rmdirSync(temporaryDirectory);
     }
-    const output = runGit(repo, ["patch-id", "--stable"], {input: patch}).trim();
-    return output ? output.split(/\s+/, 1)[0] : null;
 };
 
 const getRevertTargets = (repo, body) => {
