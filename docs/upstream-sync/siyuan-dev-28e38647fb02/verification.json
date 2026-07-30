@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "cycleId": "siyuan-dev-28e38647fb02",
   "status": "in-progress",
-  "candidateHead": "336debdb0a617a84b4036d8b64ff0e39fab1eb04",
+  "candidateHead": "659e223c3c4045ecfbf1537542e1a4a8fb36b61c",
   "deliveries": {
     "status": "passed",
     "integratedCount": 1,
@@ -14,14 +14,14 @@
   "manifest": {
     "status": "passed",
     "command": "node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
-    "commitCount": 505,
-    "uniqueCommitCount": 505,
-    "mergeCommitCount": 37,
+    "commitCount": 544,
+    "uniqueCommitCount": 544,
+    "mergeCommitCount": 41,
     "revertCommitCount": 0,
-    "stablePatchIdCount": 468,
+    "stablePatchIdCount": 503,
     "mappedUpstreamCommitCount": 8,
     "verifiedAuditCount": 8,
-    "pendingAuditCount": 497
+    "pendingAuditCount": 536
   },
   "focusedChecks": [
     {
@@ -52,13 +52,13 @@
       "name": "referenced block removal and cut series",
       "status": "passed",
       "command": "pnpm exec vitest --run test/protyle/crossBlockEditing.test.ts test/protyle/cutClipboard.transaction.test.ts test/protyle/removeFoundation.test.ts test/protyle/listItemActions.test.ts test/layout/dock/outline/Outline.helpers.test.ts; go test -tags fts5 ./sql ./treenode ./model ./api -count=1",
-      "evidence": "Five Vitest files with 31 assertions passed; reference-confirmation refusal and rich clipboard rejection preserve the original DOM. Kernel sql, treenode, model and api packages all passed their focused regression runs. Candidate commits bb15f54aac73251e81a566c81cb106874edfaadb and 2ef29e1fd5be539b7db775a1402c07e3bcf75a73 map four upstream commits through parsed trailers."
+      "evidence": "After synchronizing current mainline into candidate 659e223c3c4045ecfbf1537542e1a4a8fb36b61c, five Vitest files with 31 assertions passed; reference-confirmation refusal and rich clipboard rejection preserve the original DOM. Kernel sql, treenode, model and api packages all passed their focused regression runs. Candidate commits bb15f54aac73251e81a566c81cb106874edfaadb and 2ef29e1fd5be539b7db775a1402c07e3bcf75a73 map four upstream commits through parsed trailers."
     },
     {
       "name": "current upstream tip refresh",
       "status": "passed",
-      "command": "git fetch --prune upstream dev through http://127.0.0.1:7890; node scripts/upstream-sync/audit-manifest.mjs advance-tip --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02 --upstream-tip 6d23075f6fd571f5047239ff38cfe6e2feb4a402 --fetched-at 2026-07-30T13:39:41+08:00",
-      "evidence": "U1 advanced only through verified fast-forward steps, ending at 6d23075f6fd571f5047239ff38cfe6e2feb4a402. The last update added 21 commits and one merge after bdd005b4a641f1a00a0d0b656fcaea69a5a7f6dc; the full range is 505 commits and 37 merges. All 8 verified audits were preserved and 497 entries remain explicit pending. advance-tip verifies the complete manifest before returning success."
+      "command": "git fetch --no-tags upstream refs/heads/dev:refs/remotes/upstream/dev through http://127.0.0.1:7890; node scripts/upstream-sync/audit-manifest.mjs advance-tip --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02 --upstream-tip 66c7c6e872f6c48a9b116afa91c765880d73b9b6 --fetched-at 2026-07-30T20:25:27.6870202+08:00",
+      "evidence": "U1 advanced only through verified fast-forward steps, ending at 66c7c6e872f6c48a9b116afa91c765880d73b9b6. The last update added 39 commits and four merges after 6d23075f6fd571f5047239ff38cfe6e2feb4a402; the full range is 544 commits and 41 merges. All 8 verified audits were preserved and 536 entries remain explicit pending. advance-tip verifies the complete manifest before returning success."
     },
     {
       "name": "search exact ranking",
@@ -88,6 +88,12 @@
     {"name": "all app build targets", "command": "pnpm build", "status": "pending"}
   ],
   "failures": [
+    {
+      "stage": "upstream tip manifest advance",
+      "result": "failed-explicitly",
+      "message": "Recomputing stable patch IDs for the complete 505-entry frozen range exceeded the 124 second command deadline while only 39 new upstream commits had been added.",
+      "resolution": "The audit tool now reuses the recorded stable patch ID for each immutable existing SHA, while regenerating all paths, metadata, relationships and new entries. Its six regression tests passed; the repeated advance-tip completed and verify confirmed the 544-entry range."
+    },
     {
       "stage": "post-integration current-tip manifest verification",
       "result": "failed-explicitly",
