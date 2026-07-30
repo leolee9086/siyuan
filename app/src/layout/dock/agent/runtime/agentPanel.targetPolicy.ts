@@ -25,6 +25,7 @@ export function resolveAgentPanelTargetPolicy(input: AgentPanelTargetPolicyInput
             identityLabel,
             identityVisible: true,
             sessionActionsVisible: false,
+            promptSourceVisible: false,
             regenerationVisible: false,
             sendingAvailable: input.magiIdentityReady && !input.magiConversationLoading,
         };
@@ -34,6 +35,7 @@ export function resolveAgentPanelTargetPolicy(input: AgentPanelTargetPolicyInput
         identityLabel: "",
         identityVisible: false,
         sessionActionsVisible: true,
+        promptSourceVisible: true,
         regenerationVisible: true,
         sendingAvailable: true,
     };

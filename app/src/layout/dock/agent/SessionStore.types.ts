@@ -18,6 +18,35 @@ export interface AgentTaskDirectoryCapabilities {
     canBindTaskDirectories: boolean;
 }
 
+/** 表示 Kernel 持有的系统提示词来源元数据；有效正文始终不发送到浏览器。 */
+export interface AgentPromptSourceMetadata {
+    kind: "default" | "document";
+    documentId?: string;
+    notebookId?: string;
+    titleSnapshot?: string;
+    contentHash?: string;
+    sourceVersion?: string;
+    capturedAt?: number;
+    keptVersion?: string;
+    keptAt?: number;
+}
+
+/** 表示当前会话的提示词来源资格、变更状态与服务端权威 revision。 */
+export interface AgentPromptSourceState {
+    state: "eligible" | "bound" | "locked" | "source-changed";
+    source: AgentPromptSourceMetadata;
+    revision: number;
+    currentVersion?: string;
+}
+
+/** 表示可由 Kernel 读取并绑定为提示词来源的文档搜索结果。 */
+export interface AgentPromptSourceDocument {
+    id: string;
+    notebookId: string;
+    title: string;
+    hPath: string;
+}
+
 /** 表示已进入 AI 主笔记本附件目录的文件摘要，供聊天输入框生成附件链接。 */
 export interface AgentUploadedFile {
     name: string;

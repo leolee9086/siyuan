@@ -11,10 +11,14 @@ import {isMobile} from "../../../platform";
 import {agentOwnerHeaders, SessionStore, setAgentOwnerTokenProvider} from "./SessionStore";
 import type {
     AgentSession,
+    AgentPromptSourceState,
     AgentTaskDirectoryCapabilities,
     TaskDirectoryBinding,
     TaskDirectoryMenuAction,
 } from "./SessionStore.types";
+import {
+    requestAgentPromptSourceDocument,
+} from "./AgentPromptSourceDialog";
 import {createAgentSessionPanelController, runAgentTaskDirectoryAction} from "./session-panel/controller";
 import type {AgentSessionPanelController} from "./session-panel/types";
 import {buildTaskDirectoryMenuActions} from "./session-panel/menu.actions";
@@ -86,6 +90,9 @@ setAgentOwnerTokenProvider(() => {
 // 限制注入用户轮次上下文的可见块 ID 数量，以控制 token 开销。
 // 与 kernel/agent/agent.go 中的 maxVisibleBlockIDs 保持一致。
 const maxVisibleBlockIDs = 50;
+const AGENT_PROMPT_SOURCE_MENU_NAME = "agent-prompt-source-actions";
+
+type AgentPromptSourceAction = "bind-document" | "refresh-document" | "keep-snapshot" | "create-document";
 
 type EntryBase = { id?: string };
 type AgentReference = { id: string; title: string };
@@ -131,6 +138,14 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
     private stopBtn!: HTMLElement;
     private sessionFilesBtn!: HTMLButtonElement;
     private sessionFilesInput!: HTMLInputElement;
+    private promptSourceRow!: HTMLElement;
+    private promptSourceLabel!: HTMLElement;
+    private promptSourceBtn!: HTMLButtonElement;
+    private promptSourceState: AgentPromptSourceState | null = null;
+    private promptSourceError = "";
+    private promptSourceLoadSerial = 0;
+    private promptSourceOperationSerial = 0;
+    private promptSourceOperationPending = false;
     private sessionFileOperationSerial = 0;
     private sessionFileOperationPending = false;
     private newSessionBtn!: HTMLElement;
@@ -295,6 +310,9 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
 
     private checkConfigChangedHandler = () => {
         this.checkConfigChanged();
+        if (this.conversationKind === "native-agent") {
+            void this.refreshPromptSourceState();
+        }
     };
 
     private applyCapabilityVisibility() {
@@ -328,6 +346,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
             this.targetSelect.value = this.conversationKind;
             this.targetSelect.disabled = this.isStreaming;
         }
+        this.updatePromptSourcePresentation(policy.promptSourceVisible && !!this.capabilities.menu);
         this.updateSendButtonState();
     }
 
@@ -442,6 +461,13 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
             '<span class="agent-chat__scroll-bottom ariaLabel" data-position="west" aria-label="' + L.scrollToBottom + '"><svg><use xlink:href="#iconArrowDown"></use></svg></span>' +
             "</div>" +
             '<div class="agent-chat__input-area">' +
+            '<div class="agent-chat__prompt-source-row fn__none" data-type="prompt-source-row">' +
+            '<button type="button" class="agent-chat__prompt-source-btn b3-button b3-button--cancel" data-type="prompt-source" aria-label="系统提示词" aria-haspopup="menu">' +
+            '<svg aria-hidden="true"><use xlink:href="#iconFile"></use></svg>' +
+            '<span class="agent-chat__prompt-source-label" data-type="prompt-source-label"></span>' +
+            '<svg class="agent-chat__prompt-source-arrow" aria-hidden="true"><use xlink:href="#iconDown"></use></svg>' +
+            "</button>" +
+            "</div>" +
             '<div class="agent-chat__composer-host"></div>' +
             '<div class="agent-chat__buttons">' +
             '<button class="agent-chat__session-files b3-button b3-button--icon b3-button--cancel b3-tooltips b3-tooltips__n" data-type="session-files" aria-label="' + (L.upload || "Upload") + ' ' + (L.agentCatFile || "file") + '"><svg><use xlink:href="#iconUpload"></use></svg></button>' +
@@ -468,6 +494,9 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         this.stopBtn = panel.querySelector(".agent-chat__stop") as HTMLElement;
         this.sessionFilesBtn = panel.querySelector(".agent-chat__session-files") as HTMLButtonElement;
         this.sessionFilesInput = panel.querySelector(".agent-chat__session-files-input") as HTMLInputElement;
+        this.promptSourceRow = panel.querySelector('[data-type="prompt-source-row"]') as HTMLElement;
+        this.promptSourceLabel = panel.querySelector('[data-type="prompt-source-label"]') as HTMLElement;
+        this.promptSourceBtn = panel.querySelector('.agent-chat__prompt-source-btn[data-type="prompt-source"]') as HTMLButtonElement;
         this.guardianAuthBtn = panel.querySelector('.block__icon[data-type="guardian-auth"]') as HTMLElement;
         this.identityLabelElement = panel.querySelector('[data-type="magi-identity-label"]') as HTMLElement;
         this.newSessionBtn = panel.querySelector('.block__icon[data-type="new-session"]') as HTMLElement;
@@ -599,6 +628,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
             return;
         }
         await this.saveSession();
+        this.resetPromptSourceState();
         this.conversationKind = conversation.kind;
         this.applyConversationCapabilityVisibility();
         if (conversation.kind === "magi") {
@@ -681,8 +711,9 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
 
     private loadSessionForFloating(session: AgentSession) {
         this.conversationKind = session.targetKind ?? "native-agent";
-        this.applyConversationCapabilityVisibility();
         this.sessionId = session.id;
+        this.resetPromptSourceState();
+        this.applyConversationCapabilityVisibility();
         this.sessionCreatedAt = session.createdAt || Date.now();
         this.sessionTitle = session.title || this.defaultTitle;
         this.hasTitled = session.titled !== false;
@@ -702,6 +733,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         this.rebuildNavMarkers();
         this.updateTokenDisplay();
         this.scrollToBottom(true);
+        void this.refreshPromptSourceState();
     }
 
     /** 释放副本的编辑器、网络连接、观察器和全局监听器。 */
@@ -710,6 +742,9 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
             return;
         }
         this.agentDestroyed = true;
+        this.promptSourceLoadSerial++;
+        this.promptSourceOperationSerial++;
+        this.promptSourceOperationPending = false;
         this.sessionFileOperationSerial++;
         this.sessionFileOperationPending = false;
         this.abortController?.abort();
@@ -731,6 +766,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         window.removeEventListener("focus", this.checkConfigChangedHandler);
         window.removeEventListener(MAGI_IDENTITY_SESSION_CHANGED_EVENT, this.handleMagiIdentitySessionChanged);
         this.capabilities.menu?.close("agent-current-session-files");
+        this.capabilities.menu?.close(AGENT_PROMPT_SOURCE_MENU_NAME);
         this.sessionPanel?.destroy();
         this.composer?.destroy();
         this.composer = null;
@@ -1123,6 +1159,14 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
             }
             void this.openSessionFilesMenu().catch((error) => this.reportSessionFileError(error));
         });
+        this.promptSourceBtn.addEventListener("click", (e: MouseEvent) => {
+            e.stopPropagation();
+            if (this.isStreaming || this.promptSourceOperationPending ||
+                !this.resolveTargetPolicy().promptSourceVisible) {
+                return;
+            }
+            void this.openPromptSourceMenu().catch((error) => this.reportPromptSourceError(error));
+        });
         this.sessionFilesInput.addEventListener("change", () => {
             const files = Array.from(this.sessionFilesInput.files || []);
             this.sessionFilesInput.value = "";
@@ -1245,6 +1289,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         this.sessionTitle = this.defaultTitle;
         this.pendingSessionTitle = null;
         this.entries = [];
+        this.resetPromptSourceState();
         this.showWelcome();
         this.scrollToBottom(true);
     }
@@ -1294,12 +1339,14 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         if (this.pendingSessionTitle !== null && !this.isStreaming && !this.currentTurnID) {
             await this.saveSession();
         }
+        void this.refreshPromptSourceState();
         return result.session ?? null;
     }
 
     private resetMagiConversationView() {
         this.entries = [];
         this.sessionId = "";
+        this.resetPromptSourceState();
         this.sessionCreatedAt = Date.now();
         this.sessionTitle = "MAGI";
         this.hasTitled = true;
@@ -1649,6 +1696,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         this.removeMirrorPlaceholder();
         this.entries = [];
         this.sessionId = SessionStore.newSessionId();
+        this.resetPromptSourceState();
         this.currentTurnID = "";
         this.sessionCreatedAt = Date.now();
         this.sessionTitle = this.defaultTitle;
@@ -1696,9 +1744,10 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         if (!session) {
             return;
         }
-        this.conversationKind = session.targetKind ?? "native-agent";
-        this.applyConversationCapabilityVisibility();
         this.sessionId = session.id;
+        this.conversationKind = session.targetKind ?? "native-agent";
+        this.resetPromptSourceState();
+        this.applyConversationCapabilityVisibility();
         this.currentTurnID = "";
         if (session.recoveryTurnID) {
             this.recoveryCommitTurnIDs.set(session.id, session.recoveryTurnID);
@@ -1741,6 +1790,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
                 this.scrollToBottom(true);
             }
             this.messagesContainer.classList.remove("agent-chat__messages--switching");
+            void this.refreshPromptSourceState();
             if (this.pendingRecoverySessionIDs.has(session.id)) {
                 void this.recoverInterruptedTurn(session.id);
             }
@@ -2195,6 +2245,258 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         }
     }
 
+    /** 首次发送前由服务端重新判定来源版本；变化必须先由用户选择刷新或保持，不能被发送路径悄然锁死。 */
+    private async ensurePromptSourceDecisionBeforeFirstTurn() {
+        if (this.conversationKind !== "native-agent" || SessionStore.getRevision(this.sessionId) < 1) {
+            return true;
+        }
+        const requestSessionID = this.sessionId;
+        try {
+            const state = await SessionStore.getPromptSource(requestSessionID);
+            if (this.agentDestroyed || this.conversationKind !== "native-agent" || this.sessionId !== requestSessionID) {
+                return false;
+            }
+            this.promptSourceState = state;
+            this.promptSourceError = "";
+            this.updatePromptSourcePresentation();
+            if (state.state !== "source-changed") {
+                return true;
+            }
+            this.showPromptSourceMenu(state);
+            this.capabilities.message?.show("系统提示词来源文档已变化，请选择刷新或保持当前快照", 5000);
+            return false;
+        } catch (error) {
+            if (!this.agentDestroyed && this.sessionId === requestSessionID) {
+                this.reportPromptSourceError(error);
+            }
+            return false;
+        }
+    }
+
+    /** 使用 target policy 与细粒度菜单 Port 呈现来源状态；正文只保留在 Kernel，不进入 DOM 或日志。 */
+    private updatePromptSourcePresentation(
+        visible = this.resolveTargetPolicy().promptSourceVisible && !!this.capabilities.menu,
+    ) {
+        if (!this.promptSourceRow || !this.promptSourceLabel || !this.promptSourceBtn) {
+            return;
+        }
+        this.promptSourceRow.classList.toggle("fn__none", !visible);
+        if (!visible) {
+            return;
+        }
+        const state = this.promptSourceState;
+        const source = state?.source;
+        let label = "系统提示词：默认";
+        let tooltip = "选择一篇文档作为系统提示词";
+        if (this.promptSourceError) {
+            label = "系统提示词不可用";
+            tooltip = this.promptSourceError;
+        } else if (source?.kind === "document") {
+            label = `系统提示词：${source.titleSnapshot || "未命名文档"}`;
+            tooltip = state?.state === "source-changed"
+                ? "来源文档已变化，打开菜单选择刷新或保持当前快照"
+                : "打开系统提示词菜单";
+        }
+        if (state?.state === "locked") {
+            label += "（已锁定）";
+            tooltip = source?.kind === "document"
+                ? "首次发送后已锁定当前快照；菜单中可创建独立副本"
+                : "首次发送后已锁定默认系统提示词";
+        }
+        this.promptSourceLabel.textContent = label;
+        this.promptSourceLabel.setAttribute("title", tooltip);
+        this.promptSourceBtn.setAttribute("title", tooltip);
+        this.promptSourceBtn.setAttribute("aria-label", tooltip);
+        this.promptSourceBtn.disabled = this.isStreaming || this.promptSourceOperationPending;
+        this.promptSourceRow.classList.toggle("agent-chat__prompt-source-row--changed", state?.state === "source-changed");
+        this.promptSourceRow.classList.toggle("agent-chat__prompt-source-row--locked", state?.state === "locked");
+    }
+
+    /** 会话、目标或组件生命周期变动时丢弃旧来源状态，并且只关闭本面板拥有的菜单。 */
+    private resetPromptSourceState() {
+        this.promptSourceLoadSerial++;
+        this.promptSourceOperationSerial++;
+        this.promptSourceOperationPending = false;
+        this.promptSourceState = null;
+        this.promptSourceError = "";
+        this.capabilities.menu?.close(AGENT_PROMPT_SOURCE_MENU_NAME);
+        this.updatePromptSourcePresentation();
+    }
+
+    /** 空会话尚未落盘时显示默认状态；已有会话由服务端计算资格与文档版本。 */
+    private async refreshPromptSourceState() {
+        const requestSessionID = this.sessionId;
+        const requestKind = this.conversationKind;
+        const loadID = ++this.promptSourceLoadSerial;
+        if (!this.resolveTargetPolicy().promptSourceVisible || !this.capabilities.menu ||
+            SessionStore.getRevision(requestSessionID) < 1) {
+            this.promptSourceState = null;
+            this.promptSourceError = "";
+            this.updatePromptSourcePresentation();
+            return;
+        }
+        try {
+            const state = await SessionStore.getPromptSource(requestSessionID);
+            if (this.agentDestroyed || loadID !== this.promptSourceLoadSerial ||
+                this.sessionId !== requestSessionID || this.conversationKind !== requestKind) {
+                return;
+            }
+            this.promptSourceState = state;
+            this.promptSourceError = "";
+            this.updatePromptSourcePresentation();
+        } catch (error) {
+            if (this.agentDestroyed || loadID !== this.promptSourceLoadSerial ||
+                this.sessionId !== requestSessionID || this.conversationKind !== requestKind) {
+                return;
+            }
+            this.promptSourceState = null;
+            this.promptSourceError = error instanceof Error ? error.message : String(error);
+            this.updatePromptSourcePresentation();
+            console.error("[AgentChat] prompt source state failed", error);
+        }
+    }
+
+    private beginPromptSourceOperation() {
+        const operationID = ++this.promptSourceOperationSerial;
+        this.promptSourceOperationPending = true;
+        this.updatePromptSourcePresentation();
+        return operationID;
+    }
+
+    private finishPromptSourceOperation(operationID: number) {
+        if (operationID !== this.promptSourceOperationSerial) {
+            return;
+        }
+        this.promptSourceOperationPending = false;
+        this.updatePromptSourcePresentation();
+    }
+
+    private isCurrentPromptSourceOperation(operationID: number, sessionID: string, kind: AgentPanelConversationKind) {
+        return !this.agentDestroyed && operationID === this.promptSourceOperationSerial &&
+            sessionID === this.sessionId && kind === this.conversationKind;
+    }
+
+    /** 打开显式、可发现的系统提示词下拉菜单；首次使用时先持久化空会话以取得服务端权威资格。 */
+    private async openPromptSourceMenu() {
+        if (!this.capabilities.menu) {
+            return;
+        }
+        const requestSessionID = this.sessionId;
+        const requestKind = this.conversationKind;
+        const operationID = this.beginPromptSourceOperation();
+        try {
+            await this.ensureCurrentSessionPersisted(requestSessionID);
+            if (!this.isCurrentPromptSourceOperation(operationID, requestSessionID, requestKind)) {
+                return;
+            }
+            const state = await SessionStore.getPromptSource(requestSessionID);
+            if (!this.isCurrentPromptSourceOperation(operationID, requestSessionID, requestKind)) {
+                return;
+            }
+            this.promptSourceState = state;
+            this.promptSourceError = "";
+            this.updatePromptSourcePresentation();
+            this.showPromptSourceMenu(state);
+        } finally {
+            this.finishPromptSourceOperation(operationID);
+        }
+    }
+
+    /** 根据服务端返回的来源状态构建标准锚点菜单，避免把操作隐藏在斜杠菜单或二级弹窗中。 */
+    private showPromptSourceMenu(state: AgentPromptSourceState) {
+        const menu = this.capabilities.menu;
+        if (!menu || !this.promptSourceBtn) {
+            return;
+        }
+        const source = state.source;
+        const locked = state.state === "locked";
+        const changed = state.state === "source-changed";
+        const items: PanelMenuItem[] = [];
+        const run = (action: AgentPromptSourceAction) => {
+            menu.close(AGENT_PROMPT_SOURCE_MENU_NAME);
+            void this.runPromptSourceAction(action).catch((error) => this.reportPromptSourceError(error));
+        };
+        if (locked) {
+            items.push({
+                label: "当前会话的系统提示词已锁定",
+                icon: "iconLock",
+                disabled: true,
+                click: () => undefined,
+            });
+        } else {
+            items.push({
+                label: source.kind === "document" ? "更换系统提示词文档" : "选择系统提示词文档",
+                icon: "iconFile",
+                click: run.bind(null, "bind-document"),
+            });
+        }
+        if (changed && !locked) {
+            items.push({label: "刷新为当前文档", icon: "iconRefresh", click: run.bind(null, "refresh-document")});
+            items.push({label: "保持当前快照", icon: "iconHistory", click: run.bind(null, "keep-snapshot")});
+        }
+        if (source.kind === "document") {
+            items.push({label: "将当前系统提示词创建为文档", icon: "iconCopy", click: run.bind(null, "create-document")});
+        }
+        menu.popup(AGENT_PROMPT_SOURCE_MENU_NAME, this.promptSourceBtn, items);
+    }
+
+    /** 由菜单动作驱动绑定、刷新、保持或创建副本；每一步都以服务端刚读取的 revision 为前置条件。 */
+    private async runPromptSourceAction(action: AgentPromptSourceAction) {
+        const requestSessionID = this.sessionId;
+        const requestKind = this.conversationKind;
+        const operationID = this.beginPromptSourceOperation();
+        try {
+            await this.ensureCurrentSessionPersisted(requestSessionID);
+            if (!this.isCurrentPromptSourceOperation(operationID, requestSessionID, requestKind)) {
+                return;
+            }
+            let state = await SessionStore.getPromptSource(requestSessionID);
+            if (!this.isCurrentPromptSourceOperation(operationID, requestSessionID, requestKind)) {
+                return;
+            }
+            if (state.state === "locked" && action !== "create-document") {
+                throw new Error("首次发送后不能更改系统提示词");
+            }
+            if (action === "bind-document") {
+                const document = await requestAgentPromptSourceDocument();
+                if (!document || !this.isCurrentPromptSourceOperation(operationID, requestSessionID, requestKind)) {
+                    return;
+                }
+                state = await SessionStore.bindPromptSourceDocument(requestSessionID, document, state.revision);
+            } else if (action === "refresh-document") {
+                state = await SessionStore.refreshPromptSourceDocument(requestSessionID, state.revision);
+            } else if (action === "keep-snapshot") {
+                state = await SessionStore.keepPromptSourceDocument(requestSessionID, state.revision);
+            } else {
+                if (state.source.kind !== "document") {
+                    throw new Error("当前会话没有可创建副本的文档系统提示词");
+                }
+                const document = await SessionStore.createPromptSourceDocument(requestSessionID);
+                if (this.isCurrentPromptSourceOperation(operationID, requestSessionID, requestKind)) {
+                    this.capabilities.message?.show(`已创建系统提示词文档：${document.title}`, 3000);
+                }
+                return;
+            }
+            if (!this.isCurrentPromptSourceOperation(operationID, requestSessionID, requestKind)) {
+                return;
+            }
+            this.promptSourceState = state;
+            this.promptSourceError = "";
+            this.updatePromptSourcePresentation();
+            await this.sessionPanel?.refresh();
+        } finally {
+            this.finishPromptSourceOperation(operationID);
+        }
+    }
+
+    private reportPromptSourceError(error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.promptSourceError = message;
+        this.updatePromptSourcePresentation();
+        console.error("[AgentChat] prompt source operation failed", error);
+        this.capabilities.message?.show(message, 5000);
+    }
+
     /** 上传完成后把附件 Markdown 链接追加到输入框，保留已有文本和块引用。 */
     private async uploadSessionFiles(files: File[]) {
         const requestSessionID = this.sessionId;
@@ -2285,6 +2587,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
             await this.saveSession();
         }
         this.sessionId = SessionStore.newSessionId();
+        this.resetPromptSourceState();
         this.currentTurnID = "";
         this.sessionCreatedAt = Date.now();
         if (this.composer) {
@@ -2348,7 +2651,6 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
                 await SessionStore.remove(id);
             } else {
                 this.entries = [];
-                this.sessionId = SessionStore.newSessionId();
                 await this.createSession();
                 await SessionStore.remove(id);
             }
@@ -2370,12 +2672,18 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         const editorContext = this.capabilities.editorContext?.capture();
         const pluginActions = this.capabilities.pluginActions?.list() ?? [];
         if (!text || this.isStreaming || !this.resolveTargetPolicy().sendingAvailable ||
+            this.promptSourceOperationPending ||
             (this.conversationKind === "native-agent" && this.modelOptions.length === 0)) {
+            return;
+        }
+        if (!await this.ensurePromptSourceDecisionBeforeFirstTurn()) {
             return;
         }
         if (!await this.prepareForNewTurn()) {
             return;
         }
+
+        this.capabilities.menu?.close(AGENT_PROMPT_SOURCE_MENU_NAME);
 
         this.setStreaming(true);
         this.clearThinking();

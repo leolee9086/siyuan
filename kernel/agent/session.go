@@ -897,6 +897,9 @@ func SaveSessionState(data []byte) (int64, map[string]any, error) {
 	delete(newData, "agentRunning")
 	delete(newData, "lastCommittedTurnID")
 	delete(newData, "taskDirectory")
+	// promptSource 是 Kernel 持有的系统提示词快照。普通会话保存只能保留它，
+	// 不能让旧页面、跨实例快照或直接请求替换正文与版本指纹。
+	delete(newData, "promptSource")
 	commitTurnID := meta.CommitTurnID
 	if commitTurnID == "" {
 		commitTurnID = meta.RecoveryTurnID
@@ -912,6 +915,7 @@ func SaveSessionState(data []byte) (int64, map[string]any, error) {
 		} else {
 			currentRevision = numberToInt64(existingData["revision"])
 			currentCommittedTurnID, _ = existingData["lastCommittedTurnID"].(string)
+			serverPromptSource, hasServerPromptSource := existingData["promptSource"]
 			if commitTurnID != "" && currentCommittedTurnID == commitTurnID {
 				// 提交响应丢失后，客户端可能原样重试同一个 commitTurnID。此判断要先于修订号校验，
 				// 并且不能再用客户端快照覆盖已经由 runtime 生成的权威内容。
@@ -927,11 +931,14 @@ func SaveSessionState(data []byte) (int64, map[string]any, error) {
 				if _, ok := newData[k]; !ok {
 					// messages 是已废弃的旧会话字段，不再带入新格式；其他未知字段原样保留，
 					// 避免前后端版本不一致时擦除较新版本写入的数据。
-					if k != "messages" && k != "taskDirectory" && k != "expectedRevision" && k != "commitTurnID" &&
+					if k != "messages" && k != "taskDirectory" && k != "promptSource" && k != "expectedRevision" && k != "commitTurnID" &&
 						k != "recoveryTurnID" && k != "recoveryState" && k != "recoveryRevision" && k != "agentRunning" {
 						newData[k] = v
 					}
 				}
+			}
+			if hasServerPromptSource {
+				newData["promptSource"] = serverPromptSource
 			}
 		}
 	} else if err != nil && !os.IsNotExist(err) {

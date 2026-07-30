@@ -11,6 +11,8 @@ const {
     readGateState,
     retryFailedPostCommitGate,
     runFrontendUpdate,
+    runStagedCommitChecks,
+    runPostCommitHook,
     runPostCommitGate,
     runPreCommitGate,
     validateCommitRuntimeHooks,
@@ -95,6 +97,34 @@ test("Frontend runtime update uses a terminating development build", () => {
     assert.deepEqual(result, {tests: "pnpm test", build: "pnpm dev:once"});
 });
 
+test("Staged commit checks select fixed source tests without consulting Forge runtime state", () => {
+    const calls = [];
+    const result = runStagedCommitChecks(
+        "D:/repo",
+        ["kernel/agent/agent.go", "app/scripts/forge-commit-runtime-gate.js"],
+        (executable, args, options) => calls.push({executable, args, cwd: options.cwd}),
+    );
+
+    assert.deepEqual(result, {
+        kernel: "go test -short -tags fts5 ./...",
+        frontend: "pnpm test",
+    });
+    assert.deepEqual(calls[0], {
+        executable: "go",
+        args: ["test", "-short", "-tags", "fts5", "./..."],
+        cwd: path.join("D:/repo", "kernel"),
+    });
+    const frontendCall = calls[1];
+    assert.equal(frontendCall.cwd, path.join("D:/repo", "app"));
+    if (process.platform === "win32") {
+        assert.equal(frontendCall.executable, process.env.ComSpec || "cmd.exe");
+        assert.deepEqual(frontendCall.args, ["/d", "/s", "/c", "pnpm.cmd", "run", "test"]);
+    } else {
+        assert.equal(frontendCall.executable, "pnpm");
+        assert.deepEqual(frontendCall.args, ["run", "test"]);
+    }
+});
+
 test("Supervisor readiness waits for consecutive success after transient build pressure", async () => {
     let clock = 0;
     let calls = 0;
@@ -168,7 +198,7 @@ test("Post-commit gate updates frontend and hot-switches every backend commit", 
     assert.equal(readGateState(repository.root).commit, repository.head);
 });
 
-test("Post-commit gate persists a blocking failure when hot replacement fails", async (context) => {
+test("Post-commit gate persists a deployment failure when hot replacement fails", async (context) => {
     const repository = createRepository();
     context.after(() => fs.rmSync(repository.root, {recursive: true, force: true}));
     await assert.rejects(runPostCommitGate(repository.root, {
@@ -214,9 +244,13 @@ test("Frontend-only commits retain freshness without advancing the Kernel revisi
     assert.equal(operation.frontend.activeRevision, frontendRevision);
     assert.equal(operation.kernel.activeRevision, kernelRevision);
 
-    const preCommit = await runPreCommitGate(repository.root, runtime);
-    assert.equal(preCommit.head, frontendRevision);
-    assert.equal(preCommit.activeRevision, kernelRevision);
+    const preCommit = await runPreCommitGate(repository.root, {
+        runStagedCommitChecks: async (_root, paths) => {
+            assert.deepEqual(paths, []);
+            return {};
+        },
+    });
+    assert.deepEqual(preCommit, {paths: [], checks: {}});
 });
 
 test("Failed frontend-only gates can be retried without weakening the next Kernel commit", async (context) => {
@@ -257,51 +291,105 @@ test("Failed frontend-only gates can be retried without weakening the next Kerne
     assert.equal(operation.trigger, "retry-post-commit");
     assert.equal(operation.commit, frontendRevision);
     assert.equal(operation.kernel.result, "current");
-    await assert.rejects(runPreCommitGate(repository.root, runtime), /unstaged or untracked Kernel runtime changes/);
+    const preCommit = await runPreCommitGate(repository.root, {
+        runStagedCommitChecks: async (_root, paths) => {
+            assert.deepEqual(paths, []);
+            return {};
+        },
+    });
+    assert.deepEqual(preCommit, {paths: [], checks: {}});
 
     git(repository.root, ["add", "kernel/main.go"]);
-    const preCommit = await runPreCommitGate(repository.root, runtime);
-    assert.equal(preCommit.head, frontendRevision);
+    const stagedPreCommit = await runPreCommitGate(repository.root, {
+        runStagedCommitChecks: async (_root, paths) => {
+            assert.deepEqual(paths, ["kernel/main.go"]);
+            return {kernel: "go test -short -tags fts5 ./..."};
+        },
+    });
+    assert.deepEqual(stagedPreCommit, {
+        paths: ["kernel/main.go"],
+        checks: {kernel: "go test -short -tags fts5 ./..."},
+    });
 });
 
-test("Pre-commit gate blocks runtime drift from the previous commit", async (context) => {
+test("Post-commit hook reports deployment failure without invalidating the Git commit", async () => {
+    const reports = [];
+    const result = await runPostCommitHook("D:/repo", {
+        runPostCommitGate: async () => {
+            throw new Error("Supervisor is not running");
+        },
+    }, (message) => reports.push(message));
+
+    assert.deepEqual(result, {status: "failed", error: "Supervisor is not running"});
+    assert.deepEqual(reports, [
+        "[forge] post-commit deployment failed; Git commit remains valid: Supervisor is not running",
+    ]);
+});
+
+test("Pre-commit gate ignores deployment lag, failed operation state and Supervisor availability", async (context) => {
     const repository = createRepository();
     context.after(() => fs.rmSync(repository.root, {recursive: true, force: true}));
-    await assert.rejects(runPreCommitGate(repository.root, {
-        readOwnership: () => ({port: 6806}),
-        probeSupervisor: async () => ({activeVersion: {revision: repository.base}}),
-        probeKernel: async () => true,
-        fetchImpl: async () => ({ok: true}),
-    }), /previous commit Kernel runtime is not active/);
+    fs.writeFileSync(path.join(repository.root, "app", "src", "index.ts"), "export const ready = 'staged';\n");
+    git(repository.root, ["add", "app/src/index.ts"]);
+    fs.mkdirSync(path.join(repository.root, ".forge-runtime"), {recursive: true});
+    fs.writeFileSync(path.join(repository.root, ".forge-runtime", "commit-runtime-gate.json"), JSON.stringify({
+        status: "failed",
+        commit: repository.head,
+        error: "old deployment failed",
+    }));
+
+    const result = await runPreCommitGate(repository.root, {
+        readOwnership: () => {
+            throw new Error("pre-commit must not read the Supervisor");
+        },
+        probeSupervisor: async () => {
+            throw new Error("pre-commit must not probe the Supervisor");
+        },
+        runStagedCommitChecks: async (_root, paths) => {
+            assert.deepEqual(paths, ["app/src/index.ts"]);
+            return {frontend: "pnpm test"};
+        },
+    });
+
+    assert.deepEqual(result, {
+        paths: ["app/src/index.ts"],
+        checks: {frontend: "pnpm test"},
+    });
 });
 
-test("Pre-commit gate permits staged backend changes when the previous HEAD is active", async (context) => {
+test("Pre-commit gate validates staged backend changes with the fixed core test command", async (context) => {
     const repository = createRepository();
     context.after(() => fs.rmSync(repository.root, {recursive: true, force: true}));
     fs.writeFileSync(path.join(repository.root, "kernel", "main.go"), "package main\n\nfunc main() { println(1) }\n");
     git(repository.root, ["add", "kernel/main.go"]);
 
     const result = await runPreCommitGate(repository.root, {
-        readOwnership: () => ({port: 6806}),
-        probeSupervisor: async () => ({activeVersion: {revision: repository.head}}),
-        probeKernel: async () => true,
-        fetchImpl: async () => ({ok: true}),
+        runStagedCommitChecks: async (_root, paths) => {
+            assert.deepEqual(paths, ["kernel/main.go"]);
+            return {kernel: "go test -short -tags fts5 ./..."};
+        },
     });
 
-    assert.equal(result.head, repository.head);
+    assert.deepEqual(result, {
+        paths: ["kernel/main.go"],
+        checks: {kernel: "go test -short -tags fts5 ./..."},
+    });
 });
 
-test("Pre-commit gate blocks unstaged backend source beside a commit", async (context) => {
+test("Pre-commit gate rejects staged whitespace damage before it runs tests", async (context) => {
     const repository = createRepository();
     context.after(() => fs.rmSync(repository.root, {recursive: true, force: true}));
-    fs.writeFileSync(path.join(repository.root, "kernel", "main.go"), "package main\n\nfunc main() { println(1) }\n");
+    fs.writeFileSync(path.join(repository.root, "kernel", "main.go"), "package main  \n");
+    git(repository.root, ["add", "kernel/main.go"]);
 
+    let checksRan = false;
     await assert.rejects(runPreCommitGate(repository.root, {
-        readOwnership: () => ({port: 6806}),
-        probeSupervisor: async () => ({activeVersion: {revision: repository.head}}),
-        probeKernel: async () => true,
-        fetchImpl: async () => ({ok: true}),
-    }), /unstaged or untracked Kernel runtime changes/);
+        runStagedCommitChecks: async () => {
+            checksRan = true;
+            return {};
+        },
+    }));
+    assert.equal(checksRan, false);
 });
 
 test("Hook installation is idempotent and never replaces another hook owner", () => {

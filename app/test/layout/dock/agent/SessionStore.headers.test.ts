@@ -80,6 +80,82 @@ describe("Agent owner request headers", () => {
         });
     });
 
+    it("reads prompt-source state with owner headers and retains the server revision", async () => {
+        mockedGetSafeSiyuanConfig.mockReturnValue({api: {token: "workspace-api-token"}});
+        const fetchModule = await import("../../../../src/util/network/fetch");
+        const fetchSyncPost = vi.mocked(fetchModule.fetchSyncPost);
+        fetchSyncPost.mockResolvedValue({
+            code: 0,
+            data: {
+                state: "source-changed",
+                revision: 7,
+                currentVersion: "new-content-hash",
+                source: {
+                    kind: "document",
+                    documentId: "202607300001",
+                    notebookId: "202607300000",
+                    titleSnapshot: "Agent Charter",
+                    contentHash: "saved-content-hash",
+                },
+            },
+            msg: "",
+        });
+        const {SessionStore, setAgentOwnerTokenProvider} = await import("../../../../src/layout/dock/agent/SessionStore");
+        setAgentOwnerTokenProvider(() => "magi-armor-token");
+
+        await expect(SessionStore.getPromptSource("session-1")).resolves.toMatchObject({
+            state: "source-changed",
+            revision: 7,
+            source: {titleSnapshot: "Agent Charter"},
+        });
+        expect(SessionStore.getRevision("session-1")).toBe(7);
+        expect(fetchSyncPost).toHaveBeenCalledWith("/api/ai/agent/getPromptSource", {sessionID: "session-1"}, {
+            Authorization: "Bearer workspace-api-token",
+            "X-SiYuan-Agent-Owner-Token": "magi-armor-token",
+        });
+    });
+
+    it("uses the prompt-source revision for explicit refresh and preserves API errors", async () => {
+        mockedGetSafeSiyuanConfig.mockReturnValue({});
+        const fetchModule = await import("../../../../src/util/network/fetch");
+        const fetchSyncPost = vi.mocked(fetchModule.fetchSyncPost);
+        fetchSyncPost
+            .mockResolvedValueOnce({
+                code: 0,
+                data: {state: "eligible", revision: 4, source: {kind: "default"}},
+                msg: "",
+            })
+            .mockResolvedValueOnce({
+                code: 0,
+                data: {state: "bound", revision: 5, source: {kind: "document", titleSnapshot: "Updated"}},
+                msg: "",
+            })
+            .mockResolvedValueOnce({code: 1, msg: "source document was deleted"});
+        const {SessionStore} = await import("../../../../src/layout/dock/agent/SessionStore");
+
+        await SessionStore.getPromptSource("session-2");
+        await expect(SessionStore.refreshPromptSourceDocument("session-2")).resolves.toMatchObject({revision: 5});
+        await expect(SessionStore.keepPromptSourceDocument("session-2")).rejects.toThrow("source document was deleted");
+        expect(fetchSyncPost.mock.calls[1]).toEqual([
+            "/api/ai/agent/refreshPromptSourceDocument",
+            {sessionID: "session-2", expectedRevision: 4},
+            {
+                "Content-Type": "application/json",
+                "X-SiYuan-App-ID": "test-app",
+                "X-SiYuan-Agent-Checkpoint": "2",
+            },
+        ]);
+        expect(fetchSyncPost.mock.calls[2]).toEqual([
+            "/api/ai/agent/keepPromptSourceDocument",
+            {sessionID: "session-2", expectedRevision: 5},
+            {
+                "Content-Type": "application/json",
+                "X-SiYuan-App-ID": "test-app",
+                "X-SiYuan-Agent-Checkpoint": "2",
+            },
+        ]);
+    });
+
     it("uploads multiple files as multipart data with workspace and owner headers", async () => {
         mockedGetSafeSiyuanConfig.mockReturnValue({api: {token: "workspace-api-token"}});
         const fetchModule = await import("../../../../src/util/network/fetch");

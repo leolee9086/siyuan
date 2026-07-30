@@ -10,6 +10,7 @@ describe("resolveAgentPanelTargetPolicy", () => {
             magiConversationLoading: false,
         })).toMatchObject({
             sessionActionsVisible: true,
+            promptSourceVisible: true,
             regenerationVisible: true,
             sendingAvailable: true,
         });
@@ -26,6 +27,7 @@ describe("resolveAgentPanelTargetPolicy", () => {
             identityLabel: "Guardian A",
             identityVisible: true,
             sessionActionsVisible: false,
+            promptSourceVisible: false,
             regenerationVisible: false,
             sendingAvailable: true,
         });

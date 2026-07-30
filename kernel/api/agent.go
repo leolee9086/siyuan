@@ -639,6 +639,288 @@ func getAgentTaskDirectoryCapabilities(c *gin.Context) {
 	c.JSON(http.StatusOK, ret)
 }
 
+type agentPromptSourceStateReq struct {
+	SessionID string `json:"sessionID"`
+}
+
+type agentPromptSourceMutationReq struct {
+	SessionID        string `json:"sessionID"`
+	ExpectedRevision int64  `json:"expectedRevision"`
+	DocumentID       string `json:"documentID,omitempty"`
+	NotebookID       string `json:"notebookID,omitempty"`
+}
+
+type agentPromptSourceSearchReq struct {
+	Keyword string `json:"keyword"`
+}
+
+type agentPromptSourceDocumentResult struct {
+	ID         string `json:"id"`
+	NotebookID string `json:"notebookId"`
+	Title      string `json:"title"`
+	HPath      string `json:"hPath"`
+}
+
+// readAgentPromptSourceDocument is the sole path that converts a SiYuan
+// document into an Agent prompt source. The browser only supplies identifiers;
+// content, normalization, bounds and fingerprints remain Kernel-owned.
+func readAgentPromptSourceDocument(documentID, notebookID string) (agent.PromptSource, error) {
+	documentID = strings.TrimSpace(documentID)
+	notebookID = strings.TrimSpace(notebookID)
+	if documentID == "" || notebookID == "" {
+		return agent.PromptSource{}, errors.New("document id and notebook id are required")
+	}
+	info, err := model.GetDocInfoInBox(documentID, notebookID)
+	if err != nil {
+		return agent.PromptSource{}, fmt.Errorf("read prompt source document: %w", err)
+	}
+	if info == nil || info.ID != documentID || info.RootID != documentID {
+		return agent.PromptSource{}, errors.New("prompt source must be a document root")
+	}
+	markdown := model.GetBlockKramdownInBox(documentID, "md", notebookID)
+	source, err := agent.NewDocumentPromptSource(documentID, notebookID, info.Name, markdown, time.Now().UnixMilli())
+	if err != nil {
+		return agent.PromptSource{}, err
+	}
+	return source, nil
+}
+
+func writeAgentPromptSourceError(c *gin.Context, err error) {
+	ret := gulu.Ret.NewResult()
+	ret.Code = -1
+	ret.Msg = err.Error()
+	if errors.Is(err, agent.ErrSessionConflict) || errors.Is(err, agent.ErrPromptSourceLocked) ||
+		errors.Is(err, agent.ErrPromptSourceUnsupportedTarget) {
+		c.JSON(http.StatusConflict, ret)
+		return
+	}
+	c.JSON(http.StatusBadRequest, ret)
+}
+
+func getAgentPromptSourceState(c *gin.Context) {
+	var req agentPromptSourceStateReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "invalid request"})
+		return
+	}
+	if _, _, ok := requireAgentSessionAccess(c, req.SessionID); !ok {
+		return
+	}
+	state, err := agent.GetPromptSourceState(req.SessionID)
+	if err != nil {
+		writeAgentPromptSourceError(c, err)
+		return
+	}
+	if state.Source.Kind == agent.PromptSourceKindDocument && state.State != agent.PromptBindingStateLocked {
+		current, readErr := readAgentPromptSourceDocument(state.Source.DocumentID, state.Source.NotebookID)
+		if readErr != nil {
+			writeAgentPromptSourceError(c, readErr)
+			return
+		}
+		if current.SourceVersion != state.Source.SourceVersion && current.SourceVersion != state.Source.KeptVersion {
+			state.State = agent.PromptBindingStateSourceChanged
+			state.CurrentVersion = current.SourceVersion
+		}
+	}
+	ret := gulu.Ret.NewResult()
+	ret.Data = state
+	c.JSON(http.StatusOK, ret)
+}
+
+func searchAgentPromptSourceDocuments(c *gin.Context) {
+	var req agentPromptSourceSearchReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "invalid request"})
+		return
+	}
+	results := make([]agentPromptSourceDocumentResult, 0, 30)
+	for _, candidate := range model.SearchDocs(strings.TrimSpace(req.Keyword), false, nil) {
+		if len(results) >= 30 {
+			break
+		}
+		documentPath := strings.TrimSpace(candidate["path"])
+		notebookID := strings.TrimSpace(candidate["box"])
+		if documentPath == "" || documentPath == "/" || notebookID == "" {
+			continue
+		}
+		hPath, err := model.GetHPathByPath(notebookID, documentPath)
+		if err != nil {
+			continue
+		}
+		ids, err := model.GetIDsByHPath(hPath, notebookID)
+		if err != nil || len(ids) != 1 {
+			continue
+		}
+		info, err := model.GetDocInfoInBox(ids[0], notebookID)
+		if err != nil || info == nil || info.RootID != ids[0] || strings.TrimSpace(info.Name) == "" {
+			continue
+		}
+		results = append(results, agentPromptSourceDocumentResult{
+			ID:         ids[0],
+			NotebookID: notebookID,
+			Title:      info.Name,
+			HPath:      candidate["hPath"],
+		})
+	}
+	ret := gulu.Ret.NewResult()
+	ret.Data = results
+	c.JSON(http.StatusOK, ret)
+}
+
+func bindAgentPromptSourceDocument(c *gin.Context) {
+	var req agentPromptSourceMutationReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "invalid request"})
+		return
+	}
+	if _, _, ok := requireAgentSessionAccess(c, req.SessionID); !ok {
+		return
+	}
+	if isAgentSessionRunning(req.SessionID) {
+		writeAgentPromptSourceError(c, agent.ErrPromptSourceLocked)
+		return
+	}
+	source, err := readAgentPromptSourceDocument(req.DocumentID, req.NotebookID)
+	if err != nil {
+		writeAgentPromptSourceError(c, err)
+		return
+	}
+	state, err := agent.BindDocumentPromptSource(req.SessionID, req.ExpectedRevision, source)
+	if err != nil {
+		writeAgentPromptSourceError(c, err)
+		return
+	}
+	broadcastAgentSessionChanged(c.GetHeader("X-SiYuan-App-ID"), req.SessionID, "update")
+	ret := gulu.Ret.NewResult()
+	ret.Data = state
+	c.JSON(http.StatusOK, ret)
+}
+
+func refreshAgentPromptSourceDocument(c *gin.Context) {
+	var req agentPromptSourceMutationReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "invalid request"})
+		return
+	}
+	if _, _, ok := requireAgentSessionAccess(c, req.SessionID); !ok {
+		return
+	}
+	if isAgentSessionRunning(req.SessionID) {
+		writeAgentPromptSourceError(c, agent.ErrPromptSourceLocked)
+		return
+	}
+	bound, err := agent.GetPromptSource(req.SessionID)
+	if err != nil {
+		writeAgentPromptSourceError(c, err)
+		return
+	}
+	if bound.Kind != agent.PromptSourceKindDocument {
+		writeAgentPromptSourceError(c, errors.New("no document prompt source is bound"))
+		return
+	}
+	source, err := readAgentPromptSourceDocument(bound.DocumentID, bound.NotebookID)
+	if err != nil {
+		writeAgentPromptSourceError(c, err)
+		return
+	}
+	state, err := agent.RefreshDocumentPromptSource(req.SessionID, req.ExpectedRevision, source)
+	if err != nil {
+		writeAgentPromptSourceError(c, err)
+		return
+	}
+	broadcastAgentSessionChanged(c.GetHeader("X-SiYuan-App-ID"), req.SessionID, "update")
+	ret := gulu.Ret.NewResult()
+	ret.Data = state
+	c.JSON(http.StatusOK, ret)
+}
+
+func keepAgentPromptSourceDocument(c *gin.Context) {
+	var req agentPromptSourceMutationReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "invalid request"})
+		return
+	}
+	if _, _, ok := requireAgentSessionAccess(c, req.SessionID); !ok {
+		return
+	}
+	if isAgentSessionRunning(req.SessionID) {
+		writeAgentPromptSourceError(c, agent.ErrPromptSourceLocked)
+		return
+	}
+	bound, err := agent.GetPromptSource(req.SessionID)
+	if err != nil {
+		writeAgentPromptSourceError(c, err)
+		return
+	}
+	if bound.Kind != agent.PromptSourceKindDocument {
+		writeAgentPromptSourceError(c, errors.New("no document prompt source is bound"))
+		return
+	}
+	current, err := readAgentPromptSourceDocument(bound.DocumentID, bound.NotebookID)
+	if err != nil {
+		writeAgentPromptSourceError(c, err)
+		return
+	}
+	state, err := agent.KeepDocumentPromptSource(req.SessionID, req.ExpectedRevision, current.SourceVersion)
+	if err != nil {
+		writeAgentPromptSourceError(c, err)
+		return
+	}
+	broadcastAgentSessionChanged(c.GetHeader("X-SiYuan-App-ID"), req.SessionID, "update")
+	ret := gulu.Ret.NewResult()
+	ret.Data = state
+	c.JSON(http.StatusOK, ret)
+}
+
+func createAgentPromptSourceDocument(c *gin.Context) {
+	var req agentPromptSourceStateReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "invalid request"})
+		return
+	}
+	if _, _, ok := requireAgentSessionAccess(c, req.SessionID); !ok {
+		return
+	}
+	source, err := agent.GetPromptSource(req.SessionID)
+	if err != nil {
+		writeAgentPromptSourceError(c, err)
+		return
+	}
+	if source.Kind != agent.PromptSourceKindDocument {
+		writeAgentPromptSourceError(c, errors.New("no document prompt source is bound"))
+		return
+	}
+	notebook, _, err := resolveAgentUploadNotebook()
+	if err != nil || notebook == nil || strings.TrimSpace(notebook.ID) == "" {
+		if err == nil {
+			err = errors.New("AI main notebook is not ready")
+		}
+		writeAgentPromptSourceError(c, err)
+		return
+	}
+	title := strings.NewReplacer("/", "-", "\\", "-", "\r", " ", "\n", " ").Replace(source.TitleSnapshot)
+	title = strings.TrimSpace(title)
+	if title == "" {
+		title = "Agent System Prompt"
+	}
+	path := "/Agent System Prompts/" + title + " " + time.Now().Format("20060102-150405")
+	documentID, err := model.CreateWithMarkdown("", notebook.ID, path, source.PromptSnapshot, "", "", false, "", map[string]any{
+		"app": c.GetHeader("X-SiYuan-App-ID"),
+	})
+	if err != nil {
+		writeAgentPromptSourceError(c, err)
+		return
+	}
+	ret := gulu.Ret.NewResult()
+	ret.Data = agentPromptSourceDocumentResult{
+		ID:         documentID,
+		NotebookID: notebook.ID,
+		Title:      title,
+		HPath:      path,
+	}
+	c.JSON(http.StatusOK, ret)
+}
+
 func uploadAgentFiles(c *gin.Context) {
 	notebook, _, err := resolveAgentUploadNotebook()
 	if err != nil || notebook == nil || strings.TrimSpace(notebook.ID) == "" {
@@ -658,6 +940,10 @@ func sanitizeSessionForResponse(session map[string]interface{}) map[string]inter
 	if session == nil {
 		return nil
 	}
+	// promptSource carries the Kernel-owned prompt snapshot. The UI obtains only
+	// redacted metadata from getPromptSource, so an ordinary session response can
+	// never leak or overwrite the effective system prompt body.
+	delete(session, "promptSource")
 	if _, ok := session["taskDirectory"].(map[string]interface{}); !ok {
 		return session
 	}
