@@ -334,6 +334,74 @@ export const verifyAuditManifest = ({repo, output}) => {
     return {commitCount: records.length, mergeCommitCount, revertCommitCount, mappedUpstreamCommitCount};
 };
 
+const auditDecisionContractKeys = ["preconditions", "stateTransitions", "outputs", "invariants", "failures"];
+
+const validateStringList = (value, field, sha) => {
+    if (!Array.isArray(value) || value.some((item) => typeof item !== "string" || item.length === 0)) {
+        throw new Error(`Invalid ${field} for ${sha}`);
+    }
+};
+
+const validateAuditDecision = (decision) => {
+    if (!decision || typeof decision !== "object" || !/^[0-9a-f]{40}$/u.test(decision.sha ?? "")) {
+        throw new Error("Audit decision must declare a full upstream SHA");
+    }
+    for (const field of ["status", "intent", "disposition", "seriesId"]) {
+        if (typeof decision[field] !== "string" || decision[field].length === 0) {
+            throw new Error(`Audit decision ${decision.sha} has no ${field}`);
+        }
+    }
+    if (!decision.behaviorContract || typeof decision.behaviorContract !== "object") {
+        throw new Error(`Audit decision ${decision.sha} has no behavior contract`);
+    }
+    for (const key of auditDecisionContractKeys) {
+        validateStringList(decision.behaviorContract[key], `behaviorContract.${key}`, decision.sha);
+    }
+    validateStringList(decision.codeEvidence, "codeEvidence", decision.sha);
+    validateStringList(decision.testEvidence, "testEvidence", decision.sha);
+    validateStringList(decision.notes, "notes", decision.sha);
+};
+
+/** Applies versioned human-reviewed behavior evidence without touching generated Git mappings. */
+export const applyAuditDecisions = ({repo, output, decisionsPath}) => {
+    const cyclePath = resolve(output, "cycle.json");
+    const manifestPath = resolve(output, "commits.jsonl");
+    const cycle = JSON.parse(readFileSync(cyclePath, "utf8"));
+    const source = JSON.parse(readFileSync(decisionsPath, "utf8"));
+    if (source.cycleId !== cycle.cycleId || !Array.isArray(source.decisions)) {
+        throw new Error("Audit decision file does not match the manifest cycle");
+    }
+    const records = readFileSync(manifestPath, "utf8")
+        .split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
+    const recordsBySha = new Map(records.map((record) => [record.sha, record]));
+    const seen = new Set();
+    for (const decision of source.decisions) {
+        validateAuditDecision(decision);
+        if (seen.has(decision.sha)) {
+            throw new Error(`Duplicate audit decision for ${decision.sha}`);
+        }
+        seen.add(decision.sha);
+        const record = recordsBySha.get(decision.sha);
+        if (!record) {
+            throw new Error(`Audit decision references unknown upstream commit ${decision.sha}`);
+        }
+        record.audit = {
+            ...record.audit,
+            status: decision.status,
+            intent: decision.intent,
+            behaviorContract: decision.behaviorContract,
+            disposition: decision.disposition,
+            seriesId: decision.seriesId,
+            codeEvidence: decision.codeEvidence,
+            testEvidence: decision.testEvidence,
+            notes: decision.notes,
+        };
+    }
+    writeAuditManifest({repo, output, cycle, records});
+    verifyAuditManifest({repo, output});
+    return {cycleId: cycle.cycleId, appliedDecisionCount: seen.size};
+};
+
 export const refreshAuditManifest = ({repo, output}) => {
     const cyclePath = resolve(output, "cycle.json");
     if (!existsSync(cyclePath)) {
@@ -457,6 +525,7 @@ const main = () => {
             "procedure-updated-at": {type: "string"},
             "procedure-kramdown-sha256": {type: "string"},
             "procedure-mirror-sha256": {type: "string"},
+            decisions: {type: "string"},
         },
     });
     const command = positionals[0];
@@ -473,6 +542,15 @@ const main = () => {
             commitCount: result.commitCount,
             mappedUpstreamCommitCount: result.mappedUpstreamCommitCount,
         })}\n`);
+        return;
+    }
+    if (command === "apply-decisions") {
+        const result = applyAuditDecisions({
+            repo,
+            output,
+            decisionsPath: resolve(requireOption(values, "decisions")),
+        });
+        process.stdout.write(`${JSON.stringify(result)}\n`);
         return;
     }
     if (command === "advance-tip") {
@@ -492,7 +570,7 @@ const main = () => {
         return;
     }
     if (command !== "generate") {
-        throw new Error("Expected generate, refresh, advance-tip or verify command");
+        throw new Error("Expected generate, refresh, apply-decisions, advance-tip or verify command");
     }
     const generatedCycle = {
         cycleId: requireOption(values, "cycle-id"),

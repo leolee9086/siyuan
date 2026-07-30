@@ -6,6 +6,7 @@ import {join} from "node:path";
 import test from "node:test";
 import {
     advanceAuditTip,
+    applyAuditDecisions,
     buildAuditRecords,
     loadCycleForRegeneration,
     refreshAuditManifest,
@@ -75,6 +76,50 @@ test("generates and verifies a complete DAG while preserving audit decisions", (
         revertCommitCount: 0,
         mappedUpstreamCommitCount: 0,
     });
+});
+
+test("applies validated behavior decisions without overwriting generated mappings", (context) => {
+    const repo = mkdtempSync(join(tmpdir(), "sforge-audit-decisions-"));
+    context.after(() => rmSync(repo, {recursive: true, force: true}));
+    git(repo, ["init", "--initial-branch=main"]);
+    git(repo, ["config", "user.name", "Test Author"]);
+    git(repo, ["config", "user.email", "test@example.com"]);
+    const base = commitFile(repo, "base.txt", "base\n", "base");
+    const upstreamTip = commitFile(repo, "upstream.txt", "upstream\n", "upstream behavior");
+    const output = join(repo, "audit");
+    const records = buildAuditRecords({repo, upstreamBase: base, upstreamTip});
+    writeAuditManifest({repo, output, cycle: {cycleId: "fixture", upstreamBase: base, upstreamTip}, records});
+    const decisionsPath = join(repo, "decisions.json");
+    writeFileSync(decisionsPath, JSON.stringify({
+        cycleId: "fixture",
+        decisions: [{
+            sha: upstreamTip,
+            status: "verified",
+            intent: "Preserve the reviewed upstream behavior.",
+            behaviorContract: {
+                preconditions: ["The upstream behavior is invoked."],
+                stateTransitions: ["The mapped action is performed."],
+                outputs: ["The result remains observable."],
+                invariants: ["Generated Git mappings remain untouched."],
+                failures: ["Invalid decision input stops before writing."],
+            },
+            disposition: "ported-semantic",
+            seriesId: "fixture/behavior",
+            codeEvidence: ["src/owner.ts"],
+            testEvidence: ["node --test fixture"],
+            notes: ["Decision is stored outside generated JSONL."],
+        }],
+    }, null, 2));
+
+    assert.deepEqual(applyAuditDecisions({repo, output, decisionsPath}), {
+        cycleId: "fixture",
+        appliedDecisionCount: 1,
+    });
+    const applied = JSON.parse(readFileSync(join(output, "commits.jsonl"), "utf8"));
+    assert.equal(applied.audit.status, "verified");
+    assert.equal(applied.audit.disposition, "ported-semantic");
+    assert.deepEqual(applied.audit.codeEvidence, ["src/owner.ts"]);
+    assert.deepEqual(applied.audit.localCommits, []);
 });
 
 test("classifies reverts and derives local mappings from commit trailers deterministically", (context) => {
