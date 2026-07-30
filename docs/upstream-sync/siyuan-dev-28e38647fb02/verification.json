@@ -2,37 +2,37 @@
   "schemaVersion": 1,
   "cycleId": "siyuan-dev-28e38647fb02",
   "status": "in-progress",
-  "candidateHead": "3e123a8cd04241749376f30e1c1ad206e9d73adc",
+  "candidateHead": "2772c1c44919346d2eb577ca8008c5b05ee2e0b4",
   "deliveries": {
     "status": "passed",
-    "integratedCount": 3,
-    "gitIntegratedCount": 3,
-    "latestDelivery": "D002",
-    "latestIntegrationCommit": "fa6d9e59c3dd63dc59725093ce10d5bdbe0fdfe1",
-    "evidence": "D002 has exact B2/S2 parents and matching tree. Commit gate 2026-07-30T14-24-09-230Z-fa6d9e59c3dd-7f25bc1a completed at main HEAD fa6d9e59c3dd63dc59725093ce10d5bdbe0fdfe1. It ran pnpm test and pnpm dev:once for the four Protyle source files; no Kernel runtime paths changed, so healthy active Kernel bf304048cf6fee55c891f49f5482e3ab44a59acd is runtime-equivalent through the D002 main head. Supervisor, Kernel and all six page probes passed."
+    "integratedCount": 5,
+    "gitIntegratedCount": 5,
+    "latestDelivery": "D004",
+    "latestIntegrationCommit": "72dfff2d2eeb565c4193f13044f03eb4bef8a91c",
+    "evidence": "D004 has exact b7e3ee0c231e7b661ccf69f4c6ffbc10d9082e86/89d7b17d11faf74d23074b27ea4e4d06c2b6c2c9 parents and a tree equal to its semantic series head. Gate 2026-07-30T18-42-31-426Z-72dfff2d2eeb-2917d103 completed at main HEAD 72dfff2d2eeb565c4193f13044f03eb4bef8a91c. It retained the current healthy Kernel because the D004 range has no Kernel runtime files, marked the frontend current, and passed Supervisor, Kernel and all six page probes."
   },
   "manifest": {
     "status": "passed",
     "command": "node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
-    "commitCount": 570,
-    "uniqueCommitCount": 570,
+    "commitCount": 573,
+    "uniqueCommitCount": 573,
     "mergeCommitCount": 44,
     "revertCommitCount": 0,
-    "stablePatchIdCount": 526,
-    "mappedUpstreamCommitCount": 12,
-    "verifiedAuditCount": 12,
-    "pendingAuditCount": 558
+    "stablePatchIdCount": 529,
+    "mappedUpstreamCommitCount": 14,
+    "verifiedAuditCount": 14,
+    "pendingAuditCount": 559
   },
   "coverage": {
     "status": "passed",
     "command": "node scripts/upstream-sync/audit-manifest.mjs coverage --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
-    "sourceHead": "314073b2c5b5f5765e421208bce3f2bb109c9972",
-    "semanticVerified": 12,
-    "deliveryIntegrated": 12,
-    "topologyCovered": 0,
-    "pending": 558,
-    "topologyLag": 570,
-    "evidence": "The derived snapshot validates D001, D002R and D002 exact parents and reachability. No topology checkpoint exists because the first three upstream entries are still pending; coverage.json contains the complete SHA sets and the verifier rejects any checkpoint that covers an unverified, undelivered or tree-changing range."
+    "sourceHead": "2772c1c44919346d2eb577ca8008c5b05ee2e0b4",
+    "semanticVerified": 14,
+    "deliveryIntegrated": 14,
+    "topologyCovered": 2,
+    "pending": 559,
+    "topologyLag": 571,
+    "evidence": "The derived snapshot validates every integrated delivery's exact parent relation and reachability. M001 and M002 respectively cover the continuous verified-and-delivered prefixes through ccb8331c9e9264884938e3bd56417c1f1ee5d4c0 and e18111e76a36b7cc9d74bcc5d20572914fa2c6d8; both retain their first-parent trees. coverage.json contains complete SHA sets and the verifier rejects checkpoints that cover unverified, undelivered or tree-changing ranges."
   },
   "upstreamTipRefresh": {
     "status": "passed",
@@ -44,6 +44,12 @@
     "evidence": "Fetched official origin/dev through the configured local proxy. The previous U1 is an ancestor of the new tip. advance-tip rebuilt the frozen DAG while preserving all 12 verified mappings; a separate manifest verification completed with 570 commits and 44 merges."
   },
   "focusedChecks": [
+    {
+      "name": "rolling delivery D004 and topology checkpoint M002",
+      "status": "passed",
+      "command": "pnpm test; node scripts/upstream-sync/audit-manifest.mjs refresh --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02; node scripts/upstream-sync/audit-manifest.mjs apply-decisions --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02 --decisions docs/upstream-sync/siyuan-dev-28e38647fb02/decisions/link-menu-batch-update-8554.verified.json; node scripts/upstream-sync/audit-manifest.mjs reconcile --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02; node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
+      "evidence": "D004 maps e18111e76a36b7cc9d74bcc5d20572914fa2c6d8 to 89d7b17d11faf74d23074b27ea4e4d06c2b6c2c9, using Zod-backed CaliburRouter partitioning for the link-menu close state and content-free user-operation intent events at the toolbar and submit boundaries. The three focused Vitest files passed 7 assertions and the full pnpm test suite passed. M002=2772c1c44919346d2eb577ca8008c5b05ee2e0b4 has D004 and e18111e as its exact parents and the same tree as D004. Its post-commit gate reports the Kernel current, frontend current, and Supervisor, Kernel and six page probes healthy."
+    },
     {
       "name": "rolling delivery D002",
       "status": "passed",

@@ -8,7 +8,7 @@
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
   "upstreamTip": "401d2928cab86a9d52ed1545610b183e78f7652a",
   "candidateBranch": "multipleAI",
-  "candidateHead": "339dbccc97e131715f743f9b61b3f8f0c9f79324",
+  "candidateHead": "2772c1c44919346d2eb577ca8008c5b05ee2e0b4",
   "candidateCreatedAt": "2026-07-29T14:15:25+08:00",
   "mainRepository": "D:/dev/s-forge",
   "mainBranch": "multipleAI",
@@ -22,9 +22,9 @@
     "finalTopologyIntegration": "final-ff-only-reviewed-ours-merge",
     "runtimeFreshnessRequired": true
   },
-  "latestDelivery": "D002",
-  "latestGitIntegratedHead": "fa6d9e59c3dd63dc59725093ce10d5bdbe0fdfe1",
-  "latestIntegratedHead": "fa6d9e59c3dd63dc59725093ce10d5bdbe0fdfe1",
+  "latestDelivery": "D004",
+  "latestGitIntegratedHead": "72dfff2d2eeb565c4193f13044f03eb4bef8a91c",
+  "latestIntegratedHead": "72dfff2d2eeb565c4193f13044f03eb4bef8a91c",
   "frozenAt": "2026-07-29T20:02:23+08:00",
   "requiredGates": [
     "kernel: go test -short -tags fts5 ./...",
@@ -46,7 +46,7 @@
   "mergeCommitCount": 44,
   "revertCommitCount": 0,
   "stablePatchIdCount": 529,
-  "mappedUpstreamCommitCount": 13,
+  "mappedUpstreamCommitCount": 14,
   "auditGrouping": {
     "mode": "optional",
     "fixedSize": null,

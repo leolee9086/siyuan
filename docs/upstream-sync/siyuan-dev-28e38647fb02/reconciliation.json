@@ -1,51 +1,51 @@
 {
   "schemaVersion": 1,
-  "sourceHead": "339dbccc97e131715f743f9b61b3f8f0c9f79324",
+  "sourceHead": "2772c1c44919346d2eb577ca8008c5b05ee2e0b4",
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
   "upstreamTip": "401d2928cab86a9d52ed1545610b183e78f7652a",
   "summary": {
     "total": 573,
     "stateCounts": {
-      "topology-integrated": 1,
+      "topology-integrated": 2,
       "delivery-integrated": 12,
       "delivery-git-integrated": 0,
       "delivery-in-progress": 0,
       "semantic-verified": 0,
       "audit-in-progress": 0,
       "audit-blocked": 0,
-      "audit-pending": 560
+      "audit-pending": 559
     },
     "semanticVerifiedPrefix": {
-      "count": 1,
-      "through": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
+      "count": 2,
+      "through": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
       "blocker": {
-        "topoIndex": 2,
-        "sha": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
-        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 link"
+        "topoIndex": 3,
+        "sha": "484e3782963cae4095bfcd71add5e168fb51d5e3",
+        "subject": ":art: Show backlinks at the bottom of documents https://github.com/siyuan-note/siyuan/issues/18319"
       }
     },
     "deliveryIntegratedPrefix": {
-      "count": 1,
-      "through": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
+      "count": 2,
+      "through": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
       "blocker": {
-        "topoIndex": 2,
-        "sha": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
-        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 link"
+        "topoIndex": 3,
+        "sha": "484e3782963cae4095bfcd71add5e168fb51d5e3",
+        "subject": ":art: Show backlinks at the bottom of documents https://github.com/siyuan-note/siyuan/issues/18319"
       }
     },
     "topologyIntegratedPrefix": {
-      "count": 1,
-      "through": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
+      "count": 2,
+      "through": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
       "blocker": {
-        "topoIndex": 2,
-        "sha": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
-        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 link"
+        "topoIndex": 3,
+        "sha": "484e3782963cae4095bfcd71add5e168fb51d5e3",
+        "subject": ":art: Show backlinks at the bottom of documents https://github.com/siyuan-note/siyuan/issues/18319"
       }
     },
     "firstActionable": {
-      "topoIndex": 2,
-      "sha": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
-      "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 link",
+      "topoIndex": 3,
+      "sha": "484e3782963cae4095bfcd71add5e168fb51d5e3",
+      "subject": ":art: Show backlinks at the bottom of documents https://github.com/siyuan-note/siyuan/issues/18319",
       "state": "audit-pending",
       "nextAction": "audit-upstream-behavior",
       "audit": {
@@ -64,6 +64,7 @@
   "coverage": {
     "semanticVerified": [
       "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
+      "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
       "5437866299dba896b41b356abf4d28f059c9d89c",
       "b8543f5b959a94b830db45853751a52222a3df2b",
       "446be135969fc9676fd810968ba2f646a2ad9d55",
@@ -90,13 +91,14 @@
       "c61e68fbc8ad9868f3e6e9d7b6d94cc498fbefc7",
       "ace0528d1a801f42be4a1bad99c99ed67288c6e1",
       "2b3da2fca489c72d36a0efba060ef2fe0219c889",
-      "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0"
+      "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
+      "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8"
     ],
     "topologyCovered": [
-      "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0"
+      "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
+      "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8"
     ],
     "pending": [
-      "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
       "484e3782963cae4095bfcd71add5e168fb51d5e3",
       "ab15722b032a53257c3ed6c3f076014335f72abe",
       "5bc3cdc055c2eca1367c0d8180468a5805de3a37",
@@ -658,7 +660,6 @@
       "401d2928cab86a9d52ed1545610b183e78f7652a"
     ],
     "topologyLag": [
-      "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
       "484e3782963cae4095bfcd71add5e168fb51d5e3",
       "5437866299dba896b41b356abf4d28f059c9d89c",
       "b8543f5b959a94b830db45853751a52222a3df2b",
@@ -1235,12 +1236,14 @@
       "D001",
       "D002R",
       "D002",
-      "D003"
+      "D003",
+      "D004"
     ],
     "checkpointIds": [
-      "M001"
+      "M001",
+      "M002"
     ],
-    "topologyThrough": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0"
+    "topologyThrough": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8"
   },
   "entries": [
     {
@@ -1294,19 +1297,50 @@
       "topoIndex": 2,
       "sha": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
       "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 link",
-      "state": "audit-pending",
-      "nextAction": "audit-upstream-behavior",
+      "state": "topology-integrated",
+      "nextAction": "none",
       "audit": {
-        "status": "pending",
-        "disposition": null,
-        "seriesId": null,
-        "localCommits": [],
-        "mappingEvidence": [],
-        "codeEvidence": [],
-        "testEvidence": []
+        "status": "verified",
+        "disposition": "ported-semantic",
+        "seriesId": "link-menu-batch-update-8554",
+        "localCommits": [
+          "89d7b17d11faf74d23074b27ea4e4d06c2b6c2c9"
+        ],
+        "mappingEvidence": [
+          {
+            "localCommit": "89d7b17d11faf74d23074b27ea4e4d06c2b6c2c9",
+            "declaredDisposition": "semantic-port",
+            "series": "siyuan-dev-28e38647fb02/link-menu-batch-update-8554",
+            "audit": "docs/upstream-sync/siyuan-dev-28e38647fb02/commits.jsonl",
+            "patchId": null
+          }
+        ],
+        "codeEvidence": [
+          "app/src/menus/protyleMenus/linkMenu/protyle.linkMenu.ts",
+          "app/src/menus/protyleMenus/linkMenu/protyle.linkMenu.savePlan.ts",
+          "app/src/protyle/toolbar/Link.ts",
+          "app/src/protyle/intent/userOperationIntent.ts"
+        ],
+        "testEvidence": [
+          "pnpm exec vitest --run test/protyle/linkMenuSavePlan.test.ts test/protyle/keydownDeleteRouter.test.ts test/protyle/keydownDeleteMiddleware.test.ts (3 files, 7 tests passed)",
+          "pnpm test (Node 256 tests and all Vitest shards passed)",
+          "pnpm typecheck reports zero diagnostics in this series' changed files; repository-wide baseline diagnostics remain explicit"
+        ]
       },
-      "deliveries": [],
-      "topologyCheckpoints": []
+      "deliveries": [
+        {
+          "deliveryId": "D004",
+          "status": "integrated",
+          "integrationCommit": "72dfff2d2eeb565c4193f13044f03eb4bef8a91c",
+          "runtimeGateStatus": "passed"
+        }
+      ],
+      "topologyCheckpoints": [
+        {
+          "checkpointId": "M002",
+          "integrationCommit": "2772c1c44919346d2eb577ca8008c5b05ee2e0b4"
+        }
+      ]
     },
     {
       "topoIndex": 3,
