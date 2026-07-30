@@ -5,6 +5,7 @@ import {tmpdir} from "node:os";
 import {join} from "node:path";
 import test from "node:test";
 import {
+    advanceAuditTip,
     buildAuditRecords,
     loadCycleForRegeneration,
     refreshAuditManifest,
@@ -207,4 +208,65 @@ test("refreshes the mapping endpoint from the current branch without losing cycl
     assert.equal(refreshed.candidateHead, candidateHead);
     assert.equal(refreshed.mappedUpstreamCommitCount, 1);
     assert.deepEqual(refreshed.deliveryStrategy, {mode: "rolling-verified-series"});
+});
+
+test("advances an upstream tip without losing completed audits and rejects rewritten history", (context) => {
+    const repo = mkdtempSync(join(tmpdir(), "sforge-audit-tip-"));
+    context.after(() => rmSync(repo, {recursive: true, force: true}));
+    git(repo, ["init", "--initial-branch=main"]);
+    git(repo, ["config", "user.name", "Test Author"]);
+    git(repo, ["config", "user.email", "test@example.com"]);
+    const base = commitFile(repo, "base.txt", "base\n", "base");
+    const firstTip = commitFile(repo, "first.txt", "first\n", "first upstream change");
+    const output = join(repo, "audit");
+    const firstRecords = buildAuditRecords({repo, upstreamBase: base, upstreamTip: firstTip});
+    firstRecords[0].audit.status = "verified";
+    firstRecords[0].audit.disposition = "ported-semantic";
+    writeAuditManifest({
+        repo,
+        output,
+        cycle: {upstreamBase: base, upstreamTip: firstTip, localBase: base},
+        records: firstRecords,
+    });
+
+    const secondTip = commitFile(repo, "second.txt", "second\n", "second upstream change");
+    git(repo, ["switch", "-c", "series", base]);
+    const fetchedAt = "2026-07-30T08:56:24+08:00";
+    const advanced = advanceAuditTip({repo, output, upstreamTip: secondTip, fetchedAt});
+    const records = readFileSync(join(output, "commits.jsonl"), "utf8")
+        .trim().split("\n").map((line) => JSON.parse(line));
+
+    assert.equal(advanced.upstreamTip, secondTip);
+    assert.equal(advanced.commitCount, 2);
+    assert.equal(records[0].audit.status, "verified");
+    assert.equal(records[0].audit.disposition, "ported-semantic");
+    assert.equal(records[1].audit.status, "pending");
+    assert.equal(advanced.upstreamTipRefresh.latestCheckedAt, fetchedAt);
+    assert.deepEqual(advanced.upstreamTipRefresh.history, [{
+        from: firstTip,
+        to: secondTip,
+        fetchedAt,
+        addedCommitCount: 1,
+        addedMergeCommitCount: 0,
+    }]);
+    assert.deepEqual(verifyAuditManifest({repo, output}), {
+        commitCount: 2,
+        mergeCommitCount: 0,
+        revertCommitCount: 0,
+        mappedUpstreamCommitCount: 0,
+    });
+
+    const checkedAt = "2026-07-30T09:11:51+08:00";
+    const checked = advanceAuditTip({repo, output, upstreamTip: secondTip, fetchedAt: checkedAt});
+    assert.equal(checked.upstreamTipRefresh.latestCheckedAt, checkedAt);
+    assert.deepEqual(checked.upstreamTipRefresh.history, advanced.upstreamTipRefresh.history);
+    assert.equal(checked.candidateBranch, advanced.candidateBranch);
+    assert.equal(checked.candidateHead, advanced.candidateHead);
+
+    git(repo, ["switch", "--orphan", "rewritten"]);
+    const rewrittenTip = commitFile(repo, "rewritten.txt", "rewritten\n", "rewritten upstream history");
+    assert.throws(
+        () => advanceAuditTip({repo, output, upstreamTip: rewrittenTip, fetchedAt}),
+        /Refusing non-fast-forward upstream tip change/,
+    );
 });
