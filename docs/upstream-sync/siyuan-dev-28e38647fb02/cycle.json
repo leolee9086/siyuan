@@ -6,9 +6,9 @@
   "upstreamBranch": "dev",
   "localBase": "7845c47e3620a7cd411648e36fd508c43ea757f7",
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
-  "upstreamTip": "66c7c6e872f6c48a9b116afa91c765880d73b9b6",
-  "candidateBranch": "sync/upstream-dev-72987919-issue-8554",
-  "candidateHead": "659e223c3c4045ecfbf1537542e1a4a8fb36b61c",
+  "upstreamTip": "0fd89fde3c9c0240172eee0a81352759c391d292",
+  "candidateBranch": "sync/upstream-dev-66c7c6e8-cross-block-editing",
+  "candidateHead": "b8764445e8c131e7ffac3daed9e66a43d43369f2",
   "candidateCreatedAt": "2026-07-29T14:15:25+08:00",
   "mainRepository": "D:/dev/s-forge",
   "mainBranch": "multipleAI",
@@ -41,20 +41,20 @@
     "kramdownHashNormalization": "LF line endings and lexicographically sorted Kramdown IAL attributes",
     "mirrorSha256": "2cbe92e9d456950111b341cbebf1658c6c121ab76493b14bcf3ef5ab03a43573"
   },
-  "commitCount": 544,
+  "commitCount": 546,
   "mergeCommitCount": 41,
   "revertCommitCount": 0,
-  "stablePatchIdCount": 503,
+  "stablePatchIdCount": 505,
   "mappedUpstreamCommitCount": 8,
   "auditGrouping": {
     "mode": "optional",
     "fixedSize": null,
     "note": "Grouping is an execution aid and never a completion boundary."
   },
-  "upstreamTipFetchedAt": "2026-07-30T20:25:27.6870202+08:00",
+  "upstreamTipFetchedAt": "2026-07-30T21:34:00+08:00",
   "upstreamTipRefresh": {
     "mode": "before-each-series-and-final-closure",
-    "latestCheckedAt": "2026-07-30T20:25:27.6870202+08:00",
+    "latestCheckedAt": "2026-07-30T21:34:00+08:00",
     "history": [
       {
         "from": "28e38647fb02ef126002633f33f9d3fcccb8c167",
@@ -104,6 +104,13 @@
         "fetchedAt": "2026-07-30T20:25:27.6870202+08:00",
         "addedCommitCount": 39,
         "addedMergeCommitCount": 4
+      },
+      {
+        "from": "66c7c6e872f6c48a9b116afa91c765880d73b9b6",
+        "to": "0fd89fde3c9c0240172eee0a81352759c391d292",
+        "fetchedAt": "2026-07-30T21:34:00+08:00",
+        "addedCommitCount": 2,
+        "addedMergeCommitCount": 0
       }
     ]
   }

@@ -14,14 +14,14 @@
   "manifest": {
     "status": "passed",
     "command": "node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
-    "commitCount": 544,
-    "uniqueCommitCount": 544,
+    "commitCount": 546,
+    "uniqueCommitCount": 546,
     "mergeCommitCount": 41,
     "revertCommitCount": 0,
-    "stablePatchIdCount": 503,
+    "stablePatchIdCount": 505,
     "mappedUpstreamCommitCount": 8,
     "verifiedAuditCount": 8,
-    "pendingAuditCount": 536
+    "pendingAuditCount": 538
   },
   "focusedChecks": [
     {
@@ -57,8 +57,8 @@
     {
       "name": "current upstream tip refresh",
       "status": "passed",
-      "command": "git fetch --no-tags upstream refs/heads/dev:refs/remotes/upstream/dev through http://127.0.0.1:7890; node scripts/upstream-sync/audit-manifest.mjs advance-tip --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02 --upstream-tip 66c7c6e872f6c48a9b116afa91c765880d73b9b6 --fetched-at 2026-07-30T20:25:27.6870202+08:00",
-      "evidence": "U1 advanced only through verified fast-forward steps, ending at 66c7c6e872f6c48a9b116afa91c765880d73b9b6. The last update added 39 commits and four merges after 6d23075f6fd571f5047239ff38cfe6e2feb4a402; the full range is 544 commits and 41 merges. All 8 verified audits were preserved and 536 entries remain explicit pending. advance-tip verifies the complete manifest before returning success."
+      "command": "git fetch --no-tags upstream refs/heads/dev:refs/remotes/upstream/dev through http://127.0.0.1:7890; node scripts/upstream-sync/audit-manifest.mjs advance-tip --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02 --upstream-tip 0fd89fde3c9c0240172eee0a81352759c391d292 --fetched-at 2026-07-30T21:34:00+08:00; node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
+      "evidence": "U1 advanced only through verified fast-forward steps, ending at 0fd89fde3c9c0240172eee0a81352759c391d292. The last update added two ordinary commits after 66c7c6e872f6c48a9b116afa91c765880d73b9b6: Issue 10767 large CSV database pasting and Issue 18455 dialog title-bar drag bounds. The full range is 546 commits and 41 merges. All 8 verified audits were preserved and 538 entries remain explicit pending. advance-tip and a separate verify both completed successfully."
     },
     {
       "name": "search exact ranking",
