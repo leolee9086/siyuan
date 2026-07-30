@@ -2,9 +2,9 @@
 
 > **最终目标**：从源码启动的 S-Forge 在 Kernel 源码形成可验证提交后，允许原生 Agent 或已登录的同设备主界面发起验证与热切换、用户逐次复核受保护变更、Forge Supervisor 执行全量验证、重编译、优雅重启、健康检查与自动回退；浏览器前端可由 Agent 独立触发页面重载。
 >
-> **当前目标**：Forge 热切换前端接续协议及自动化验证已经完成；原子提交本批修改，通过人工审批、完整核心门禁和真实热切换验证隔离等待页能够恢复到最新健康 Kernel。
+> **当前目标**：Forge 热切换前端接续协议已部署到活动 Kernel `39cfb62bc3599c190b34b3003f2a4117b7549a05`；在下一次包含真实 Kernel 修改的上游语义合并阶段，验收浏览器进入隔离等待页并自动恢复到精确健康 revision。
 >
-> **下一步任务**：暂存并原子提交本批修改；在主界面批准精确绑定提交 revision 的受保护测试请求，等待候选 Kernel 健康切换与页面自动恢复，再核对 Supervisor、活动 revision 和各入口探针。
+> **下一步任务**：恢复上游 Issue 8554 系列的逐提交语义合并；下一次 Kernel 阶段提交继续执行人工审批、完整核心门禁和热切换，同时以实际主应用页面完成新连续性协议的端到端验收。
 
 ---
 
@@ -88,12 +88,14 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
   - **鉴权**：路由保留 `CheckAuth + CheckAdminRole + CheckReadonly`，Handler 追加真实同设备来源、协议与主机均一致的严格同源校验、精确 `application/json` 媒体类型校验与通用 Token 凭据拒绝；Kernel 代持唯一回环 Supervisor 凭据。Agent Bash 明确阻断 WebUI Runtime URL，CLI 凭据继续只允许状态与重启，不能审批。
   - **验收标准**：无需 Agent 消息即可打开控制面并发起任务；相同 pending `jobId + revision` 只弹一次；错误在界面可见；API Token、插件 JWT、BasicAuth、query token、跨源、远端和非 JSON 请求均不触达 Supervisor；真实审批、全量门禁和热切换通过。
 
-- [ ] **Phase 8：热切换期间的安全前端接续（P0）** [实现与自动化验证完成，等待真实热切换 2026-07-30]
+- [ ] **Phase 8：热切换期间的安全前端接续（P0）** [协议已部署，等待下一次 Kernel 切换端到端验收 2026-07-30]
   - **行动**：Supervisor 在停止旧 Kernel 前向专用 shutdown 端点传入当前 `jobId` 和候选 `targetRevision`；Kernel 仅在回环根凭据校验成功且请求体严格合法时广播 `forge-restart` 退出上下文。浏览器立即导航到同源 Blob 隔离文档，持续查询公开 Kernel WebUI 状态 API，仅在精确任务完成且活动健康 revision 匹配时恢复原页。
   - **安全边界**：等待页不继承 App DOM、内存状态、插件对象或 Supervisor 凭据；CSP 只允许内联等待逻辑与原同源状态连接；原 URL 必须是无用户信息、无 `token` 查询的 HTTP(S) 同源地址。回滚、失败、任务不匹配、鉴权失效和超时均不自动进入未验证应用。
   - **实现文件**：`app/scripts/forge-runtime-supervisor.js`、`kernel/api/forge_runtime.go`、`kernel/model/conf.go`、`app/src/index.ts`、`app/src/sforge/forgeRuntime/types.ts`、`app/src/sforge/forgeRuntime/exitContinuity.ts`；契约测试位于 `app/test/forge-runtime-supervisor.test.js`、`kernel/api/forge_runtime_test.go`、`app/test/sforge/forgeRuntime.exitContinuity.test.ts` 与 `app/test/browser/sforge/forgeRuntimeRecovery.browser.ts`。
   - **自动化证据（2026-07-30）**：Forge 前端专项 15/15、Chromium Blob 隔离与恢复 3/3（精确成功、失败隔离、健康回滚后人工返回）、Supervisor 40/40、Kernel API Forge Runtime 专项及 `go test ./model` 通过；完整 `pnpm test` 通过 Node 254 项与 Vitest 877 项；`pnpm dev:once` 的 11 个目标全部编译成功；本批文件定向 TypeScript、`gofmt -d`、新增实现 lint 与 `git diff --check` 通过。
   - **类型状态**：完整 `pnpm typecheck` 仍被 Agent standalone、AppFacade、异步化、PDF、Layout/Protyle 等既有迁移诊断阻断；本批新增文件定向检查为零，`src/index.ts` 新增退出分支没有新增诊断。该事实不记为完整类型检查通过，也不在本阶段扩大修改范围。
+  - **部署证据（2026-07-30）**：提交 `39cfb62bc` 后，任务 `2026-07-30T00-36-01.224Z-a1576038` 精确识别 `kernel/api/forge_runtime.go` 与 `kernel/model/conf.go`，经主界面人工批准，依次通过 `gofmt`、`go vet -tags fts5 ./...`、`go test -short -tags fts5 ./...`、候选构建和健康切换；候选 `2026-07-30T00-37-43.303Z-39cfb62bc359-candidate` 于 `00:37:59Z` 晋升。唯一 Supervisor PID `32436` 未变，活动版本为 `healthy` 且 revision 精确匹配 `39cfb62bc3599c190b34b3003f2a4117b7549a05`。
+  - **首次切换边界**：停止方仍是未携带 `forge-restart` 退出上下文的旧 Kernel，因此浏览器此次按原安全语义进入 `about:blank`，不计为新协议端到端通过；主应用随后已恢复至 `/stage/build/desktop/` 并正常渲染。重复 post-commit 请求在目标 revision 已由主界面任务切换后留下失败 operation，内置 `retry-post-commit` 已以 operation `2026-07-30T00-45-26-209Z-39cfb62bc359-b8fbea89` 收口为 `completed`，Kernel、Supervisor 与六个页面探针通过。
   - **验收标准**：Go 测试覆盖 shutdown 鉴权和请求契约；Node 测试覆盖 Supervisor 精确转发；前端契约与浏览器测试覆盖普通退出、安全隔离、错误可见、任务/revision 不匹配阻断和成功自动恢复；真实核心门禁和热切换通过。
 
 ## 中期计划
