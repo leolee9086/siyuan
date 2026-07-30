@@ -5,11 +5,11 @@
   "candidateHead": "3e123a8cd04241749376f30e1c1ad206e9d73adc",
   "deliveries": {
     "status": "passed",
-    "integratedCount": 1,
+    "integratedCount": 2,
     "gitIntegratedCount": 0,
-    "latestDelivery": "D001",
-    "latestIntegrationCommit": "b84bd2daa1f6f270eed167a2ab22f97c24fab595",
-    "evidence": "D001 has exact B1/S1 parents and matching tree. Commit gate 2026-07-30T00-51-07-027Z-1c97fd45af9f-c2b8c8f4 completed at main HEAD 1c97fd45af9fedbb43a1106e696bfacf2020459a; active Kernel 39cfb62bc3599c190b34b3003f2a4117b7549a05 has no later Kernel diff, Supervisor and Kernel health passed, and all six page probes returned 200."
+    "latestDelivery": "D002",
+    "latestIntegrationCommit": "fa6d9e59c3dd63dc59725093ce10d5bdbe0fdfe1",
+    "evidence": "D002 has exact B2/S2 parents and matching tree. Commit gate 2026-07-30T14-24-09-230Z-fa6d9e59c3dd-7f25bc1a completed at main HEAD fa6d9e59c3dd63dc59725093ce10d5bdbe0fdfe1. It ran pnpm test and pnpm dev:once for the four Protyle source files; no Kernel runtime paths changed, so healthy active Kernel bf304048cf6fee55c891f49f5482e3ab44a59acd is runtime-equivalent through the D002 main head. Supervisor, Kernel and all six page probes passed."
   },
   "manifest": {
     "status": "passed",
@@ -24,6 +24,12 @@
     "pendingAuditCount": 538
   },
   "focusedChecks": [
+    {
+      "name": "rolling delivery D002",
+      "status": "passed",
+      "command": "git merge --no-ff refs/remotes/upstream-sync/siyuan-dev-28e38647fb02-d002; pnpm test; pnpm dev:once",
+      "evidence": "fa6d9e59c3dd63dc59725093ce10d5bdbe0fdfe1 has parents bf304048cf6fee55c891f49f5482e3ab44a59acd and 2012a7f11c55f2aa44b5370742d017bc9f6ab85d; its tree equals S2. Pre-integration and post-integration Protyle contracts passed with 5 files and 37 assertions. The completed operation rebuilt all configured frontend targets, retained healthy Kernel bf304048cf6fee55c891f49f5482e3ab44a59acd because the range contains no Kernel runtime files, and verified all six pages at HTTP 200. Main-side audit verification passed after importing the exact upstream/dev object from the isolated official-fetch clone."
+    },
     {
       "name": "rolling delivery D001",
       "status": "passed",
@@ -100,6 +106,18 @@
     {"name": "all app build targets", "command": "pnpm build", "status": "pending"}
   ],
   "failures": [
+    {
+      "stage": "D002 integration object availability",
+      "result": "failed-explicitly",
+      "message": "The first main-repository merge attempt stopped before creating a commit because isolated candidate object 2012a7f11c55f2aa44b5370742d017bc9f6ab85d was not present in the main object database.",
+      "resolution": "Fetched that exact SHA from the independent clone into refs/remotes/upstream-sync/siyuan-dev-28e38647fb02-d002, verified its type, SHA and bf304048cf6fee55c891f49f5482e3ab44a59acd ancestry, then completed the no-ff merge."
+    },
+    {
+      "stage": "D002 post-integration upstream object verification",
+      "result": "failed-explicitly",
+      "message": "Main-side audit verification initially lacked frozen tip 9d164289036a68e2d4e6fc1777c4c1a986f32b8d. The repository's official SiYuan remote is origin=https://github.com/siyuan-note/siyuan.git; an attempted fetch by the absent alias upstream failed and did not establish an absence of an official upstream source.",
+      "resolution": "Rechecked remotes and existing refs, then transferred refs/remotes/upstream/dev from the isolated clone, which had fetched the official origin/dev branch through the configured proxy. Verified the exact tip object and fast-forward relationship, then reran the 550-entry manifest verification successfully."
+    },
     {
       "stage": "cross-block audit decision application",
       "result": "failed-explicitly",

@@ -21,9 +21,9 @@
     "finalTopologyIntegration": "ff-only-reviewed-ours-merge",
     "runtimeFreshnessRequired": true
   },
-  "latestDelivery": "D001",
-  "latestGitIntegratedHead": "b84bd2daa1f6f270eed167a2ab22f97c24fab595",
-  "latestIntegratedHead": "b84bd2daa1f6f270eed167a2ab22f97c24fab595",
+  "latestDelivery": "D002",
+  "latestGitIntegratedHead": "fa6d9e59c3dd63dc59725093ce10d5bdbe0fdfe1",
+  "latestIntegratedHead": "fa6d9e59c3dd63dc59725093ce10d5bdbe0fdfe1",
   "frozenAt": "2026-07-29T20:02:23+08:00",
   "requiredGates": [
     "kernel: go test -short -tags fts5 ./...",
