@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -300,9 +301,12 @@ func TestForgeRuntimeShutdownRequiresAuthenticatedLoopbackSupervisor(t *testing.
 	_ = os.Setenv(util.ForgeSupervisorTokenEnv, "shutdown-token")
 
 	called := make(chan struct{}, 1)
-	forgeRuntimeClose = func(force, setCurrentWorkspace bool, execInstallPkg int) (int, string) {
+	forgeRuntimeClose = func(force, setCurrentWorkspace bool, execInstallPkg int, jobID, targetRevision string) (int, string) {
 		if force || setCurrentWorkspace || execInstallPkg != 1 {
 			t.Errorf("unexpected close arguments: force=%v setCurrentWorkspace=%v execInstallPkg=%d", force, setCurrentWorkspace, execInstallPkg)
+		}
+		if jobID != "restart-job-1" || targetRevision != strings.Repeat("a", 40) {
+			t.Errorf("unexpected restart identity: jobID=%q targetRevision=%q", jobID, targetRevision)
 		}
 		called <- struct{}{}
 		return 0, ""
@@ -318,9 +322,24 @@ func TestForgeRuntimeShutdownRequiresAuthenticatedLoopbackSupervisor(t *testing.
 		t.Fatalf("invalid request status = %d", invalidRecorder.Code)
 	}
 
-	validRequest := httptest.NewRequest(http.MethodPost, "/api/s-forge/forge/runtime/shutdown", nil)
+	invalidBodyRequest := httptest.NewRequest(http.MethodPost, "/api/s-forge/forge/runtime/shutdown",
+		strings.NewReader(`{"jobId":"restart-job-1","targetRevision":"`+strings.Repeat("a", 40)+`","extra":true}`))
+	invalidBodyRequest.RemoteAddr = "127.0.0.1:1234"
+	invalidBodyRequest.Header.Set(util.ForgeSupervisorTokenHeader, "shutdown-token")
+	invalidBodyRequest.Header.Set("Content-Type", "application/json")
+	invalidBodyRecorder := httptest.NewRecorder()
+	invalidBodyContext, _ := gin.CreateTestContext(invalidBodyRecorder)
+	invalidBodyContext.Request = invalidBodyRequest
+	forgeRuntimeShutdown(invalidBodyContext)
+	if invalidBodyRecorder.Code != http.StatusBadRequest {
+		t.Fatalf("invalid body status = %d", invalidBodyRecorder.Code)
+	}
+
+	validRequest := httptest.NewRequest(http.MethodPost, "/api/s-forge/forge/runtime/shutdown",
+		strings.NewReader(`{"jobId":"restart-job-1","targetRevision":"`+strings.Repeat("a", 40)+`"}`))
 	validRequest.RemoteAddr = "127.0.0.1:1234"
 	validRequest.Header.Set(util.ForgeSupervisorTokenHeader, "shutdown-token")
+	validRequest.Header.Set("Content-Type", "application/json")
 	validRecorder := httptest.NewRecorder()
 	validContext, _ := gin.CreateTestContext(validRecorder)
 	validContext.Request = validRequest

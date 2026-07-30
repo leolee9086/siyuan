@@ -463,7 +463,7 @@ class ForgeRuntimeSupervisor {
             this.updateJob(job, "running", "build_candidate");
             const candidate = await this.buildVersion(source.revision, "candidate", source.restartPolicy);
             this.updateJob(job, "running", "switch_kernel");
-            await this.switchToCandidate(candidate);
+            await this.switchToCandidate(candidate, job);
             this.updateJob(job, "completed", "completed");
             this.cleanupVersions();
         } catch (error) {
@@ -640,14 +640,14 @@ class ForgeRuntimeSupervisor {
         return version;
     }
 
-    async switchToCandidate(candidate) {
+    async switchToCandidate(candidate, job) {
         const previous = this.activeVersion;
         if (!previous) {
             throw new Error("cannot switch without an active version");
         }
         this.switching = true;
         try {
-            await this.requestGracefulKernelShutdown();
+            await this.requestGracefulKernelShutdown(job, candidate);
             await this.waitForKernelExit(30_000);
             try {
                 await this.launchAndRequireHealthy(candidate, false);
@@ -828,10 +828,20 @@ class ForgeRuntimeSupervisor {
         };
     }
 
-    async requestGracefulKernelShutdown() {
+    async requestGracefulKernelShutdown(job, candidate) {
+        if (!job || !/^[a-zA-Z0-9_.-]{1,80}$/.test(job.id || "")) {
+            throw new Error("cannot switch Kernel without a valid restart job identity");
+        }
+        if (!candidate || !/^[0-9a-f]{40}$/.test(candidate.revision || "")) {
+            throw new Error("cannot switch Kernel without a valid candidate revision");
+        }
         const response = await this.fetchImpl(`http://127.0.0.1:${this.port}/api/s-forge/forge/runtime/shutdown`, {
             method: "POST",
-            headers: {[SUPERVISOR_TOKEN_HEADER]: this.token},
+            headers: {
+                "Content-Type": "application/json",
+                [SUPERVISOR_TOKEN_HEADER]: this.token,
+            },
+            body: JSON.stringify({jobId: job.id, targetRevision: candidate.revision}),
         });
         if (!response.ok) {
             throw new Error(`kernel rejected graceful shutdown with HTTP ${response.status}`);

@@ -611,8 +611,8 @@ test("Restart source validation rejects active versions without a recorded polic
 
 test("Candidate health failure restores the previous immutable version", async () => {
     const supervisor = createSupervisor();
-    const previous = {id: "previous", revision: "old", binaryPath: "previous.exe", sha256: "old-sha"};
-    const candidate = {id: "candidate", revision: "new", binaryPath: "candidate.exe", sha256: "new-sha"};
+    const previous = {id: "previous", revision: "b".repeat(40), binaryPath: "previous.exe", sha256: "old-sha"};
+    const candidate = {id: "candidate", revision: "a".repeat(40), binaryPath: "candidate.exe", sha256: "new-sha"};
     supervisor.activeVersion = previous;
     supervisor.currentJob = supervisor.createJob("switch test");
     assert.equal(supervisor.currentJob.logPath, `jobs/${supervisor.currentJob.id}.log`);
@@ -628,7 +628,7 @@ test("Candidate health failure restores the previous immutable version", async (
         }
     };
 
-    await assert.rejects(supervisor.switchToCandidate(candidate), /previous version restored/);
+    await assert.rejects(supervisor.switchToCandidate(candidate, supervisor.currentJob), /previous version restored/);
     assert.deepEqual(launched, ["candidate", "previous"]);
     assert.equal(supervisor.activeVersion.id, "previous");
     assert.equal(supervisor.currentJob.state, "rolled_back");
@@ -754,6 +754,32 @@ test("Protected test diff pauses restart until a matching human approval arrives
     assert.equal(job.protectedTestApproval.state, "approved");
     assert.equal(job.state, "running");
     assert.throws(() => supervisor.approveProtectedTests(job.id, source.revision), /no matching/);
+});
+
+test("Graceful Kernel shutdown carries the exact restart job and candidate revision", async () => {
+    const requests = [];
+    const supervisor = createSupervisor({
+        fetchImpl: async (url, options) => {
+            requests.push({url, options});
+            return {ok: true, status: 202};
+        },
+    });
+    const job = {id: "restart-job-1"};
+    const candidate = {revision: "a".repeat(40)};
+
+    await supervisor.requestGracefulKernelShutdown(job, candidate);
+
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].url, "http://127.0.0.1:6806/api/s-forge/forge/runtime/shutdown");
+    assert.equal(requests[0].options.method, "POST");
+    assert.deepEqual(requests[0].options.headers, {
+        "Content-Type": "application/json",
+        [SUPERVISOR_TOKEN_HEADER]: "test-supervisor-token",
+    });
+    assert.deepEqual(JSON.parse(requests[0].options.body), {
+        jobId: "restart-job-1",
+        targetRevision: "a".repeat(40),
+    });
 });
 
 test("Protected test rejection is exact, persisted and fails the waiting restart", async (t) => {

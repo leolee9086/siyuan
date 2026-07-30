@@ -2,9 +2,9 @@
 
 > **最终目标**：从源码启动的 S-Forge 在 Kernel 源码形成可验证提交后，允许原生 Agent 或已登录的同设备主界面发起验证与热切换、用户逐次复核受保护变更、Forge Supervisor 执行全量验证、重编译、优雅重启、健康检查与自动回退；浏览器前端可由 Agent 独立触发页面重载。
 >
-> **当前目标**：无需 Agent 请求的 Forge Runtime 主界面控制面已在活动 Kernel `7fd0cbeab3be1ed9c85a7908767976fb37756e9d` 上线；当前提交严格同源与精确 JSON 媒体类型收紧，并从新控制面完成第二次真实门禁、主动审批和热切换验收。
+> **当前目标**：Forge 热切换前端接续协议及自动化验证已经完成；原子提交本批修改，通过人工审批、完整核心门禁和真实热切换验证隔离等待页能够恢复到最新健康 Kernel。
 >
-> **下一步任务**：复跑鉴权专项测试并原子提交本批次；在状态栏“Forge 核心更新”Dialog 中直接点击“校验并热切换”，确认受保护测试审批弹窗精确绑定当前 `jobId + revision`，完成全量核心门禁、候选切换、页面回归和活动 revision 核对。
+> **下一步任务**：暂存并原子提交本批修改；在主界面批准精确绑定提交 revision 的受保护测试请求，等待候选 Kernel 健康切换与页面自动恢复，再核对 Supervisor、活动 revision 和各入口探针。
 
 ---
 
@@ -26,6 +26,7 @@
 14. `pnpm forge` 启动入口在安装 hooks、探测端口或接管进程前必须确认整个 Git 工作树和索引干净；暂存、未暂存或未跟踪文件任一存在都明确列出并阻断启动。
 15. 人工主界面控制面不复用 Agent 的进程内确认 capability，也不向前端公开 Supervisor 地址或令牌；公开 Kernel 路由必须同时满足登录态、管理员、非只读、同设备、同源 JSON 请求，并拒绝工作空间 API Token、插件 JWT、BasicAuth 和 query token 作为该 UI 通道的凭据。
 16. 直接 WebUI 入口只能请求同一 Supervisor 门禁，不能提供跳过测试、跳过 Git 校验或直接杀启 Kernel 的参数；受保护变更审批必须由 Supervisor 再次核对当前 pending job、状态、阶段、`jobId` 与 `revision`，过期、拒绝和不匹配均明确失败并写盘。
+17. 人工退出、信号退出和非 Forge 退出事件继续导航到 `about:blank`；只有通过 Supervisor 回环鉴权的受控切换可携带可恢复标记。等待文档必须与原应用 DOM/JS 上下文隔离，不持有 Supervisor 凭据，且只在 `jobId`、终态、健康版本和 `targetRevision` 契约一致时恢复原同源 URL；任何解析、鉴权或校验失败均保持隔离并可见报错。
 
 ## 现状基线
 
@@ -87,6 +88,14 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
   - **鉴权**：路由保留 `CheckAuth + CheckAdminRole + CheckReadonly`，Handler 追加真实同设备来源、协议与主机均一致的严格同源校验、精确 `application/json` 媒体类型校验与通用 Token 凭据拒绝；Kernel 代持唯一回环 Supervisor 凭据。Agent Bash 明确阻断 WebUI Runtime URL，CLI 凭据继续只允许状态与重启，不能审批。
   - **验收标准**：无需 Agent 消息即可打开控制面并发起任务；相同 pending `jobId + revision` 只弹一次；错误在界面可见；API Token、插件 JWT、BasicAuth、query token、跨源、远端和非 JSON 请求均不触达 Supervisor；真实审批、全量门禁和热切换通过。
 
+- [ ] **Phase 8：热切换期间的安全前端接续（P0）** [实现与自动化验证完成，等待真实热切换 2026-07-30]
+  - **行动**：Supervisor 在停止旧 Kernel 前向专用 shutdown 端点传入当前 `jobId` 和候选 `targetRevision`；Kernel 仅在回环根凭据校验成功且请求体严格合法时广播 `forge-restart` 退出上下文。浏览器立即导航到同源 Blob 隔离文档，持续查询公开 Kernel WebUI 状态 API，仅在精确任务完成且活动健康 revision 匹配时恢复原页。
+  - **安全边界**：等待页不继承 App DOM、内存状态、插件对象或 Supervisor 凭据；CSP 只允许内联等待逻辑与原同源状态连接；原 URL 必须是无用户信息、无 `token` 查询的 HTTP(S) 同源地址。回滚、失败、任务不匹配、鉴权失效和超时均不自动进入未验证应用。
+  - **实现文件**：`app/scripts/forge-runtime-supervisor.js`、`kernel/api/forge_runtime.go`、`kernel/model/conf.go`、`app/src/index.ts`、`app/src/sforge/forgeRuntime/types.ts`、`app/src/sforge/forgeRuntime/exitContinuity.ts`；契约测试位于 `app/test/forge-runtime-supervisor.test.js`、`kernel/api/forge_runtime_test.go`、`app/test/sforge/forgeRuntime.exitContinuity.test.ts` 与 `app/test/browser/sforge/forgeRuntimeRecovery.browser.ts`。
+  - **自动化证据（2026-07-30）**：Forge 前端专项 15/15、Chromium Blob 隔离与恢复 3/3（精确成功、失败隔离、健康回滚后人工返回）、Supervisor 40/40、Kernel API Forge Runtime 专项及 `go test ./model` 通过；完整 `pnpm test` 通过 Node 254 项与 Vitest 877 项；`pnpm dev:once` 的 11 个目标全部编译成功；本批文件定向 TypeScript、`gofmt -d`、新增实现 lint 与 `git diff --check` 通过。
+  - **类型状态**：完整 `pnpm typecheck` 仍被 Agent standalone、AppFacade、异步化、PDF、Layout/Protyle 等既有迁移诊断阻断；本批新增文件定向检查为零，`src/index.ts` 新增退出分支没有新增诊断。该事实不记为完整类型检查通过，也不在本阶段扩大修改范围。
+  - **验收标准**：Go 测试覆盖 shutdown 鉴权和请求契约；Node 测试覆盖 Supervisor 精确转发；前端契约与浏览器测试覆盖普通退出、安全隔离、错误可见、任务/revision 不匹配阻断和成功自动恢复；真实核心门禁和热切换通过。
+
 ## 中期计划
 
 - [ ] 在 Agent Panel 增加可视化重启任务进度和“连接恢复”状态，而不是依赖 Agent 再次查询。
@@ -123,6 +132,10 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
 - [x] 相关 Go/Node/前端测试通过，TTT 记录实现文件与证据；lint 仅作为非阻断质量记录。
 
 ## 已归档/已完成
+
+- [x] **2026-07-30：`15bda522e` 前端防重入门禁闭合**
+  - 首次 post-commit 在外层提交命令被 5 秒执行器终止时连带中断 `dev:once`，失败 operation `2026-07-29T23-40-29-838Z-15bda522ee5f-9db3d545` 保留且不计为构建结论。独立 `dev:once` 随后用时 80.7 秒完成全部 11 个目标，证明源码无构建回归。
+  - 正式 recovery operation `2026-07-29T23-51-53-034Z-15bda522ee5f-b3285c41` 状态 `completed`；完整 `pnpm test`、`pnpm dev:once`、Kernel/Supervisor 健康和六个页面探针通过。前端活动 revision 为 `15bda522ee5f3a2aed402468f77d97192fb91203`，Kernel 保持 `8dd352e875271446c5a559eb618f2731db395cc8`，唯一 Supervisor PID `32436` 未变。
 
 - [x] **2026-07-30：严格 WebUI 鉴权下的真实热切换与重复任务防重入**
   - **运行证据**：唯一 Supervisor PID `32436` 保持不变；任务 `2026-07-29T23-30-40.269Z-c800027a` 在主界面显示精确受保护文件并由人工批准，随后通过 `gofmt`、`go vet -tags fts5 ./...`、`go test -short -tags fts5 ./...`、候选构建、切换和健康检查；正式 operation `2026-07-29T23-30-39-837Z-8dd352e87527-3a0ece49` 状态为 `completed`。

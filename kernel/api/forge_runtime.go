@@ -2,9 +2,11 @@ package api
 
 import (
 	"encoding/json"
+	"io"
 	"mime"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -12,8 +14,11 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
-var forgeRuntimeClose = model.Close
+var forgeRuntimeClose = model.CloseForForgeRestart
 var forgeRuntimeCallSupervisor = util.CallForgeSupervisor
+
+var forgeRuntimeJobIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_.-]{1,80}$`)
+var forgeRuntimeRevisionPattern = regexp.MustCompile(`^[0-9a-f]{40}$`)
 
 type forgeRuntimeStatusData struct {
 	Available bool            `json:"available"`
@@ -27,6 +32,11 @@ type forgeRuntimeRestartRequest struct {
 type forgeRuntimeApprovalRequest struct {
 	JobID    string `json:"jobId"`
 	Revision string `json:"revision"`
+}
+
+type forgeRuntimeShutdownRequest struct {
+	JobID          string `json:"jobId"`
+	TargetRevision string `json:"targetRevision"`
 }
 
 func forgeRuntimeStatus(c *gin.Context) {
@@ -171,6 +181,28 @@ func forgeRuntimeShutdown(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "invalid Forge Supervisor request"})
 		return
 	}
+	contentType, _, err := mime.ParseMediaType(c.GetHeader("Content-Type"))
+	if err != nil || !strings.EqualFold(contentType, "application/json") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Forge Runtime shutdown requires application/json"})
+		return
+	}
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 4096)
+	decoder := json.NewDecoder(c.Request.Body)
+	decoder.DisallowUnknownFields()
+	var request forgeRuntimeShutdownRequest
+	if err = decoder.Decode(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid Forge Runtime shutdown request"})
+		return
+	}
+	if err = decoder.Decode(&struct{}{}); err != io.EOF {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid Forge Runtime shutdown request"})
+		return
+	}
+	if !forgeRuntimeJobIDPattern.MatchString(request.JobID) ||
+		!forgeRuntimeRevisionPattern.MatchString(request.TargetRevision) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid Forge Runtime shutdown identity"})
+		return
+	}
 	c.JSON(http.StatusAccepted, gin.H{"state": "shutting_down"})
-	go forgeRuntimeClose(false, false, 1)
+	go forgeRuntimeClose(false, false, 1, request.JobID, request.TargetRevision)
 }

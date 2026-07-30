@@ -93,6 +93,7 @@ import type {IDialog} from "./dialog/dialog.types";
 import {loadSiyuanLanguages} from "./util/siyuanEnvironments/languages/environment";
 import {escapeHtml} from "./util/DOM/escape";
 import {initForgeRuntimeControl} from "./sforge/forgeRuntime";
+import {createForgeRuntimeRecoveryURL} from "./sforge/forgeRuntime/exitContinuity";
 
 export class App {
     readonly [appFacadeBrand] = "AppFacade" as const;
@@ -355,7 +356,17 @@ export class App {
                         }
                         case "exit":
                             if (isBrowser && !isInMobileApp()) {
-                                window.location.href = "about:blank";
+                                try {
+                                    const recoveryURL = createForgeRuntimeRecoveryURL(data.data, window.location.href);
+                                    if (recoveryURL) {
+                                        window.location.replace(recoveryURL);
+                                    } else {
+                                        window.location.href = "about:blank";
+                                    }
+                                } catch (error) {
+                                    console.error("Forge Runtime recovery page initialization failed", error);
+                                    window.location.href = "about:blank";
+                                }
                             }
                             break;
                         case "updateKernelPluginState": {

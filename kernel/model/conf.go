@@ -890,6 +890,26 @@ var exitLock = sync.Mutex{}
 // 当 force 为 true（强制退出）并且 execInstallPkg 为 0（默认检查更新）并且新版本安装包已经准备就绪时，将安装包路径返回给桌面宿主
 // https://github.com/siyuan-note/siyuan/issues/10288
 func Close(force, setCurrentWorkspace bool, execInstallPkg int) (exitCode int, installPkgPath string) {
+	return closeKernel(force, setCurrentWorkspace, execInstallPkg, nil)
+}
+
+type forgeRestartExitData struct {
+	Mode           string `json:"mode"`
+	JobID          string `json:"jobId"`
+	TargetRevision string `json:"targetRevision"`
+}
+
+// CloseForForgeRestart keeps the ordinary Close contract unchanged while marking only a
+// Supervisor-authenticated hot replacement as recoverable by browser clients.
+func CloseForForgeRestart(force, setCurrentWorkspace bool, execInstallPkg int, jobID, targetRevision string) (exitCode int, installPkgPath string) {
+	return closeKernel(force, setCurrentWorkspace, execInstallPkg, &forgeRestartExitData{
+		Mode:           "forge-restart",
+		JobID:          jobID,
+		TargetRevision: targetRevision,
+	})
+}
+
+func closeKernel(force, setCurrentWorkspace bool, execInstallPkg int, exitData *forgeRestartExitData) (exitCode int, installPkgPath string) {
 	exitLock.Lock()
 	defer exitLock.Unlock()
 
@@ -968,7 +988,7 @@ func Close(force, setCurrentWorkspace bool, execInstallPkg int) (exitCode int, i
 		}
 	}
 
-	util.BroadcastByType("main", "exit", 0, "", nil)
+	util.BroadcastByType("main", "exit", 0, "", exitData)
 	util.UnlockWorkspace()
 
 	time.Sleep(500 * time.Millisecond)

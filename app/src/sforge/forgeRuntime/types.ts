@@ -59,11 +59,20 @@ export const forgeRuntimeApprovalResponseSchema = z.object({
     }).passthrough(),
 }).passthrough();
 
+/** 校验 Supervisor 经 Kernel exit 广播给浏览器的可恢复热切换身份。 */
+export const forgeRuntimeExitContextSchema = z.object({
+    mode: z.literal("forge-restart"),
+    jobId: z.string().regex(/^[a-zA-Z0-9_.-]{1,80}$/),
+    targetRevision: z.string().regex(/^[0-9a-f]{40}$/),
+}).strict();
+
 export type ForgeRuntimeStatusData = z.infer<typeof forgeRuntimeStatusDataSchema>;
 export type ForgeSupervisorStatus = z.infer<typeof forgeSupervisorStatusSchema>;
 export type ForgeRuntimeJob = z.infer<typeof forgeRuntimeJobSchema>;
 export type ForgeRuntimeRestartResponse = z.infer<typeof forgeRuntimeRestartResponseSchema>;
 export type ForgeRuntimeApprovalResponse = z.infer<typeof forgeRuntimeApprovalResponseSchema>;
+/** 可恢复退出的任务与目标版本契约，只在 Forge 热切换链中使用。 */
+export type ForgeRuntimeExitContext = z.infer<typeof forgeRuntimeExitContextSchema>;
 
 export interface ForgeRuntimeControllerState {
     status: ForgeRuntimeStatusData | undefined;
