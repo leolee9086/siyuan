@@ -15,6 +15,8 @@ import {isEncryptedBox} from "../../util/file/notebook/store";
 import {getAllModels} from "../getAll";
 import type {ProtyleDomain, TreeDomain} from "./backlink/backlink.types";
 import {backlinkModelBrand} from "./backlink/backlink.types";
+import {resolveBacklinkToolbarCommand, type BacklinkToolbarCommand} from "./backlink/backlinkToolbar.router";
+import {reportBacklinkUserOperationIntent} from "./backlink/backlinkOperationIntent";
 
 export class Backlink extends Model<AppFacade, LayoutTab> {
     public override parent: LayoutTab;
@@ -130,6 +132,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
             item.addEventListener("keydown", (event: KeyboardEvent) => {
                 if (!event.isComposing && event.key === "Enter") {
                     this.searchBacklinks();
+                    this.reportUserOperation("filter", "filter-backlinks", "keyboard");
                 }
             });
         });
@@ -140,6 +143,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                 this.toggleItem(element, false);
                 this.setFocus();
                 this.mTree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.reportUserOperation("tree", "toggle-backlink-result", "click", element.getAttribute("data-node-id"));
             },
             ctrlClick: (element) => {
                 options.app.openBlock({
@@ -148,6 +152,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                     zoomIn: false,
                 });
                 this.mTree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.reportUserOperation("tree", "open-backlink-result", "ctrl-click", element.getAttribute("data-node-id"));
             },
             altClick: (element) => {
                 options.app.openBlock({
@@ -157,6 +162,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                     zoomIn: false,
                 });
                 this.mTree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.reportUserOperation("tree", "open-backlink-result", "alt-click", element.getAttribute("data-node-id"));
             },
             shiftClick: (element) => {
                 options.app.openBlock({
@@ -166,11 +172,13 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                     zoomIn: false,
                 });
                 this.mTree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.reportUserOperation("tree", "open-backlink-result", "shift-click", element.getAttribute("data-node-id"));
             },
             toggleClick: (liElement) => {
                 this.toggleItem(liElement, false);
                 this.setFocus();
                 this.mTree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.reportUserOperation("tree", "toggle-backlink-result", "click", liElement.getAttribute("data-node-id"));
             }
         });
         this.mTree = new Tree({
@@ -180,6 +188,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                 this.toggleItem(element, true);
                 this.setFocus();
                 this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.reportUserOperation("tree", "toggle-backmention-result", "click", element.getAttribute("data-node-id"));
             },
             ctrlClick: (element) => {
                 options.app.openBlock({
@@ -188,6 +197,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                     zoomIn: false,
                 });
                 this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.reportUserOperation("tree", "open-backmention-result", "ctrl-click", element.getAttribute("data-node-id"));
             },
             altClick: (element) => {
                 options.app.openBlock({
@@ -197,6 +207,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                     zoomIn: false,
                 });
                 this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.reportUserOperation("tree", "open-backmention-result", "alt-click", element.getAttribute("data-node-id"));
             },
             shiftClick: (element) => {
                 options.app.openBlock({
@@ -206,11 +217,13 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                     zoomIn: false,
                 });
                 this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.reportUserOperation("tree", "open-backmention-result", "shift-click", element.getAttribute("data-node-id"));
             },
             toggleClick: (liElement) => {
                 this.toggleItem(liElement, true);
                 this.setFocus();
                 this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.reportUserOperation("tree", "toggle-backmention-result", "click", liElement.getAttribute("data-node-id"));
             },
             blockExtHTML: `<span class="b3-list-item__action b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.more}"><svg><use xlink:href="#iconMore"></use></svg></span>`
         });
@@ -240,6 +253,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
             this.tree.element.querySelectorAll(".b3-list-item__arrow").forEach(item => {
                 item.classList.remove("b3-list-item__arrow--open");
             });
+            this.reportUserOperation("toolbar", "collapse-backlinks", "click");
         });
         this.element.querySelector('[data-type="expand"]').addEventListener("click", () => {
             Array.from(this.tree.element.firstElementChild.children).forEach((item: HTMLElement) => {
@@ -247,6 +261,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                     this.toggleItem(item, false);
                 }
             });
+            this.reportUserOperation("toolbar", "expand-backlinks", "click");
         });
         this.element.addEventListener("click", (event) => {
             this.setFocus();
@@ -254,59 +269,98 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
             while (target && !target.isEqualNode(this.element)) {
                 if ((target.classList.contains("block__icon") || target.classList.contains("block__logo")) &&
                     target.parentElement.parentElement === this.element) {
-                    const type = target.getAttribute("data-type");
-                    switch (type) {
-                        case "refresh":
-                            this.refresh();
-                            event.stopPropagation();
-                            break;
-                        case "mExpand":
-                            Array.from(this.mTree.element.firstElementChild.children).forEach((item: HTMLElement) => {
-                                if (item.tagName === "LI" && !item.querySelector(".b3-list-item__arrow--open")) {
-                                    this.toggleItem(item, true);
-                                }
-                            });
-                            event.stopPropagation();
-                            break;
-                        case "mCollapse":
-                            this.mTree.element.querySelectorAll(".protyle").forEach(item => {
-                                item.classList.add("fn__none");
-                            });
-                            this.mTree.element.querySelectorAll(".b3-list-item__arrow").forEach(item => {
-                                item.classList.remove("b3-list-item__arrow--open");
-                            });
-                            event.stopPropagation();
-                            break;
-                        case "min":
-                            getDockByType("backlink").toggleModel("backlink", false, true);
-                            event.stopPropagation();
-                            break;
-                        case "search":
-                            target.previousElementSibling.classList.remove("fn__none");
-                            (target.previousElementSibling as HTMLInputElement).select();
-                            event.stopPropagation();
-                            break;
-                        case "sort":
-                        case "mSort":
-                            this.showSortMenu(type, target.getAttribute("data-sort"));
-                            window.siyuan.menus.menu.popup({ x: event.clientX, y: event.clientY });
-                            event.stopPropagation();
-                            break;
-                        case "layout":
-                            this.setLayout(target);
-                            event.stopPropagation();
-                            break;
-                        case "mention":
-                            this.setLayout(target.parentElement.querySelector('[data-type="layout"]'));
-                            event.stopPropagation();
-                            break;
-                    }
+                    this.executeToolbarCommand(resolveBacklinkToolbarCommand(target.getAttribute("data-type"), this.type), target, event);
                 }
                 target = target.parentElement;
             }
         });
 
         this.searchBacklinks(true);
+    }
+
+    /** Runs commands that were already partitioned by the toolbar state router. */
+    private executeToolbarCommand(command: BacklinkToolbarCommand, target: HTMLElement, event: MouseEvent) {
+        switch (command.kind) {
+            case "refresh":
+                this.refresh();
+                this.reportUserOperation("toolbar", "refresh-backlinks", "click");
+                break;
+            case "expand-mentions":
+                Array.from(this.mTree.element.firstElementChild.children).forEach((item: HTMLElement) => {
+                    if (item.tagName === "LI" && !item.querySelector(".b3-list-item__arrow--open")) {
+                        this.toggleItem(item, true);
+                    }
+                });
+                this.reportUserOperation("toolbar", "expand-backmentions", "click");
+                break;
+            case "collapse-mentions":
+                this.mTree.element.querySelectorAll(".protyle").forEach(item => {
+                    item.classList.add("fn__none");
+                });
+                this.mTree.element.querySelectorAll(".b3-list-item__arrow").forEach(item => {
+                    item.classList.remove("b3-list-item__arrow--open");
+                });
+                this.reportUserOperation("toolbar", "collapse-backmentions", "click");
+                break;
+            case "minimize":
+                getDockByType("backlink").toggleModel("backlink", false, true);
+                this.reportUserOperation("toolbar", "minimize-backlinks", "click");
+                break;
+            case "show-filter": {
+                const input = target.previousElementSibling;
+                if (!(input instanceof HTMLInputElement)) {
+                    return;
+                }
+                input.classList.remove("fn__none");
+                input.select();
+                this.reportUserOperation("toolbar", "open-filter", "click");
+                break;
+            }
+            case "show-sort": {
+                const sort = target.getAttribute("data-sort");
+                if (sort === null) {
+                    return;
+                }
+                this.showSortMenu(command.sortTarget, sort);
+                window.siyuan.menus.menu.popup({x: event.clientX, y: event.clientY});
+                this.reportUserOperation("toolbar", "open-sort-menu", "click");
+                break;
+            }
+            case "cycle-mention-layout": {
+                const layoutElement = command.layoutTarget === "mention"
+                    ? target.parentElement?.querySelector<HTMLElement>('[data-type="layout"]')
+                    : target;
+                if (!layoutElement) {
+                    return;
+                }
+                this.setLayout(layoutElement);
+                this.reportUserOperation("toolbar", "cycle-backmention-layout", "click");
+                break;
+            }
+            case "ignore":
+                return;
+        }
+        event.stopPropagation();
+    }
+
+    private reportUserOperation(
+        source: "toolbar" | "tree" | "filter" | "sort-menu",
+        operation: string,
+        trigger: "click" | "keyboard" | "ctrl-click" | "alt-click" | "shift-click",
+        targetBlockId?: string | null,
+    ) {
+        const intent = {
+            actor: "user",
+            surface: "backlink",
+            presentation: this.type,
+            source,
+            operation,
+            trigger,
+            blockId: this.blockId || null,
+        } as const;
+        reportBacklinkUserOperationIntent(this.app, targetBlockId === undefined
+            ? intent
+            : {...intent, targetBlockId});
     }
 
     private handelCallback() {
@@ -394,6 +448,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                 window.siyuan.config.editor = response.data;
             });
             this.searchBacklinks();
+            this.reportUserOperation("sort-menu", type === "sort" ? "sort-backlinks" : "sort-backmentions", "click");
         };
         window.siyuan.menus.menu.remove();
         window.siyuan.menus.menu.append(new MenuItem({
