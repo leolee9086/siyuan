@@ -2,9 +2,9 @@
 
 > **最终目标**：在统一 Agent Panel 中，让尚未开始对话的原生 Agent 会话可以绑定一篇 SiYuan 文档作为可追溯的系统提示词来源；文档变化时由用户显式选择刷新快照或保持当前版本，并能将当前有效提示词重新创建为文档。
 >
-> **当前目标**：冻结会话前置条件、文档快照、变更检测和宿主扩展边界；在现有 `AgentPanelExtension` / target policy 架构内完成可测试的端到端实现。
+> **当前目标**：完成原生 Agent 可发现的提示词来源菜单、文档变更决策与多宿主运行态验收；MAGI 连续渠道会话保持不暴露该能力。
 >
-> **下一步任务**：在当前上游 `D002` 运行门禁与后续 Codex MCP 配置闭合后，调查原生 Agent SessionStore、首轮请求消息构建、文档选择/创建 API 及现有 Agent Panel 扩展点，建立不依赖具体宿主的领域契约和回归基线。
+> **下一步任务**：验证 Dock、Tab、浮窗和独立页的真实挂载与菜单交互，补齐“创建副本后打开文档”的细粒度导航能力，并完成受控热切换前的提交门禁。
 
 ---
 
@@ -60,23 +60,23 @@ interface AgentPromptSourcePolicy {
 
 ## 阶段计划
 
-- [ ] **Phase 1：基线与契约**
+- [x] **Phase 1：基线与契约**
   - 追踪 SessionStore、会话持久化、首轮消息构建、文档 API 和文档选择/创建 UI 的真实领域所有者。
   - 为“无对话”“首条消息原子锁定”“失败不锁定”“文档变更”和“版本冲突”建立服务端契约测试。
   - 定义 `AgentPromptSource`、policy 与错误码，不新增临时碎片接口或宿主特化字段。
 
-- [ ] **Phase 2：后端来源快照与执行门禁**
+- [x] **Phase 2：后端来源快照与执行门禁**
   - 扩展原生 Agent session schema 与迁移，旧会话默认 `default` 来源且视为既有会话锁定。
   - 实现文档内容受权限和大小限制的读取、规范化、哈希与快照持久化。
   - 在绑定、刷新、保持、创建文档和首轮发送入口实施同一原子资格校验。
   - 让 `buildSystemPrompt()` 接收受控来源解析结果，保留固定工具与运行时能力说明的单一系统消息语义。
 
-- [ ] **Phase 3：Agent Panel 扩展与宿主动作**
+- [x] **Phase 3：Agent Panel 扩展与宿主动作**
   - 在 session capability / target policy 注册绑定、刷新、保持和创建文档动作。
   - 在无消息空会话展示紧凑的提示词来源控件；有历史、流式中、只读、身份缺失或目标不支持时按 capability 隐藏或禁用。
   - 使用现有文档选择器和创建文档工作流；独立页缺失能力时隐藏需要宿主导航的动作，但保留可用的 API 驱动操作。
 
-- [ ] **Phase 4：变更 UX 与恢复**
+- [-] **Phase 4：变更 UX 与恢复**
   - 打开会话、发送前和显式刷新时检测来源版本；变更提示提供刷新、保持和查看来源三个明确动作。
   - 重新创建文档后展示可打开的来源，保留当前有效提示词不自动重绑。
   - 处理网络错误、文档删除、加密/权限变化、超限和并发修改的完整状态。
@@ -113,3 +113,9 @@ interface AgentPromptSourcePolicy {
 ## 已归档 / 已完成
 
 - `2026-07-30`：创建任务文档，冻结“服务端首轮锁定、文档快照显式刷新、target policy 扩展、MAGI 不默认复用原生语义”的边界。尚未修改产品代码；等待当前上游 `D002` 运行门禁和 Codex MCP 配置闭合后进入 Phase 1。
+- `2026-07-30`：完成现状基线追踪。权威会话文件在 `kernel/agent/session.go`，运行态在 `kernel/agent/runtime.go`，首轮及历史系统消息均由 `kernel/agent/agent.go` 构建；前端请求边界是 `app/src/layout/dock/agent/SessionStore.ts`。实现采用 session 锁下的服务端持有 `promptSource` 字段，客户端普通保存明确保留该字段，避免前端正文或旧快照覆盖。
+- `2026-07-30`：完成服务端来源快照与执行门禁。新增 `kernel/agent/prompt_source.go` 及 `prompt_source_test.go`；`get/bind/refresh/keep/createPromptSourceDocument` 全部经 session revision 与首次发送锁校验，正文不回传浏览器。定向 Kernel 证据：`go test -tags fts5 ./agent -run "Test(DocumentPromptSource|TurnContext|SystemPrompt|CheckpointMessages|SaveSessionRevision)" -count=1`、`go test -tags fts5 ./api -run "^$" -count=1` 通过。
+- `2026-07-30`：接入原生 Agent 面板的可发现入口。`AgentChat.ts` 在输入区显示“文件图标 + 当前系统提示词 + 下拉箭头”的常驻按钮，使用已有细粒度 `PanelMenuPort` 展示“选择/更换文档”“刷新为当前文档”“保持当前快照”“将当前系统提示词创建为文档”；MAGI policy 明确隐藏该按钮。`AgentPromptSourceDialog.ts` 仅负责文档搜索选择，避免与菜单重复承载状态动作。
+- `2026-07-30`：加入来源变更的主动保护。切回窗口时刷新服务端来源状态；首次发送前再次读取权威版本，若已变化则打开同一菜单并中止发送，要求用户显式选择刷新或保持，避免一次发送将旧快照静默锁死。`SessionStore.headers.test.ts` 覆盖状态读取、revision 链接的刷新/保持和服务端失败传播；`pnpm exec vitest run test/layout/dock/agent/SessionStore.headers.test.ts test/layout/dock/agent/runtime/agentPanel.targetPolicy.test.ts` 通过（20 tests）。
+- `2026-07-30`：完整 Agent Panel 回归 `pnpm run test:agent-panel` 通过（29 files / 94 tests）；浏览器契约 `pnpm exec vitest --run --config vitest.browser.config.ts test/browser/agent/standaloneEntry.browser.ts` 通过（独立 ESM 导出可由浏览器模块加载）；Kernel 定向回归 `go test -tags fts5 ./agent -run "Test(DocumentPromptSource|TurnContext|SystemPrompt|CheckpointMessages|SaveSessionRevision)" -count=1` 与 `go test -tags fts5 ./api -run "^$" -count=1` 通过。
+- `2026-07-30`：`pnpm run build:agent-app` 成功，产出独立 ESM 和网页入口。全量 `pnpm run typecheck` 仍由既有跨模块诊断阻断；对本任务的 `AgentPromptSourceDialog` 和新增 `AgentChat` 段落未发现新增诊断。自动浏览器会话访问 `/stage/build/agent-app/` 时只观测到空 `main#agent-panel`，尚未取得足以证明运行态挂载的 DOM 证据，保留为 Phase 5 阻塞项，不宣称独立页验收完成。

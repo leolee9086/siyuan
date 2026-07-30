@@ -7,6 +7,8 @@ import {getSafeSiyuanConfig} from "../../../util/siyuanEnvironments/getSiyuanCon
 /** 用途：约束 Agent 会话、上传及目录接口的数据边界；使用范围：仅 SessionStore 的请求和本地 revision 队列。 */
 import type {
     AgentAPIResponse,
+    AgentPromptSourceDocument,
+    AgentPromptSourceState,
     AgentSession,
     AgentTaskDirectoryCapabilities,
     SessionSaveResult,
@@ -162,6 +164,74 @@ export const SessionStore = {
             throw new Error("Read agent task-directory capabilities returned invalid data");
         }
         return capabilities;
+    },
+
+    /** 读取 Kernel 对当前会话给出的提示词来源资格和脱敏元数据。 */
+    async getPromptSource(id: string) {
+        const resp = await fetchSyncPost(API + "/getPromptSource", {sessionID: id}, agentOwnerHeaders());
+        const state = requireAgentAPIData<AgentPromptSourceState>(resp, "Read agent prompt source");
+        if (!state || !state.source || typeof state.revision !== "number" ||
+            !["eligible", "bound", "locked", "source-changed"].includes(state.state)) {
+            throw new Error("Read agent prompt source returned invalid data");
+        }
+        sessionRevisions.set(id, state.revision);
+        return state;
+    },
+
+    /** 搜索可以绑定为系统提示词的文档；结果的正文仍只由 Kernel 在绑定时读取。 */
+    async searchPromptSourceDocuments(keyword: string) {
+        const resp = await fetchSyncPost(
+            API + "/searchPromptSourceDocuments",
+            {keyword: keyword.trim()},
+            agentOwnerHeaders(),
+        );
+        const documents = requireAgentAPIData<AgentPromptSourceDocument[]>(resp, "Search prompt source documents");
+        if (!Array.isArray(documents) || documents.some((document) =>
+            !document || !document.id || !document.notebookId || !document.title)) {
+            throw new Error("Search prompt source documents returned invalid data");
+        }
+        return documents;
+    },
+
+    /** 绑定由 Kernel 再次读取和快照的文档；前端不提交任何系统提示词正文。 */
+    async bindPromptSourceDocument(id: string, document: AgentPromptSourceDocument, expectedRevision = SessionStore.getRevision(id)) {
+        const resp = await fetchSyncPost(API + "/bindPromptSourceDocument", {
+            sessionID: id,
+            expectedRevision,
+            documentID: document.id,
+            notebookID: document.notebookId,
+        }, agentOwnerHeaders(CHECKPOINT_HEADERS));
+        const state = requireAgentAPIData<AgentPromptSourceState>(resp, "Bind agent prompt source document");
+        sessionRevisions.set(id, state.revision);
+        return state;
+    },
+
+    /** 显式刷新已绑定文档的快照；服务端使用原文档 ID 与权威版本。 */
+    async refreshPromptSourceDocument(id: string, expectedRevision = SessionStore.getRevision(id)) {
+        const resp = await fetchSyncPost(API + "/refreshPromptSourceDocument", {
+            sessionID: id,
+            expectedRevision,
+        }, agentOwnerHeaders(CHECKPOINT_HEADERS));
+        const state = requireAgentAPIData<AgentPromptSourceState>(resp, "Refresh agent prompt source document");
+        sessionRevisions.set(id, state.revision);
+        return state;
+    },
+
+    /** 显式保持当前快照并确认当前检测到的文档版本。 */
+    async keepPromptSourceDocument(id: string, expectedRevision = SessionStore.getRevision(id)) {
+        const resp = await fetchSyncPost(API + "/keepPromptSourceDocument", {
+            sessionID: id,
+            expectedRevision,
+        }, agentOwnerHeaders(CHECKPOINT_HEADERS));
+        const state = requireAgentAPIData<AgentPromptSourceState>(resp, "Keep agent prompt source document snapshot");
+        sessionRevisions.set(id, state.revision);
+        return state;
+    },
+
+    /** 在 AI 主笔记本创建当前已绑定提示词快照的独立副本，不自动重新绑定会话。 */
+    async createPromptSourceDocument(id: string) {
+        const resp = await fetchSyncPost(API + "/createPromptSourceDocument", {sessionID: id}, agentOwnerHeaders(CHECKPOINT_HEADERS));
+        return requireAgentAPIData<AgentPromptSourceDocument>(resp, "Create agent prompt source document");
     },
 
     /** 将浏览器选择的文件内容上传到 Kernel 解析出的 AI 主笔记本附件目录。 */

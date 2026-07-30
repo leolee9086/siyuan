@@ -491,6 +491,15 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 		// 变量（非敏感）在用户消息注入对话时解析，让 LLM 看到实际值；密钥不进上下文。
 		// 在此统一解析一次，后续 checkpoint 与消息重建均使用解析后的值，保证全链路一致。
 		userMessage = kernelModel.Conf.Variables.Resolve(userMessage)
+		promptSource := defaultPromptSource()
+		if sessionID != "" {
+			var sourceErr error
+			promptSource, sourceErr = GetPromptSource(sessionID)
+			if sourceErr != nil {
+				sendCriticalEvent(ctx, ch, AgentEvent{Type: "error", Error: sourceErr.Error()})
+				return
+			}
+		}
 
 		tools := convertMCPToolsToOpenAI(taskDirectory != nil && taskDirectory.HasExternal())
 		var messages []openai.ChatCompletionMessage
@@ -553,7 +562,7 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 							}
 						}
 					}
-					messages = checkpointMessagesToOpenAI(checkpointMsgs, language, pluginActions, taskDirectory)
+					messages = checkpointMessagesToOpenAI(checkpointMsgs, language, pluginActions, taskDirectory, promptSource)
 				}
 			}
 			if runtime, err := loadRuntimeState(sessionID); err == nil && runtime != nil && runtime.AlwaysAllow {
@@ -563,7 +572,7 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 
 		if messages == nil {
 			checkpointMsgs = []AgentMessage{newAgentUserMessage(userMessage, userEntryID, references, editorCtx)}
-			messages = buildInitialMessages(userMessage, language, references, editorCtx, pluginActions, taskDirectory)
+			messages = buildInitialMessages(userMessage, language, references, editorCtx, pluginActions, taskDirectory, promptSource)
 		}
 
 		turnBaseIndex := len(checkpointMsgs)
@@ -1448,7 +1457,7 @@ func finishFrontendWait(sessionID, callID string, ch chan frontendCallResult) (f
 	}
 }
 
-func buildSystemPrompt(language string, pluginActions []PluginAction, taskDirectory *TaskDirectoryBinding) string {
+func buildSystemPrompt(language string, pluginActions []PluginAction, taskDirectory *TaskDirectoryBinding, promptSource PromptSource) string {
 	var sb strings.Builder
 	sb.WriteString(systemPrompt)
 	sb.WriteString("\n\n<env>\nWorkspace: ")
@@ -1490,6 +1499,17 @@ func buildSystemPrompt(language string, pluginActions []PluginAction, taskDirect
 			sb.WriteString(string(grant.Permission))
 			sb.WriteString(")\n")
 		}
+	}
+	if promptSource.Kind == PromptSourceKindDocument {
+		// 文档正文是用户显式选择且由 Kernel 快照的系统提示词来源；不在此重新读取
+		// 文档，确保改动必须经过显式刷新，也避免会话历史随来源静默漂移。
+		sb.WriteString("\n\n<user_system_prompt source_document_id=\"")
+		sb.WriteString(promptSource.DocumentID)
+		sb.WriteString("\" source_version=\"")
+		sb.WriteString(promptSource.SourceVersion)
+		sb.WriteString("\">\n")
+		sb.WriteString(promptSource.PromptSnapshot)
+		sb.WriteString("\n</user_system_prompt>")
 	}
 
 	skills := util.DiscoverSkills()
@@ -1625,9 +1645,9 @@ func buildUserMessageContent(userMessage string, references []Reference, editorC
 	return sb.String()
 }
 
-func buildInitialMessages(userMessage string, language string, references []Reference, editorCtx EditorContext, pluginActions []PluginAction, taskDirectory *TaskDirectoryBinding) []openai.ChatCompletionMessage {
+func buildInitialMessages(userMessage string, language string, references []Reference, editorCtx EditorContext, pluginActions []PluginAction, taskDirectory *TaskDirectoryBinding, promptSource PromptSource) []openai.ChatCompletionMessage {
 	return []openai.ChatCompletionMessage{
-		{Role: openai.ChatMessageRoleSystem, Content: buildSystemPrompt(language, pluginActions, taskDirectory)},
+		{Role: openai.ChatMessageRoleSystem, Content: buildSystemPrompt(language, pluginActions, taskDirectory, promptSource)},
 		{Role: openai.ChatMessageRoleUser, Content: buildUserMessageContent(userMessage, references, cloneEditorContext(editorCtx))},
 	}
 }
@@ -1721,9 +1741,9 @@ func entriesToAgentMessages(entries []SessionEntry) []AgentMessage {
 	return msgs
 }
 
-func checkpointMessagesToOpenAI(checkpointMsgs []AgentMessage, language string, pluginActions []PluginAction, taskDirectory *TaskDirectoryBinding) []openai.ChatCompletionMessage {
+func checkpointMessagesToOpenAI(checkpointMsgs []AgentMessage, language string, pluginActions []PluginAction, taskDirectory *TaskDirectoryBinding, promptSource PromptSource) []openai.ChatCompletionMessage {
 	msgs := []openai.ChatCompletionMessage{
-		{Role: openai.ChatMessageRoleSystem, Content: buildSystemPrompt(language, pluginActions, taskDirectory)},
+		{Role: openai.ChatMessageRoleSystem, Content: buildSystemPrompt(language, pluginActions, taskDirectory, promptSource)},
 	}
 
 	for cmi := range checkpointMsgs {

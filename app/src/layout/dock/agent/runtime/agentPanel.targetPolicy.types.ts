@@ -23,6 +23,7 @@ export interface AgentPanelResolvedTargetPolicy {
     identityLabel: string;
     identityVisible: boolean;
     sessionActionsVisible: boolean;
+    promptSourceVisible: boolean;
     regenerationVisible: boolean;
     sendingAvailable: boolean;
 }

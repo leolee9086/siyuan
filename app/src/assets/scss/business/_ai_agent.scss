@@ -887,6 +887,63 @@
   cursor: text;
 }
 
+.agent-chat__prompt-source-row {
+  min-width: 0;
+  min-height: 28px;
+  margin-bottom: 6px;
+  color: var(--b3-theme-on-surface);
+  font-size: 12px;
+}
+
+.agent-chat__prompt-source-label {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-chat__prompt-source-btn {
+  width: 100%;
+  min-width: 0;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 7px;
+  color: inherit;
+  text-align: left;
+
+  > svg {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 auto;
+    color: var(--b3-theme-primary);
+  }
+
+  &:hover:not(:disabled),
+  &:focus-visible:not(:disabled) {
+    border-color: var(--b3-theme-primary);
+  }
+}
+
+.agent-chat__prompt-source-arrow {
+  margin-left: auto;
+  color: var(--b3-theme-on-surface-light) !important;
+}
+
+.agent-chat__prompt-source-row--changed {
+  color: var(--b3-theme-warning);
+
+  .agent-chat__prompt-source-btn > svg:not(.agent-chat__prompt-source-arrow) {
+    color: var(--b3-theme-warning);
+  }
+}
+
+.agent-chat__prompt-source-row--locked {
+  opacity: 0.72;
+}
+
 .agent-chat__composer-host--disabled {
   pointer-events: none;
   opacity: 0.5;
@@ -905,6 +962,55 @@
 
 .agent-chat__session-files {
   flex: 0 0 28px;
+}
+
+.agent-prompt-source-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 180px;
+}
+
+.agent-prompt-source-dialog__search-label {
+  color: var(--b3-theme-on-background);
+  font-weight: 500;
+}
+
+.agent-prompt-source-dialog__hint,
+.agent-prompt-source-dialog__empty {
+  color: var(--b3-theme-on-surface);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.agent-prompt-source-dialog__results {
+  min-height: 160px;
+  max-height: min(42vh, 360px);
+  overflow: auto;
+  border: 1px solid var(--b3-border-color);
+}
+
+.agent-prompt-source-dialog__result {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.agent-prompt-source-dialog__result-title,
+.agent-prompt-source-dialog__result-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-prompt-source-dialog__result-path {
+  max-width: 42%;
+}
+
+.agent-prompt-source-dialog__empty {
+  padding: 18px 12px;
 }
 
 // 思考强度：iconBrain 图标嵌入原生 select 左侧，与旁边的模型 select 外观一致。
