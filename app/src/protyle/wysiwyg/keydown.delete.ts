@@ -17,6 +17,8 @@ import { focusBlock, focusByWbr, setFirstNodeRange } from "../util/selection";
 import { Constants } from "../../constants";
 import { isOnlyMeta } from "../util/compatibility";
 import {confirmBlockRefForBlocks} from "../../util/checkBlockRef";
+import {reportProtyleUserOperationIntent} from "../intent/userOperationIntent";
+import {CROSS_BLOCK_DELETE_COMMANDS, routeCrossBlockDeleteCommand} from "./keydown.delete.crossBlock";
 
 export const deleteKeyMiddleware = async (
     event: KeyboardEvent,
@@ -36,9 +38,25 @@ export const deleteKeyMiddleware = async (
         const rangeCheckTargets = !range.collapsed && endElement ?
             getRangeBlockRefCheckTargets(protyle.wysiwyg.element, range, nodeElement, endElement, true) :
             {elements: [], exactIDs: []};
-        if (endElement && ((isCrossBlock && selectText !== "") || rangeCheckTargets.elements.length > 0)) {
+        const crossBlockDeleteCommand = routeCrossBlockDeleteCommand({
+            removalRequested: true,
+            selection: isCrossBlock && selectText !== "" ? "cross-block-content" : "other",
+            hasReferenceTargets: rangeCheckTargets.elements.length > 0,
+        });
+        if (endElement && crossBlockDeleteCommand !== CROSS_BLOCK_DELETE_COMMANDS.IGNORE) {
             event.stopPropagation();
             event.preventDefault();
+            reportProtyleUserOperationIntent(protyle, {
+                actor: "user",
+                surface: "editor",
+                source: "keyboard",
+                operation: crossBlockDeleteCommand === CROSS_BLOCK_DELETE_COMMANDS.REMOVE_CROSS_BLOCK_SELECTION ?
+                    "delete-cross-block-selection" : "delete-reference-targeted-selection",
+                trigger: event.key === "Delete" ? "Delete" : event.key === "Backspace" ? "Backspace" : "shortcut",
+                startBlockId: nodeElement.getAttribute("data-node-id"),
+                endBlockId: endElement.getAttribute("data-node-id"),
+                referenceTargetCount: rangeCheckTargets.elements.length,
+            });
             controller.abort("删除跨块选区");
             await removeCrossBlockRange(protyle, range, nodeElement, endElement);
             return;
