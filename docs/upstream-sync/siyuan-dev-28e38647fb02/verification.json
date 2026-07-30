@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "cycleId": "siyuan-dev-28e38647fb02",
   "status": "in-progress",
-  "candidateHead": "659e223c3c4045ecfbf1537542e1a4a8fb36b61c",
+  "candidateHead": "6f73248e3325218fe169ac9006d2294a61d2f827",
   "deliveries": {
     "status": "passed",
     "integratedCount": 1,
@@ -19,9 +19,9 @@
     "mergeCommitCount": 41,
     "revertCommitCount": 0,
     "stablePatchIdCount": 505,
-    "mappedUpstreamCommitCount": 8,
-    "verifiedAuditCount": 8,
-    "pendingAuditCount": 538
+    "mappedUpstreamCommitCount": 12,
+    "verifiedAuditCount": 12,
+    "pendingAuditCount": 534
   },
   "focusedChecks": [
     {
@@ -53,6 +53,12 @@
       "status": "passed",
       "command": "pnpm exec vitest --run test/protyle/crossBlockEditing.test.ts test/protyle/cutClipboard.transaction.test.ts test/protyle/removeFoundation.test.ts test/protyle/listItemActions.test.ts test/layout/dock/outline/Outline.helpers.test.ts; go test -tags fts5 ./sql ./treenode ./model ./api -count=1",
       "evidence": "After synchronizing current mainline into candidate 659e223c3c4045ecfbf1537542e1a4a8fb36b61c, five Vitest files with 31 assertions passed; reference-confirmation refusal and rich clipboard rejection preserve the original DOM. Kernel sql, treenode, model and api packages all passed their focused regression runs. Candidate commits bb15f54aac73251e81a566c81cb106874edfaadb and 2ef29e1fd5be539b7db775a1402c07e3bcf75a73 map four upstream commits through parsed trailers."
+    },
+    {
+      "name": "cross-block clipboard Issue 8554",
+      "status": "passed",
+      "command": "pnpm exec vitest --run test/protyle/crossBlockEditing.test.ts test/protyle/cutClipboard.transaction.test.ts test/protyle/removeFoundation.test.ts test/protyle/listItemActions.test.ts test/layout/dock/outline/Outline.helpers.test.ts",
+      "evidence": "Candidate 6f73248e3325218fe169ac9006d2294a61d2f827 semantically ports upstream 7e8d0c29c943e21c94009a5fb193e2a17f885401, c61e68fbc8ad9868f3e6e9d7b6d94cc498fbefc7, ace0528d1a801f42be4a1bad99c99ed67288c6e1 and 2b3da2fca489c72d36a0efba060ef2fe0219c889. Five Vitest files and 37 assertions passed. The audit decision preserves a single reference approval per Cut, detached-fragment copy normalization, clipboard-specific list subtype conversion and exact nested-list flattening."
     },
     {
       "name": "current upstream tip refresh",
@@ -88,6 +94,12 @@
     {"name": "all app build targets", "command": "pnpm build", "status": "pending"}
   ],
   "failures": [
+    {
+      "stage": "cross-block audit decision application",
+      "result": "failed-explicitly",
+      "message": "Refresh and apply-decisions were incorrectly started concurrently, so one invocation observed a partially written commits.jsonl and failed JSON parsing.",
+      "resolution": "No source commit or prior evidence changed. Re-ran refresh, apply-decisions and verify strictly serially; candidate 6f73248e3325218fe169ac9006d2294a61d2f827, all 546 JSONL records and the 12 mapped audit records verified."
+    },
     {
       "stage": "upstream tip manifest advance",
       "result": "failed-explicitly",

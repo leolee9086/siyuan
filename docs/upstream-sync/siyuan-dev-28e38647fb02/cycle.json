@@ -8,7 +8,7 @@
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
   "upstreamTip": "0fd89fde3c9c0240172eee0a81352759c391d292",
   "candidateBranch": "sync/upstream-dev-66c7c6e8-cross-block-editing",
-  "candidateHead": "b8764445e8c131e7ffac3daed9e66a43d43369f2",
+  "candidateHead": "6f73248e3325218fe169ac9006d2294a61d2f827",
   "candidateCreatedAt": "2026-07-29T14:15:25+08:00",
   "mainRepository": "D:/dev/s-forge",
   "mainBranch": "multipleAI",
@@ -45,7 +45,7 @@
   "mergeCommitCount": 41,
   "revertCommitCount": 0,
   "stablePatchIdCount": 505,
-  "mappedUpstreamCommitCount": 8,
+  "mappedUpstreamCommitCount": 12,
   "auditGrouping": {
     "mode": "optional",
     "fixedSize": null,
