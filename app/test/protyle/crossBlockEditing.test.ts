@@ -8,12 +8,18 @@ vi.mock("../../src/protyle/wysiwyg/transaction/submit", () => ({
     transaction: vi.fn(),
 }));
 
+vi.mock("../../src/protyle/render/highlightRender", () => ({
+    highlightRender: vi.fn(),
+}));
+
 vi.mock("../../src/protyle/wysiwyg/index.copy.helpers", async (importOriginal) => ({
     ...await importOriginal<typeof import("../../src/protyle/wysiwyg/index.copy.helpers")>(),
     writeClipboardData: vi.fn(),
 }));
 
 import {confirmBlockRefForBlocks} from "../../src/util/checkBlockRef";
+import {highlightRender} from "../../src/protyle/render/highlightRender";
+import {transaction} from "../../src/protyle/wysiwyg/transaction/submit";
 
 import {
     focusByOffset,
@@ -278,6 +284,66 @@ describe("cross-block removal transaction", () => {
         } as IProtyle, range, first, second, true);
 
         expect(confirmBlockRefForBlocks).not.toHaveBeenCalled();
+        editor.remove();
+    });
+
+    it("commits one cross-block deletion, removes empty boundary spans, and restores the start focus", async () => {
+        const editor = document.createElement("div");
+        const first = block("first", "NodeParagraph");
+        first.innerHTML = `<div contenteditable="true">al<span>pha</span></div>`;
+        const second = block("second", "NodeParagraph");
+        second.innerHTML = `<div contenteditable="true"><span>bra</span>vo</div>`;
+        editor.append(first, second);
+        document.body.append(editor);
+
+        const range = document.createRange();
+        range.setStart(first.querySelector("span")!.firstChild!, 0);
+        range.setEnd(second.querySelector("span")!.firstChild!, 3);
+
+        await removeCrossBlockRange({
+            block: {parentID: "document"},
+            wysiwyg: {element: editor},
+            lute: {SpinBlockDOM: (html: string) => html},
+        } as IProtyle, range, first, second, true);
+
+        expect(first.textContent).toBe("alvo");
+        expect(first.querySelector("span")).toBeNull();
+        expect(second.isConnected).toBe(false);
+        expect(vi.mocked(transaction)).toHaveBeenCalledOnce();
+        expect(vi.mocked(transaction).mock.calls[0][1].map(operation => operation.action)).toEqual([
+            "delete",
+            "update",
+        ]);
+        expect(getSelection().getRangeAt(0).startOffset).toBe(2);
+        editor.remove();
+    });
+
+    it("invalidates and rerenders every code block changed by a cross-block range", async () => {
+        const editor = document.createElement("div");
+        const first = block("first", "NodeCodeBlock");
+        first.classList.add("code-block");
+        first.innerHTML = `<div class="hljs" data-render="true"><span>alpha</span></div>`;
+        const second = block("second", "NodeCodeBlock");
+        second.classList.add("code-block");
+        second.innerHTML = `<div class="hljs" data-render="true"><span>bravo</span></div>`;
+        editor.append(first, second);
+        document.body.append(editor);
+
+        const range = document.createRange();
+        range.setStart(first.querySelector(".hljs span")!.firstChild!, 2);
+        range.setEnd(second.querySelector(".hljs span")!.firstChild!, 3);
+
+        await removeCrossBlockRange({
+            block: {parentID: "document"},
+            wysiwyg: {element: editor},
+            lute: {SpinBlockDOM: (html: string) => html},
+        } as IProtyle, range, first, second, true);
+
+        expect(first.querySelector(".hljs")?.hasAttribute("data-render")).toBe(false);
+        expect(second.querySelector(".hljs")?.hasAttribute("data-render")).toBe(false);
+        expect(vi.mocked(highlightRender)).toHaveBeenCalledTimes(2);
+        expect(vi.mocked(highlightRender)).toHaveBeenCalledWith(first);
+        expect(vi.mocked(highlightRender)).toHaveBeenCalledWith(second);
         editor.remove();
     });
 });
