@@ -21,7 +21,7 @@
 9. 前端刷新只以前端测试结果作为门禁证据；lint 仅用于开发质量反馈，不得阻断前端刷新。
 10. 用户从现有界面执行正常退出时必须同时结束 Kernel 与 Forge Supervisor；仅非零退出或信号终止按崩溃恢复，不得让 Supervisor 把正常退出重新拉起。
 11. Forge 运行时只有一个认证控制面：新 CLI 发现同工作空间的健康 Supervisor 时必须复用其控制面并请求受控更新，不得因端口冲突创建第二个 Kernel；控制租约失联时仅在其记录 PID 已退出后隔离陈旧租约，PID 仍存活则明确阻断。
-12. 提交时自动执行运行时 gate：上一提交存在未闭合漂移时 `pre-commit` 阻断；新提交含后端运行时变化时 `post-commit` 必须同步请求热切换。失败写盘并阻断下一提交，不得只输出警告。
+12. Git 提交验证与运行时部署是两个独立状态：`pre-commit` 只对暂存差异执行格式检查和按变更域选择的固定测试，绝不读取 Supervisor、活动 Kernel、审批或历史部署状态；`post-commit` 仍自动发起受控热切换并写入持久状态。部署失败阻断 delivery 的 `integrated` 标记和下一次替换验收，但不阻断独立 Git 提交。
 13. 每个后端运行时提交必须实际热切换。每次 crash、候选启动/健康失败、意外退出和回退都写入独立结构化 incident，包含版本、二进制哈希、PID、exit code/signal、job phase、健康错误、恢复尝试和结果，且不记录控制凭据。
 14. `pnpm forge` 启动入口在安装 hooks、探测端口或接管进程前必须确认整个 Git 工作树和索引干净；暂存、未暂存或未跟踪文件任一存在都明确列出并阻断启动。
 15. 人工主界面控制面不复用 Agent 的进程内确认 capability，也不向前端公开 Supervisor 地址或令牌；公开 Kernel 路由必须同时满足登录态、管理员、非只读、同设备、同源 JSON 请求，并拒绝工作空间 API Token、插件 JWT、BasicAuth 和 query token 作为该 UI 通道的凭据。
@@ -138,6 +138,11 @@ Agent -> frontend(reload_app) -> FrontendReloadPort -> current browser reload
 - [x] **2026-07-30：`15bda522e` 前端防重入门禁闭合**
   - 首次 post-commit 在外层提交命令被 5 秒执行器终止时连带中断 `dev:once`，失败 operation `2026-07-29T23-40-29-838Z-15bda522ee5f-9db3d545` 保留且不计为构建结论。独立 `dev:once` 随后用时 80.7 秒完成全部 11 个目标，证明源码无构建回归。
   - 正式 recovery operation `2026-07-29T23-51-53-034Z-15bda522ee5f-b3285c41` 状态 `completed`；完整 `pnpm test`、`pnpm dev:once`、Kernel/Supervisor 健康和六个页面探针通过。前端活动 revision 为 `15bda522ee5f3a2aed402468f77d97192fb91203`，Kernel 保持 `8dd352e875271446c5a559eb618f2731db395cc8`，唯一 Supervisor PID `32436` 未变。
+
+- [x] **2026-07-30：提交验证与运行时部署解耦**
+  - **更正**：此前 `pre-commit` 读取活动版本、Supervisor 可达性和上一轮 deployment failure，导致已经通过测试的后续原子提交被旧 Kernel 或未审批任务阻断。这些运行态事实不描述提交有效性。
+  - **新语义**：`pre-commit` 仅对暂存差异运行 `git diff --cached --check`，并在 `kernel/` 变更时运行固定全包 `go test -short -tags fts5 ./...`、在 App/hook/前端构建链变更时运行 `pnpm test`；不启动、探测或要求 Kernel。`post-commit` 的受控部署、工作树清洁、人工审批、候选回退和 incident 语义保持不变；部署失败写盘并显示摘要，钩子向 Git 返回成功，失败只阻断交付闭合，不反向阻断提交。
+  - **验证证据**：`node --test test/forge-commit-runtime-gate.test.js` 15/15 通过，覆盖历史 deployment 失败、Supervisor 不可达和暂存 Kernel 变更三种提交前场景；`git diff --check` 通过。完整 `pnpm test` 通过；新增后置钩子失败不改变 Git 提交有效性的回归将在本提交门禁中验证。后续人工批准的热切换仍属于对应 Kernel delivery 的部署验收，不将历史审批超时或执行器超时改写为成功。
 
 - [x] **2026-07-30：严格 WebUI 鉴权下的真实热切换与重复任务防重入**
   - **运行证据**：唯一 Supervisor PID `32436` 保持不变；任务 `2026-07-29T23-30-40.269Z-c800027a` 在主界面显示精确受保护文件并由人工批准，随后通过 `gofmt`、`go vet -tags fts5 ./...`、`go test -short -tags fts5 ./...`、候选构建、切换和健康检查；正式 operation `2026-07-29T23-30-39-837Z-8dd352e87527-3a0ece49` 状态为 `completed`。

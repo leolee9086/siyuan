@@ -3,7 +3,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const {execFileSync} = require("child_process");
-const {isKernelRuntimePath, parseLines, writeJSONAtomic} = require("./forge-runtime-supervisor");
+const {parseLines, writeJSONAtomic} = require("./forge-runtime-supervisor");
 
 const repoRoot = path.resolve(__dirname, "../..");
 const HOOKS_PATH = ".githooks";
@@ -59,10 +59,40 @@ const changedPaths = (root, fromRevision, toRevision) => parseLines(gitOutput(ro
     "diff", "--name-only", `${fromRevision}..${toRevision}`, "--",
 ]));
 
-const uncommittedRuntimePaths = (root) => [...new Set([
-    ...parseLines(gitOutput(root, ["diff", "--name-only", "--"])),
-    ...parseLines(gitOutput(root, ["ls-files", "--others", "--exclude-standard", "--", "kernel"])),
-].filter(isKernelRuntimePath))].sort();
+const stagedPaths = (root) => parseLines(gitOutput(root, ["diff", "--cached", "--name-only", "--"]));
+
+const isKernelCommitPath = (filePath) => filePath.replace(/\\/g, "/").startsWith("kernel/");
+
+const isFrontendCommitPath = (filePath) => {
+    const normalized = filePath.replace(/\\/g, "/");
+    return isFrontendRuntimePath(normalized) || normalized.startsWith("app/test/") ||
+        normalized.startsWith("app/scripts/") || normalized.startsWith(".githooks/");
+};
+
+// This is deliberately a source-validation gate, not a deployment gate. The
+// committed revision is independently tested again by the controlled Forge
+// deployment workflow before any Kernel replacement is attempted.
+const runStagedCommitChecks = (root, paths, run = execFileSync) => {
+    const options = {stdio: "inherit", windowsHide: true};
+    const checks = {};
+    if (paths.some(isKernelCommitPath)) {
+        run("go", ["test", "-short", "-tags", "fts5", "./..."], {
+            ...options,
+            cwd: path.join(root, "kernel"),
+        });
+        checks.kernel = "go test -short -tags fts5 ./...";
+    }
+    if (paths.some(isFrontendCommitPath)) {
+        const frontendOptions = {...options, cwd: path.join(root, "app")};
+        if (process.platform === "win32") {
+            run(process.env.ComSpec || "cmd.exe", ["/d", "/s", "/c", "pnpm.cmd", "run", "test"], frontendOptions);
+        } else {
+            run("pnpm", ["run", "test"], frontendOptions);
+        }
+        checks.frontend = "pnpm test";
+    }
+    return checks;
+};
 
 const validateCommitRuntimeHooks = (root) => {
     for (const [hook, mode] of Object.entries(COMMIT_RUNTIME_HOOKS)) {
@@ -215,34 +245,17 @@ const runtimeDependencies = () => {
 };
 
 const runPreCommitGate = async (root = repoRoot, dependencies = {}) => {
-    const runtime = {...runtimeDependencies(), ...dependencies};
-    const ownership = runtime.readOwnership(path.join(root, ".forge-runtime"));
-    if (!ownership) {
-        throw new Error("Forge Supervisor is not running; start pnpm forge before committing");
-    }
-    const supervisor = await runtime.probeSupervisor(ownership, dependencies.fetchImpl || globalThis.fetch.bind(globalThis));
-    const head = gitOutput(root, ["rev-parse", "HEAD"]);
-    const paths = changedPaths(root, supervisor.activeVersion.revision, head);
-    const runtimeChanges = paths.filter(isKernelRuntimePath);
-    const dirtyRuntimePaths = uncommittedRuntimePaths(root);
-    const state = readGateState(root);
-    if (state?.status === "failed") {
-        throw new Error(`previous commit runtime gate failed: ${state.error || state.id}`);
-    }
-    if (runtimeChanges.length > 0) {
-        throw new Error(`previous commit Kernel runtime is not active: ${runtimeChanges.join(", ")}`);
-    }
-    if (state && (state.status !== "completed" || state.commit !== head)) {
-        throw new Error(`previous commit frontend runtime gate is not complete for ${head}`);
-    }
-    if (!state && supervisor.activeVersion.revision !== head) {
-        throw new Error(`commit runtime gate has no freshness evidence for ${head}`);
-    }
-    if (dirtyRuntimePaths.length > 0) {
-        throw new Error(`unstaged or untracked Kernel runtime changes must be resolved before commit: ${dirtyRuntimePaths.join(", ")}`);
-    }
-    await runtime.probeKernel(Number(ownership.port), dependencies.fetchImpl || globalThis.fetch.bind(globalThis));
-    return {head, activeRevision: supervisor.activeVersion.revision};
+    // The index is the object being committed, so reject whitespace damage
+    // there. Deployment freshness, Supervisor reachability and approvals are
+    // intentionally outside this hook: none of them describes commit validity.
+    gitOutput(root, ["diff", "--cached", "--check"]);
+    const paths = stagedPaths(root);
+    const checks = await (dependencies.runStagedCommitChecks || runStagedCommitChecks)(
+        root,
+        paths,
+        dependencies.run || execFileSync,
+    );
+    return {paths, checks};
 };
 
 const runPostCommitGate = async (root = repoRoot, dependencies = {}, trigger = "post-commit") => {
@@ -352,6 +365,20 @@ const retryFailedPostCommitGate = async (root = repoRoot, dependencies = {}) => 
     return runPostCommitGate(root, dependencies, "retry-post-commit");
 };
 
+// Git has already created the commit before this hook runs. Deployment remains
+// observable and must close before its delivery is integrated, but a failed
+// replacement cannot retroactively make source validation fail.
+const runPostCommitHook = async (root = repoRoot, dependencies = {}, report = console.error) => {
+    try {
+        const operation = await (dependencies.runPostCommitGate || runPostCommitGate)(root, dependencies, "post-commit");
+        return {status: "completed", operation};
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        report(`[forge] post-commit deployment failed; Git commit remains valid: ${message}`);
+        return {status: "failed", error: message};
+    }
+};
+
 const main = async () => {
     const mode = process.argv[2];
     if (mode === "install") {
@@ -363,7 +390,7 @@ const main = async () => {
         return;
     }
     if (mode === "post-commit") {
-        await runPostCommitGate();
+        await runPostCommitHook();
         return;
     }
     if (mode === "retry-post-commit") {
@@ -389,9 +416,10 @@ module.exports = {
     readGateState,
     retryFailedPostCommitGate,
     runFrontendUpdate,
+    runStagedCommitChecks,
+    runPostCommitHook,
     runPostCommitGate,
     runPreCommitGate,
-    uncommittedRuntimePaths,
     validateCommitRuntimeHooks,
     waitForSupervisorReadiness,
 };
