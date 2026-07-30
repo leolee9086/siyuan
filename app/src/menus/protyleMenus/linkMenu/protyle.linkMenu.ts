@@ -106,6 +106,9 @@ import { 添加编辑操作菜单项 } from "./protyle.linkMenu.items";
  * 解耦评估：同目录模块协作，链接动作实现与主流程解耦
  */
 import { 添加链接操作菜单项 } from "./protyle.linkMenu.items";
+import {transaction} from "../../../protyle/wysiwyg/transaction/submit";
+import {reportProtyleUserOperationIntent} from "../../../protyle/intent/userOperationIntent";
+import {createLinkMenuSavePlan, LINK_MENU_SAVE_COMMANDS, type LinkMenuSaveSnapshot} from "./protyle.linkMenu.savePlan";
 
 // ────────────────────────────────────────────────────────────
 // 菜单显示和回调
@@ -144,10 +147,10 @@ const 更新标题属性 = (ctx: LinkMenuContext) => {
     // 当标题输入框有值时，设置 data-title 属性；否则移除该属性
     if (标题输入框.value) {
         const title = Lute.EscapeHTMLStr(标题输入框.value.replace(/\n|\r\n|\r|\u2028|\u2029/g, ""));
-        ctx.linkElement.setAttribute("data-title", title);
+        ctx.linkElements.forEach((linkElement) => linkElement.setAttribute("data-title", title));
         return;
     }
-    ctx.linkElement.removeAttribute("data-title");
+    ctx.linkElements.forEach((linkElement) => linkElement.removeAttribute("data-title"));
 };
 
 /** 更新链接地址 */
@@ -159,14 +162,14 @@ const 更新链接地址 = (ctx: LinkMenuContext) => {
     if (!链接地址输入框) {
         return;
     }
-    const dataType = ctx.linkElement.getAttribute("data-type") ?? "";
-    // 当元素类型包含 "a"（链接类型）时，设置 data-href 属性；否则移除该属性
-    if (dataType.indexOf("a") > -1) {
-        const href = Lute.EscapeHTMLStr(链接地址输入框.value.replace(/\n|\r\n|\r|\u2028|\u2029/g, ""));
-        ctx.linkElement.setAttribute("data-href", href);
-        return;
-    }
-    ctx.linkElement.removeAttribute("data-href");
+    const href = Lute.EscapeHTMLStr(链接地址输入框.value.replace(/\n|\r\n|\r|\u2028|\u2029/g, ""));
+    ctx.linkElements.forEach((linkElement) => {
+        if ((linkElement.getAttribute("data-type") ?? "").includes("a")) {
+            linkElement.setAttribute("data-href", href);
+            return;
+        }
+        linkElement.removeAttribute("data-href");
+    });
 };
 
 /** 处理空锚文本 */
@@ -211,7 +214,7 @@ const 处理空链接删除 = (ctx: LinkMenuContext) => {
     }
     // 当锚文本、链接地址、标题都为空时，删除整个链接元素
     if (!锚文本输入框.value && !链接地址输入框.value && !标题输入框.value) {
-        ctx.linkElement.remove();
+        ctx.linkElements.forEach((linkElement) => linkElement.remove());
         return true;
     }
     return false;
@@ -230,12 +233,85 @@ const 设置菜单关闭回调 = (ctx: LinkMenuContext) => {
         恢复焦点(ctx);
         处理空链接删除(ctx);
 
-        // 保存更改
-        if (ctx.html !== ctx.nodeElement.outerHTML) {
-            ctx.nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-            updateTransaction(ctx.protyle, ctx.nodeElement, ctx.html);
-        }
+        保存链接菜单修改(ctx);
     };
+};
+
+const 获取块ID = (blockElement: HTMLElement) => {
+    const id = blockElement.getAttribute("data-node-id");
+    if (!id) {
+        throw new Error("Link menu cannot persist a block without data-node-id");
+    }
+    return id;
+};
+
+const 创建链接保存快照 = (ctx: LinkMenuContext): {baseline: "current-block" | "captured-blocks"; snapshots: LinkMenuSaveSnapshot[]} => {
+    if (!ctx.oldHTMLs) {
+        return {
+            baseline: "current-block",
+            snapshots: [{
+                blockId: 获取块ID(ctx.nodeElement),
+                previousHTML: ctx.html,
+                nextHTML: ctx.nodeElement.outerHTML,
+            }],
+        };
+    }
+    return {
+        baseline: "captured-blocks",
+        snapshots: ctx.linkBlockElements.map((blockElement) => {
+            const blockId = 获取块ID(blockElement);
+            const previousHTML = ctx.oldHTMLs?.get(blockId);
+            if (previousHTML === undefined) {
+                throw new Error(`Link menu is missing the captured HTML for block ${blockId}`);
+            }
+            return {
+                blockId,
+                previousHTML,
+                nextHTML: blockElement.outerHTML,
+            };
+        }),
+    };
+};
+
+const 保存链接菜单修改 = (ctx: LinkMenuContext) => {
+    const {baseline, snapshots} = 创建链接保存快照(ctx);
+    const plan = createLinkMenuSavePlan(baseline, snapshots);
+    if (plan.command === LINK_MENU_SAVE_COMMANDS.NO_CHANGE) {
+        return;
+    }
+    reportProtyleUserOperationIntent(ctx.protyle, {
+        actor: "user",
+        surface: "editor",
+        source: "link-menu",
+        operation: "update-inline-link",
+        trigger: "menu-close",
+        blockIds: plan.updates.map((update) => update.blockId),
+        linkCount: ctx.linkElements.length,
+    });
+    if (plan.command === LINK_MENU_SAVE_COMMANDS.UPDATE_CURRENT_BLOCK) {
+        const [update] = plan.updates;
+        if (!update) {
+            throw new Error("Link menu current-block update plan has no changed block");
+        }
+        ctx.nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
+        updateTransaction(ctx.protyle, ctx.nodeElement, update.previousHTML);
+        ctx.html = ctx.nodeElement.outerHTML;
+        return;
+    }
+    const blocksByID = new Map(ctx.linkBlockElements.map((blockElement) => [获取块ID(blockElement), blockElement]));
+    const operations: IOperation[] = [];
+    const undoOperations: IOperation[] = [];
+    for (const update of plan.updates) {
+        const blockElement = blocksByID.get(update.blockId);
+        if (!blockElement) {
+            throw new Error(`Link menu lost the target block ${update.blockId} before persistence`);
+        }
+        blockElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
+        operations.push({action: "update", id: update.blockId, data: blockElement.outerHTML});
+        undoOperations.push({action: "update", id: update.blockId, data: update.previousHTML});
+    }
+    transaction(ctx.protyle, operations, undoOperations);
+    ctx.html = ctx.nodeElement.outerHTML;
 };
 
 /** 设置初始焦点 */
@@ -282,7 +358,13 @@ const 设置初始焦点 = (ctx: LinkMenuContext, focusText: boolean) => {
  * @同步豁免: UI构建 - 此函数用于同步构建右键菜单UI，需要在用户右键点击时立即响应并显示菜单。
  * 菜单项的添加、DOM操作和菜单显示必须同步完成以确保用户交互的即时性。
  */
-export const linkMenu = (protyle: IProtyle, linkElement: HTMLElement, focusText = false) => {
+export const linkMenu = (
+    protyle: IProtyle,
+    linkElement: HTMLElement,
+    focusText = false,
+    linkElements: readonly HTMLElement[] = [linkElement],
+    oldHTMLs?: ReadonlyMap<string, string>,
+) => {
     getSiyuanGlobalMenusMenu().remove();
     getSiyuanGlobalMenusMenu().element.setAttribute("data-name", Constants.MENU_INLINE_A);
 
@@ -294,14 +376,24 @@ export const linkMenu = (protyle: IProtyle, linkElement: HTMLElement, focusText 
     hideTooltip();
     hideElements(["util", "toolbar", "hint"], protyle);
 
+    const linkBlockElements = Array.from(new Set(linkElements
+        .map((element) => hasClosestBlock(element))
+        .filter((element): element is HTMLElement => Boolean(element))));
+    if (linkBlockElements.length > 1 && !oldHTMLs) {
+        throw new Error("Link menu batch edit requires captured block HTML baselines");
+    }
+
     // 创建上下文对象
     const ctx: LinkMenuContext = {
         protyle,
         linkElement,
+        linkElements,
+        linkBlockElements,
         nodeElement,
         id: nodeElement.getAttribute("data-node-id") ?? "",
         html: nodeElement.outerHTML,
         linkAddress: linkElement.getAttribute("data-href"),
+        ...(oldHTMLs ? {oldHTMLs} : {}),
     };
 
     // 添加菜单项

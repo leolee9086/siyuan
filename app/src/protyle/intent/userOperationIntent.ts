@@ -5,16 +5,35 @@ export const PROTYLE_USER_OPERATION_INTENT_EVENT = "user-protyle-operation-inten
  * 意图只描述用户在编辑器中请求的操作范围，不包含选中文本或文档内容。
  * 这让自动化、审计和插件能够观察操作，同时不把内容数据扩散到事件总线。
  */
-export type ProtyleUserOperationIntent = Readonly<{
-    actor: "user";
-    surface: "editor";
-    source: "keyboard";
-    operation: "delete-cross-block-selection" | "delete-reference-targeted-selection";
-    trigger: "Delete" | "Backspace" | "shortcut";
-    startBlockId: string | null;
-    endBlockId: string | null;
-    referenceTargetCount: number;
-}>;
+export type ProtyleUserOperationIntent =
+    | Readonly<{
+        actor: "user";
+        surface: "editor";
+        source: "keyboard";
+        operation: "delete-cross-block-selection" | "delete-reference-targeted-selection";
+        trigger: "Delete" | "Backspace" | "shortcut";
+        startBlockId: string | null;
+        endBlockId: string | null;
+        referenceTargetCount: number;
+    }>
+    | Readonly<{
+        actor: "user";
+        surface: "editor";
+        source: "link-menu";
+        operation: "update-inline-link";
+        trigger: "menu-close";
+        blockIds: readonly string[];
+        linkCount: number;
+    }>
+    | Readonly<{
+        actor: "user";
+        surface: "editor";
+        source: "toolbar";
+        operation: "toggle-inline-link";
+        trigger: "toolbar-click";
+        blockIds: readonly (string | null)[];
+        linkCount: number;
+    }>;
 
 /** 官方插件 EventBus 暴露的 S-Forge 编辑操作意图扩展。 */
 export type ProtyleUserOperationIntentEventDetail = Readonly<{
