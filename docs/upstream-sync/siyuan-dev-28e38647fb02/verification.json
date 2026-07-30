@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "cycleId": "siyuan-dev-28e38647fb02",
   "status": "in-progress",
-  "candidateHead": "6f73248e3325218fe169ac9006d2294a61d2f827",
+  "candidateHead": "3e123a8cd04241749376f30e1c1ad206e9d73adc",
   "deliveries": {
     "status": "passed",
     "integratedCount": 1,
@@ -14,14 +14,14 @@
   "manifest": {
     "status": "passed",
     "command": "node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
-    "commitCount": 546,
-    "uniqueCommitCount": 546,
+    "commitCount": 550,
+    "uniqueCommitCount": 550,
     "mergeCommitCount": 41,
     "revertCommitCount": 0,
     "stablePatchIdCount": 505,
     "mappedUpstreamCommitCount": 12,
     "verifiedAuditCount": 12,
-    "pendingAuditCount": 534
+    "pendingAuditCount": 538
   },
   "focusedChecks": [
     {
@@ -65,6 +65,12 @@
       "status": "passed",
       "command": "git fetch --no-tags upstream refs/heads/dev:refs/remotes/upstream/dev through http://127.0.0.1:7890; node scripts/upstream-sync/audit-manifest.mjs advance-tip --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02 --upstream-tip 0fd89fde3c9c0240172eee0a81352759c391d292 --fetched-at 2026-07-30T21:34:00+08:00; node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
       "evidence": "U1 advanced only through verified fast-forward steps, ending at 0fd89fde3c9c0240172eee0a81352759c391d292. The last update added two ordinary commits after 66c7c6e872f6c48a9b116afa91c765880d73b9b6: Issue 10767 large CSV database pasting and Issue 18455 dialog title-bar drag bounds. The full range is 546 commits and 41 merges. All 8 verified audits were preserved and 538 entries remain explicit pending. advance-tip and a separate verify both completed successfully."
+    },
+    {
+      "name": "current upstream tip refresh after D002 candidate",
+      "status": "passed",
+      "command": "git -c http.proxy=http://127.0.0.1:7890 fetch --no-tags upstream refs/heads/dev:refs/remotes/upstream/dev; node scripts/upstream-sync/audit-manifest.mjs advance-tip --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02 --upstream-tip 9d164289036a68e2d4e6fc1777c4c1a986f32b8d --fetched-at 2026-07-30T22:14:01+08:00; node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
+      "evidence": "0fd89fde3c9c0240172eee0a81352759c391d292 is an ancestor of 9d164289036a68e2d4e6fc1777c4c1a986f32b8d. The four new commits cover document-tree collapse animation, dependency update, attribute/backlink collapse animation and AV virtual scrolling after cleared search. The expanded 550-entry DAG with 41 merges verified; the 12 completed audits and their local mappings were preserved, and 538 entries remain explicitly pending."
     },
     {
       "name": "search exact ranking",
