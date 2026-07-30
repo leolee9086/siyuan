@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "sourceHead": "fe3ca767343b76e1da6f733df090ae9ff40e1ce4",
+  "schemaVersion": 2,
+  "sourceHead": "db85fb64dd7fa6791c897acaf24209285ffecb73",
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
   "upstreamTip": "c7e58c6da597ea98b427d07e6afaf3fabe6bed9b",
   "semanticVerified": {
@@ -1185,5 +1185,63 @@
       "1d77106dda1467f431b10f2a527b7eae541a33e2",
       "c7e58c6da597ea98b427d07e6afaf3fabe6bed9b"
     ]
+  },
+  "reconciliation": {
+    "total": 570,
+    "stateCounts": {
+      "topology-integrated": 0,
+      "delivery-integrated": 12,
+      "delivery-git-integrated": 0,
+      "delivery-in-progress": 0,
+      "semantic-verified": 0,
+      "audit-in-progress": 0,
+      "audit-blocked": 0,
+      "audit-pending": 558
+    },
+    "semanticVerifiedPrefix": {
+      "count": 0,
+      "through": null,
+      "blocker": {
+        "topoIndex": 1,
+        "sha": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
+        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 删除"
+      }
+    },
+    "deliveryIntegratedPrefix": {
+      "count": 0,
+      "through": null,
+      "blocker": {
+        "topoIndex": 1,
+        "sha": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
+        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 删除"
+      }
+    },
+    "topologyIntegratedPrefix": {
+      "count": 0,
+      "through": null,
+      "blocker": {
+        "topoIndex": 1,
+        "sha": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
+        "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 删除"
+      }
+    },
+    "firstActionable": {
+      "topoIndex": 1,
+      "sha": "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
+      "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554 删除",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    }
   }
 }

@@ -137,27 +137,119 @@ const resolveCommit = (repo, sha, label) => {
 
 const isVerifiedAudit = (record) => record.audit.status === "verified";
 
+const auditStatuses = new Set([
+    "pending",
+    "in-progress",
+    "blocked",
+    "verified",
+    "reopened",
+]);
+
+const deliveryStatuses = new Set([
+    "prepared",
+    "verified",
+    "git-integrated",
+    "integrated",
+    "failed",
+    "reverted",
+]);
+
+const activeDeliveryStatuses = new Set([
+    "prepared",
+    "verified",
+    "git-integrated",
+    "integrated",
+]);
+
+const reconciliationStates = [
+    "topology-integrated",
+    "delivery-integrated",
+    "delivery-git-integrated",
+    "delivery-in-progress",
+    "semantic-verified",
+    "audit-in-progress",
+    "audit-blocked",
+    "audit-pending",
+];
+
+const validateAuditStatus = (record) => {
+    if (!record.audit || !auditStatuses.has(record.audit.status)) {
+        throw new Error(`Unsupported audit status for ${record.sha}: ${record.audit?.status ?? "<missing>"}`);
+    }
+};
+
+const appendMapValue = (map, key, value) => {
+    const entries = map.get(key) ?? [];
+    entries.push(value);
+    map.set(key, entries);
+};
+
+const deriveContinuousPrefix = (records, predicate) => {
+    const firstUncovered = records.find((record) => !predicate(record)) ?? null;
+    const coveredCount = firstUncovered === null ? records.length : firstUncovered.topoIndex - 1;
+    return {
+        count: coveredCount,
+        through: coveredCount === 0 ? null : records[coveredCount - 1].sha,
+        blocker: firstUncovered === null ? null : {
+            topoIndex: firstUncovered.topoIndex,
+            sha: firstUncovered.sha,
+            subject: firstUncovered.subject,
+        },
+    };
+};
+
 /**
- * Derives mutually exclusive audit, delivery and topology coverage from Git
- * objects and versioned manifests. No count is inferred from branch names.
+ * Reconciles every upstream SHA against its audit decision, rolling delivery
+ * and real topology checkpoint. This is a derived ledger: its inputs remain
+ * commits.jsonl, deliveries.jsonl, topology-checkpoints.jsonl and Git.
  */
-export const deriveUpstreamCoverage = ({repo, output, mainHead}) => {
+export const deriveUpstreamReconciliation = ({repo, output, mainHead}) => {
     const cycle = JSON.parse(readFileSync(resolve(output, "cycle.json"), "utf8"));
     const records = readJSONLines(resolve(output, "commits.jsonl"), "commits manifest");
     const recordsBySha = new Map(records.map((record) => [record.sha, record]));
     const resolvedMainHead = mainHead ? resolveCommit(repo, mainHead, "mainHead") :
         runGit(repo, ["rev-parse", "HEAD"]).trim();
-    const verifiedRecords = records.filter(isVerifiedAudit);
+
+    for (const record of records) {
+        validateAuditStatus(record);
+    }
+
     const deliveries = readJSONLines(resolve(output, "deliveries.jsonl"), "delivery manifest");
     const integratedDeliveryIDs = [];
-    const deliveredUpstreamSHAs = new Set();
+    const deliveriesByUpstreamSHA = new Map();
+    const activeDeliveryByUpstreamSHA = new Map();
 
     for (const delivery of deliveries) {
-        if (delivery.status !== "integrated") {
-            continue;
-        }
         if (typeof delivery.deliveryId !== "string" || delivery.deliveryId.length === 0) {
-            throw new Error("An integrated delivery is missing deliveryId");
+            throw new Error("A delivery is missing deliveryId");
+        }
+        if (!deliveryStatuses.has(delivery.status)) {
+            throw new Error(`Unsupported delivery status for ${delivery.deliveryId}: ${delivery.status ?? "<missing>"}`);
+        }
+        if (!Array.isArray(delivery.upstreamCommits) || delivery.upstreamCommits.length === 0) {
+            throw new Error(`${delivery.deliveryId} must identify its upstream commits`);
+        }
+
+        for (const upstreamSHA of delivery.upstreamCommits) {
+            const record = recordsBySha.get(upstreamSHA);
+            if (!record) {
+                throw new Error(`${delivery.deliveryId} references upstream SHA outside commits.jsonl: ${upstreamSHA}`);
+            }
+            if (activeDeliveryStatuses.has(delivery.status)) {
+                if (!isVerifiedAudit(record)) {
+                    throw new Error(`${delivery.deliveryId} claims an upstream SHA without verified semantic evidence: ${upstreamSHA}`);
+                }
+                const owner = activeDeliveryByUpstreamSHA.get(upstreamSHA);
+                if (owner) {
+                    throw new Error(`${upstreamSHA} is claimed by both active deliveries ${owner.deliveryId} and ${delivery.deliveryId}`);
+                }
+                activeDeliveryByUpstreamSHA.set(upstreamSHA, delivery);
+            }
+            appendMapValue(deliveriesByUpstreamSHA, upstreamSHA, delivery);
+        }
+
+        if (delivery.status !== "git-integrated" && delivery.status !== "integrated") {
+            continue;
         }
         const integrationCommit = resolveCommit(repo, delivery.integrationCommit, `${delivery.deliveryId}.integrationCommit`);
         const mainBase = resolveCommit(repo, delivery.mainBase, `${delivery.deliveryId}.mainBase`);
@@ -169,21 +261,13 @@ export const deriveUpstreamCoverage = ({repo, output, mainHead}) => {
         if (!isAncestor(repo, integrationCommit, resolvedMainHead)) {
             throw new Error(`${delivery.deliveryId} is not reachable from the inspected main head`);
         }
-        integratedDeliveryIDs.push(delivery.deliveryId);
-        for (const upstreamSHA of delivery.upstreamCommits ?? []) {
-            const record = recordsBySha.get(upstreamSHA);
-            if (!record) {
-                throw new Error(`${delivery.deliveryId} references upstream SHA outside commits.jsonl: ${upstreamSHA}`);
-            }
-            if (!isVerifiedAudit(record)) {
-                throw new Error(`${delivery.deliveryId} claims an upstream SHA without verified semantic evidence: ${upstreamSHA}`);
-            }
-            deliveredUpstreamSHAs.add(upstreamSHA);
+        if (delivery.status === "integrated") {
+            integratedDeliveryIDs.push(delivery.deliveryId);
         }
     }
 
     const checkpoints = readJSONLines(resolve(output, "topology-checkpoints.jsonl"), "topology checkpoint manifest");
-    const topologyCoveredSHAs = new Set();
+    const topologyByUpstreamSHA = new Map();
     const checkpointIDs = [];
     let expectedUpstreamBase = cycle.upstreamBase;
     for (const checkpoint of checkpoints) {
@@ -218,52 +302,169 @@ export const deriveUpstreamCoverage = ({repo, output, mainHead}) => {
         ]).trim().split(/\r?\n/u).filter(Boolean);
         for (const upstreamSHA of checkpointSHAs) {
             const record = recordsBySha.get(upstreamSHA);
-            if (!record || !isVerifiedAudit(record) || !deliveredUpstreamSHAs.has(upstreamSHA)) {
+            const delivery = activeDeliveryByUpstreamSHA.get(upstreamSHA);
+            if (!record || !isVerifiedAudit(record) || delivery?.status !== "integrated") {
                 throw new Error(`${checkpoint.checkpointId} covers an upstream SHA without verified integrated semantics: ${upstreamSHA}`);
             }
-            topologyCoveredSHAs.add(upstreamSHA);
+            appendMapValue(topologyByUpstreamSHA, upstreamSHA, checkpoint);
         }
         checkpointIDs.push(checkpoint.checkpointId);
         expectedUpstreamBase = upstreamTip;
     }
 
+    const summarizeDelivery = (delivery) => ({
+        deliveryId: delivery.deliveryId,
+        status: delivery.status,
+        integrationCommit: delivery.integrationCommit ?? null,
+        runtimeGateStatus: delivery.runtimeGate?.status ?? null,
+    });
+    const summarizeCheckpoint = (checkpoint) => ({
+        checkpointId: checkpoint.checkpointId,
+        integrationCommit: checkpoint.integrationCommit,
+    });
+    const deriveState = (record) => {
+        const activeDelivery = activeDeliveryByUpstreamSHA.get(record.sha);
+        if (topologyByUpstreamSHA.has(record.sha)) {
+            return "topology-integrated";
+        }
+        if (activeDelivery?.status === "integrated") {
+            return "delivery-integrated";
+        }
+        if (activeDelivery?.status === "git-integrated") {
+            return "delivery-git-integrated";
+        }
+        if (activeDelivery) {
+            return "delivery-in-progress";
+        }
+        if (record.audit.status === "verified") {
+            return "semantic-verified";
+        }
+        if (record.audit.status === "in-progress" || record.audit.status === "reopened") {
+            return "audit-in-progress";
+        }
+        if (record.audit.status === "blocked") {
+            return "audit-blocked";
+        }
+        return "audit-pending";
+    };
+    const deriveNextAction = (record, state) => {
+        switch (state) {
+            case "topology-integrated": return "none";
+            case "delivery-integrated": return "await-continuous-topology-prefix";
+            case "delivery-git-integrated": return "complete-runtime-gate";
+            case "delivery-in-progress": return "complete-delivery-verification";
+            case "semantic-verified": return "create-rolling-delivery";
+            case "audit-in-progress": return "complete-audit";
+            case "audit-blocked": return "resolve-audit-blocker";
+            default: return "audit-upstream-behavior";
+        }
+    };
+    const entries = records.map((record) => {
+        const state = deriveState(record);
+        return {
+            topoIndex: record.topoIndex,
+            sha: record.sha,
+            subject: record.subject,
+            state,
+            nextAction: deriveNextAction(record, state),
+            audit: {
+                status: record.audit.status,
+                disposition: record.audit.disposition,
+                seriesId: record.audit.seriesId,
+                localCommits: record.audit.localCommits,
+                mappingEvidence: record.audit.mappingEvidence,
+                codeEvidence: record.audit.codeEvidence,
+                testEvidence: record.audit.testEvidence,
+            },
+            deliveries: (deliveriesByUpstreamSHA.get(record.sha) ?? []).map(summarizeDelivery),
+            topologyCheckpoints: (topologyByUpstreamSHA.get(record.sha) ?? []).map(summarizeCheckpoint),
+        };
+    });
+    const entriesBySHA = new Map(entries.map((entry) => [entry.sha, entry]));
+    const hasState = (state) => (record) => entriesBySHA.get(record.sha).state === state;
     const topologyLagSHAs = runGit(repo, [
         "rev-list", "--reverse", "--topo-order", cycle.upstreamTip, `^${resolvedMainHead}`,
     ]).trim().split(/\r?\n/u).filter(Boolean);
+    const stateCounts = Object.fromEntries(reconciliationStates.map((state) => [
+        state,
+        entries.filter((entry) => entry.state === state).length,
+    ]));
+    const byState = (state) => entries.filter((entry) => entry.state === state).map((entry) => entry.sha);
     return {
         schemaVersion: 1,
         sourceHead: resolvedMainHead,
         upstreamBase: cycle.upstreamBase,
         upstreamTip: cycle.upstreamTip,
+        summary: {
+            total: entries.length,
+            stateCounts,
+            semanticVerifiedPrefix: deriveContinuousPrefix(records, isVerifiedAudit),
+            deliveryIntegratedPrefix: deriveContinuousPrefix(records, (record) =>
+                hasState("delivery-integrated")(record) || hasState("topology-integrated")(record)),
+            topologyIntegratedPrefix: deriveContinuousPrefix(records, hasState("topology-integrated")),
+            firstActionable: entries.find((entry) => entry.nextAction !== "none") ?? null,
+        },
+        coverage: {
+            semanticVerified: records.filter(isVerifiedAudit).map((record) => record.sha),
+            deliveryIntegrated: byState("delivery-integrated").concat(byState("topology-integrated")),
+            topologyCovered: byState("topology-integrated"),
+            pending: entries.filter((entry) => !isVerifiedAudit(recordsBySha.get(entry.sha))).map((entry) => entry.sha),
+            topologyLag: topologyLagSHAs,
+            deliveryIds: integratedDeliveryIDs,
+            checkpointIds: checkpointIDs,
+            topologyThrough: checkpointIDs.length > 0 ? expectedUpstreamBase : null,
+        },
+        entries,
+    };
+};
+
+/**
+ * Derives mutually exclusive audit, delivery and topology coverage from Git
+ * objects and versioned manifests. No count is inferred from branch names.
+ */
+export const deriveUpstreamCoverage = ({repo, output, mainHead}) => {
+    const reconciliation = deriveUpstreamReconciliation({repo, output, mainHead});
+    return coverageFromReconciliation(reconciliation);
+};
+
+const coverageFromReconciliation = (reconciliation) => {
+    return {
+        schemaVersion: 2,
+        sourceHead: reconciliation.sourceHead,
+        upstreamBase: reconciliation.upstreamBase,
+        upstreamTip: reconciliation.upstreamTip,
         semanticVerified: {
-            count: verifiedRecords.length,
-            shas: verifiedRecords.map((record) => record.sha),
+            count: reconciliation.coverage.semanticVerified.length,
+            shas: reconciliation.coverage.semanticVerified,
         },
         deliveryIntegrated: {
-            count: deliveredUpstreamSHAs.size,
-            deliveryIds: integratedDeliveryIDs,
-            shas: records.filter((record) => deliveredUpstreamSHAs.has(record.sha)).map((record) => record.sha),
+            count: reconciliation.coverage.deliveryIntegrated.length,
+            deliveryIds: reconciliation.coverage.deliveryIds,
+            shas: reconciliation.coverage.deliveryIntegrated,
         },
         topologyCovered: {
-            count: topologyCoveredSHAs.size,
-            checkpointIds: checkpointIDs,
-            through: checkpointIDs.length > 0 ? expectedUpstreamBase : null,
-            shas: records.filter((record) => topologyCoveredSHAs.has(record.sha)).map((record) => record.sha),
+            count: reconciliation.coverage.topologyCovered.length,
+            checkpointIds: reconciliation.coverage.checkpointIds,
+            through: reconciliation.coverage.topologyThrough,
+            shas: reconciliation.coverage.topologyCovered,
         },
         pending: {
-            count: records.length - verifiedRecords.length,
-            shas: records.filter((record) => !isVerifiedAudit(record)).map((record) => record.sha),
+            count: reconciliation.coverage.pending.length,
+            shas: reconciliation.coverage.pending,
         },
         topologyLag: {
-            count: topologyLagSHAs.length,
-            shas: topologyLagSHAs,
+            count: reconciliation.coverage.topologyLag.length,
+            shas: reconciliation.coverage.topologyLag,
         },
+        reconciliation: reconciliation.summary,
     };
 };
 
 export const writeUpstreamCoverage = ({repo, output, mainHead}) => {
-    const coverage = deriveUpstreamCoverage({repo, output, mainHead});
+    const reconciliation = deriveUpstreamReconciliation({repo, output, mainHead});
+    const coverage = coverageFromReconciliation(reconciliation);
     writeFileSync(resolve(output, "coverage.json"), `${JSON.stringify(coverage, null, 2)}\n`);
+    writeFileSync(resolve(output, "reconciliation.json"), `${JSON.stringify(reconciliation, null, 2)}\n`);
     return coverage;
 };
 
@@ -718,6 +919,19 @@ const main = () => {
             topologyCovered: coverage.topologyCovered.count,
             pending: coverage.pending.count,
             topologyLag: coverage.topologyLag.count,
+            semanticVerifiedPrefix: coverage.reconciliation.semanticVerifiedPrefix,
+            deliveryIntegratedPrefix: coverage.reconciliation.deliveryIntegratedPrefix,
+            topologyIntegratedPrefix: coverage.reconciliation.topologyIntegratedPrefix,
+            firstActionable: coverage.reconciliation.firstActionable,
+        })}\n`);
+        return;
+    }
+    if (command === "reconcile") {
+        const coverage = writeUpstreamCoverage({repo, output});
+        process.stdout.write(`${JSON.stringify({
+            sourceHead: coverage.sourceHead,
+            reconciliation: coverage.reconciliation,
+            states: coverage.reconciliation.stateCounts,
         })}\n`);
         return;
     }
@@ -756,7 +970,7 @@ const main = () => {
         return;
     }
     if (command !== "generate") {
-        throw new Error("Expected generate, refresh, apply-decisions, advance-tip, coverage or verify command");
+        throw new Error("Expected generate, refresh, apply-decisions, advance-tip, coverage, reconcile or verify command");
     }
     const generatedCycle = {
         cycleId: requireOption(values, "cycle-id"),

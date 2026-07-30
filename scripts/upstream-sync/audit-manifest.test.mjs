@@ -9,6 +9,7 @@ import {
     applyAuditDecisions,
     buildAuditRecords,
     deriveUpstreamCoverage,
+    deriveUpstreamReconciliation,
     loadCycleForRegeneration,
     refreshAuditManifest,
     verifyAuditManifest,
@@ -376,4 +377,39 @@ test("derives semantic, delivery and topology coverage from verified Git relatio
     assert.equal(coverage.topologyCovered.count, 2);
     assert.equal(coverage.topologyLag.count, 0);
     assert.equal(coverage.pending.count, 0);
+
+    const reconciliation = deriveUpstreamReconciliation({repo, output});
+    assert.deepEqual(reconciliation.summary.stateCounts, {
+        "topology-integrated": 2,
+        "delivery-integrated": 0,
+        "delivery-git-integrated": 0,
+        "delivery-in-progress": 0,
+        "semantic-verified": 0,
+        "audit-in-progress": 0,
+        "audit-blocked": 0,
+        "audit-pending": 0,
+    });
+    assert.equal(reconciliation.summary.topologyIntegratedPrefix.count, 2);
+    assert.equal(reconciliation.summary.topologyIntegratedPrefix.blocker, null);
+    assert.equal(reconciliation.entries[0].state, "topology-integrated");
+    assert.deepEqual(reconciliation.entries[0].deliveries, [{
+        deliveryId: "D1",
+        status: "integrated",
+        integrationCommit: delivery,
+        runtimeGateStatus: null,
+    }]);
+
+    writeFileSync(join(output, "deliveries.jsonl"), `${[
+        {
+            deliveryId: "D1", status: "integrated", upstreamCommits: [upstreamFirst, upstreamTip],
+            mainBase: localBase, seriesHead, integrationCommit: delivery,
+        },
+        {
+            deliveryId: "D2", status: "prepared", upstreamCommits: [upstreamFirst],
+        },
+    ].map((entry) => JSON.stringify(entry)).join("\n")}\n`);
+    assert.throws(
+        () => deriveUpstreamReconciliation({repo, output}),
+        new RegExp(`${upstreamFirst} is claimed by both active deliveries D1 and D2`),
+    );
 });
