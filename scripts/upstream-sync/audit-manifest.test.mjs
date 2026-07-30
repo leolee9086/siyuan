@@ -267,6 +267,7 @@ test("advances an upstream tip without losing completed audits and rejects rewri
     const firstRecords = buildAuditRecords({repo, upstreamBase: base, upstreamTip: firstTip});
     firstRecords[0].audit.status = "verified";
     firstRecords[0].audit.disposition = "ported-semantic";
+    firstRecords[0].stablePatchId = "a".repeat(40);
     writeAuditManifest({
         repo,
         output,
@@ -285,6 +286,7 @@ test("advances an upstream tip without losing completed audits and rejects rewri
     assert.equal(advanced.commitCount, 2);
     assert.equal(records[0].audit.status, "verified");
     assert.equal(records[0].audit.disposition, "ported-semantic");
+    assert.equal(records[0].stablePatchId, "a".repeat(40));
     assert.equal(records[1].audit.status, "pending");
     assert.equal(advanced.upstreamTipRefresh.latestCheckedAt, fetchedAt);
     assert.deepEqual(advanced.upstreamTipRefresh.history, [{

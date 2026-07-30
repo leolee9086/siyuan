@@ -82,21 +82,21 @@ const readLocalMappings = (repo, localBase, candidateHead) => {
     return mappings;
 };
 
-const readExistingAudits = (manifestPath) => {
+const readExistingRecords = (manifestPath) => {
     if (!existsSync(manifestPath)) {
         return new Map();
     }
-    const audits = new Map();
+    const records = new Map();
     for (const line of readFileSync(manifestPath, "utf8").split(/\r?\n/)) {
         if (!line.trim()) {
             continue;
         }
         const record = JSON.parse(line);
         if (record.sha && record.audit) {
-            audits.set(record.sha, record.audit);
+            records.set(record.sha, record);
         }
     }
-    return audits;
+    return records;
 };
 
 const emptyAudit = () => ({
@@ -218,7 +218,7 @@ export const buildAuditRecords = ({
     const metadata = parseMetadataLog(runGit(repo, [
         "log", "--format=%x1e%H%x00%P%x00%an%x00%ae%x00%aI%x00%s%x00%B", upstreamTip, `^${upstreamBase}`,
     ]));
-    const existingAudits = readExistingAudits(existingManifestPath);
+    const existingRecords = readExistingRecords(existingManifestPath);
     const localMappings = readLocalMappings(repo, localBase, candidateHead);
 
     const records = shas.map((sha, index) => {
@@ -229,8 +229,9 @@ export const buildAuditRecords = ({
         const isMerge = item.parents.length > 1;
         const revertTargets = getRevertTargets(repo, item.body);
         const isRevert = !isMerge && (revertTargets.length > 0 || /^Revert\b/u.test(item.subject));
+        const existingRecord = existingRecords.get(sha);
         const audit = mergeAuditMapping(
-            existingAudits.get(sha) ?? emptyAudit(),
+            existingRecord?.audit ?? emptyAudit(),
             localMappings.get(sha) ?? [],
             revertTargets,
         );
@@ -240,7 +241,11 @@ export const buildAuditRecords = ({
             topoIndex: index + 1,
             commitType: isMerge ? "merge" : (isRevert ? "revert" : "commit"),
             paths: getChangedPaths(repo, sha),
-            stablePatchId: getStablePatchId(repo, sha, isMerge),
+            // A stable patch ID is derived solely from this immutable commit.
+            // Retaining the recorded value avoids recomputing the whole frozen
+            // range when a newer upstream tip only adds entries.
+            stablePatchId: Object.hasOwn(existingRecord ?? {}, "stablePatchId") ?
+                existingRecord.stablePatchId : getStablePatchId(repo, sha, isMerge),
             audit,
         };
     });
