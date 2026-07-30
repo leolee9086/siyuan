@@ -107,6 +107,9 @@ func initDatabase(forceRebuild bool) {
 		if util.DatabaseVer == getDatabaseVer() {
 			// 老库版本一致但缺少新加的列时，做幂等迁移（不升 DatabaseVer，避免全库重建丢失已嵌入向量）
 			migrateBlockEmbeddingsSchema()
+			if err := ensureRefsDefIndexes(db); err != nil {
+				logging.LogFatalf(logging.ExitCodeUnavailableDatabase, "create refs definition indexes failed: %s", err)
+			}
 			recoverIndexQueue()
 			return
 		}
@@ -232,6 +235,9 @@ func initDBTables() {
 	if err != nil {
 		logging.LogFatalf(logging.ExitCodeUnavailableDatabase, "create table [refs] failed: %s", err)
 	}
+	if err = ensureRefsDefIndexes(db); err != nil {
+		logging.LogFatalf(logging.ExitCodeUnavailableDatabase, "create refs definition indexes failed: %s", err)
+	}
 
 	_, err = db.Exec("DROP TABLE IF EXISTS file_annotation_refs")
 	if err != nil {
@@ -303,6 +309,14 @@ func initDBConnection() {
 	db.SetMaxIdleConns(20)
 	db.SetMaxOpenConns(20)
 	db.SetConnMaxLifetime(365 * 24 * time.Hour)
+}
+
+func ensureRefsDefIndexes(database *sql.DB) (err error) {
+	if _, err = database.Exec("CREATE INDEX IF NOT EXISTS idx_refs_def_block_id ON refs(def_block_id)"); err != nil {
+		return
+	}
+	_, err = database.Exec("CREATE INDEX IF NOT EXISTS idx_refs_def_block_root_id ON refs(def_block_root_id)")
+	return
 }
 
 var initHistoryDatabaseLock = sync.Mutex{}
@@ -1986,6 +2000,9 @@ func initEncryptedDBTables(boxDB *sql.DB) (err error) {
 		if _, err = boxDB.Exec(stmt); err != nil {
 			return
 		}
+	}
+	if err = ensureRefsDefIndexes(boxDB); err != nil {
+		return
 	}
 	// FTS5 external-content 虚拟表，tokenize 与全局保持一致（siyuan 分词器）
 	ftsStmt := "CREATE VIRTUAL TABLE IF NOT EXISTS blocks_fts USING fts5(id UNINDEXED, parent_id UNINDEXED, root_id UNINDEXED, hash UNINDEXED, box UNINDEXED, path UNINDEXED, hpath UNINDEXED, name, alias, memo, tag, content, fcontent, markdown UNINDEXED, length UNINDEXED, type UNINDEXED, subtype UNINDEXED, ial, sort UNINDEXED, created UNINDEXED, updated UNINDEXED, content='blocks', content_rowid='rowid', tokenize=\"" + ftsTokenize() + "\")"
