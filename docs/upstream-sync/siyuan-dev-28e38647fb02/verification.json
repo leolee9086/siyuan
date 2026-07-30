@@ -14,14 +14,14 @@
   "manifest": {
     "status": "passed",
     "command": "node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
-    "commitCount": 550,
-    "uniqueCommitCount": 550,
-    "mergeCommitCount": 41,
+    "commitCount": 570,
+    "uniqueCommitCount": 570,
+    "mergeCommitCount": 44,
     "revertCommitCount": 0,
-    "stablePatchIdCount": 505,
+    "stablePatchIdCount": 526,
     "mappedUpstreamCommitCount": 12,
     "verifiedAuditCount": 12,
-    "pendingAuditCount": 538
+    "pendingAuditCount": 558
   },
   "coverage": {
     "status": "passed",
@@ -30,9 +30,18 @@
     "semanticVerified": 12,
     "deliveryIntegrated": 12,
     "topologyCovered": 0,
-    "pending": 538,
-    "topologyLag": 550,
+    "pending": 558,
+    "topologyLag": 570,
     "evidence": "The derived snapshot validates D001, D002R and D002 exact parents and reachability. No topology checkpoint exists because the first three upstream entries are still pending; coverage.json contains the complete SHA sets and the verifier rejects any checkpoint that covers an unverified, undelivered or tree-changing range."
+  },
+  "upstreamTipRefresh": {
+    "status": "passed",
+    "from": "9d164289036a68e2d4e6fc1777c4c1a986f32b8d",
+    "to": "c7e58c6da597ea98b427d07e6afaf3fabe6bed9b",
+    "fetchedAt": "2026-07-31T00:44:18+08:00",
+    "addedCommitCount": 20,
+    "addedMergeCommitCount": 3,
+    "evidence": "Fetched official origin/dev through the configured local proxy. The previous U1 is an ancestor of the new tip. advance-tip rebuilt the frozen DAG while preserving all 12 verified mappings; a separate manifest verification completed with 570 commits and 44 merges."
   },
   "focusedChecks": [
     {
