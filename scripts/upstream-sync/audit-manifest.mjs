@@ -320,6 +320,79 @@ export const refreshAuditManifest = ({repo, output}) => {
     return writeAuditManifest({repo, output, cycle: refreshedCycle, records});
 };
 
+export const advanceAuditTip = ({repo, output, upstreamTip, fetchedAt}) => {
+    const cyclePath = resolve(output, "cycle.json");
+    if (!existsSync(cyclePath)) {
+        throw new Error(`Missing frozen cycle configuration: ${cyclePath}`);
+    }
+    if (!fetchedAt || Number.isNaN(Date.parse(fetchedAt))) {
+        throw new Error("A valid fetchedAt timestamp is required");
+    }
+    const cycle = JSON.parse(readFileSync(cyclePath, "utf8"));
+    const previousTip = runGit(repo, ["rev-parse", "--verify", `${cycle.upstreamTip}^{commit}`]).trim();
+    const nextTip = runGit(repo, ["rev-parse", "--verify", `${upstreamTip}^{commit}`]).trim();
+    try {
+        runGit(repo, ["merge-base", "--is-ancestor", previousTip, nextTip]);
+    } catch {
+        throw new Error(`Refusing non-fast-forward upstream tip change: ${previousTip} -> ${nextTip}`);
+    }
+    const tipHistory = cycle.upstreamTipRefresh?.history ?? [];
+    if (previousTip === nextTip) {
+        const checkedCycle = {
+            ...cycle,
+            upstreamTipFetchedAt: fetchedAt,
+            upstreamTipRefresh: {
+                mode: "before-each-series-and-final-closure",
+                latestCheckedAt: fetchedAt,
+                history: tipHistory,
+            },
+        };
+        writeFileSync(cyclePath, `${JSON.stringify(checkedCycle, null, 2)}\n`);
+        verifyAuditManifest({repo, output});
+        return checkedCycle;
+    }
+    const candidateHead = runGit(repo, ["rev-parse", "HEAD"]).trim();
+    const candidateBranch = runGit(repo, ["branch", "--show-current"]).trim();
+    const addedCommitCount = Number(runGit(repo, [
+        "rev-list", "--count", nextTip, `^${previousTip}`,
+    ]).trim());
+    const addedMergeCommitCount = Number(runGit(repo, [
+        "rev-list", "--count", "--merges", nextTip, `^${previousTip}`,
+    ]).trim());
+    const refreshedCycle = {
+        ...cycle,
+        upstreamTip: nextTip,
+        upstreamTipFetchedAt: fetchedAt,
+        candidateBranch: candidateBranch || cycle.candidateBranch,
+        candidateHead,
+        upstreamTipRefresh: {
+            mode: "before-each-series-and-final-closure",
+            latestCheckedAt: fetchedAt,
+            history: [
+                ...tipHistory,
+                {
+                    from: previousTip,
+                    to: nextTip,
+                    fetchedAt,
+                    addedCommitCount,
+                    addedMergeCommitCount,
+                },
+            ],
+        },
+    };
+    const records = buildAuditRecords({
+        repo,
+        upstreamBase: refreshedCycle.upstreamBase,
+        upstreamTip: nextTip,
+        localBase: refreshedCycle.localBase,
+        candidateHead,
+        existingManifestPath: resolve(output, "commits.jsonl"),
+    });
+    const result = writeAuditManifest({repo, output, cycle: refreshedCycle, records});
+    verifyAuditManifest({repo, output});
+    return result;
+};
+
 const requireOption = (values, name) => {
     if (!values[name]) {
         throw new Error(`Missing --${name}`);
@@ -337,6 +410,7 @@ const main = () => {
             "local-base": {type: "string"},
             "upstream-base": {type: "string"},
             "upstream-tip": {type: "string"},
+            "fetched-at": {type: "string"},
             "candidate-branch": {type: "string"},
             "candidate-head": {type: "string"},
             "candidate-created-at": {type: "string"},
@@ -363,8 +437,24 @@ const main = () => {
         })}\n`);
         return;
     }
+    if (command === "advance-tip") {
+        const result = advanceAuditTip({
+            repo,
+            output,
+            upstreamTip: requireOption(values, "upstream-tip"),
+            fetchedAt: requireOption(values, "fetched-at"),
+        });
+        process.stdout.write(`${JSON.stringify({
+            upstreamTip: result.upstreamTip,
+            candidateHead: result.candidateHead,
+            commitCount: result.commitCount,
+            mergeCommitCount: result.mergeCommitCount,
+            mappedUpstreamCommitCount: result.mappedUpstreamCommitCount,
+        })}\n`);
+        return;
+    }
     if (command !== "generate") {
-        throw new Error("Expected generate, refresh or verify command");
+        throw new Error("Expected generate, refresh, advance-tip or verify command");
     }
     const generatedCycle = {
         cycleId: requireOption(values, "cycle-id"),

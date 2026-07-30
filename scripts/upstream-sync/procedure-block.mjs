@@ -15,6 +15,7 @@ const REQUIRED_SEMANTICS = [
     "本地 Forge 服务是硬门禁",
     "规范化 Kramdown SHA-256",
     "IAL 属性顺序不稳定",
+    "每个新 series 建立前",
 ];
 
 const ialTokenPattern = /[^\s=]+=(?:"(?:\\.|[^"])*"|'(?:\\.|[^'])*'|[^\s]+)|[^\s]+/gu;
