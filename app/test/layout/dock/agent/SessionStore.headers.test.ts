@@ -115,6 +115,44 @@ describe("Agent owner request headers", () => {
         });
     });
 
+    it("reuses filetree search and path resolution instead of an Agent-specific document search API", async () => {
+        mockedGetSafeSiyuanConfig.mockReturnValue({api: {token: "workspace-api-token"}});
+        const fetchModule = await import("../../../../src/util/network/fetch");
+        const fetchSyncPost = vi.mocked(fetchModule.fetchSyncPost);
+        fetchSyncPost
+            .mockResolvedValueOnce({
+                code: 0,
+                data: [
+                    {box: "notebook-1", path: "/20260730-article.sy", hPath: "Notebook/Agent Charter"},
+                    {box: "notebook-1", path: "/", hPath: "Notebook/"},
+                ],
+                msg: "",
+            })
+            .mockResolvedValueOnce({code: 0, data: "/Agent Charter", msg: ""})
+            .mockResolvedValueOnce({code: 0, data: ["20260730000000-agent"], msg: ""});
+        const {SessionStore} = await import("../../../../src/layout/dock/agent/SessionStore");
+
+        const candidates = await SessionStore.searchPromptSourceDocuments("charter");
+        await expect(SessionStore.resolvePromptSourceDocument(candidates[0]!)).resolves.toEqual({
+            id: "20260730000000-agent",
+            notebookId: "notebook-1",
+            title: "Agent Charter",
+            hPath: "Notebook/Agent Charter",
+        });
+
+        expect(fetchSyncPost.mock.calls).toEqual([
+            ["/api/filetree/searchDocs", {k: "charter", flashcard: false, excludeIDs: []}, {
+                Authorization: "Bearer workspace-api-token",
+            }],
+            ["/api/filetree/getHPathByPath", {notebook: "notebook-1", path: "/20260730-article.sy"}, {
+                Authorization: "Bearer workspace-api-token",
+            }],
+            ["/api/filetree/getIDsByHPath", {notebook: "notebook-1", path: "/Agent Charter"}, {
+                Authorization: "Bearer workspace-api-token",
+            }],
+        ]);
+    });
+
     it("uses the prompt-source revision for explicit refresh and preserves API errors", async () => {
         mockedGetSafeSiyuanConfig.mockReturnValue({});
         const fetchModule = await import("../../../../src/util/network/fetch");

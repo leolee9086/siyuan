@@ -4,10 +4,12 @@ import {fetchSyncPost} from "../../../util/network/fetch";
 import {Constants} from "../../../constants";
 /** 用途：读取当前工作空间 API token；使用范围：仅在 Agent 请求发出前生成授权头；解耦评估：动态配置必须按请求读取，注入静态值会在工作空间切换后失效。 */
 import {getSafeSiyuanConfig} from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import type {SearchResultItem} from "../../../util/file/movePath/model/movePathTo.types";
 /** 用途：约束 Agent 会话、上传及目录接口的数据边界；使用范围：仅 SessionStore 的请求和本地 revision 队列。 */
 import type {
     AgentAPIResponse,
     AgentPromptSourceDocument,
+    AgentPromptSourceDocumentCandidate,
     AgentPromptSourceState,
     AgentSession,
     AgentTaskDirectoryCapabilities,
@@ -178,19 +180,63 @@ export const SessionStore = {
         return state;
     },
 
-    /** 搜索可以绑定为系统提示词的文档；结果的正文仍只由 Kernel 在绑定时读取。 */
+    /**
+     * 复用文件树的权威文档搜索 API。搜索结果不含根块 ID，只有用户选择某项后才按既有路径
+     * 解析接口取得 ID；避免为 Agent 复制一套搜索、权限过滤和排序逻辑。
+     */
     async searchPromptSourceDocuments(keyword: string) {
         const resp = await fetchSyncPost(
-            API + "/searchPromptSourceDocuments",
-            {keyword: keyword.trim()},
+            "/api/filetree/searchDocs",
+            {k: keyword.trim(), flashcard: false, excludeIDs: []},
             agentOwnerHeaders(),
         );
-        const documents = requireAgentAPIData<AgentPromptSourceDocument[]>(resp, "Search prompt source documents");
-        if (!Array.isArray(documents) || documents.some((document) =>
-            !document || !document.id || !document.notebookId || !document.title)) {
+        const documents = requireAgentAPIData<Array<Pick<SearchResultItem, "box" | "path" | "hPath">>>(
+            resp,
+            "Search prompt source documents",
+        );
+        if (!Array.isArray(documents)) {
             throw new Error("Search prompt source documents returned invalid data");
         }
-        return documents;
+        return documents.flatMap<AgentPromptSourceDocumentCandidate>((document) => {
+            const notebookId = typeof document.box === "string" ? document.box.trim() : "";
+            const path = typeof document.path === "string" ? document.path.trim() : "";
+            const hPath = typeof document.hPath === "string" ? document.hPath.trim() : "";
+            // 笔记本根不是一个可绑定的文档，且服务端绑定也要求实际根块 ID。
+            if (!notebookId || !path || path === "/" || !hPath) {
+                return [];
+            }
+            const title = hPath.split("/").filter(Boolean).at(-1)?.trim();
+            if (!title) {
+                return [];
+            }
+            return [{notebookId, path, hPath, title}];
+        });
+    },
+
+    /** 仅在选中一个文件树搜索结果时解析根块 ID，随后仍由绑定 API 权威读取、校验并快照正文。 */
+    async resolvePromptSourceDocument(candidate: AgentPromptSourceDocumentCandidate) {
+        const hPathResponse = await fetchSyncPost("/api/filetree/getHPathByPath", {
+            notebook: candidate.notebookId,
+            path: candidate.path,
+        }, agentOwnerHeaders());
+        const hPath = requireAgentAPIData<string>(hPathResponse, "Resolve prompt source document path");
+        if (typeof hPath !== "string" || !hPath.trim()) {
+            throw new Error("Resolve prompt source document path returned invalid data");
+        }
+        const idsResponse = await fetchSyncPost("/api/filetree/getIDsByHPath", {
+            notebook: candidate.notebookId,
+            path: hPath,
+        }, agentOwnerHeaders());
+        const ids = requireAgentAPIData<string[]>(idsResponse, "Resolve prompt source document ID");
+        if (!Array.isArray(ids) || ids.length !== 1 || typeof ids[0] !== "string" || !ids[0].trim()) {
+            throw new Error("Selected prompt source document no longer resolves to exactly one document");
+        }
+        return {
+            id: ids[0],
+            notebookId: candidate.notebookId,
+            title: candidate.title,
+            hPath: candidate.hPath,
+        } satisfies AgentPromptSourceDocument;
     },
 
     /** 绑定由 Kernel 再次读取和快照的文档；前端不提交任何系统提示词正文。 */

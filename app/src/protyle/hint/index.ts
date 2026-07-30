@@ -1,6 +1,6 @@
 import {hasClosestBlock, hasClosestByClassName, hasClosestByTag} from "../util/hasClosest";
 import {focusByRange, getEditorRange, getSelectionPosition} from "../util/selection";
-import {isAbnormalItem, upDownHint} from "../../util/DOM/upDownHint";
+import {isAbnormalItem} from "../../util/DOM/upDownHint";
 import {setPosition} from "../../util/DOM/positioning/setPosition";
 import {insertHTML} from "../util/insertHTML";
 import {hideElements} from "../ui/hideElements";
@@ -8,6 +8,7 @@ import {addEmoji, getEmojiDesc, unicode2Emoji} from "../../emoji";
 import {uploadFiles} from "../upload/transport";
 import {isMobile} from "../../platform";
 import {isNotCtrl, isOnlyMeta} from "../util/compatibility";
+import {bindSearchListNavigation} from "../../search/blockPicker/bindSearchListNavigation";
 import {handleFillAv, handleFillContent} from "./index.fill";
 import {handleSelect} from "./index.select";
 import {handleRender, handleGenEmojiHTML, handleGenSearchHTML} from "./index.render";
@@ -256,22 +257,23 @@ ${unicode2Emoji(emoji.unicode)}</button>`;
             const oldValue = this.element.querySelector("mark")?.textContent || "";
             searchElement.value = oldValue;
             searchElement.select();
-            searchElement.addEventListener("keydown", (event: KeyboardEvent) => {
-                if (event.key !== "Meta" && event.key !== "Control") {
-                    // 需要冒泡以满足光标在块标位置时 ctrl 弹出悬浮层
-                    event.stopPropagation();
-                }
-                if (event.isComposing) {
-                    return;
-                }
-                upDownHint(this.element.lastElementChild, event);
-                if (event.key === "Enter") {
-                    this.fill(decodeURIComponent(this.element.querySelector(".b3-list-item--focus").getAttribute("data-value")), protyle, false, isNotCtrl(event));
-                    event.preventDefault();
-                } else if (event.key === "Escape") {
+            bindSearchListNavigation(searchElement, () => this.element.lastElementChild as HTMLElement | null, {
+                stopPropagation: (event) => {
+                    if (event.key !== "Meta" && event.key !== "Control") {
+                        // 需要冒泡以满足光标在块标位置时 ctrl 弹出悬浮层
+                        event.stopPropagation();
+                    }
+                },
+                onSelect: (item, event) => {
+                    const value = item.getAttribute("data-value");
+                    if (value) {
+                        this.fill(decodeURIComponent(value), protyle, false, isNotCtrl(event));
+                    }
+                },
+                onEscape: () => {
                     this.element.classList.add("fn__none");
                     focusByRange(protyle.toolbar.range);
-                }
+                },
             });
             const nodeElement = protyle.toolbar.range ? hasClosestBlock(protyle.toolbar.range.startContainer) : false;
             searchElement.addEventListener("input", (event: InputEvent) => {

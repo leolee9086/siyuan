@@ -47,6 +47,14 @@ export interface AgentPromptSourceDocument {
     hPath: string;
 }
 
+/** 表示文件树文档搜索返回的可选候选；选择后再用既有文件树 API 确定根块 ID。 */
+export interface AgentPromptSourceDocumentCandidate {
+    notebookId: string;
+    path: string;
+    hPath: string;
+    title: string;
+}
+
 /** 表示已进入 AI 主笔记本附件目录的文件摘要，供聊天输入框生成附件链接。 */
 export interface AgentUploadedFile {
     name: string;

@@ -589,7 +589,6 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/ai/agent/lsSessions", model.CheckAuth, model.CheckAdminRole, lsSessions)
 	ginServer.Handle("POST", "/api/ai/agent/getSession", model.CheckAuth, model.CheckAdminRole, getSession)
 	ginServer.Handle("POST", "/api/ai/agent/getPromptSource", model.CheckAuth, model.CheckAdminRole, getAgentPromptSourceState)
-	ginServer.Handle("POST", "/api/ai/agent/searchPromptSourceDocuments", model.CheckAuth, model.CheckAdminRole, searchAgentPromptSourceDocuments)
 	ginServer.Handle("POST", "/api/ai/agent/bindPromptSourceDocument", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, bindAgentPromptSourceDocument)
 	ginServer.Handle("POST", "/api/ai/agent/refreshPromptSourceDocument", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, refreshAgentPromptSourceDocument)
 	ginServer.Handle("POST", "/api/ai/agent/keepPromptSourceDocument", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, keepAgentPromptSourceDocument)

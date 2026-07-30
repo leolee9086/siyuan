@@ -650,10 +650,6 @@ type agentPromptSourceMutationReq struct {
 	NotebookID       string `json:"notebookID,omitempty"`
 }
 
-type agentPromptSourceSearchReq struct {
-	Keyword string `json:"keyword"`
-}
-
 type agentPromptSourceDocumentResult struct {
 	ID         string `json:"id"`
 	NotebookID string `json:"notebookId"`
@@ -724,46 +720,6 @@ func getAgentPromptSourceState(c *gin.Context) {
 	}
 	ret := gulu.Ret.NewResult()
 	ret.Data = state
-	c.JSON(http.StatusOK, ret)
-}
-
-func searchAgentPromptSourceDocuments(c *gin.Context) {
-	var req agentPromptSourceSearchReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "invalid request"})
-		return
-	}
-	results := make([]agentPromptSourceDocumentResult, 0, 30)
-	for _, candidate := range model.SearchDocs(strings.TrimSpace(req.Keyword), false, nil) {
-		if len(results) >= 30 {
-			break
-		}
-		documentPath := strings.TrimSpace(candidate["path"])
-		notebookID := strings.TrimSpace(candidate["box"])
-		if documentPath == "" || documentPath == "/" || notebookID == "" {
-			continue
-		}
-		hPath, err := model.GetHPathByPath(notebookID, documentPath)
-		if err != nil {
-			continue
-		}
-		ids, err := model.GetIDsByHPath(hPath, notebookID)
-		if err != nil || len(ids) != 1 {
-			continue
-		}
-		info, err := model.GetDocInfoInBox(ids[0], notebookID)
-		if err != nil || info == nil || info.RootID != ids[0] || strings.TrimSpace(info.Name) == "" {
-			continue
-		}
-		results = append(results, agentPromptSourceDocumentResult{
-			ID:         ids[0],
-			NotebookID: notebookID,
-			Title:      info.Name,
-			HPath:      candidate["hPath"],
-		})
-	}
-	ret := gulu.Ret.NewResult()
-	ret.Data = results
 	c.JSON(http.StatusOK, ret)
 }
 

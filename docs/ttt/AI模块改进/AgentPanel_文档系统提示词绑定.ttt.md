@@ -4,7 +4,7 @@
 >
 > **当前目标**：完成原生 Agent 可发现的提示词来源菜单、文档变更决策与多宿主运行态验收；MAGI 连续渠道会话保持不暴露该能力。
 >
-> **下一步任务**：验证 Dock、Tab、浮窗和独立页的真实挂载与菜单交互，补齐“创建副本后打开文档”的细粒度导航能力，并完成受控热切换前的提交门禁。
+> **下一步任务**：在多宿主验证前完成提示词控件的分工：符合资格时，来源名称/文件按钮主点击直接打开文档选择器；下拉箭头只承载刷新、保持、创建副本等生命周期动作。随后验证 Dock、Tab、浮窗和独立页的真实挂载，并补齐“创建副本后打开文档”的细粒度导航能力。
 
 ---
 
@@ -74,9 +74,12 @@ interface AgentPromptSourcePolicy {
 - [x] **Phase 3：Agent Panel 扩展与宿主动作**
   - 在 session capability / target policy 注册绑定、刷新、保持和创建文档动作。
   - 在无消息空会话展示紧凑的提示词来源控件；有历史、流式中、只读、身份缺失或目标不支持时按 capability 隐藏或禁用。
-  - 使用现有文档选择器和创建文档工作流；独立页缺失能力时隐藏需要宿主导航的动作，但保留可用的 API 驱动操作。
+  - 选择器复用既有 `/api/filetree/searchDocs`、`getHPathByPath` 和 `getIDsByHPath` 文档链路；只在用户选中候选后解析根块 ID，删除重复的 Agent 专用搜索接口。
+  - 从 Protyle 块引用提示提取标准双行结果项和键盘选择交互，Agent 绑定只适配“选中后解析并绑定”语义；独立页缺失能力时隐藏需要宿主导航的动作，但保留可用的 API 驱动操作。
 
 - [-] **Phase 4：变更 UX 与恢复**
+  - [ ] 对 eligible 原生会话，提示词来源名称/文件图标的主点击直接打开同一文档选择器；明确的下拉箭头仅显示刷新当前文档、保持当前快照和创建文档等生命周期动作。
+  - [ ] 主点击与箭头在 Dock、Tab、浮窗和独立页具有同一可访问名称、焦点顺序、键盘触发和禁用语义；MAGI 与首次成功发送后的锁定会话不显示不适用入口。
   - 打开会话、发送前和显式刷新时检测来源版本；变更提示提供刷新、保持和查看来源三个明确动作。
   - 重新创建文档后展示可打开的来源，保留当前有效提示词不自动重绑。
   - 处理网络错误、文档删除、加密/权限变化、超限和并发修改的完整状态。
@@ -89,6 +92,7 @@ interface AgentPromptSourcePolicy {
 ## 验收标准
 
 - [ ] 新建原生 Agent 会话可选择一篇可访问文档并显示来源标题、快照时间和状态。
+- [ ] eligible 原生会话中，来源名称/文件主按钮直接进入文档选择；下拉箭头不重复“选择文档”，只呈现来源生命周期动作。
 - [ ] 首次成功发送后服务端拒绝任何绑定替换；并发请求、刷新和旧 UI 回调均不能绕过锁定。
 - [ ] 来源文档变化后用户可显式刷新或保持；保持不会改变下一次模型请求的已确认快照。
 - [ ] 当前有效提示词可创建为独立文档，且不影响原来源和当前会话行为。
@@ -116,6 +120,7 @@ interface AgentPromptSourcePolicy {
 - `2026-07-30`：完成现状基线追踪。权威会话文件在 `kernel/agent/session.go`，运行态在 `kernel/agent/runtime.go`，首轮及历史系统消息均由 `kernel/agent/agent.go` 构建；前端请求边界是 `app/src/layout/dock/agent/SessionStore.ts`。实现采用 session 锁下的服务端持有 `promptSource` 字段，客户端普通保存明确保留该字段，避免前端正文或旧快照覆盖。
 - `2026-07-30`：完成服务端来源快照与执行门禁。新增 `kernel/agent/prompt_source.go` 及 `prompt_source_test.go`；`get/bind/refresh/keep/createPromptSourceDocument` 全部经 session revision 与首次发送锁校验，正文不回传浏览器。定向 Kernel 证据：`go test -tags fts5 ./agent -run "Test(DocumentPromptSource|TurnContext|SystemPrompt|CheckpointMessages|SaveSessionRevision)" -count=1`、`go test -tags fts5 ./api -run "^$" -count=1` 通过。
 - `2026-07-30`：接入原生 Agent 面板的可发现入口。`AgentChat.ts` 在输入区显示“文件图标 + 当前系统提示词 + 下拉箭头”的常驻按钮，使用已有细粒度 `PanelMenuPort` 展示“选择/更换文档”“刷新为当前文档”“保持当前快照”“将当前系统提示词创建为文档”；MAGI policy 明确隐藏该按钮。`AgentPromptSourceDialog.ts` 仅负责文档搜索选择，避免与菜单重复承载状态动作。
+- `2026-07-30`：纠正选择器重复实现。删除 `/api/ai/agent/searchPromptSourceDocuments` 和其 Kernel 搜索/路径/ID 解析副本；`SessionStore` 改用既有文件树搜索与路径解析 API，选中单项后才解析根块 ID。`app/src/search/blockPicker/` 成为 Protyle Hint 与 Agent 选择器共享的结果项和键盘选择层，Protyle Range 引用插入与 Agent 会话绑定仍各自保留。定向证据：`pnpm exec vitest --run test/layout/dock/agent/SessionStore.headers.test.ts test/search/blockPicker/renderBlockSearchResultItem.test.ts`（20 tests）及 `go test -tags fts5 ./api -run "^$" -count=1` 通过；全量类型检查仍由既有诊断阻断，本次文件没有新增诊断。
 - `2026-07-30`：加入来源变更的主动保护。切回窗口时刷新服务端来源状态；首次发送前再次读取权威版本，若已变化则打开同一菜单并中止发送，要求用户显式选择刷新或保持，避免一次发送将旧快照静默锁死。`SessionStore.headers.test.ts` 覆盖状态读取、revision 链接的刷新/保持和服务端失败传播；`pnpm exec vitest run test/layout/dock/agent/SessionStore.headers.test.ts test/layout/dock/agent/runtime/agentPanel.targetPolicy.test.ts` 通过（20 tests）。
 - `2026-07-30`：完整 Agent Panel 回归 `pnpm run test:agent-panel` 通过（29 files / 94 tests）；浏览器契约 `pnpm exec vitest --run --config vitest.browser.config.ts test/browser/agent/standaloneEntry.browser.ts` 通过（独立 ESM 导出可由浏览器模块加载）；Kernel 定向回归 `go test -tags fts5 ./agent -run "Test(DocumentPromptSource|TurnContext|SystemPrompt|CheckpointMessages|SaveSessionRevision)" -count=1` 与 `go test -tags fts5 ./api -run "^$" -count=1` 通过。
 - `2026-07-30`：`pnpm run build:agent-app` 成功，产出独立 ESM 和网页入口。全量 `pnpm run typecheck` 仍由既有跨模块诊断阻断；对本任务的 `AgentPromptSourceDialog` 和新增 `AgentChat` 段落未发现新增诊断。自动浏览器会话访问 `/stage/build/agent-app/` 时只观测到空 `main#agent-panel`，尚未取得足以证明运行态挂载的 DOM 证据，保留为 Phase 5 阻塞项，不宣称独立页验收完成。

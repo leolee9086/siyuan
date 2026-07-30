@@ -1,8 +1,10 @@
 /** 提供原生 Agent 文档系统提示词的检索选择界面；状态动作由输入区的标准菜单承载，正文始终由 Kernel 读取。 */
 import {Dialog} from "../../../dialog";
 import {escapeHtml} from "../../../util/DOM/escape";
+import {bindSearchListNavigation} from "../../../search/blockPicker/bindSearchListNavigation";
+import {renderBlockSearchResultItem} from "../../../search/blockPicker/renderBlockSearchResultItem";
 import {SessionStore} from "./SessionStore";
-import type {AgentPromptSourceDocument} from "./SessionStore.types";
+import type {AgentPromptSourceDocument, AgentPromptSourceDocumentCandidate} from "./SessionStore.types";
 
 function settlePromptSourceDialog<T>(state: {settled: boolean; resolve: (value: T) => void}, value: T) {
     if (state.settled) {
@@ -39,29 +41,43 @@ export function requestAgentPromptSourceDocument() {
         }
         let searchTimer = 0;
         let searchVersion = 0;
-        const renderResults = (documents: AgentPromptSourceDocument[], error = "") => {
+        const renderResults = (documents: AgentPromptSourceDocumentCandidate[], error = "") => {
+            results.innerHTML = "";
             if (error) {
-                results.innerHTML = `<div class="agent-prompt-source-dialog__empty">${escapeHtml(error)}</div>`;
-                return;
+                results.insertAdjacentHTML("beforeend", `<div class="agent-prompt-source-dialog__error" role="alert">${escapeHtml(error)}</div>`);
             }
             if (documents.length === 0) {
-                results.innerHTML = '<div class="agent-prompt-source-dialog__empty">没有可绑定的文档</div>';
+                results.insertAdjacentHTML("beforeend", '<div class="agent-prompt-source-dialog__empty">没有可绑定的文档</div>');
                 return;
             }
-            results.innerHTML = documents.map((document) => /*html*/`<button type="button" class="b3-list-item agent-prompt-source-dialog__result" role="option"
-    data-document-id="${escapeHtml(document.id)}" data-notebook-id="${escapeHtml(document.notebookId)}">
-    <svg class="b3-list-item__graphic"><use xlink:href="#iconFile"></use></svg>
-    <span class="fn__flex-1 agent-prompt-source-dialog__result-title">${escapeHtml(document.title)}</span>
-    <span class="ft__on-surface ft__smaller agent-prompt-source-dialog__result-path">${escapeHtml(document.hPath)}</span>
-</button>`).join("");
+            results.insertAdjacentHTML("beforeend", documents.map((document, index) => /*html*/`<button type="button" class="b3-list-item b3-list-item--two agent-prompt-source-dialog__result${index === 0 ? " b3-list-item--focus" : ""}" role="option"
+    data-document-path="${escapeHtml(document.path)}" data-notebook-id="${escapeHtml(document.notebookId)}">
+    ${renderBlockSearchResultItem({
+        type: "NodeDocument",
+        content: escapeHtml(document.title),
+        hPath: escapeHtml(document.hPath),
+        ial: {},
+    })}
+</button>`).join(""));
             for (const row of results.querySelectorAll<HTMLElement>(".agent-prompt-source-dialog__result")) {
-                row.addEventListener("click", () => {
-                    const document = documents.find((item) => item.id === row.dataset.documentId && item.notebookId === row.dataset.notebookId);
-                    if (!document) {
+                row.addEventListener("click", async () => {
+                    const candidate = documents.find((item) => item.path === row.dataset.documentPath && item.notebookId === row.dataset.notebookId);
+                    if (!candidate || state.settled) {
                         return;
                     }
-                    settlePromptSourceDialog(state, document);
-                    dialog.destroy({confirmed: true});
+                    for (const element of results.querySelectorAll<HTMLButtonElement>(".agent-prompt-source-dialog__result")) {
+                        element.disabled = true;
+                    }
+                    try {
+                        const document = await SessionStore.resolvePromptSourceDocument(candidate);
+                        settlePromptSourceDialog(state, document);
+                        dialog.destroy({confirmed: true});
+                    } catch (error) {
+                        if (state.settled) {
+                            return;
+                        }
+                        renderResults(documents, error instanceof Error ? error.message : String(error));
+                    }
                 });
             }
         };
@@ -86,6 +102,10 @@ export function requestAgentPromptSourceDocument() {
             searchTimer = window.setTimeout(() => void search(), 180);
         });
         dialog.listen(cancel, "click", () => dialog.destroy());
+        bindSearchListNavigation(input, () => results, {
+            onSelect: (row) => row.click(),
+            onEscape: () => dialog.destroy(),
+        });
         input.focus();
         void search();
     });
