@@ -20,10 +20,10 @@
 
 ## 基线
 
-- 固定提交：`7f15cb85538b93af9f87563e48fc75543c7f5423`。
-- 固定 tag：`agentchat-before-split-7f15cb855`（annotated tag `636713f0d888731e6a9c0e24b2c31e854ad1b536`）。
-- 原文件 Blob：`cc5e9c2facff3da567ee1f3f67812ae01228174c`，5,024 行，243,804 bytes。
-- 对照命令：`git show agentchat-before-split-7f15cb855:app/src/layout/dock/agent/AgentChat.ts`；该命令是唯一基线内容来源。
+- 固定提交：`0aa351aa27e56cfe090054949ecaa1448f798532`。
+- 固定 tag：`agentchat-before-domain-split-0aa351aa2`（annotated tag `f97cc4333c7a856d62127f4cbbf77c20d0325929`）。
+- 原文件 Blob：`0dda6a0ae8d71af04d65c7cd7de6d5b26dfbfe77`，5,031 行，227,585 bytes。
+- 对照命令：`git show agentchat-before-domain-split-0aa351aa2:app/src/layout/dock/agent/AgentChat.ts`；该命令是唯一基线内容来源。
 - 现有直接职责包括：宿主装配、会话管理、原生 SSE、MAGI 历史、composer、模型与推理、消息/工具卡片渲染、提示词来源、任务目录/文件、编辑器上下文、滚动与 token popup、WebSocket 恢复和销毁。
 
 ## 阶段计划
@@ -32,10 +32,10 @@
   - 固定 tag、commit、Blob 与原始行数。
   - 登记行为清单与禁止项；不写入重复源码备份。
 
-- [-] **Phase 1：可观察行为与提示词来源领域**
-  - [ ] 将提示词来源的读取、版本检查、操作串行化、菜单呈现和错误状态提取为完整可测领域控制器。
-  - [ ] 主按钮直接进入文档选择，下拉箭头仅暴露来源生命周期动作。
-  - [ ] 为 Dock、Tab、浮窗、独立页与 MAGI capability 的可见性补充回归。
+- [x] **Phase 1：可观察行为与提示词来源领域**
+  - [x] 将提示词来源的读取、版本检查、操作串行化、菜单呈现和错误状态提取为完整可测领域控制器。
+  - [x] 主按钮直接进入文档选择，下拉箭头仅暴露来源生命周期动作。
+  - [x] 为 Dock、Tab、浮窗、独立页与 MAGI capability 的可见性补充回归。
 
 - [ ] **Phase 2：会话与消息投影**
   - 提取 session 加载/切换/保存/恢复与模型元数据；消息投影与 DOM 渲染分离，但不丢失重发、编辑、确认、问答、工具卡片或引用语义。
@@ -62,4 +62,6 @@
 
 ## 滚动记录
 
-- `2026-07-30`：创建本任务并固定不可变基线。此前的 `AgentChat.ts` 不复制入仓库；`agentchat-before-split-7f15cb855` 及 Blob `cc5e9c2f...` 可供逐次结构与行为对照。当前先完成文档系统提示词绑定的剩余 UX，再开始 Phase 1 提取。
+- `2026-07-30`：创建本任务并先固定搜索复用阶段的历史基线 `agentchat-before-split-7f15cb855`。该 tag 保留为迁移沿革，不再作为拆分对照。
+- `2026-07-30`：提示词来源主按钮/生命周期箭头 UX 已提交并经过前端运行态验证后，固定正式拆分基线 `agentchat-before-domain-split-0aa351aa2` 与 Blob `0dda6a0a...`。原文件不复制入仓库；下一步开始 Phase 1 提取。
+- `2026-07-30`：完成 Phase 1。新增 `AgentPromptSourceController.ts`，拥有文档来源状态、服务端 revision、异步操作序列、过期结果隔离、主选择按钮、生命周期菜单和销毁；`AgentChat.ts` 仅注入真实会话持久化/刷新边界并委托该控制器，行数从基线 5,031 降至 4,776。`AgentPromptSourceController.test.ts` 直接覆盖主按钮不进入菜单、无 `PanelMenuPort` 仍能选择、已锁定会话只保留创建副本文档三种状态。验证：专项 21 tests、Agent/MAGI 30 files/98 tests 和 `pnpm run dev:once` 全部目标通过。下一阶段提取会话加载、切换、保存与恢复领域。
