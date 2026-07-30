@@ -33,6 +33,7 @@ import { nbsp2space } from "../util/normalizeText";
 import { removeZWJ } from "../util/normalizeText";
 /** 用途: 表格 HTML 生成；使用范围: routeCopyContent；解耦评估: 与表格 DOM 耦合 */
 import {getTableRangeHTML} from "../util/table/grid/html";
+import {convertPastedListItemSubtype, getPlainText} from "../util/paste";
 
 /** @同步豁免: 需要绝对同步的DOM访问 */
 export function emojiToMd(element: HTMLElement) {
@@ -42,6 +43,65 @@ export function emojiToMd(element: HTMLElement) {
         itemElement.outerHTML = `:${itemElement.getAttribute("alt")}:`;
     }
 }
+
+export const getCrossBlockPlainText = (element: HTMLElement) => Array.from(element.children)
+    .map(item => getPlainText(item as HTMLElement).trimEnd())
+    .filter(Boolean)
+    .join("\n");
+
+export const normalizeCrossBlockCopy = (sourceElement: HTMLElement, copiedElement: HTMLElement, range: Range) => {
+    copiedElement.querySelectorAll<HTMLElement>('[data-type~="virtual-block-ref"]').forEach(item => {
+        const types = (item.getAttribute("data-type") || "").split(" ")
+            .filter(type => type && type !== "virtual-block-ref");
+        if (types.length > 0) {
+            item.setAttribute("data-type", types.join(" "));
+        } else {
+            item.replaceWith(...Array.from(item.childNodes));
+        }
+    });
+    let firstElement = copiedElement.firstElementChild as HTMLElement | null;
+    while (firstElement?.getAttribute("data-type") === "NodeListItem") {
+        const childBlocks = Array.from(firstElement.children).filter(item =>
+            item.hasAttribute("data-node-id")) as HTMLElement[];
+        if (childBlocks.length !== 1 || childBlocks[0].getAttribute("data-type") !== "NodeList") {
+            break;
+        }
+        const listItems = Array.from(childBlocks[0].children).filter(item =>
+            item.getAttribute("data-type") === "NodeListItem");
+        if (listItems.length === 0) {
+            break;
+        }
+        firstElement.replaceWith(...listItems);
+        firstElement = copiedElement.firstElementChild as HTMLElement | null;
+    }
+    copiedElement.querySelectorAll<HTMLElement>("[data-node-id]").forEach(item => {
+        const sourceElements = sourceElement.querySelectorAll<HTMLElement>(
+            `[data-node-id="${item.getAttribute("data-node-id")}"]`,
+        );
+        const source = Array.from(sourceElements).find(candidate => range.intersectsNode(candidate)) || sourceElements[0];
+        if (!source) {
+            return;
+        }
+        const prependElements = Array.from(source.children).filter(sourceChild =>
+            (sourceChild.classList.contains("protyle-action") || sourceChild.classList.contains("callout-info")) &&
+            !Array.from(item.children).some(child => child.className === sourceChild.className));
+        item.prepend(...prependElements.map(child => child.cloneNode(true)));
+        const attrElement = source.querySelector(":scope > .protyle-attr");
+        if (attrElement && !item.querySelector(":scope > .protyle-attr")) {
+            item.append(attrElement.cloneNode(true));
+        }
+    });
+    const listItemElements = Array.from(copiedElement.children).filter(item =>
+        item.getAttribute("data-type") === "NodeListItem") as HTMLElement[];
+    const subtype = listItemElements[0]?.getAttribute("data-subtype");
+    if (subtype && listItemElements.length > 1 && listItemElements.length === copiedElement.childElementCount) {
+        listItemElements.forEach(item => {
+            if (item.getAttribute("data-subtype") !== subtype) {
+                convertPastedListItemSubtype(item, subtype);
+            }
+        });
+    }
+};
 
 /** 处理匹配的行内元素或标题 */
 function processMatchHeadingOrRange(range: Range) {
@@ -129,6 +189,11 @@ function collectMixedTextPlain(tempElement: HTMLElement, protyle: IProtyle) {
 function processGenericRange(protyle: IProtyle, range: Range) {
     const tempElement = document.createElement("div");
     tempElement.append(range.cloneContents());
+    const isCrossBlock = hasClosestBlock(range.startContainer) !== hasClosestBlock(range.endContainer);
+    if (isCrossBlock) {
+        normalizeCrossBlockCopy(protyle.wysiwyg.element, tempElement, range);
+    }
+    const crossBlockTextPlain = isCrossBlock ? getCrossBlockPlainText(tempElement) : undefined;
     emojiToMd(tempElement);
     const inlineMathElement = hasClosestByAttribute(range.commonAncestorContainer, "data-type", "inline-math");
     const html = inlineMathElement ? inlineMathElement.outerHTML : tempElement.innerHTML;
@@ -145,12 +210,12 @@ function processGenericRange(protyle: IProtyle, range: Range) {
     }
     // 包含图片或行内数学公式时单独拼接文本
     if (tempElement.querySelector('.img, [data-type~="inline-math"]')) {
-        const textPlain = collectMixedTextPlain(tempElement, protyle);
+        const textPlain = crossBlockTextPlain ?? collectMixedTextPlain(tempElement, protyle);
         return { html, textPlain, isInCodeBlock: false };
     }
     // 非 CODE 标签内的文本
     if (!hasClosestByTag(range.startContainer, "CODE")) {
-        return { html, textPlain: range.toString(), isInCodeBlock: false };
+        return { html, textPlain: crossBlockTextPlain ?? range.toString(), isInCodeBlock: false };
     }
     return { html, textPlain: tempElement.textContent, isInCodeBlock: false };
 }

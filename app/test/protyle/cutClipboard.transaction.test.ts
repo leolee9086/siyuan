@@ -12,6 +12,16 @@ vi.mock("../../src/dialog/message", () => ({
     showMessage: vi.fn(),
 }));
 
+vi.mock("../../src/util/checkBlockRef", () => ({
+    confirmBlockRefForBlocks: vi.fn(),
+}));
+
+vi.mock("../../src/protyle/wysiwyg/transaction/submit", () => ({
+    transaction: vi.fn(),
+}));
+
+import {confirmBlockRefForBlocks} from "../../src/util/checkBlockRef";
+import {transaction} from "../../src/protyle/wysiwyg/transaction/submit";
 import {writeBlockDOMClipboard} from "../../src/protyle/util/compatibility";
 import {handleCut} from "../../src/protyle/wysiwyg/index.cut";
 
@@ -120,5 +130,52 @@ describe("clipboard-backed mutations", () => {
 
         expect(write).toHaveBeenCalledOnce();
         expect(editable.textContent).toBe("alpha");
+    });
+
+    it("uses the already approved reference decision for a cross-block cut", async () => {
+        Object.defineProperty(navigator, "clipboard", {
+            configurable: true,
+            value: {write: vi.fn().mockResolvedValue(undefined)},
+        });
+        vi.mocked(confirmBlockRefForBlocks).mockResolvedValue(true);
+
+        const editor = document.createElement("div");
+        const first = document.createElement("div");
+        first.dataset.nodeId = "20260730120000-first";
+        first.dataset.type = "NodeParagraph";
+        const firstEditable = document.createElement("div");
+        firstEditable.textContent = "alpha";
+        first.append(firstEditable);
+        const second = document.createElement("div");
+        second.dataset.nodeId = "20260730120000-second";
+        second.dataset.type = "NodeParagraph";
+        const secondEditable = document.createElement("div");
+        secondEditable.textContent = "bravo";
+        second.append(secondEditable);
+        editor.append(first, second);
+        document.body.append(editor);
+
+        const range = document.createRange();
+        range.setStart(firstEditable.firstChild!, 0);
+        range.setEnd(secondEditable.firstChild!, 5);
+        getSelection().removeAllRanges();
+        getSelection().addRange(range);
+
+        await handleCut({
+            disabled: false,
+            block: {parentID: "document"},
+            options: {render: {}},
+            hint: {render: vi.fn()},
+            lute: {SpinBlockDOM: (html: string) => html},
+            wysiwyg: {element: editor},
+        } as IProtyle, {
+            target: firstEditable,
+            clipboardData: new DataTransfer(),
+            preventDefault: vi.fn(),
+            stopPropagation: vi.fn(),
+        });
+
+        expect(confirmBlockRefForBlocks).toHaveBeenCalledOnce();
+        expect(transaction).toHaveBeenCalledOnce();
     });
 });

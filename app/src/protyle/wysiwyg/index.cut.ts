@@ -9,7 +9,7 @@ import {isIncludeCell} from "../util/table/selection/geometry";
 import {getTableRangeHTML} from "../util/table/grid/html";
 import {updateCellsValue} from "../render/av/cell.update";
 import {getContenteditableElement, getNextBlock, getTopAloneElement, hasNextSibling} from "./getBlock";
-import {getImageBlockRefCheckTargets, getRangeBlockRefCheckTargets, removeBlock} from "./remove";
+import {getImageBlockRefCheckTargets, getRangeBlockRefCheckTargets, removeBlock, removeCrossBlockRange} from "./remove";
 import {updateTransaction} from "./transaction/update";
 import {highlightRender} from "../render/highlightRender";
 import {mathRender} from "../render/mathRender";
@@ -124,14 +124,17 @@ export async function handleCut(
         autoSelectedBlock = true;
     }
     const selectedStateElements = [...selectElements];
+    const endElement = hasClosestBlock(range.endContainer);
+    const cutCrossBlockRange = selectedStateElements.length === 0 && !range.collapsed &&
+        !!endElement && nodeElement !== endElement && !selectImgElement && !selectAVElement && !selectTableElement && !selectTableRange;
     let cutClipboardWritten = false;
     if (selectedStateElements.length === 0 &&
         (!range.collapsed || selectImgElement || selectAVElement || selectTableElement || selectTableRange)) {
         if (!selectAVElement && !selectTableElement && !selectTableRange) {
-            const endElement = hasClosestBlock(range.endContainer);
             const checkTargets = selectImgElement ?
                 getImageBlockRefCheckTargets(nodeElement, selectImgElement) :
-                (endElement ? getRangeBlockRefCheckTargets(protyle.wysiwyg.element, range, nodeElement, endElement) :
+                (endElement ? getRangeBlockRefCheckTargets(
+                    protyle.wysiwyg.element, range, nodeElement, endElement, cutCrossBlockRange) :
                     {elements: [], exactIDs: []});
             const checkIDs = checkTargets.elements.flatMap(item => {
                 const id = item.getAttribute("data-node-id");
@@ -151,6 +154,11 @@ export async function handleCut(
             return;
         }
         cutClipboardWritten = true;
+    }
+    if (cutCrossBlockRange && endElement) {
+        await removeCrossBlockRange(protyle, range, nodeElement, endElement, true);
+        protyle.hint.render(protyle);
+        return;
     }
     let html = "";
     let textPlain = "";
