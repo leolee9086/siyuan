@@ -140,7 +140,8 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
     private sessionFilesInput!: HTMLInputElement;
     private promptSourceRow!: HTMLElement;
     private promptSourceLabel!: HTMLElement;
-    private promptSourceBtn!: HTMLButtonElement;
+    private promptSourceSelectBtn!: HTMLButtonElement;
+    private promptSourceActionsBtn!: HTMLButtonElement;
     private promptSourceState: AgentPromptSourceState | null = null;
     private promptSourceError = "";
     private promptSourceLoadSerial = 0;
@@ -346,7 +347,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
             this.targetSelect.value = this.conversationKind;
             this.targetSelect.disabled = this.isStreaming;
         }
-        this.updatePromptSourcePresentation(policy.promptSourceVisible && !!this.capabilities.menu);
+        this.updatePromptSourcePresentation(policy.promptSourceVisible);
         this.updateSendButtonState();
     }
 
@@ -462,11 +463,15 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
             "</div>" +
             '<div class="agent-chat__input-area">' +
             '<div class="agent-chat__prompt-source-row fn__none" data-type="prompt-source-row">' +
-            '<button type="button" class="agent-chat__prompt-source-btn b3-button b3-button--cancel" data-type="prompt-source" aria-label="系统提示词" aria-haspopup="menu">' +
+            '<div class="agent-chat__prompt-source-controls" role="group" aria-label="系统提示词来源">' +
+            '<button type="button" class="agent-chat__prompt-source-btn agent-chat__prompt-source-select b3-button b3-button--cancel" data-type="prompt-source-select" aria-label="选择系统提示词文档" aria-haspopup="dialog">' +
             '<svg aria-hidden="true"><use xlink:href="#iconFile"></use></svg>' +
             '<span class="agent-chat__prompt-source-label" data-type="prompt-source-label"></span>' +
+            '</button>' +
+            '<button type="button" class="agent-chat__prompt-source-btn agent-chat__prompt-source-actions b3-button b3-button--cancel" data-type="prompt-source-actions" aria-label="系统提示词操作" aria-haspopup="menu">' +
             '<svg class="agent-chat__prompt-source-arrow" aria-hidden="true"><use xlink:href="#iconDown"></use></svg>' +
             "</button>" +
+            "</div>" +
             "</div>" +
             '<div class="agent-chat__composer-host"></div>' +
             '<div class="agent-chat__buttons">' +
@@ -496,7 +501,8 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         this.sessionFilesInput = panel.querySelector(".agent-chat__session-files-input") as HTMLInputElement;
         this.promptSourceRow = panel.querySelector('[data-type="prompt-source-row"]') as HTMLElement;
         this.promptSourceLabel = panel.querySelector('[data-type="prompt-source-label"]') as HTMLElement;
-        this.promptSourceBtn = panel.querySelector('.agent-chat__prompt-source-btn[data-type="prompt-source"]') as HTMLButtonElement;
+        this.promptSourceSelectBtn = panel.querySelector('.agent-chat__prompt-source-btn[data-type="prompt-source-select"]') as HTMLButtonElement;
+        this.promptSourceActionsBtn = panel.querySelector('.agent-chat__prompt-source-btn[data-type="prompt-source-actions"]') as HTMLButtonElement;
         this.guardianAuthBtn = panel.querySelector('.block__icon[data-type="guardian-auth"]') as HTMLElement;
         this.identityLabelElement = panel.querySelector('[data-type="magi-identity-label"]') as HTMLElement;
         this.newSessionBtn = panel.querySelector('.block__icon[data-type="new-session"]') as HTMLElement;
@@ -1159,13 +1165,21 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
             }
             void this.openSessionFilesMenu().catch((error) => this.reportSessionFileError(error));
         });
-        this.promptSourceBtn.addEventListener("click", (e: MouseEvent) => {
+        this.promptSourceSelectBtn.addEventListener("click", (e: MouseEvent) => {
             e.stopPropagation();
             if (this.isStreaming || this.promptSourceOperationPending ||
                 !this.resolveTargetPolicy().promptSourceVisible) {
                 return;
             }
-            void this.openPromptSourceMenu().catch((error) => this.reportPromptSourceError(error));
+            void this.runPromptSourceAction("bind-document").catch((error) => this.reportPromptSourceError(error));
+        });
+        this.promptSourceActionsBtn.addEventListener("click", (e: MouseEvent) => {
+            e.stopPropagation();
+            if (this.isStreaming || this.promptSourceOperationPending ||
+                !this.resolveTargetPolicy().promptSourceVisible || !this.capabilities.menu) {
+                return;
+            }
+            void this.openPromptSourceActions().catch((error) => this.reportPromptSourceError(error));
         });
         this.sessionFilesInput.addEventListener("change", () => {
             const files = Array.from(this.sessionFilesInput.files || []);
@@ -2275,9 +2289,9 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
 
     /** 使用 target policy 与细粒度菜单 Port 呈现来源状态；正文只保留在 Kernel，不进入 DOM 或日志。 */
     private updatePromptSourcePresentation(
-        visible = this.resolveTargetPolicy().promptSourceVisible && !!this.capabilities.menu,
+        visible = this.resolveTargetPolicy().promptSourceVisible,
     ) {
-        if (!this.promptSourceRow || !this.promptSourceLabel || !this.promptSourceBtn) {
+        if (!this.promptSourceRow || !this.promptSourceLabel || !this.promptSourceSelectBtn || !this.promptSourceActionsBtn) {
             return;
         }
         this.promptSourceRow.classList.toggle("fn__none", !visible);
@@ -2294,8 +2308,8 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         } else if (source?.kind === "document") {
             label = `系统提示词：${source.titleSnapshot || "未命名文档"}`;
             tooltip = state?.state === "source-changed"
-                ? "来源文档已变化，打开菜单选择刷新或保持当前快照"
-                : "打开系统提示词菜单";
+                ? "来源文档已变化；可重新选择文档，或在下拉菜单中刷新/保持当前快照"
+                : "选择或更换系统提示词文档";
         }
         if (state?.state === "locked") {
             label += "（已锁定）";
@@ -2305,9 +2319,16 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         }
         this.promptSourceLabel.textContent = label;
         this.promptSourceLabel.setAttribute("title", tooltip);
-        this.promptSourceBtn.setAttribute("title", tooltip);
-        this.promptSourceBtn.setAttribute("aria-label", tooltip);
-        this.promptSourceBtn.disabled = this.isStreaming || this.promptSourceOperationPending;
+        const locked = state?.state === "locked";
+        const operationPending = this.isStreaming || this.promptSourceOperationPending;
+        this.promptSourceSelectBtn.setAttribute("title", locked ? tooltip : "选择系统提示词文档");
+        this.promptSourceSelectBtn.setAttribute("aria-label", locked ? tooltip : "选择系统提示词文档");
+        this.promptSourceSelectBtn.disabled = operationPending || locked;
+        const lifecycleActionsVisible = !!this.capabilities.menu &&
+            (source?.kind === "document" || state?.state === "source-changed");
+        this.promptSourceActionsBtn.classList.toggle("fn__none", !lifecycleActionsVisible);
+        this.promptSourceActionsBtn.setAttribute("title", "系统提示词操作");
+        this.promptSourceActionsBtn.disabled = operationPending;
         this.promptSourceRow.classList.toggle("agent-chat__prompt-source-row--changed", state?.state === "source-changed");
         this.promptSourceRow.classList.toggle("agent-chat__prompt-source-row--locked", state?.state === "locked");
     }
@@ -2328,7 +2349,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         const requestSessionID = this.sessionId;
         const requestKind = this.conversationKind;
         const loadID = ++this.promptSourceLoadSerial;
-        if (!this.resolveTargetPolicy().promptSourceVisible || !this.capabilities.menu ||
+        if (!this.resolveTargetPolicy().promptSourceVisible ||
             SessionStore.getRevision(requestSessionID) < 1) {
             this.promptSourceState = null;
             this.promptSourceError = "";
@@ -2376,8 +2397,8 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
             sessionID === this.sessionId && kind === this.conversationKind;
     }
 
-    /** 打开显式、可发现的系统提示词下拉菜单；首次使用时先持久化空会话以取得服务端权威资格。 */
-    private async openPromptSourceMenu() {
+    /** 打开来源生命周期动作；文档的选择/更换由独立主按钮直接进入选择器。 */
+    private async openPromptSourceActions() {
         if (!this.capabilities.menu) {
             return;
         }
@@ -2402,10 +2423,10 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         }
     }
 
-    /** 根据服务端返回的来源状态构建标准锚点菜单，避免把操作隐藏在斜杠菜单或二级弹窗中。 */
+    /** 根据服务端返回的来源状态构建标准锚点菜单；菜单只承载快照生命周期，不重复文档选择。 */
     private showPromptSourceMenu(state: AgentPromptSourceState) {
         const menu = this.capabilities.menu;
-        if (!menu || !this.promptSourceBtn) {
+        if (!menu || !this.promptSourceActionsBtn) {
             return;
         }
         const source = state.source;
@@ -2416,20 +2437,6 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
             menu.close(AGENT_PROMPT_SOURCE_MENU_NAME);
             void this.runPromptSourceAction(action).catch((error) => this.reportPromptSourceError(error));
         };
-        if (locked) {
-            items.push({
-                label: "当前会话的系统提示词已锁定",
-                icon: "iconLock",
-                disabled: true,
-                click: () => undefined,
-            });
-        } else {
-            items.push({
-                label: source.kind === "document" ? "更换系统提示词文档" : "选择系统提示词文档",
-                icon: "iconFile",
-                click: run.bind(null, "bind-document"),
-            });
-        }
         if (changed && !locked) {
             items.push({label: "刷新为当前文档", icon: "iconRefresh", click: run.bind(null, "refresh-document")});
             items.push({label: "保持当前快照", icon: "iconHistory", click: run.bind(null, "keep-snapshot")});
@@ -2437,7 +2444,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> {
         if (source.kind === "document") {
             items.push({label: "将当前系统提示词创建为文档", icon: "iconCopy", click: run.bind(null, "create-document")});
         }
-        menu.popup(AGENT_PROMPT_SOURCE_MENU_NAME, this.promptSourceBtn, items);
+        menu.popup(AGENT_PROMPT_SOURCE_MENU_NAME, this.promptSourceActionsBtn, items);
     }
 
     /** 由菜单动作驱动绑定、刷新、保持或创建副本；每一步都以服务端刚读取的 revision 为前置条件。 */
