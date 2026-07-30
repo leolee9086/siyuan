@@ -252,6 +252,36 @@ export const restoreLuteMarkdownSyntax = (protyle: IProtyle) => {
     protyle.lute.SetMark(window.siyuan.config.editor.markdown.inlineMark);
 };
 
+// Clipboard fragments must stay outside the edit transaction; the DnD converter
+// intentionally marks items as editing and rebuilds draggable action DOM.
+export const convertPastedListItemSubtype = (listItemElement: HTMLElement, subtype: string) => {
+    const actionElement = listItemElement.querySelector<HTMLElement>(".protyle-action");
+    if (!actionElement || !["u", "o", "t"].includes(subtype)) {
+        return;
+    }
+    listItemElement.setAttribute("data-subtype", subtype);
+    listItemElement.classList.remove("protyle-task--done");
+    if (subtype === "o") {
+        listItemElement.removeAttribute("data-task");
+        listItemElement.setAttribute("data-marker", "1.");
+        actionElement.className = "protyle-action protyle-action--order";
+        actionElement.setAttribute("contenteditable", "false");
+        actionElement.textContent = "1.";
+    } else if (subtype === "t") {
+        listItemElement.setAttribute("data-marker", "*");
+        listItemElement.setAttribute("data-task", " ");
+        actionElement.className = "protyle-action protyle-action--task";
+        actionElement.removeAttribute("contenteditable");
+        actionElement.innerHTML = "<svg><use xlink:href=\"#iconUncheck\"></use></svg>";
+    } else {
+        listItemElement.removeAttribute("data-task");
+        listItemElement.setAttribute("data-marker", "*");
+        actionElement.className = "protyle-action";
+        actionElement.removeAttribute("contenteditable");
+        actionElement.innerHTML = "<svg><use xlink:href=\"#iconDot\"></use></svg>";
+    }
+};
+
 const readLocalFile = async (protyle: IProtyle, localFiles: ILocalFiles[]) => {
     if (protyle && protyle.app && protyle.app.plugins) {
         for (let i = 0; i < protyle.app.plugins.length; i++) {

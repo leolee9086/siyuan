@@ -53,7 +53,7 @@ import {mergeSameInlineElement} from "../toolbar/util";
 import {highlightRender} from "../render/highlightRender";
 import {confirmBlockRefForBlocks} from "../../util/checkBlockRef";
 import {confirmRefRemoval} from "./remove.refCheck";
-import * as dayjs from "dayjs";
+import dayjs from "dayjs";
 
 export {getOperationParentID} from "./getBlock";
 export {moveToPrevious} from "./remove/focus";
@@ -267,7 +267,8 @@ export const getImageBlockRefCheckTargets = (blockElement: HTMLElement, removeEl
 };
 
 export const removeCrossBlockRange = async (protyle: IProtyle, selectedRange: Range,
-                                            startElement: HTMLElement, endElement: HTMLElement) => {
+                                            startElement: HTMLElement, endElement: HTMLElement,
+                                            skipRefCheck = false) => {
     const editorElement = protyle.wysiwyg.element;
     const context = getCrossBlockRemovalContext(editorElement, selectedRange, startElement, endElement);
     const {
@@ -288,7 +289,7 @@ export const removeCrossBlockRange = async (protyle: IProtyle, selectedRange: Ra
         const id = item.getAttribute("data-node-id");
         return id ? [id] : [];
     });
-    if (checkIDs.length > 0 && !await confirmBlockRefForBlocks(protyle, checkIDs, checkTargets.exactIDs)) {
+    if (!skipRefCheck && checkIDs.length > 0 && !await confirmBlockRefForBlocks(protyle, checkIDs, checkTargets.exactIDs)) {
         return;
     }
     if (checkTargets.elements.some(item => !item.isConnected || item.getAttribute("data-node-id") === null)) {

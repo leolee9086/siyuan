@@ -4,6 +4,15 @@ vi.mock("../../src/util/checkBlockRef", () => ({
     confirmBlockRefForBlocks: vi.fn(),
 }));
 
+vi.mock("../../src/protyle/wysiwyg/transaction/submit", () => ({
+    transaction: vi.fn(),
+}));
+
+vi.mock("../../src/protyle/wysiwyg/index.copy.helpers", async (importOriginal) => ({
+    ...await importOriginal<typeof import("../../src/protyle/wysiwyg/index.copy.helpers")>(),
+    writeClipboardData: vi.fn(),
+}));
+
 import {confirmBlockRefForBlocks} from "../../src/util/checkBlockRef";
 
 import {
@@ -21,6 +30,12 @@ import {
     getRangeBlockRefCheckTargets,
     removeCrossBlockRange,
 } from "../../src/protyle/wysiwyg/remove";
+import {
+    getCrossBlockPlainText,
+    handleCopy,
+    normalizeCrossBlockCopy,
+} from "../../src/protyle/wysiwyg/index.copy";
+import {writeClipboardData} from "../../src/protyle/wysiwyg/index.copy.helpers";
 
 afterEach(() => {
     vi.clearAllMocks();
@@ -241,6 +256,116 @@ describe("cross-block removal transaction", () => {
         expect(confirmBlockRefForBlocks).toHaveBeenCalledOnce();
         expect(editor.textContent).toBe("alphabravo");
         expect(editor.children).toHaveLength(2);
+        editor.remove();
+    });
+
+    it("does not ask for the same reference confirmation after cut already approved it", async () => {
+        const editor = document.createElement("div");
+        const first = block("first", "NodeParagraph", "alpha");
+        const second = block("second", "NodeParagraph", "bravo");
+        editor.append(first, second);
+        document.body.append(editor);
+
+        const range = document.createRange();
+        range.setStart(first.firstChild!.firstChild!, 0);
+        range.setEnd(second.firstChild!.firstChild!, 5);
+        vi.mocked(confirmBlockRefForBlocks).mockResolvedValue(true);
+
+        await removeCrossBlockRange({
+            block: {parentID: "document"},
+            wysiwyg: {element: editor},
+            lute: {SpinBlockDOM: (html: string) => html},
+        } as IProtyle, range, first, second, true);
+
+        expect(confirmBlockRefForBlocks).not.toHaveBeenCalled();
+        editor.remove();
+    });
+});
+
+describe("cross-block copy normalization", () => {
+    it("removes virtual references and restores block chrome from the selected source", () => {
+        const editor = document.createElement("div");
+        const first = block("first", "NodeParagraph");
+        first.innerHTML = `<div class="protyle-action">1.</div><div contenteditable="true" spellcheck="false"><span data-type="virtual-block-ref">alpha</span></div><div class="callout-info">note</div><div class="protyle-attr">attr</div>`;
+        const second = block("second", "NodeParagraph", "bravo");
+        editor.append(first, second);
+        document.body.append(editor);
+
+        const range = document.createRange();
+        range.setStart(first.querySelector("[contenteditable]")!.firstChild!, 0);
+        range.setEnd(second.firstChild!.firstChild!, 5);
+        const copied = document.createElement("div");
+        copied.innerHTML = `<div data-node-id="first" data-type="NodeParagraph"><div contenteditable="true"><span data-type="virtual-block-ref">alpha</span></div></div><div data-node-id="second" data-type="NodeParagraph"><div contenteditable="true">bravo</div></div>`;
+
+        normalizeCrossBlockCopy(editor, copied, range);
+
+        const firstCopy = copied.querySelector<HTMLElement>("[data-node-id='first']")!;
+        expect(firstCopy.querySelector("[data-type~='virtual-block-ref']")).toBeNull();
+        expect(firstCopy.querySelector(".protyle-action")?.textContent).toBe("1.");
+        expect(firstCopy.querySelector(".callout-info")?.textContent).toBe("note");
+        expect(firstCopy.querySelector(":scope > .protyle-attr")?.textContent).toBe("attr");
+        editor.remove();
+    });
+
+    it("flattens copied nested list roots and standardizes their subtype", () => {
+        const editor = document.createElement("div");
+        const copied = document.createElement("div");
+        copied.innerHTML = `<div data-node-id="outer" data-type="NodeListItem" data-subtype="u"><div data-node-id="nested" data-type="NodeList"><div data-node-id="first-item" data-type="NodeListItem" data-subtype="u"><div class="protyle-action"></div></div><div data-node-id="second-item" data-type="NodeListItem" data-subtype="o"><div class="protyle-action protyle-action--order">1.</div></div></div></div>`;
+        const range = document.createRange();
+        range.selectNodeContents(copied);
+
+        normalizeCrossBlockCopy(editor, copied, range);
+
+        const items = Array.from(copied.children) as HTMLElement[];
+        expect(items.map((item) => item.dataset.nodeId)).toEqual(["first-item", "second-item"]);
+        expect(items.map((item) => item.dataset.subtype)).toEqual(["u", "u"]);
+        expect(items[1].querySelector(".protyle-action")?.className).toBe("protyle-action");
+    });
+
+    it("creates plain text one block per line after normalization", () => {
+        const copied = document.createElement("div");
+        copied.innerHTML = `<div data-node-id="first" data-type="NodeParagraph"><div spellcheck="false">alpha</div></div><div data-node-id="second" data-type="NodeParagraph"><div spellcheck="false">bravo</div></div>`;
+
+        expect(getCrossBlockPlainText(copied)).toBe("alpha\nbravo");
+    });
+
+    it("writes normalized HTML and block-separated plain text through the copy event", async () => {
+        const previousSiyuan = window.siyuan;
+        window.siyuan = {
+            ...previousSiyuan,
+            ctrlIsPressed: false,
+        };
+        const editor = document.createElement("div");
+        const first = block("first", "NodeParagraph");
+        first.innerHTML = `<div class="protyle-action">1.</div><div contenteditable="true" spellcheck="false"><span data-type="virtual-block-ref">alpha</span></div><div class="protyle-attr">attr</div>`;
+        const second = block("second", "NodeParagraph", "bravo");
+        second.firstElementChild!.setAttribute("spellcheck", "false");
+        editor.append(first, second);
+        document.body.append(editor);
+        const range = document.createRange();
+        range.setStart(first.querySelector("[contenteditable]")!.firstChild!, 0);
+        range.setEnd(second.firstChild!.firstChild!, 5);
+        getSelection().removeAllRanges();
+        getSelection().addRange(range);
+        const event = {
+            target: first.querySelector("[contenteditable]")!,
+            clipboardData: {setData: vi.fn()},
+            preventDefault: vi.fn(),
+            stopPropagation: vi.fn(),
+        };
+        const protyle = {
+            disabled: false,
+            toolbar: {getCurrentType: () => []},
+            wysiwyg: {element: editor},
+        } as IProtyle;
+
+        await handleCopy(protyle, event);
+
+        const call = vi.mocked(writeClipboardData).mock.calls.at(-1)!;
+        expect(call[2]).not.toContain("virtual-block-ref");
+        expect(call[2]).toContain("protyle-action");
+        expect(call[3]).toBe("alpha\nbravo");
+        window.siyuan = previousSiyuan;
         editor.remove();
     });
 });

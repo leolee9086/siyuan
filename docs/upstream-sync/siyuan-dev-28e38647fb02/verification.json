@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "cycleId": "siyuan-dev-28e38647fb02",
   "status": "in-progress",
-  "candidateHead": "336debdb0a617a84b4036d8b64ff0e39fab1eb04",
+  "candidateHead": "3e123a8cd04241749376f30e1c1ad206e9d73adc",
   "deliveries": {
     "status": "passed",
     "integratedCount": 1,
@@ -14,14 +14,14 @@
   "manifest": {
     "status": "passed",
     "command": "node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
-    "commitCount": 505,
-    "uniqueCommitCount": 505,
-    "mergeCommitCount": 37,
+    "commitCount": 550,
+    "uniqueCommitCount": 550,
+    "mergeCommitCount": 41,
     "revertCommitCount": 0,
-    "stablePatchIdCount": 468,
-    "mappedUpstreamCommitCount": 8,
-    "verifiedAuditCount": 8,
-    "pendingAuditCount": 497
+    "stablePatchIdCount": 505,
+    "mappedUpstreamCommitCount": 12,
+    "verifiedAuditCount": 12,
+    "pendingAuditCount": 538
   },
   "focusedChecks": [
     {
@@ -52,13 +52,25 @@
       "name": "referenced block removal and cut series",
       "status": "passed",
       "command": "pnpm exec vitest --run test/protyle/crossBlockEditing.test.ts test/protyle/cutClipboard.transaction.test.ts test/protyle/removeFoundation.test.ts test/protyle/listItemActions.test.ts test/layout/dock/outline/Outline.helpers.test.ts; go test -tags fts5 ./sql ./treenode ./model ./api -count=1",
-      "evidence": "Five Vitest files with 31 assertions passed; reference-confirmation refusal and rich clipboard rejection preserve the original DOM. Kernel sql, treenode, model and api packages all passed their focused regression runs. Candidate commits bb15f54aac73251e81a566c81cb106874edfaadb and 2ef29e1fd5be539b7db775a1402c07e3bcf75a73 map four upstream commits through parsed trailers."
+      "evidence": "After synchronizing current mainline into candidate 659e223c3c4045ecfbf1537542e1a4a8fb36b61c, five Vitest files with 31 assertions passed; reference-confirmation refusal and rich clipboard rejection preserve the original DOM. Kernel sql, treenode, model and api packages all passed their focused regression runs. Candidate commits bb15f54aac73251e81a566c81cb106874edfaadb and 2ef29e1fd5be539b7db775a1402c07e3bcf75a73 map four upstream commits through parsed trailers."
+    },
+    {
+      "name": "cross-block clipboard Issue 8554",
+      "status": "passed",
+      "command": "pnpm exec vitest --run test/protyle/crossBlockEditing.test.ts test/protyle/cutClipboard.transaction.test.ts test/protyle/removeFoundation.test.ts test/protyle/listItemActions.test.ts test/layout/dock/outline/Outline.helpers.test.ts",
+      "evidence": "Candidate 6f73248e3325218fe169ac9006d2294a61d2f827 semantically ports upstream 7e8d0c29c943e21c94009a5fb193e2a17f885401, c61e68fbc8ad9868f3e6e9d7b6d94cc498fbefc7, ace0528d1a801f42be4a1bad99c99ed67288c6e1 and 2b3da2fca489c72d36a0efba060ef2fe0219c889. Five Vitest files and 37 assertions passed. The audit decision preserves a single reference approval per Cut, detached-fragment copy normalization, clipboard-specific list subtype conversion and exact nested-list flattening."
     },
     {
       "name": "current upstream tip refresh",
       "status": "passed",
-      "command": "git fetch --prune upstream dev through http://127.0.0.1:7890; node scripts/upstream-sync/audit-manifest.mjs advance-tip --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02 --upstream-tip 6d23075f6fd571f5047239ff38cfe6e2feb4a402 --fetched-at 2026-07-30T13:39:41+08:00",
-      "evidence": "U1 advanced only through verified fast-forward steps, ending at 6d23075f6fd571f5047239ff38cfe6e2feb4a402. The last update added 21 commits and one merge after bdd005b4a641f1a00a0d0b656fcaea69a5a7f6dc; the full range is 505 commits and 37 merges. All 8 verified audits were preserved and 497 entries remain explicit pending. advance-tip verifies the complete manifest before returning success."
+      "command": "git fetch --no-tags upstream refs/heads/dev:refs/remotes/upstream/dev through http://127.0.0.1:7890; node scripts/upstream-sync/audit-manifest.mjs advance-tip --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02 --upstream-tip 0fd89fde3c9c0240172eee0a81352759c391d292 --fetched-at 2026-07-30T21:34:00+08:00; node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
+      "evidence": "U1 advanced only through verified fast-forward steps, ending at 0fd89fde3c9c0240172eee0a81352759c391d292. The last update added two ordinary commits after 66c7c6e872f6c48a9b116afa91c765880d73b9b6: Issue 10767 large CSV database pasting and Issue 18455 dialog title-bar drag bounds. The full range is 546 commits and 41 merges. All 8 verified audits were preserved and 538 entries remain explicit pending. advance-tip and a separate verify both completed successfully."
+    },
+    {
+      "name": "current upstream tip refresh after D002 candidate",
+      "status": "passed",
+      "command": "git -c http.proxy=http://127.0.0.1:7890 fetch --no-tags upstream refs/heads/dev:refs/remotes/upstream/dev; node scripts/upstream-sync/audit-manifest.mjs advance-tip --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02 --upstream-tip 9d164289036a68e2d4e6fc1777c4c1a986f32b8d --fetched-at 2026-07-30T22:14:01+08:00; node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
+      "evidence": "0fd89fde3c9c0240172eee0a81352759c391d292 is an ancestor of 9d164289036a68e2d4e6fc1777c4c1a986f32b8d. The four new commits cover document-tree collapse animation, dependency update, attribute/backlink collapse animation and AV virtual scrolling after cleared search. The expanded 550-entry DAG with 41 merges verified; the 12 completed audits and their local mappings were preserved, and 538 entries remain explicitly pending."
     },
     {
       "name": "search exact ranking",
@@ -88,6 +100,18 @@
     {"name": "all app build targets", "command": "pnpm build", "status": "pending"}
   ],
   "failures": [
+    {
+      "stage": "cross-block audit decision application",
+      "result": "failed-explicitly",
+      "message": "Refresh and apply-decisions were incorrectly started concurrently, so one invocation observed a partially written commits.jsonl and failed JSON parsing.",
+      "resolution": "No source commit or prior evidence changed. Re-ran refresh, apply-decisions and verify strictly serially; candidate 6f73248e3325218fe169ac9006d2294a61d2f827, all 546 JSONL records and the 12 mapped audit records verified."
+    },
+    {
+      "stage": "upstream tip manifest advance",
+      "result": "failed-explicitly",
+      "message": "Recomputing stable patch IDs for the complete 505-entry frozen range exceeded the 124 second command deadline while only 39 new upstream commits had been added.",
+      "resolution": "The audit tool now reuses the recorded stable patch ID for each immutable existing SHA, while regenerating all paths, metadata, relationships and new entries. Its six regression tests passed; the repeated advance-tip completed and verify confirmed the 544-entry range."
+    },
     {
       "stage": "post-integration current-tip manifest verification",
       "result": "failed-explicitly",
