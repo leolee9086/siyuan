@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "cycleId": "siyuan-dev-28e38647fb02",
   "status": "in-progress",
-  "candidateHead": "1c97fd45af9fedbb43a1106e696bfacf2020459a",
+  "candidateHead": "71d489fd5d17265f9fb66bac0b0bfc429bb7e38a",
   "deliveries": {
     "status": "passed",
     "integratedCount": 1,
@@ -14,14 +14,14 @@
   "manifest": {
     "status": "passed",
     "command": "node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
-    "commitCount": 467,
-    "uniqueCommitCount": 467,
+    "commitCount": 476,
+    "uniqueCommitCount": 476,
     "mergeCommitCount": 35,
     "revertCommitCount": 0,
-    "stablePatchIdCount": 432,
+    "stablePatchIdCount": 441,
     "mappedUpstreamCommitCount": 4,
     "verifiedAuditCount": 4,
-    "pendingAuditCount": 463
+    "pendingAuditCount": 472
   },
   "focusedChecks": [
     {
@@ -51,8 +51,8 @@
     {
       "name": "current upstream tip refresh",
       "status": "passed",
-      "command": "git fetch --prune upstream dev; node scripts/upstream-sync/audit-manifest.mjs advance-tip --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02 --upstream-tip ca1ffce3bf544e82b950f735f66b7b238f564114 --fetched-at 2026-07-30T08:56:24+08:00; node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
-      "evidence": "Old U1 28e38647fb02ef126002633f33f9d3fcccb8c167 is an ancestor of ca1ffce3bf544e82b950f735f66b7b238f564114. The range grew by 27 commits and 2 merges to 467 commits and 35 merges; all 4 verified audits were preserved and 463 entries remain explicit pending."
+      "command": "git fetch --prune upstream dev; node scripts/upstream-sync/audit-manifest.mjs advance-tip --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02 --upstream-tip 2e68bda1ff40fcee361ff2c29e62d0d9cae95c13 --fetched-at 2026-07-30T09:20:10+08:00",
+      "evidence": "U1 advanced in two verified fast-forward steps, 28e38647fb02ef126002633f33f9d3fcccb8c167 -> ca1ffce3bf544e82b950f735f66b7b238f564114 -> 2e68bda1ff40fcee361ff2c29e62d0d9cae95c13. The full range is 476 commits and 35 merges; all 4 verified audits were preserved and 472 entries remain explicit pending. advance-tip verifies the complete manifest before returning success."
     },
     {
       "name": "search exact ranking",
@@ -82,6 +82,12 @@
     {"name": "all app build targets", "command": "pnpm build", "status": "pending"}
   ],
   "failures": [
+    {
+      "stage": "post-integration current-tip manifest verification",
+      "result": "failed-explicitly",
+      "message": "The main repository did not yet contain upstream object ca1ffce3bf544e82b950f735f66b7b238f564114, so git rev-list failed with fatal: bad object.",
+      "resolution": "Fetched official dev into the main repository without changing HEAD or tracked files, confirmed the object type was commit and reran the 467-entry manifest verification successfully. The fetch also revealed a newer fast-forward tip, which was handled as a separate 476-entry refresh before starting the next behavior series."
+    },
     {
       "stage": "upstream tip manifest advance",
       "result": "failed-explicitly",

@@ -6,9 +6,9 @@
   "upstreamBranch": "dev",
   "localBase": "7845c47e3620a7cd411648e36fd508c43ea757f7",
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
-  "upstreamTip": "ca1ffce3bf544e82b950f735f66b7b238f564114",
-  "candidateBranch": "sync/upstream-dev-ca1ffce3-tip-refresh",
-  "candidateHead": "1c97fd45af9fedbb43a1106e696bfacf2020459a",
+  "upstreamTip": "2e68bda1ff40fcee361ff2c29e62d0d9cae95c13",
+  "candidateBranch": "sync/upstream-dev-2e68bda1-tip-refresh",
+  "candidateHead": "71d489fd5d17265f9fb66bac0b0bfc429bb7e38a",
   "candidateCreatedAt": "2026-07-29T14:15:25+08:00",
   "mainRepository": "D:/dev/s-forge",
   "mainBranch": "multipleAI",
@@ -41,20 +41,20 @@
     "kramdownHashNormalization": "LF line endings and lexicographically sorted Kramdown IAL attributes",
     "mirrorSha256": "2cbe92e9d456950111b341cbebf1658c6c121ab76493b14bcf3ef5ab03a43573"
   },
-  "commitCount": 467,
+  "commitCount": 476,
   "mergeCommitCount": 35,
   "revertCommitCount": 0,
-  "stablePatchIdCount": 432,
+  "stablePatchIdCount": 441,
   "mappedUpstreamCommitCount": 4,
   "auditGrouping": {
     "mode": "optional",
     "fixedSize": null,
     "note": "Grouping is an execution aid and never a completion boundary."
   },
-  "upstreamTipFetchedAt": "2026-07-30T09:11:51+08:00",
+  "upstreamTipFetchedAt": "2026-07-30T09:25:45+08:00",
   "upstreamTipRefresh": {
     "mode": "before-each-series-and-final-closure",
-    "latestCheckedAt": "2026-07-30T09:11:51+08:00",
+    "latestCheckedAt": "2026-07-30T09:25:45+08:00",
     "history": [
       {
         "from": "28e38647fb02ef126002633f33f9d3fcccb8c167",
@@ -62,6 +62,13 @@
         "fetchedAt": "2026-07-30T08:56:24+08:00",
         "addedCommitCount": 27,
         "addedMergeCommitCount": 2
+      },
+      {
+        "from": "ca1ffce3bf544e82b950f735f66b7b238f564114",
+        "to": "2e68bda1ff40fcee361ff2c29e62d0d9cae95c13",
+        "fetchedAt": "2026-07-30T09:20:10+08:00",
+        "addedCommitCount": 9,
+        "addedMergeCommitCount": 0
       }
     ]
   }
