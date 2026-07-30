@@ -8,6 +8,7 @@ import {
     advanceAuditTip,
     applyAuditDecisions,
     buildAuditRecords,
+    deriveUpstreamCoverage,
     loadCycleForRegeneration,
     refreshAuditManifest,
     verifyAuditManifest,
@@ -316,4 +317,63 @@ test("advances an upstream tip without losing completed audits and rejects rewri
         () => advanceAuditTip({repo, output, upstreamTip: rewrittenTip, fetchedAt}),
         /Refusing non-fast-forward upstream tip change/,
     );
+});
+
+test("derives semantic, delivery and topology coverage from verified Git relations", (context) => {
+    const repo = mkdtempSync(join(tmpdir(), "sforge-audit-coverage-"));
+    context.after(() => rmSync(repo, {recursive: true, force: true}));
+    git(repo, ["init", "--initial-branch=main"]);
+    git(repo, ["config", "user.name", "Test Author"]);
+    git(repo, ["config", "user.email", "test@example.com"]);
+    const upstreamBase = commitFile(repo, "base.txt", "base\n", "base");
+    git(repo, ["switch", "-c", "upstream", upstreamBase]);
+    const upstreamFirst = commitFile(repo, "upstream-first.txt", "first\n", "upstream first");
+    const upstreamTip = commitFile(repo, "upstream-second.txt", "second\n", "upstream second");
+    git(repo, ["switch", "main"]);
+    const localBase = commitFile(repo, "local.txt", "local\n", "local base");
+    git(repo, ["switch", "-c", "series"]);
+    const firstPort = [
+        "port first", "", `Upstream-Commit: ${upstreamFirst}`,
+        "Upstream-Series: fixture/coverage", "Upstream-Disposition: semantic-port",
+        "Upstream-Audit: audit/commits.jsonl",
+    ].join("\n");
+    const secondPort = [
+        "port second", "", `Upstream-Commit: ${upstreamTip}`,
+        "Upstream-Series: fixture/coverage", "Upstream-Disposition: semantic-port",
+        "Upstream-Audit: audit/commits.jsonl",
+    ].join("\n");
+    commitFile(repo, "port-first.txt", "first\n", firstPort);
+    const seriesHead = commitFile(repo, "port-second.txt", "second\n", secondPort);
+    git(repo, ["switch", "main"]);
+    git(repo, ["merge", "--no-ff", "series", "-m", "deliver semantic ports"]);
+    const delivery = git(repo, ["rev-parse", "HEAD"]);
+    git(repo, ["merge", "--no-ff", "-s", "ours", "upstream", "-m", "record verified upstream topology"]);
+    const topologyCheckpoint = git(repo, ["rev-parse", "HEAD"]);
+    const output = join(repo, "audit");
+    const records = buildAuditRecords({
+        repo, upstreamBase, upstreamTip, localBase, candidateHead: topologyCheckpoint,
+    });
+    for (const record of records) {
+        record.audit.status = "verified";
+        record.audit.disposition = "ported-semantic";
+        record.audit.intent = "Preserve the verified upstream behavior.";
+        record.audit.behaviorContract.outputs = ["The behavior remains observable."];
+        record.audit.codeEvidence = ["src/owner.ts"];
+        record.audit.testEvidence = ["node --test fixture"];
+    }
+    writeAuditManifest({repo, output, cycle: {upstreamBase, upstreamTip, localBase, mainBranch: "main"}, records});
+    writeFileSync(join(output, "deliveries.jsonl"), `${JSON.stringify({
+        deliveryId: "D1", status: "integrated", upstreamCommits: [upstreamFirst, upstreamTip],
+        mainBase: localBase, seriesHead, integrationCommit: delivery,
+    })}\n`);
+    writeFileSync(join(output, "topology-checkpoints.jsonl"), `${JSON.stringify({
+        checkpointId: "C1", status: "integrated", upstreamBase, upstreamTip,
+        mainBase: delivery, integrationCommit: topologyCheckpoint,
+    })}\n`);
+    const coverage = deriveUpstreamCoverage({repo, output});
+    assert.equal(coverage.semanticVerified.count, 2);
+    assert.equal(coverage.deliveryIntegrated.count, 2);
+    assert.equal(coverage.topologyCovered.count, 2);
+    assert.equal(coverage.topologyLag.count, 0);
+    assert.equal(coverage.pending.count, 0);
 });

@@ -99,6 +99,174 @@ const readExistingRecords = (manifestPath) => {
     return records;
 };
 
+const readJSONLines = (path, label) => {
+    if (!existsSync(path)) {
+        return [];
+    }
+    return readFileSync(path, "utf8").split(/\r?\n/u)
+        .filter((line) => line.trim())
+        .map((line, index) => {
+            try {
+                return JSON.parse(line);
+            } catch (error) {
+                throw new Error(`Invalid ${label} JSON at line ${index + 1}: ${error.message}`);
+            }
+        });
+};
+
+const isAncestor = (repo, ancestor, descendant) => {
+    try {
+        runGit(repo, ["merge-base", "--is-ancestor", ancestor, descendant]);
+        return true;
+    } catch {
+        return false;
+    }
+};
+
+const getCommitParents = (repo, sha) => runGit(repo, ["show", "-s", "--format=%P", sha])
+    .trim().split(/\s+/u).filter(Boolean);
+
+const getTree = (repo, sha) => runGit(repo, ["rev-parse", `${sha}^{tree}`]).trim();
+
+const resolveCommit = (repo, sha, label) => {
+    if (typeof sha !== "string" || !/^[0-9a-f]{40}$/u.test(sha)) {
+        throw new Error(`${label} must be a full commit SHA`);
+    }
+    return runGit(repo, ["rev-parse", "--verify", `${sha}^{commit}`]).trim();
+};
+
+const isVerifiedAudit = (record) => record.audit.status === "verified";
+
+/**
+ * Derives mutually exclusive audit, delivery and topology coverage from Git
+ * objects and versioned manifests. No count is inferred from branch names.
+ */
+export const deriveUpstreamCoverage = ({repo, output, mainHead}) => {
+    const cycle = JSON.parse(readFileSync(resolve(output, "cycle.json"), "utf8"));
+    const records = readJSONLines(resolve(output, "commits.jsonl"), "commits manifest");
+    const recordsBySha = new Map(records.map((record) => [record.sha, record]));
+    const resolvedMainHead = mainHead ? resolveCommit(repo, mainHead, "mainHead") :
+        runGit(repo, ["rev-parse", "HEAD"]).trim();
+    const verifiedRecords = records.filter(isVerifiedAudit);
+    const deliveries = readJSONLines(resolve(output, "deliveries.jsonl"), "delivery manifest");
+    const integratedDeliveryIDs = [];
+    const deliveredUpstreamSHAs = new Set();
+
+    for (const delivery of deliveries) {
+        if (delivery.status !== "integrated") {
+            continue;
+        }
+        if (typeof delivery.deliveryId !== "string" || delivery.deliveryId.length === 0) {
+            throw new Error("An integrated delivery is missing deliveryId");
+        }
+        const integrationCommit = resolveCommit(repo, delivery.integrationCommit, `${delivery.deliveryId}.integrationCommit`);
+        const mainBase = resolveCommit(repo, delivery.mainBase, `${delivery.deliveryId}.mainBase`);
+        const seriesHead = resolveCommit(repo, delivery.seriesHead, `${delivery.deliveryId}.seriesHead`);
+        const parents = getCommitParents(repo, integrationCommit);
+        if (parents.length !== 2 || parents[0] !== mainBase || parents[1] !== seriesHead) {
+            throw new Error(`${delivery.deliveryId} does not retain the recorded D_i parent relation`);
+        }
+        if (!isAncestor(repo, integrationCommit, resolvedMainHead)) {
+            throw new Error(`${delivery.deliveryId} is not reachable from the inspected main head`);
+        }
+        integratedDeliveryIDs.push(delivery.deliveryId);
+        for (const upstreamSHA of delivery.upstreamCommits ?? []) {
+            const record = recordsBySha.get(upstreamSHA);
+            if (!record) {
+                throw new Error(`${delivery.deliveryId} references upstream SHA outside commits.jsonl: ${upstreamSHA}`);
+            }
+            if (!isVerifiedAudit(record)) {
+                throw new Error(`${delivery.deliveryId} claims an upstream SHA without verified semantic evidence: ${upstreamSHA}`);
+            }
+            deliveredUpstreamSHAs.add(upstreamSHA);
+        }
+    }
+
+    const checkpoints = readJSONLines(resolve(output, "topology-checkpoints.jsonl"), "topology checkpoint manifest");
+    const topologyCoveredSHAs = new Set();
+    const checkpointIDs = [];
+    let expectedUpstreamBase = cycle.upstreamBase;
+    for (const checkpoint of checkpoints) {
+        if (checkpoint.status !== "integrated") {
+            throw new Error(`Topology checkpoint ${checkpoint.checkpointId ?? "<unnamed>"} is not integrated`);
+        }
+        if (typeof checkpoint.checkpointId !== "string" || checkpoint.checkpointId.length === 0) {
+            throw new Error("An integrated topology checkpoint is missing checkpointId");
+        }
+        const upstreamBase = resolveCommit(repo, checkpoint.upstreamBase, `${checkpoint.checkpointId}.upstreamBase`);
+        const upstreamTip = resolveCommit(repo, checkpoint.upstreamTip, `${checkpoint.checkpointId}.upstreamTip`);
+        const mainBase = resolveCommit(repo, checkpoint.mainBase, `${checkpoint.checkpointId}.mainBase`);
+        const integrationCommit = resolveCommit(repo, checkpoint.integrationCommit, `${checkpoint.checkpointId}.integrationCommit`);
+        if (upstreamBase !== expectedUpstreamBase || !isAncestor(repo, upstreamBase, upstreamTip)) {
+            throw new Error(`${checkpoint.checkpointId} does not extend the previous continuous upstream boundary`);
+        }
+        if (!isAncestor(repo, upstreamTip, cycle.upstreamTip)) {
+            throw new Error(`${checkpoint.checkpointId} references an upstream tip outside the frozen audit range`);
+        }
+        const parents = getCommitParents(repo, integrationCommit);
+        if (parents.length !== 2 || parents[0] !== mainBase || parents[1] !== upstreamTip) {
+            throw new Error(`${checkpoint.checkpointId} does not retain the recorded topology merge parents`);
+        }
+        if (getTree(repo, integrationCommit) !== getTree(repo, mainBase)) {
+            throw new Error(`${checkpoint.checkpointId} changed the local semantic tree during topology closure`);
+        }
+        if (!isAncestor(repo, integrationCommit, resolvedMainHead)) {
+            throw new Error(`${checkpoint.checkpointId} is not reachable from the inspected main head`);
+        }
+        const checkpointSHAs = runGit(repo, [
+            "rev-list", "--reverse", "--topo-order", upstreamTip, `^${upstreamBase}`,
+        ]).trim().split(/\r?\n/u).filter(Boolean);
+        for (const upstreamSHA of checkpointSHAs) {
+            const record = recordsBySha.get(upstreamSHA);
+            if (!record || !isVerifiedAudit(record) || !deliveredUpstreamSHAs.has(upstreamSHA)) {
+                throw new Error(`${checkpoint.checkpointId} covers an upstream SHA without verified integrated semantics: ${upstreamSHA}`);
+            }
+            topologyCoveredSHAs.add(upstreamSHA);
+        }
+        checkpointIDs.push(checkpoint.checkpointId);
+        expectedUpstreamBase = upstreamTip;
+    }
+
+    const topologyLagSHAs = runGit(repo, [
+        "rev-list", "--reverse", "--topo-order", cycle.upstreamTip, `^${resolvedMainHead}`,
+    ]).trim().split(/\r?\n/u).filter(Boolean);
+    return {
+        schemaVersion: 1,
+        sourceHead: resolvedMainHead,
+        upstreamBase: cycle.upstreamBase,
+        upstreamTip: cycle.upstreamTip,
+        semanticVerified: {
+            count: verifiedRecords.length,
+            shas: verifiedRecords.map((record) => record.sha),
+        },
+        deliveryIntegrated: {
+            count: deliveredUpstreamSHAs.size,
+            deliveryIds: integratedDeliveryIDs,
+            shas: records.filter((record) => deliveredUpstreamSHAs.has(record.sha)).map((record) => record.sha),
+        },
+        topologyCovered: {
+            count: topologyCoveredSHAs.size,
+            checkpointIds: checkpointIDs,
+            through: checkpointIDs.length > 0 ? expectedUpstreamBase : null,
+            shas: records.filter((record) => topologyCoveredSHAs.has(record.sha)).map((record) => record.sha),
+        },
+        pending: {
+            count: records.length - verifiedRecords.length,
+            shas: records.filter((record) => !isVerifiedAudit(record)).map((record) => record.sha),
+        },
+        topologyLag: {
+            count: topologyLagSHAs.length,
+            shas: topologyLagSHAs,
+        },
+    };
+};
+
+export const writeUpstreamCoverage = ({repo, output, mainHead}) => {
+    const coverage = deriveUpstreamCoverage({repo, output, mainHead});
+    writeFileSync(resolve(output, "coverage.json"), `${JSON.stringify(coverage, null, 2)}\n`);
+    return coverage;
+};
+
 const emptyAudit = () => ({
     status: "pending",
     intent: null,
@@ -336,6 +504,7 @@ export const verifyAuditManifest = ({repo, output}) => {
         cycle.mappedUpstreamCommitCount !== mappedUpstreamCommitCount) {
         throw new Error("cycle.json counts do not match commits.jsonl");
     }
+    deriveUpstreamCoverage({repo, output});
     return {commitCount: records.length, mergeCommitCount, revertCommitCount, mappedUpstreamCommitCount};
 };
 
@@ -540,6 +709,18 @@ const main = () => {
         process.stdout.write(`${JSON.stringify(verifyAuditManifest({repo, output}))}\n`);
         return;
     }
+    if (command === "coverage") {
+        const coverage = writeUpstreamCoverage({repo, output});
+        process.stdout.write(`${JSON.stringify({
+            sourceHead: coverage.sourceHead,
+            semanticVerified: coverage.semanticVerified.count,
+            deliveryIntegrated: coverage.deliveryIntegrated.count,
+            topologyCovered: coverage.topologyCovered.count,
+            pending: coverage.pending.count,
+            topologyLag: coverage.topologyLag.count,
+        })}\n`);
+        return;
+    }
     if (command === "refresh") {
         const result = refreshAuditManifest({repo, output});
         process.stdout.write(`${JSON.stringify({
@@ -575,7 +756,7 @@ const main = () => {
         return;
     }
     if (command !== "generate") {
-        throw new Error("Expected generate, refresh, apply-decisions, advance-tip or verify command");
+        throw new Error("Expected generate, refresh, apply-decisions, advance-tip, coverage or verify command");
     }
     const generatedCycle = {
         cycleId: requireOption(values, "cycle-id"),

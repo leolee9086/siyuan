@@ -18,7 +18,8 @@
     "deliveriesManifest": "docs/upstream-sync/siyuan-dev-28e38647fb02/deliveries.jsonl",
     "longLivedMainFreeze": false,
     "seriesIntegration": "no-ff",
-    "finalTopologyIntegration": "ff-only-reviewed-ours-merge",
+    "topologyCheckpoints": "continuous-verified-prefix-ours-merges",
+    "finalTopologyIntegration": "final-ff-only-reviewed-ours-merge",
     "runtimeFreshnessRequired": true
   },
   "latestDelivery": "D002",
@@ -36,10 +37,10 @@
   ],
   "procedure": {
     "blockId": "20260729083130-vaxfqpr",
-    "updatedAt": "20260730090212",
-    "kramdownSha256": "25c5255f6578c935452baedfbfdb03904843b2fb2421656f7a3e5f5193e67f62",
+    "updatedAt": "20260731003918",
+    "kramdownSha256": "0549ddd2028400e9913c2ddadafeaaee42bdfdc92f962ff01eaedffa011d03c8",
     "kramdownHashNormalization": "LF line endings and lexicographically sorted Kramdown IAL attributes",
-    "mirrorSha256": "2cbe92e9d456950111b341cbebf1658c6c121ab76493b14bcf3ef5ab03a43573"
+    "mirrorSha256": "5fa6d3748c07e0e130b878459b6223fe43473e6758823fe9fd2f8ee20c8c8f06"
   },
   "commitCount": 550,
   "mergeCommitCount": 41,

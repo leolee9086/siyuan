@@ -26,6 +26,7 @@ test("read-only verification requires two stable canonical API reads", async () 
         "不得为了减少 囤积可独立交付 本地 Forge 服务是硬门禁",
         "规范化 Kramdown SHA-256 IAL 属性顺序不稳定",
         "每个新 series 建立前",
+        "连续前缀拓扑检查点 不得凭 branch 名",
     ].join("\n");
     const versions = [
         `${semantics}\n{: id="block" updated="123"}`,
@@ -46,5 +47,5 @@ test("read-only verification requires two stable canonical API reads", async () 
 
     assert.deepEqual(routes, ["/api/block/getBlockKramdown", "/api/block/getBlockKramdown"]);
     assert.equal(result.updatedAt, "123");
-    assert.equal(result.semanticChecks, 11);
+    assert.equal(result.semanticChecks, 13);
 });

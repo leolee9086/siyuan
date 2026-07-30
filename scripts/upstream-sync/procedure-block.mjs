@@ -16,6 +16,8 @@ const REQUIRED_SEMANTICS = [
     "规范化 Kramdown SHA-256",
     "IAL 属性顺序不稳定",
     "每个新 series 建立前",
+    "连续前缀拓扑检查点",
+    "不得凭 branch 名",
 ];
 
 const ialTokenPattern = /[^\s=]+=(?:"(?:\\.|[^"])*"|'(?:\\.|[^'])*'|[^\s]+)|[^\s]+/gu;

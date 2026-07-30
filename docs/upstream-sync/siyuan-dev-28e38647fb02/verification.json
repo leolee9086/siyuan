@@ -5,8 +5,8 @@
   "candidateHead": "3e123a8cd04241749376f30e1c1ad206e9d73adc",
   "deliveries": {
     "status": "passed",
-    "integratedCount": 2,
-    "gitIntegratedCount": 0,
+    "integratedCount": 3,
+    "gitIntegratedCount": 3,
     "latestDelivery": "D002",
     "latestIntegrationCommit": "fa6d9e59c3dd63dc59725093ce10d5bdbe0fdfe1",
     "evidence": "D002 has exact B2/S2 parents and matching tree. Commit gate 2026-07-30T14-24-09-230Z-fa6d9e59c3dd-7f25bc1a completed at main HEAD fa6d9e59c3dd63dc59725093ce10d5bdbe0fdfe1. It ran pnpm test and pnpm dev:once for the four Protyle source files; no Kernel runtime paths changed, so healthy active Kernel bf304048cf6fee55c891f49f5482e3ab44a59acd is runtime-equivalent through the D002 main head. Supervisor, Kernel and all six page probes passed."
@@ -22,6 +22,17 @@
     "mappedUpstreamCommitCount": 12,
     "verifiedAuditCount": 12,
     "pendingAuditCount": 538
+  },
+  "coverage": {
+    "status": "passed",
+    "command": "node scripts/upstream-sync/audit-manifest.mjs coverage --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
+    "sourceHead": "314073b2c5b5f5765e421208bce3f2bb109c9972",
+    "semanticVerified": 12,
+    "deliveryIntegrated": 12,
+    "topologyCovered": 0,
+    "pending": 538,
+    "topologyLag": 550,
+    "evidence": "The derived snapshot validates D001, D002R and D002 exact parents and reachability. No topology checkpoint exists because the first three upstream entries are still pending; coverage.json contains the complete SHA sets and the verifier rejects any checkpoint that covers an unverified, undelivered or tree-changing range."
   },
   "focusedChecks": [
     {
@@ -46,13 +57,13 @@
       "name": "published rolling-delivery procedure",
       "status": "passed",
       "command": "node scripts/upstream-sync/procedure-block.mjs --block-id 20260729083130-vaxfqpr --file docs/规程/版本管理/上游逐提交语义合并.procedure.md",
-      "evidence": "updated=20260730090212; 11 semantic assertions passed, including mandatory upstream refresh before each series; consecutive normalized Kramdown reads matched SHA-256 25c5255f6578c935452baedfbfdb03904843b2fb2421656f7a3e5f5193e67f62; normalization is LF plus lexicographically sorted IAL attributes; mirror SHA-256 2cbe92e9d456950111b341cbebf1658c6c121ab76493b14bcf3ef5ab03a43573"
+      "evidence": "updated=20260731003918; 13 semantic assertions passed, including continuous verified-prefix topology checkpoints and mandatory upstream refresh before each series; consecutive normalized Kramdown reads matched SHA-256 0549ddd2028400e9913c2ddadafeaaee42bdfdc92f962ff01eaedffa011d03c8; normalization is LF plus lexicographically sorted IAL attributes; mirror SHA-256 5fa6d3748c07e0e130b878459b6223fe43473e6758823fe9fd2f8ee20c8c8f06"
     },
     {
       "name": "audit manifest tooling",
       "status": "passed",
       "command": "node --test scripts/upstream-sync/audit-manifest.test.mjs",
-      "evidence": "6 audit-manifest tests passed; covers DAG, merge, revert, stable regeneration, decision application without overwriting local trailer mappings, rolling delivery configuration, controlled branch refresh, fast-forward tip extension and rewritten-history rejection"
+      "evidence": "7 audit-manifest tests passed; covers DAG, merge, revert, stable regeneration, decision application without overwriting local trailer mappings, rolling delivery configuration, controlled branch refresh, fast-forward tip extension, rewritten-history rejection, and semantic/delivery/topology coverage derived from real Git parents and tree equality."
     },
     {
       "name": "referenced block removal and cut series",
