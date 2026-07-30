@@ -12,9 +12,10 @@ import { mathRender } from "../render/mathRender";
 import {transaction} from "../wysiwyg/transaction/submit";
 import { genEmptyElement } from "../../block/element.factory";
 import { Constants } from "../../constants";
-import { isInAndroid, isInHarmony, writeText } from "../util/compatibility";
+import {writeBlockDOMClipboard} from "../util/compatibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getWindowJSAndroid, getWindowJSHarmony } from "../../util/siyuanEnvironments/windowNative.environment";
+import {confirmBlockRefForBlocks} from "../../util/checkBlockRef";
+import {showMessage} from "../../dialog/message";
 
 /**
  * 标题菜单构建上下文
@@ -54,11 +55,13 @@ export interface IGutterHeadingMenuResult {
  * @param protyle Protyle 实例
  * @param responseData 响应数据（原始 BlockDOM）
  */
-const 写入剪贴板 = (protyle: IProtyle, responseData: string): void => {
+const 写入剪贴板 = async (protyle: IProtyle, responseData: string) => {
     const lute = protyle.lute;
     if (!lute) {
-        writeText(responseData + Constants.ZWSP);
-        return;
+        return await writeBlockDOMClipboard({
+            text: responseData,
+            html: responseData + Constants.ZWSP,
+        });
     }
 
     const markdownContent = lute.BlockDOM2StdMd(responseData).trimEnd();
@@ -66,17 +69,30 @@ const 写入剪贴板 = (protyle: IProtyle, responseData: string): void => {
     // @siyuan-保留原始BlockDOM数据作为第三个参数，确保剪贴板保留完整的块元数据
     const rawBlockDOM = responseData + Constants.ZWSP;
 
-    if (isInAndroid()) {
-        const jsAndroid = getWindowJSAndroid();
-        jsAndroid?.writeSiYuanHTMLClipboard(markdownContent, htmlContent, rawBlockDOM);
-        return;
+    return await writeBlockDOMClipboard({
+        text: markdownContent,
+        html: htmlContent,
+        siyuanHTML: rawBlockDOM,
+    });
+};
+
+const 报告剪贴板失败 = () => {
+    showMessage(siyuanI18n.clipboardPermissionDenied, 7000, "error");
+};
+
+const confirmHeadingDeletion = async (ctx: IGutterHeadingMenuContext, response: IWebSocketData) => {
+    const operations = response.data?.doOperations as IOperation[] | undefined;
+    if (!operations?.length) {
+        console.error("Heading deletion transaction is missing operations", {id: ctx.id, response});
+        return false;
     }
-    if (isInHarmony()) {
-        const jsHarmony = getWindowJSHarmony();
-        jsHarmony?.writeSiYuanHTMLClipboard(markdownContent, htmlContent, rawBlockDOM);
-        return;
+    if (!await confirmBlockRefForBlocks(
+        ctx.protyle,
+        operations.flatMap(operation => operation.id ? [operation.id] : []),
+    )) {
+        return false;
     }
-    writeText(htmlContent);
+    return Boolean(ctx.protyle.wysiwyg?.element.querySelector(`[data-node-id="${ctx.id}"]`));
 };
 
 /**
@@ -225,8 +241,10 @@ const 创建复制标题及下级菜单项 = (ctx: IGutterHeadingMenuContext): I
         fetchPost("/api/block/getHeadingChildrenDOM", {
             id: ctx.id,
             removeFoldAttr: ctx.nodeElement.getAttribute("fold") !== "1"
-        }, (response) => {
-            写入剪贴板(ctx.protyle, response.data);
+        }, async (response) => {
+            if (!await 写入剪贴板(ctx.protyle, response.data)) {
+                报告剪贴板失败();
+            }
         });
     }
 });
@@ -246,13 +264,16 @@ const 创建剪切标题及下级菜单项 = (ctx: IGutterHeadingMenuContext): I
             id: ctx.id,
             removeFoldAttr: ctx.nodeElement.getAttribute("fold") !== "1"
         }, (response) => {
-            // 先复制到剪贴板
-            写入剪贴板(ctx.protyle, response.data);
-            // 然后删除
-            // @内联回调
             fetchPost("/api/block/getHeadingDeleteTransaction", {
                 id: ctx.id,
-            }, (deleteResponse) => {
+            }, async (deleteResponse) => {
+                if (!await confirmHeadingDeletion(ctx, deleteResponse)) {
+                    return;
+                }
+                if (!await 写入剪贴板(ctx.protyle, response.data)) {
+                    报告剪贴板失败();
+                    return;
+                }
                 const wysiwygElement = ctx.protyle.wysiwyg?.element;
                 删除相关DOM元素(wysiwygElement, deleteResponse.data.doOperations);
                 处理删除后空文档(ctx.protyle, deleteResponse.data.doOperations, deleteResponse.data.undoOperations);
@@ -275,7 +296,10 @@ const 创建删除标题及下级菜单项 = (ctx: IGutterHeadingMenuContext): I
         // @内联回调
         fetchPost("/api/block/getHeadingDeleteTransaction", {
             id: ctx.id,
-        }, (response) => {
+        }, async (response) => {
+            if (!await confirmHeadingDeletion(ctx, response)) {
+                return;
+            }
             const wysiwygElement = ctx.protyle.wysiwyg?.element;
             删除相关DOM元素(wysiwygElement, response.data.doOperations);
             处理删除后空文档(ctx.protyle, response.data.doOperations, response.data.undoOperations);

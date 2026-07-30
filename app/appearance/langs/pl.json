@@ -1,4 +1,5 @@
 {
+	"deleteRefConfirm": "Treść przeznaczona do usunięcia lub wycięcia zawiera bloki, do których prowadzą odwołania. Czy chcesz kontynuować?",
 	"addAllAiModels": "Dodaj wszystkie modele",
 	"autoDetectProxy": "Automatycznie wykrywaj serwer proxy",
 	"autoDetectProxyTip": "Automatycznie wykrywaj konfigurację systemowego serwera proxy na podstawie zmiennych środowiskowych lub lokalnych portów proxy",

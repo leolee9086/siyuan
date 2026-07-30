@@ -872,6 +872,7 @@ editReadonlyTip: `启用后文档编辑器将默认锁定编辑。仍然能够�
 generateConflictDoc: `同步冲突时生成冲突文档`
 generateConflictDocTip: `启用后当同步发生冲突时会生成冲突文档，以便直接打开查看。无论是否启用，[数据历史] 都会记录冲突文档`
 deleteOpConfirm: `⚠️ 删除操作确认`
+deleteRefConfirm: `待删除或剪切的内容中存在被引用的内容块，是否继续？`
 filterKeywordEnter: `关键字过滤 Enter`
 defBlock: `定义块`
 defBlockChildren: `定义块及其子块`

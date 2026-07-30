@@ -118,6 +118,83 @@ func QueryRefCount(defIDs []string) (ret map[string]int) {
 	return
 }
 
+// ExistRefByDefIDsInBox reports whether a definition selected for deletion is
+// still referenced by a block outside the same deletion set in one index.
+func ExistRefByDefIDsInBox(defIDs, defRootIDs, excludeBlockIDs, excludeRootIDs []string, boxID string) (ret bool, err error) {
+	const batchSize = 900
+
+	excludeBlockIDSet := map[string]struct{}{}
+	for _, id := range excludeBlockIDs {
+		excludeBlockIDSet[id] = struct{}{}
+	}
+	excludeRootIDSet := map[string]struct{}{}
+	for _, id := range excludeRootIDs {
+		excludeRootIDSet[id] = struct{}{}
+	}
+	exist := func(column string, ids []string) (bool, error) {
+		for start := 0; start < len(ids); start += batchSize {
+			end := start + batchSize
+			if len(ids) < end {
+				end = len(ids)
+			}
+			batch := ids[start:end]
+			placeholders := strings.TrimSuffix(strings.Repeat("?,", len(batch)), ",")
+			args := make([]any, 0, len(batch))
+			for _, id := range batch {
+				args = append(args, id)
+			}
+			rows, queryErr := queryForBox(boxID, "SELECT block_id, root_id FROM refs WHERE "+column+" IN ("+placeholders+")", args...)
+			if queryErr != nil {
+				return false, queryErr
+			}
+			for rows.Next() {
+				var blockID, rootID string
+				if scanErr := rows.Scan(&blockID, &rootID); scanErr != nil {
+					rows.Close()
+					return false, scanErr
+				}
+				if _, excluded := excludeBlockIDSet[blockID]; excluded {
+					continue
+				}
+				if _, excluded := excludeRootIDSet[rootID]; excluded {
+					continue
+				}
+				if closeErr := rows.Close(); closeErr != nil {
+					return false, closeErr
+				}
+				return true, nil
+			}
+			if rowsErr := rows.Err(); rowsErr != nil {
+				rows.Close()
+				return false, rowsErr
+			}
+			if closeErr := rows.Close(); closeErr != nil {
+				return false, closeErr
+			}
+		}
+		return false, nil
+	}
+
+	if ret, err = exist("def_block_id", defIDs); err != nil || ret {
+		return
+	}
+	ret, err = exist("def_block_root_id", defRootIDs)
+	return
+}
+
+// ExistRefByDefIDs searches the primary index and every opened encrypted index.
+func ExistRefByDefIDs(defIDs, defRootIDs, excludeBlockIDs, excludeRootIDs []string) (ret bool, err error) {
+	if ret, err = ExistRefByDefIDsInBox(defIDs, defRootIDs, excludeBlockIDs, excludeRootIDs, ""); err != nil || ret {
+		return
+	}
+	for _, boxID := range GetEncryptedBoxIDs() {
+		if ret, err = ExistRefByDefIDsInBox(defIDs, defRootIDs, excludeBlockIDs, excludeRootIDs, boxID); err != nil || ret {
+			return
+		}
+	}
+	return
+}
+
 func QueryRootChildrenRefCount(defRootID string) (ret map[string]int) {
 	ret = map[string]int{}
 	rows, err := query("SELECT def_block_id, COUNT(*) AS ref_cnt FROM refs WHERE def_block_root_id = ? GROUP BY def_block_id", defRootID)

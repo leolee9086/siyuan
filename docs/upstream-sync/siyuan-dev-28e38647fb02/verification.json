@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "cycleId": "siyuan-dev-28e38647fb02",
   "status": "in-progress",
-  "candidateHead": "71d489fd5d17265f9fb66bac0b0bfc429bb7e38a",
+  "candidateHead": "336debdb0a617a84b4036d8b64ff0e39fab1eb04",
   "deliveries": {
     "status": "passed",
     "integratedCount": 1,
@@ -14,14 +14,14 @@
   "manifest": {
     "status": "passed",
     "command": "node scripts/upstream-sync/audit-manifest.mjs verify --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02",
-    "commitCount": 476,
-    "uniqueCommitCount": 476,
-    "mergeCommitCount": 35,
+    "commitCount": 505,
+    "uniqueCommitCount": 505,
+    "mergeCommitCount": 37,
     "revertCommitCount": 0,
-    "stablePatchIdCount": 441,
-    "mappedUpstreamCommitCount": 4,
-    "verifiedAuditCount": 4,
-    "pendingAuditCount": 472
+    "stablePatchIdCount": 468,
+    "mappedUpstreamCommitCount": 8,
+    "verifiedAuditCount": 8,
+    "pendingAuditCount": 497
   },
   "focusedChecks": [
     {
@@ -46,13 +46,19 @@
       "name": "audit manifest tooling",
       "status": "passed",
       "command": "node --test scripts/upstream-sync/audit-manifest.test.mjs",
-      "evidence": "5 audit-manifest tests and 3 procedure-block tests passed; covers DAG, merge, revert, stable regeneration, audit preservation, local trailer mappings, rolling delivery configuration, controlled branch refresh, fast-forward tip extension and rewritten-history rejection"
+      "evidence": "6 audit-manifest tests passed; covers DAG, merge, revert, stable regeneration, decision application without overwriting local trailer mappings, rolling delivery configuration, controlled branch refresh, fast-forward tip extension and rewritten-history rejection"
+    },
+    {
+      "name": "referenced block removal and cut series",
+      "status": "passed",
+      "command": "pnpm exec vitest --run test/protyle/crossBlockEditing.test.ts test/protyle/cutClipboard.transaction.test.ts test/protyle/removeFoundation.test.ts test/protyle/listItemActions.test.ts test/layout/dock/outline/Outline.helpers.test.ts; go test -tags fts5 ./sql ./treenode ./model ./api -count=1",
+      "evidence": "Five Vitest files with 31 assertions passed; reference-confirmation refusal and rich clipboard rejection preserve the original DOM. Kernel sql, treenode, model and api packages all passed their focused regression runs. Candidate commits bb15f54aac73251e81a566c81cb106874edfaadb and 2ef29e1fd5be539b7db775a1402c07e3bcf75a73 map four upstream commits through parsed trailers."
     },
     {
       "name": "current upstream tip refresh",
       "status": "passed",
-      "command": "git fetch --prune upstream dev; node scripts/upstream-sync/audit-manifest.mjs advance-tip --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02 --upstream-tip 2e68bda1ff40fcee361ff2c29e62d0d9cae95c13 --fetched-at 2026-07-30T09:20:10+08:00",
-      "evidence": "U1 advanced in two verified fast-forward steps, 28e38647fb02ef126002633f33f9d3fcccb8c167 -> ca1ffce3bf544e82b950f735f66b7b238f564114 -> 2e68bda1ff40fcee361ff2c29e62d0d9cae95c13. The full range is 476 commits and 35 merges; all 4 verified audits were preserved and 472 entries remain explicit pending. advance-tip verifies the complete manifest before returning success."
+      "command": "git fetch --prune upstream dev through http://127.0.0.1:7890; node scripts/upstream-sync/audit-manifest.mjs advance-tip --repo . --output docs/upstream-sync/siyuan-dev-28e38647fb02 --upstream-tip 6d23075f6fd571f5047239ff38cfe6e2feb4a402 --fetched-at 2026-07-30T13:39:41+08:00",
+      "evidence": "U1 advanced only through verified fast-forward steps, ending at 6d23075f6fd571f5047239ff38cfe6e2feb4a402. The last update added 21 commits and one merge after bdd005b4a641f1a00a0d0b656fcaea69a5a7f6dc; the full range is 505 commits and 37 merges. All 8 verified audits were preserved and 497 entries remain explicit pending. advance-tip verifies the complete manifest before returning success."
     },
     {
       "name": "search exact ranking",
@@ -123,6 +129,12 @@
       "result": "failed-explicitly",
       "message": "pnpm typecheck returned the existing repository-wide TypeScript diagnostics after 41.9 seconds.",
       "resolution": "No app/src, TypeScript configuration or lockfile was changed by the runtime-gate implementation. The failure remains visible and must be closed as a separate baseline task before the cycle-wide gate can pass."
+    },
+    {
+      "stage": "referenced block removal candidate typecheck",
+      "result": "failed-explicitly",
+      "message": "The full pnpm typecheck completed with existing repository-wide strict TypeScript diagnostics outside this candidate's changed hunks.",
+      "resolution": "The candidate's introduced diagnostics were inspected and corrected before the focused tests. The full baseline remains a visible global-gate blocker; no type-system weakening, ignored errors or test-scope reduction was used."
     },
     {
       "stage": "published procedure readback assertion",

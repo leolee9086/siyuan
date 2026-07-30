@@ -1,4 +1,5 @@
 {
+	"deleteRefConfirm": "Obsah určený na odstránenie alebo vystrihnutie obsahuje bloky, na ktoré vedú odkazy. Chcete pokračovať?",
 	"addAllAiModels": "Pridať všetky modely",
 	"autoDetectProxy": "Automaticky zisťovať proxy",
 	"autoDetectProxyTip": "Automaticky zisťovať konfiguráciu systémového proxy z premenných prostredia alebo lokálnych portov proxy",

@@ -109,8 +109,18 @@ export class WYSIWYG {
     }
 
     private bindCommonEvent(protyle: IProtyle) {
-        this.element.addEventListener("copy", async (event: ClipboardEvent & { target: HTMLElement }) => {
-            await handleCopy(protyle, event);
+        this.element.addEventListener("copy", async (event) => {
+            const target = event.target;
+            const clipboardData = event.clipboardData;
+            if (!(target instanceof HTMLElement) || !clipboardData) {
+                return;
+            }
+            await handleCopy(protyle, {
+                target,
+                clipboardData,
+                preventDefault: () => event.preventDefault(),
+                stopPropagation: () => event.stopPropagation(),
+            });
         });
 
         this.element.addEventListener("mousedown", (event: MouseEvent) => {
@@ -290,8 +300,18 @@ export class WYSIWYG {
             }
         });
 
-        this.element.addEventListener("cut", (event: ClipboardEvent & { target: HTMLElement }) => {
-            handleCut(protyle, event);
+        this.element.addEventListener("cut", (event) => {
+            const target = event.target;
+            const clipboardData = event.clipboardData;
+            if (!(target instanceof HTMLElement) || !clipboardData) {
+                return;
+            }
+            void handleCut(protyle, {
+                target,
+                clipboardData,
+                preventDefault: () => event.preventDefault(),
+                stopPropagation: () => event.stopPropagation(),
+            });
         });
 
         let beforeContextmenuRange: Range;

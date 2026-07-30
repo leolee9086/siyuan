@@ -1,4 +1,5 @@
 {
+	"deleteRefConfirm": "Konten yang akan dihapus atau dipotong berisi blok yang dirujuk. Apakah Anda ingin melanjutkan?",
 	"addAllAiModels": "Tambahkan semua model",
 	"autoDetectProxy": "Deteksi proksi otomatis",
 	"autoDetectProxyTip": "Deteksi konfigurasi proksi sistem secara otomatis dari variabel lingkungan atau porta proksi lokal",

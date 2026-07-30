@@ -18,13 +18,18 @@ import { getSiyuanConfig } from "./imports";
 import { getSiyuanLanguages } from "./imports";
 /** 用途：判断加密笔记本。使用范围：文档信息查询附带 notebook 上下文。解耦评估：通过 ./imports 转发唯一实现。 */
 import { isEncryptedBox } from "./imports";
+import {checkBlockRef, getBlockRefWarningHTML} from "../util/checkBlockRef";
 
 /**
  * 处理文档信息响应，显示删除确认对话框
  */
-function handleDocInfoResponse(response: { data: { name: string; subFileCount: number } }, notebookId: string, pathString: string) {
+function handleDocInfoResponse(response: { data: { name: string; subFileCount: number } }, notebookId: string,
+                               pathString: string, hasRef: boolean) {
     const fileName = escapeHtml(response.data.name);
-    const tip = buildDeleteTip(fileName, response.data.subFileCount);
+    let tip = buildDeleteTip(fileName, response.data.subFileCount);
+    if (hasRef) {
+        tip += getBlockRefWarningHTML();
+    }
     confirmDialog(getSiyuanLanguages().deleteOpConfirm, tip, () => {
         fetchPost("/api/filetree/removeDoc", { notebook: notebookId, path: pathString });
     }, undefined, true);
@@ -51,8 +56,15 @@ ${rollbackHtml}`;
  * 删除单个文件
  */
 export const deleteFile = async (notebookId: string, pathString: string) => {
-    // 配置为无需确认时直接删除
-    if (getSiyuanConfig().fileTree.removeDocWithoutConfirm) {
+    const hasRef = await checkBlockRef({
+        scope: "documents",
+        paths: [pathString],
+    });
+    if (hasRef === undefined) {
+        return;
+    }
+    // 无引用时才允许跳过确认；引用检查失败时会保留文档。
+    if (getSiyuanConfig().fileTree.removeDocWithoutConfirm && !hasRef) {
         fetchPost("/api/filetree/removeDoc", { notebook: notebookId, path: pathString });
         return;
     }
@@ -67,19 +79,29 @@ export const deleteFile = async (notebookId: string, pathString: string) => {
         if (!response.data) {
             return;
         }
-        handleDocInfoResponse({ data: response.data }, notebookId, pathString);
+        handleDocInfoResponse({data: response.data}, notebookId, pathString, hasRef);
     });
 };
 
 /**
  * 确认删除笔记本
  */
-function confirmDeleteNotebook(itemNotebookId: string) {
+async function confirmDeleteNotebook(itemNotebookId: string) {
+    const hasRef = await checkBlockRef({
+        scope: "notebook",
+        notebook: itemNotebookId,
+    });
+    if (hasRef === undefined) {
+        return;
+    }
     const lang = getSiyuanLanguages();
     const days = getSiyuanConfig().editor.historyRetentionDays;
-    const tip = `${lang.confirmDeleteTip.replace("${x}", Lute.EscapeHTMLStr(getNotebookName(itemNotebookId)))}
+    let tip = `${lang.confirmDeleteTip.replace("${x}", Lute.EscapeHTMLStr(getNotebookName(itemNotebookId)))}
 <div class="fn__hr"></div>
 <div class="ft__smaller ft__on-surface">${lang.rollbackTip.replace("${x}", days)}</div>`;
+    if (hasRef) {
+        tip += getBlockRefWarningHTML();
+    }
     confirmDialog(lang.deleteOpConfirm, tip, () => {
         fetchPost("/api/notebook/removeNotebook", { notebook: itemNotebookId, callback: "CB_MOUNT_REMOVE" });
     }, undefined, true);
@@ -88,12 +110,22 @@ function confirmDeleteNotebook(itemNotebookId: string) {
 /**
  * 确认批量删除文件
  */
-function confirmBatchDelete(paths: string[]) {
+async function confirmBatchDelete(paths: string[]) {
+    const hasRef = await checkBlockRef({
+        scope: "documents",
+        paths,
+    });
+    if (hasRef === undefined) {
+        return;
+    }
     const lang = getSiyuanLanguages();
     const days = getSiyuanConfig().editor.historyRetentionDays;
-    const tip = `${lang.confirmRemoveAll.replace("${count}", paths.length)}
+    let tip = `${lang.confirmRemoveAll.replace("${count}", paths.length)}
 <div class="fn__hr"></div>
 <div class="ft__smaller ft__on-surface">${lang.rollbackTip.replace("${x}", days)}</div>`;
+    if (hasRef) {
+        tip += getBlockRefWarningHTML();
+    }
     confirmDialog(lang.deleteOpConfirm, tip, () => {
         fetchPost("/api/filetree/removeDocs", { paths });
     }, undefined, true);
@@ -106,7 +138,7 @@ export const deleteFiles = async (liElements: Element[]) => {
     // 非单个元素时进入批量处理模式
     if (liElements.length !== 1) {
         const paths = collectBatchPaths(liElements);
-        confirmBatchDeleteIfAny(paths);
+        await confirmBatchDeleteIfAny(paths);
         return;
     }
 
@@ -123,19 +155,19 @@ export const deleteFiles = async (liElements: Element[]) => {
     const itemType = firstElement.getAttribute("data-type") || "";
     // 普通文件调用 deleteFile，笔记本调用 confirmDeleteNotebook
     if (itemType === "navigation-file") {
-        deleteFile(itemNotebookId, firstElement.getAttribute("data-path") || "");
+        await deleteFile(itemNotebookId, firstElement.getAttribute("data-path") || "");
         return;
     }
-    confirmDeleteNotebook(itemNotebookId);
+    await confirmDeleteNotebook(itemNotebookId);
 };
 
 /**
  * 有批量路径时执行确认删除，否则提示无有效文件
  */
-function confirmBatchDeleteIfAny(paths: string[]) {
+async function confirmBatchDeleteIfAny(paths: string[]) {
     // 有有效路径时执行批量删除
     if (paths.length > 0) {
-        confirmBatchDelete(paths);
+        await confirmBatchDelete(paths);
         return;
     }
     showMessage(getSiyuanLanguages().notBatchRemove);

@@ -3,11 +3,7 @@
  * 从 MobileOutline.ts 拆分
  */
 import {fetchPost} from "../../util/network/fetch";
-import {
-    isInAndroid,
-    isInHarmony,
-    writeText
-} from "../../protyle/util/compatibility";
+import {writeBlockDOMClipboard} from "../../protyle/util/compatibility";
 import {Constants} from "../../constants";
 import {MenuItem} from "../../menus/Menu.Item";
 import {transaction} from "../../protyle/wysiwyg/transaction/submit";
@@ -18,6 +14,8 @@ import {focusBlock} from "../../protyle/util/selection";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {collapseSameLevel, collapseChildren, getHeadingLevel} from "./MobileOutline.expand";
 import type {MobileOutlineContextMenuPort, MobileOutlineTreePort} from "./outline/ports.types";
+import {confirmBlockRefForBlocks} from "../../util/checkBlockRef";
+import {showMessage} from "../../dialog/message";
 
 /**
  * 获取 Protyle 和块元素
@@ -44,6 +42,32 @@ const focusInsertedHeading = (element: Element | null) => {
     element.querySelector("wbr")?.remove();
     (element.querySelector('[contenteditable="true"]') as HTMLElement)?.focus({preventScroll: true});
     focusBlock(element);
+};
+
+const writeHeadingClipboard = async (protyle: IProtyle, responseData: string) => {
+    return await writeBlockDOMClipboard({
+        text: protyle.lute.BlockDOM2StdMd(responseData).trimEnd(),
+        html: responseData + Constants.ZWSP,
+    });
+};
+
+const reportClipboardFailure = () => {
+    showMessage(siyuanI18n.clipboardPermissionDenied, 7000, "error");
+};
+
+const confirmHeadingDeletion = async (protyle: IProtyle, id: string, response: IWebSocketData) => {
+    const operations = response.data?.doOperations as IOperation[] | undefined;
+    if (!operations?.length) {
+        console.error("Heading deletion transaction is missing operations", {id, response});
+        return false;
+    }
+    if (!await confirmBlockRefForBlocks(
+        protyle,
+        operations.flatMap(operation => operation.id ? [operation.id] : []),
+    )) {
+        return false;
+    }
+    return Boolean(protyle.wysiwyg?.element.querySelector(`[data-node-id="${id}"]`));
 };
 
 /**
@@ -294,16 +318,15 @@ export function showContextMenu(outline: MobileOutlineContextMenuPort, element: 
         label: `${siyuanI18n.copy} ${siyuanI18n.headings1}`,
         click: () => {
             const data = getProtyleAndBlockElement(outline, element);
+            if (!data) {
+                return;
+            }
             fetchPost("/api/block/getHeadingChildrenDOM", {
                 id,
                 removeFoldAttr: data.blockElement.getAttribute("fold") !== "1"
-            }, (response) => {
-                if (isInAndroid()) {
-                    window.JSAndroid.writeHTMLClipboard(data.protyle.lute.BlockDOM2StdMd(response.data).trimEnd(), response.data + Constants.ZWSP);
-                } else if (isInHarmony()) {
-                    window.JSHarmony.writeHTMLClipboard(data.protyle.lute.BlockDOM2StdMd(response.data).trimEnd(), response.data + Constants.ZWSP);
-                } else {
-                    writeText(response.data + Constants.ZWSP);
+            }, async (response) => {
+                if (!await writeHeadingClipboard(data.protyle, response.data)) {
+                    reportClipboardFailure();
                 }
             });
         }
@@ -317,20 +340,23 @@ export function showContextMenu(outline: MobileOutlineContextMenuPort, element: 
             label: `${siyuanI18n.cut} ${siyuanI18n.headings1}`,
             click: () => {
                 const data = getProtyleAndBlockElement(outline, element);
+                if (!data) {
+                    return;
+                }
                 fetchPost("/api/block/getHeadingChildrenDOM", {
                     id,
                     removeFoldAttr: data.blockElement.getAttribute("fold") !== "1"
                 }, (response) => {
-                    if (isInAndroid()) {
-                        window.JSAndroid.writeHTMLClipboard(data.protyle.lute.BlockDOM2StdMd(response.data).trimEnd(), response.data + Constants.ZWSP);
-                    } else if (isInHarmony()) {
-                        window.JSHarmony.writeHTMLClipboard(data.protyle.lute.BlockDOM2StdMd(response.data).trimEnd(), response.data + Constants.ZWSP);
-                    } else {
-                        writeText(response.data + Constants.ZWSP);
-                    }
                     fetchPost("/api/block/getHeadingDeleteTransaction", {
                         id,
-                    }, (deleteResponse) => {
+                    }, async (deleteResponse) => {
+                        if (!await confirmHeadingDeletion(data.protyle, id, deleteResponse)) {
+                            return;
+                        }
+                        if (!await writeHeadingClipboard(data.protyle, response.data)) {
+                            reportClipboardFailure();
+                            return;
+                        }
                         deleteResponse.data.doOperations.forEach((operation: IOperation) => {
                             data.protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`).forEach((itemElement: HTMLElement) => {
                                 itemElement.remove();
@@ -365,9 +391,15 @@ export function showContextMenu(outline: MobileOutlineContextMenuPort, element: 
             label: `${siyuanI18n.delete} ${siyuanI18n.headings1}`,
             click: () => {
                 const data = getProtyleAndBlockElement(outline, element);
+                if (!data) {
+                    return;
+                }
                 fetchPost("/api/block/getHeadingDeleteTransaction", {
                     id,
-                }, (response) => {
+                }, async (response) => {
+                    if (!await confirmHeadingDeletion(data.protyle, id, response)) {
+                        return;
+                    }
                     response.data.doOperations.forEach((operation: IOperation) => {
                         data.protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`).forEach((itemElement: HTMLElement) => {
                             itemElement.remove();
@@ -456,4 +488,3 @@ export function showContextMenu(outline: MobileOutlineContextMenuPort, element: 
 
     window.siyuan.menus.menu.fullscreen("bottom");
 }
-

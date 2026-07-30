@@ -14,6 +14,7 @@ import {getEventName} from "../../util/platform/functions";
 import {isIPad} from "../../util/platform/functions";
 import {isIPhone} from "../../util/platform/functions";
 import {setStorageVal} from "../../util/storage/setStorageVal";
+import {getWindowJSAndroid, getWindowJSHarmony, getWindowWebkit} from "../../util/siyuanEnvironments/windowNative.environment";
 export {getLocalStorage} from "./localStorage/initialize";
 
 export {getEventName};
@@ -280,47 +281,129 @@ export const readClipboard = async () => {
     }
 };
 
-export const writeText = (text: string) => {
-    let range: Range;
-    if (getSelection().rangeCount > 0) {
-        range = getSelection().getRangeAt(0).cloneRange();
+const writeTextWithDocumentCommand = (text: string, range?: Range) => {
+    const textElement = document.createElement("textarea");
+    textElement.value = text;
+    textElement.style.position = "fixed"; // Avoid scrolling to bottom.
+    document.body.appendChild(textElement);
+    textElement.focus();
+    textElement.select();
+    const written = document.execCommand("copy");
+    document.body.removeChild(textElement);
+    if (range) {
+        focusByRange(range);
+    }
+    return written;
+};
+
+/**
+ * Writes plain text and reports whether the active platform accepted it. This
+ * is used by mutation flows, which must not change the document after a failed
+ * clipboard operation.
+ */
+export const writeTextAndConfirm = async (text: string) => {
+    const selection = window.getSelection();
+    let range: Range | undefined;
+    if (selection && selection.rangeCount > 0) {
+        range = selection.getRangeAt(0).cloneRange();
     }
     try {
-        // navigator.clipboard.writeText 抛出异常不进入 catch，这里需要先处理移动端复制
+        // Native bridges are synchronous APIs: a completed call is their acknowledgement.
         if (isInAndroid()) {
-            window.JSAndroid.writeClipboard(text);
-            return;
+            const bridge = getWindowJSAndroid();
+            if (!bridge) {
+                return false;
+            }
+            bridge.writeClipboard(text);
+            return true;
         }
         if (isInHarmony()) {
-            window.JSHarmony.writeClipboard(text);
-            return;
-        }
-        if (isInIOS()) {
-            window.webkit.messageHandlers.setClipboard.postMessage(text);
-            return;
-        }
-        navigator.clipboard.writeText(text);
-    } catch (e) {
-        if (isInIOS()) {
-            window.webkit.messageHandlers.setClipboard.postMessage(text);
-        } else if (isInAndroid()) {
-            window.JSAndroid.writeClipboard(text);
-        } else if (isInHarmony()) {
-            window.JSHarmony.writeClipboard(text);
-        } else {
-            const textElement = document.createElement("textarea");
-            textElement.value = text;
-            textElement.style.position = "fixed";  //avoid scrolling to bottom
-            document.body.appendChild(textElement);
-            textElement.focus();
-            textElement.select();
-            document.execCommand("copy");
-            document.body.removeChild(textElement);
-            if (range) {
-                focusByRange(range);
+            const bridge = getWindowJSHarmony();
+            if (!bridge) {
+                return false;
             }
+            bridge.writeClipboard(text);
+            return true;
         }
+        if (isInIOS()) {
+            const webkit = getWindowWebkit();
+            if (!webkit?.messageHandlers?.setClipboard) {
+                return false;
+            }
+            webkit.messageHandlers.setClipboard.postMessage(text);
+            return true;
+        }
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+        return writeTextWithDocumentCommand(text, range);
+    } catch (error) {
+        console.error("Clipboard text write failed", error);
+        return false;
     }
+};
+
+/** A platform-neutral representation of copied BlockDOM content. */
+export interface IBlockDOMClipboardContent {
+    text: string;
+    html: string;
+    siyuanHTML?: string;
+}
+
+/**
+ * Writes BlockDOM clipboard data and resolves only after the browser clipboard
+ * promise has succeeded. Native bridge variants remain explicit because the
+ * Gutter flow intentionally preserves raw BlockDOM while Outline/Mobile retain
+ * their existing two-format clipboard payload.
+ */
+export const writeBlockDOMClipboard = async (content: IBlockDOMClipboardContent) => {
+    try {
+        if (isInAndroid()) {
+            const bridge = getWindowJSAndroid();
+            if (!bridge) {
+                return false;
+            }
+            if (content.siyuanHTML !== undefined) {
+                bridge.writeSiYuanHTMLClipboard(content.text, content.html, content.siyuanHTML);
+            } else {
+                bridge.writeHTMLClipboard(content.text, content.html);
+            }
+            return true;
+        }
+        if (isInHarmony()) {
+            const bridge = getWindowJSHarmony();
+            if (!bridge) {
+                return false;
+            }
+            if (content.siyuanHTML !== undefined) {
+                bridge.writeSiYuanHTMLClipboard(content.text, content.html, content.siyuanHTML);
+            } else {
+                bridge.writeHTMLClipboard(content.text, content.html);
+            }
+            return true;
+        }
+        if (navigator.clipboard?.write && typeof ClipboardItem !== "undefined") {
+            await navigator.clipboard.write([new ClipboardItem({
+                "text/plain": content.text,
+                "text/html": content.html,
+            })]);
+            return true;
+        }
+        return await writeTextAndConfirm(content.html);
+    } catch (error) {
+        console.error("BlockDOM clipboard write failed", error);
+        return false;
+    }
+};
+
+/** Retains the fire-and-forget copy API for non-mutating callers. */
+export const writeText = (text: string) => {
+    void writeTextAndConfirm(text).then((written) => {
+        if (!written) {
+            console.error("Clipboard text write was not accepted by the active platform");
+        }
+    });
 };
 
 export const copyPlainText = (text: string) => {
