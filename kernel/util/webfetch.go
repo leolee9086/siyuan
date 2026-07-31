@@ -17,14 +17,17 @@
 package util
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"mime"
 	"net/http"
 	"net/url"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -39,6 +42,8 @@ const (
 	defaultWebFetchTimeoutSeconds = 30
 	maxWebFetchTimeoutSeconds     = 120
 	maxWebFetchRedirects          = 10
+	maxWebFetchAttempts           = 2
+	webFetchRetryDelay            = 300 * time.Millisecond
 )
 
 type WebFetchOptions struct {
@@ -98,14 +103,17 @@ func FetchWebPage(rawURL string, options WebFetchOptions) (WebFetchResult, error
 
 	var resp *http.Response
 	var lastErr error
-	for attempt := 0; attempt < 2; attempt++ {
+	for attempt := 0; attempt < maxWebFetchAttempts; attempt++ {
+		if attempt > 0 {
+			time.Sleep(webFetchRetryDelay)
+		}
 		req, requestErr := http.NewRequest(http.MethodGet, rawURL, nil)
 		if requestErr != nil {
 			return WebFetchResult{}, requestErr
 		}
 		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/143.0 Safari/537.36")
 		req.Header.Set("Accept", acceptWebFetch(format))
-		req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+		req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en-US,en;q=0.8")
 		client, clientErr := newWebFetchClient(time.Duration(timeout)*time.Second, options.ProxyURL,
 			func(redirectReq *http.Request, via []*http.Request) error {
 				if len(via) >= maxWebFetchRedirects {
@@ -123,8 +131,16 @@ func FetchWebPage(rawURL string, options WebFetchOptions) (WebFetchResult, error
 			return WebFetchResult{}, clientErr
 		}
 		resp, lastErr = client.Do(req)
-		if lastErr == nil && resp.StatusCode == http.StatusForbidden && resp.Header.Get("cf-mitigated") == "challenge" && attempt == 0 {
+		if lastErr != nil {
+			// 网络层错误（超时、连接中断等）重试一次
+			if attempt == 0 {
+				continue
+			}
+			break
+		}
+		if isWebFetchRetryable(resp.StatusCode, resp.Header.Get("cf-mitigated")) && attempt < maxWebFetchAttempts-1 {
 			resp.Body.Close()
+			lastErr = fmt.Errorf("HTTP %d", resp.StatusCode)
 			continue
 		}
 		break
@@ -155,23 +171,117 @@ func FetchWebPage(rawURL string, options WebFetchOptions) (WebFetchResult, error
 	htmlStr := string(body)
 	result := htmlStr
 	if contentType == "text/html" || contentType == "application/xhtml+xml" {
-		if format == "text" {
-			result, err = safeHTML2Text(NewLute(), htmlStr)
-		} else if format == "markdown" {
-			result, err = safeHTML2Markdown(NewLute(), htmlStr)
-		}
-		if err != nil {
-			return WebFetchResult{}, errors.New("HTML conversion failed: " + err.Error())
-		}
+		result = convertWebFetchHTML(NewLute(), htmlStr, format)
 	}
 	if strings.TrimSpace(result) == "" {
-		return WebFetchResult{}, errors.New("fetched page has empty text content")
+		// 正文可能位于 <noscript>、meta 描述、JSON-LD、Next.js __NEXT_DATA__ 等转换器未提取的位置
+		result = extractFallbackText(htmlStr)
+	}
+	if strings.TrimSpace(result) == "" {
+		return WebFetchResult{}, errors.New("fetched page has empty text content; try format=html to inspect raw HTML")
 	}
 	truncated := len([]rune(result)) > maxChars
 	if truncated {
 		result = truncateRunes(result, maxChars)
 	}
 	return WebFetchResult{URL: rawURL, ContentType: contentType, Format: format, Output: result, Truncated: truncated}, nil
+}
+
+// isWebFetchRetryable 判断一次 HTTP 响应是否值得重试：429/5xx 服务端抖动，
+// 以及带 cf-mitigated: challenge 的 403（Cloudflare 质询页）。
+func isWebFetchRetryable(statusCode int, cfMitigated string) bool {
+	return statusCode == http.StatusTooManyRequests || statusCode >= 500 ||
+		(statusCode == http.StatusForbidden && cfMitigated == "challenge")
+}
+
+// convertWebFetchHTML 将 HTML 按 format 转换，转换失败时逐级降级：
+// markdown → text → 原始 HTML，避免转换器 panic 导致整次抓取失败。
+func convertWebFetchHTML(engine *lute.Lute, htmlStr, format string) string {
+	if format == "text" {
+		if result, err := safeHTML2Text(engine, htmlStr); err == nil {
+			return result
+		}
+		return htmlStr
+	}
+	// markdown（含默认格式）
+	if result, err := safeHTML2Markdown(engine, htmlStr); err == nil {
+		return result
+	}
+	if result, err := safeHTML2Text(engine, htmlStr); err == nil {
+		return result
+	}
+	return htmlStr
+}
+
+// extractFallbackText 在常规 HTML 转文本结果为空时，尝试从常见 JS 渲染/数据内嵌位置提取正文：
+// <noscript> 降级内容、<title>/meta description、JSON-LD 结构化数据、Next.js __NEXT_DATA__。
+func extractFallbackText(htmlStr string) string {
+	var parts []string
+	add := func(s string) {
+		if t := strings.TrimSpace(s); t != "" {
+			parts = append(parts, t)
+		}
+	}
+	// 1. <noscript> 块（JS 渲染站点的降级内容）
+	noscriptRe := regexp.MustCompile(`(?is)<noscript[^>]*>(.*?)</noscript>`)
+	for _, m := range noscriptRe.FindAllStringSubmatch(htmlStr, -1) {
+		if t := stripTagsAndEntities(m[1]); t != "" {
+			parts = append(parts, t)
+		}
+	}
+	// 2. <title> 与 meta description / og:description
+	if m := regexp.MustCompile(`(?is)<title[^>]*>(.*?)</title>`).FindStringSubmatch(htmlStr); len(m) > 1 {
+		add(html.UnescapeString(m[1]))
+	}
+	metaRe := regexp.MustCompile(`(?is)<meta[^>]+(?:name|property)=["'](?:description|og:description)["'][^>]*content=["']([^"']+)["']`)
+	for _, m := range metaRe.FindAllStringSubmatch(htmlStr, -1) {
+		add(html.UnescapeString(m[1]))
+	}
+	// 3. JSON-LD 与 __NEXT_DATA__ 中的正文型字段（content/description/headline/articleBody 等）
+	scriptRe := regexp.MustCompile(`(?is)<script[^>]*type=["']application/(?:ld\+)?json["'][^>]*>(.*?)</script>`)
+	for _, m := range scriptRe.FindAllStringSubmatch(htmlStr, -1) {
+		var data any
+		if err := json.Unmarshal([]byte(m[1]), &data); err != nil {
+			continue
+		}
+		collectJSONTextFields(data, &parts, 0)
+	}
+	return strings.Join(parts, "\n\n")
+}
+
+// collectJSONTextFields 递归收集 JSON 中常见正文型字段的字符串值，限制递归层数与单条长度。
+func collectJSONTextFields(v any, parts *[]string, depth int) {
+	if depth > 4 {
+		return
+	}
+	switch val := v.(type) {
+	case map[string]any:
+		for k, child := range val {
+			switch k {
+			case "content", "description", "headline", "articleBody", "text", "abstract", "summary":
+				if s, ok := child.(string); ok {
+					if t := stripTagsAndEntities(s); t != "" {
+						*parts = append(*parts, t)
+					}
+				}
+			default:
+				collectJSONTextFields(child, parts, depth+1)
+			}
+		}
+	case []any:
+		for _, child := range val {
+			collectJSONTextFields(child, parts, depth+1)
+		}
+	}
+}
+
+// stripTagsAndEntities 去除 script/style 与普通 HTML 标签并解码常用实体，供兜底提取使用。
+func stripTagsAndEntities(s string) string {
+	// RE2 语法不支持反向引用，script/style 分开匹配
+	s = regexp.MustCompile(`(?is)<script[^>]*>.*?</script>`).ReplaceAllString(s, "")
+	s = regexp.MustCompile(`(?is)<style[^>]*>.*?</style>`).ReplaceAllString(s, "")
+	s = regexp.MustCompile(`(?is)<[^>]+>`).ReplaceAllString(s, " ")
+	return strings.TrimSpace(html.UnescapeString(s))
 }
 
 func newWebFetchClient(timeout time.Duration, proxyURL string, checkRedirect func(*http.Request, []*http.Request) error) (*http.Client, error) {
