@@ -34,6 +34,24 @@
       },
       "disposition": "ported-semantic",
       "seriesId": "document-bottom-backlinks-18319",
+      "localCommits": [
+        "135723ceb1f1b78dc7d5c453f4b9981bfb5cd10c",
+        "fe5acd7d3"
+      ],
+      "mappingEvidence": [
+        {
+          "localCommit": "135723ceb1f1b78dc7d5c453f4b9981bfb5cd10c",
+          "declaredDisposition": "semantic-port",
+          "series": "siyuan-dev-28e38647fb02/document-bottom-backlinks-18319",
+          "audit": "docs/upstream-sync/siyuan-dev-28e38647fb02/commits.jsonl"
+        },
+        {
+          "localCommit": "fe5acd7d3",
+          "declaredDisposition": "semantic-port",
+          "series": "siyuan-dev-28e38647fb02/document-bottom-backlinks-18319",
+          "audit": "docs/upstream-sync/siyuan-dev-28e38647fb02/commits.jsonl"
+        }
+      ],
       "codeEvidence": [
         "app/src/editor/model/Editor.ts",
         "app/src/layout/dock/Backlink.ts",
@@ -56,7 +74,7 @@
       ],
       "notes": [
         "The semantic implementation is split across the existing Editor, Layout, Protyle and Backlink domain owners; the upstream monolithic entry points are not copied as parallel implementations.",
-        "The first local semantic commit 135723ceb1f1b78dc7d5c453f4b9981bfb5cd10c carries the same upstream trailers; the lifecycle and test correction in the working tree will be recorded in the next atomic commit of this series."
+        "The semantic implementation is recorded in two atomic commits: 135723ceb1f1b78dc7d5c453f4b9981bfb5cd10c for the routed backlink behavior and fe5acd7d3 for the remaining migration, lifecycle correction, tests and audit evidence."
       ]
     }
   ]
