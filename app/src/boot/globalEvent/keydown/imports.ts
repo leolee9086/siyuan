@@ -101,3 +101,44 @@ export { hideElements };
 import { escapeHtml } from "../../../util/DOM/escape";
 /** 导出 [`escapeHtml`](app/src/boot/globalEvent/keydown/imports.ts:85) 供 `keydown` 目录预览渲染流程复用。 */
 export { escapeHtml };
+
+/** 用途：提供反链完整领域根和身份守卫。使用范围：全局键盘入口识别反链模型并调用树行为。解耦评估：仅依赖领域类型与厂牌守卫，不导入具体 Backlink class。 */
+import type {BacklinkDomain} from "../../../layout/dock/backlink/backlink.types";
+/** 用途：提供反链身份守卫。使用范围：键盘入口模型收窄。解耦评估：只依赖完整领域厂牌，不引入具体 class。 */
+import {isBacklinkDomain} from "../../../layout/dock/backlink/backlink.types";
+/** 导出反链领域类型与守卫供键盘模块使用。 */
+export type {BacklinkDomain};
+/** 导出反链身份守卫供键盘模块使用。 */
+export {isBacklinkDomain};
+
+/** 用途：提供面板键盘状态空间分派。使用范围：键盘入口完成 DOM 事实收集后。解耦评估：路由只接收值对象，不持有宿主状态。 */
+import {resolveBacklinkPanelKeyCommand} from "../../../layout/dock/backlink/backlinkKeyboard.router";
+/** 导出面板键盘路由。 */
+export {resolveBacklinkPanelKeyCommand};
+
+/** 用途：提供布局模型集合查询。使用范围：识别底部反链面板实例。解耦评估：复用布局聚合根现有索引，不复制遍历逻辑。 */
+import {getAllModels} from "../../../layout/getAll";
+/** 导出布局模型集合查询。 */
+export {getAllModels};
+
+/** 用途：提供布局页签结构守卫。使用范围：按 DOM ID 查询后收窄模型宿主。解耦评估：守卫只依赖完整布局领域，不加载 Tab class。 */
+import {isLayoutTab} from "../../../layout/layout.types.guard";
+/** 导出布局页签结构守卫。 */
+export {isLayoutTab};
+
+/** 用途：提供布局实例查询。使用范围：普通布局面板通过 data-id 定位页签。解耦评估：查询显式接收布局参数，保留既有环境入口而不新增服务层。 */
+import {getInstanceById} from "../../../layout/query/layoutInstance";
+/** 导出布局实例查询。 */
+export {getInstanceById};
+
+/** 用途：提供 DOM 祖先判断工具。使用范围：判定输入控件、嵌套编辑器和反链容器。解耦评估：纯 DOM 谓词经目录网关复用，不复制实现。 */
+import {hasClosestByAttribute, hasClosestByClassName} from "../../../protyle/util/hasClosest";
+/** 导出 DOM 祖先判断工具。 */
+export {hasClosestByAttribute};
+/** 导出 DOM 类名祖先判断工具。 */
+export {hasClosestByClassName};
+
+/** 用途：提供快捷键匹配能力。使用范围：插件 Dock 命令和面板键盘动作。解耦评估：匹配函数只消费事件与配置，不持有全局状态。 */
+import {matchHotKey} from "../../../protyle/util/hotKey";
+/** 导出快捷键匹配能力。 */
+export {matchHotKey};

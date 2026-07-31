@@ -150,10 +150,15 @@ const createLayoutWindowKeyHandler = (command: "splitLR" | "splitMoveR" | "split
  * 调用时机：executeDelegatedKeydownNavigationWindowKeyCommand 中，降级到回退路径前先执行预处理。
  */
 const executeDelegatedKeydownPreHandlers = (state: WindowKeyDownState) => {
+    const targetIsBottomBacklink = hasClosestByClassName(
+        state.event.target as HTMLElement,
+        "sy__backlink--bottom",
+        true,
+    ) !== null;
     const preHandlers = [
         () => editKeydown(state.app, state.event),
         () => !state.isTabWindow && fileTreeKeydown(state.app, state.event),
-        () => !state.isTabWindow && panelTreeKeydown(state.app, state.event),
+        () => (!state.isTabWindow || targetIsBottomBacklink) && panelTreeKeydown(state.app, state.event),
     ];
     for (const preHandler of preHandlers) {
         if (preHandler()) {

@@ -206,6 +206,10 @@ const 检查是否有选中文本 = (protyle: IProtyle): boolean => {
  */
 export const 绑定底部点击事件 = (protyle: IProtyle) => {
     protyle.contentElement.addEventListener("click", (event: MouseEvent & { target: HTMLElement }) => {
+        const eventProtyleElement = hasClosestByClassName(event.target, "protyle", true);
+        if (eventProtyleElement && eventProtyleElement !== protyle.element) {
+            return;
+        }
         hideElements(["hint", "util"], protyle);
         // 禁止添加空块的条件检查
         const 禁止添加 = protyle.disabled ||
@@ -343,6 +347,10 @@ export const 绑定悬停事件 = (protyle: IProtyle) => {
 
     // @内联回调 悬停/触摸事件处理
     protyle.element.addEventListener(eventName, (event: PointerEvent & { target: HTMLElement }) => {
+        const eventProtyleElement = hasClosestByClassName(event.target, "protyle", true);
+        if (eventProtyleElement && eventProtyleElement !== protyle.element) {
+            return;
+        }
         // 移动宿主只响应外接鼠标悬停，手指/触控笔不应显示桌面 gutter。
         if (isMobile && event.pointerType !== "mouse") {
             return;

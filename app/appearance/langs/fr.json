@@ -1,4 +1,5 @@
 {
+    "backlinkShowBottom": "Afficher les backlinks au bas du document",
 	"deleteRefConfirm": "Le contenu à supprimer ou à couper contient des blocs référencés. Voulez-vous continuer ?",
 	"addAllAiModels": "Ajouter tous les modèles",
 	"autoDetectProxy": "Détecter automatiquement le proxy",

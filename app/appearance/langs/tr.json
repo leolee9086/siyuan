@@ -1,4 +1,5 @@
 {
+    "backlinkShowBottom": "Belgenin altında geri bağlantıları göster",
 	"deleteRefConfirm": "Silinecek veya kesilecek içerik, başvurulan bloklar içeriyor. Devam etmek istiyor musunuz?",
 	"addAllAiModels": "Tüm modelleri ekle",
 	"autoDetectProxy": "Proxy'yi otomatik algıla",

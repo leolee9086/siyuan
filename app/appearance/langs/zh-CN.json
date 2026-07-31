@@ -1,4 +1,5 @@
 {
+    "backlinkShowBottom": "在文档底部显示反链",
 	"deleteRefConfirm": "待删除或剪切的内容中存在被引用的内容块，是否继续？",
 	"addAllAiModels": "添加全部模型",
 	"autoDetectProxy": "自动探测代理",

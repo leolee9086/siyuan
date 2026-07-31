@@ -20,8 +20,8 @@ import {getSiyuanBlockPanels} from "./imports";
 import {isHTMLElement} from "./imports";
 /** 用途：撤销/重做状态镜像类型定义。使用范围：镜像 Map 值类型标注。解耦评估：同目录类型文件，直接同层导入。 */
 import {IUndoStateMirror} from "./undo.types";
-/** 用途：判断模型对象是否包含 editor.protyle 属性。使用范围：getActiveProtyle 类型收窄。解耦评估：同目录守卫文件。 */
-import {hasEditorProtyle} from "./globalUndo.guard";
+/** 用途：Editor 完整领域根守卫。使用范围：嵌套反链编辑器的撤销目标解析。解耦评估：守卫只依赖领域品牌。 */
+import {isEditorDomain} from "../../editor/model/editorDomain.types";
 /** 用途：等待当前输入事务提交完成。使用范围：撤销和重做请求发出前。解耦评估：通过 imports.ts 转发。 */
 import {waitForPendingTransactions} from "./imports";
 
@@ -158,8 +158,10 @@ export const getActiveProtyle = () => {
     // 桌面端从当前激活页签的模型中获取 protyle 实例
     const activeTab = getActiveTab();
     const model = activeTab?.model;
-    if (hasEditorProtyle(model)) {
-        return model.editor.protyle;
+    if (isEditorDomain(model)) {
+        const selection = window.getSelection();
+        const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : undefined;
+        return model.getCurrentProtyle(range);
     }
     // 兜底：搜索/反链/自定义编辑器中聚焦的那个
     try {

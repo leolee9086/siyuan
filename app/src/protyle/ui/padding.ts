@@ -66,10 +66,13 @@ export const setPadding = (protyle: IProtyle) => {
     const padding = getPadding(protyle);
     const paddingLeft = padding.left;
     const paddingRight = padding.right;
+    const backlinkBottomElement = protyle.contentElement.querySelector<HTMLElement>(".sy__backlink--bottom");
+    const backlinkBottomVisible = backlinkBottomElement !== null && !backlinkBottomElement.classList.contains("fn__none");
 
+    const paddingBottom = backlinkBottomVisible && protyle.options.typewriterMode ? 16 : padding.bottom;
     const wysiwygPadding = protyle.options.backlinkData
         ? `4px ${paddingRight}px 4px ${paddingLeft}px`
-        : `${padding.top}px ${paddingRight}px ${padding.bottom}px ${paddingLeft}px`;
+        : `${padding.top}px ${paddingRight}px ${paddingBottom}px ${paddingLeft}px`;
     protyle.wysiwyg.element.style.padding = wysiwygPadding;
 
     const backgroundIa = protyle.background?.element.querySelector(".protyle-background__ia");
@@ -85,6 +88,12 @@ export const setPadding = (protyle: IProtyle) => {
     // 数据库属性面板与正文共用同一水平内容边界。
     if (protyle.databaseAttributePanel) {
         protyle.databaseAttributePanel.element.style.margin = `8px ${paddingRight}px 8px ${paddingLeft}px`;
+    }
+    if (backlinkBottomElement) {
+        backlinkBottomElement.style.padding = `0 ${paddingRight}px 16px ${paddingLeft}px`;
+        backlinkBottomElement.style.marginBottom = backlinkBottomVisible && protyle.options.typewriterMode
+            ? `${Math.max(padding.bottom - 16, 0)}px`
+            : "";
     }
 
     // https://github.com/siyuan-note/siyuan/issues/15021

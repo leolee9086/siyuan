@@ -41,12 +41,20 @@ import {
     writeText,
     zoomOut,
 } from "./imports";
+import {resolveBacklinkEditorKeyCommand} from "../../../../layout/dock/backlink/backlinkKeyboard.router";
 
 const getTitleText = (protyle: IProtyle) => {
     return protyle.title?.editElement.textContent || siyuanI18n.untitled;
 };
 
 export const editKeydown = (app: AppFacade, event: KeyboardEvent) => {
+    const eventTarget = event.target as HTMLElement;
+    if (resolveBacklinkEditorKeyCommand({
+        insideBottomBacklink: hasClosestByClassName(eventTarget, "sy__backlink--bottom", true) !== null,
+        insideNestedProtyle: hasClosestByClassName(eventTarget, "protyle", true) !== null,
+    }) === "ignore-bottom-chrome") {
+        return false;
+    }
     const config = getSiyuanConfig();
     let protyle: IProtyle;
     let range: Range | null = null;
@@ -78,7 +86,7 @@ export const editKeydown = (app: AppFacade, event: KeyboardEvent) => {
     const activeTab = getActiveTab();
     if (!protyle && activeTab) {
         if (activeTab.model instanceof Editor) {
-            protyle = activeTab.model.editor.protyle;
+            protyle = activeTab.model.getCurrentProtyle(range || undefined);
         } else if (activeTab.model instanceof Search) {
             if (activeTab.model.element.querySelector("#searchUnRefPanel").classList.contains("fn__none")) {
                 protyle = activeTab.model.editors.edit.protyle;

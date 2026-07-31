@@ -98,7 +98,7 @@ type CustomContract = PublicInstanceLooksLike<
 >;
 type TagContract = PublicInstanceLooksLike<typeof Tag, TagDomain<AppFacade, Tab>>;
 type SearchContract = PublicInstanceLooksLike<typeof Search, SearchDomain<AppFacade, LayoutTab>>;
-type EditorContract = PublicInstanceLooksLike<typeof Editor, EditorDomain<object, ProtyleDomain>>;
+type EditorContract = PublicInstanceLooksLike<typeof Editor, EditorDomain<AppFacade, ProtyleDomain>>;
 type MobileBookmarksContract = PublicInstanceLooksLike<typeof MobileBookmarks, MobileBookmarksDomain>;
 type MobileFilesContract = PublicInstanceLooksLike<typeof MobileFiles, MobileFilesDomain>;
 

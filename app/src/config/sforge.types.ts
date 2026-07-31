@@ -95,7 +95,7 @@ import type {SettingTab} from "../config/setting/builder";
 /** 用途：内核消息分发完整 UI 依赖。使用范围：全局能力槽；解耦评估：纯类型依赖不加载网络或 Dialog 实现。 */
 import type {IProcessMessageUIDependencies} from "../util/network/types";
 /** 用途：Forge Runtime 完整控制领域根。使用范围：全局状态映射。解耦评估：纯类型引用，不加载控制器实现。 */
-import type {ForgeRuntimeControl} from "../sforge/forgeRuntime";
+import type {ForgeRuntimeControlDomain} from "../sforge/forgeRuntime/forgeRuntimeControl.types";
 
 /**
  * SForge 全局状态类型定义
@@ -137,7 +137,13 @@ export interface ISForgeGlobalState {
     [FRONTEND_ACTION_REGISTRY]?: FrontendActionRegistryState;
     [LAYOUT_RESIZE_REGISTRY]?: LayoutResizeState;
     [SETTING_TAB_REGISTRY]?: Map<string, SettingTab>;
-    [FORGE_RUNTIME_CONTROL]?: ForgeRuntimeControl;
+    [FORGE_RUNTIME_CONTROL]?: ForgeRuntimeControlDomain;
+    [SForgeSymbols.BACKLINK_REFRESH_SCHEDULER]?: BacklinkRefreshSchedulerState;
+}
+
+/** 文档底部反链刷新调度的完整全局生命周期状态。 */
+export interface BacklinkRefreshSchedulerState {
+    timer: number | undefined;
 }
 
 /**

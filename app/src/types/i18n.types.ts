@@ -333,6 +333,7 @@ dynamicIcon: `动态图标`
 dynamicIconDateEmptyInfo: `清除日期，日历图标将动态显示当天日期`
 backlinkContainChildren: `反向链接包含子块`
 backlinkContainChildrenTip: `启用后子块将被纳入到反向链接计算中`
+backlinkShowBottom: `在文档底部显示反链`
 entryNum: `条目数`
 workspaceData: `工作空间数据`
 confirmRemoveRelationField: `确定要删除 <b>\$\{x\}</b> 字段吗？删除本字段后，<b>\$\{y\}</b> 数据库中的双向关联字段 <b>\$\{z\}</b> 也会同步删除。`

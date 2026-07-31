@@ -15,8 +15,13 @@ describe("Backlink toolbar state router", () => {
         expect(resolveBacklinkToolbarCommand("search", "bottom")).toEqual({kind: "show-filter"});
         expect(resolveBacklinkToolbarCommand("sort", "pin")).toEqual({kind: "show-sort", sortTarget: "sort"});
         expect(resolveBacklinkToolbarCommand("mSort", "bottom")).toEqual({kind: "show-sort", sortTarget: "mSort"});
-        expect(resolveBacklinkToolbarCommand("layout", "pin")).toEqual({kind: "cycle-mention-layout", layoutTarget: "layout"});
-        expect(resolveBacklinkToolbarCommand("mention", "bottom")).toEqual({kind: "cycle-mention-layout", layoutTarget: "mention"});
+        expect(resolveBacklinkToolbarCommand("expand", "local")).toEqual({kind: "expand-backlinks"});
+        expect(resolveBacklinkToolbarCommand("collapse", "pin")).toEqual({kind: "collapse-backlinks"});
+        expect(resolveBacklinkToolbarCommand("layout", "pin")).toEqual({kind: "cycle-mention-layout"});
+        expect(resolveBacklinkToolbarCommand("mention", "bottom")).toEqual({kind: "toggle-bottom-layout", target: "backmention"});
+        expect(resolveBacklinkToolbarCommand("bLayout", "bottom")).toEqual({kind: "toggle-bottom-layout", target: "backlink"});
+        expect(resolveBacklinkToolbarCommand("backlink", "bottom")).toEqual({kind: "toggle-bottom-layout", target: "backlink"});
+        expect(resolveBacklinkToolbarCommand("bLayout", "pin")).toEqual({kind: "ignore"});
         expect(resolveBacklinkToolbarCommand("unknown-control", "local")).toEqual({kind: "ignore"});
     });
 
