@@ -563,6 +563,10 @@ declare namespace Config {
          */
         backlinkContainChildren: boolean;
         /**
+         * Whether backlinks are rendered at the end of desktop documents.
+         */
+        backlinkShowBottom: boolean;
+        /**
          * Backlink sort mode
          */
         backlinkSort: number;

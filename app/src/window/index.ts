@@ -21,6 +21,7 @@ import {kernelError} from "../util/kernelFault";
 import { setTitle } from "../util/processTitle";
 import { reloadSync } from "../dialog/processSystem/reloadSync";
 import { setRefDynamicText } from "../dialog/processSystem/setRefDynamicText";
+import {scheduleBacklinkRefresh} from "../layout/dock/backlink/backlinkRefresh";
 import { hideMessage, initMessage, showMessage } from "../dialog/message";
 import { confirmDialog } from "../dialog/confirmDialog";
 import { getAllTabs } from "../layout/getAll";
@@ -75,6 +76,9 @@ class App {
                             case "setDefRefCount":
                                 setDefRefCount(data.data);
                                 break;
+                            case "transactions":
+                                scheduleBacklinkRefresh("transactions");
+                                break;
                             case "setRefDynamicText":
                                 setRefDynamicText(data.data);
                                 break;
@@ -119,6 +123,7 @@ class App {
                                 });
                                 break;
                             case "rename":
+                                scheduleBacklinkRefresh("rename");
                                 getAllTabs().forEach((tab) => {
                                     if (tab.headElement) {
                                         const initTab = tab.headElement.getAttribute("data-initdata");

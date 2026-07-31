@@ -7,9 +7,6 @@ import {isMobile} from "../platform";
 import {setProtyleLayoutPort} from "../protyle/runtime/layout.port";
 import type {IProtyleLayoutFocusResult, IProtyleLayoutPort, IProtyleLayoutUpdateOptions} from "../protyle/runtime/layout.types";
 import {hasClosestBlock, hasClosestByClassName} from "../protyle/util/hasClosest";
-import {getInstanceById} from "./util";
-import {Tab} from "./Tab";
-import {Backlink} from "./dock/Backlink";
 import {withEncryptedNotebook} from "../util/file/notebook/store";
 import {getDockByType} from "./query/dockByType";
 
@@ -167,19 +164,21 @@ const appLayoutPort: IProtyleLayoutPort = {
         if (isMobile) {
             return;
         }
-        const backLinkTab = getInstanceById(backlinkElement.getAttribute("data-id"), window.siyuan.layout.layout);
-        if (!(backLinkTab instanceof Tab) || !(backLinkTab.model instanceof Backlink)) {
-            return;
-        }
-        const editors = backLinkTab.model.editors;
-        editors.find((item, index) => {
-            if (item.protyle.element !== protyle.element) {
+        getAllModels().backlink.find(item => {
+            if (!item.element.contains(protyle.element)) {
                 return false;
             }
-            item.destroy();
-            editors.splice(index, 1);
-            item.protyle.element.previousElementSibling?.remove();
-            item.protyle.element.remove();
+            const editors = item.editors;
+            editors.find((editor, index) => {
+                if (editor.protyle.element !== protyle.element) {
+                    return false;
+                }
+                editor.destroy();
+                editors.splice(index, 1);
+                editor.protyle.element.previousElementSibling?.remove();
+                editor.protyle.element.remove();
+                return true;
+            });
             return true;
         });
     },

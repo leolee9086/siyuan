@@ -2,9 +2,10 @@ import {getSForgeState, setSForgeState} from "../../config/sforge.global";
 import {FORGE_RUNTIME_CONTROL} from "../../config/sforge.symbols";
 import {ForgeRuntimeController} from "./controller";
 import {ForgeRuntimeControlView} from "./view";
+import type {ForgeRuntimeControlDomain} from "./forgeRuntimeControl.types";
 
 export class ForgeRuntimeControl {
-    public readonly controller: ForgeRuntimeController;
+    private readonly controller: ForgeRuntimeController;
     private readonly view: ForgeRuntimeControlView;
 
     constructor(controller = new ForgeRuntimeController()) {
@@ -31,7 +32,7 @@ export class ForgeRuntimeControl {
     }
 }
 
-export const initForgeRuntimeControl = async (): Promise<ForgeRuntimeControl> => {
+export const initForgeRuntimeControl = async (): Promise<ForgeRuntimeControlDomain> => {
     const existing = getSForgeState(FORGE_RUNTIME_CONTROL);
     if (existing) {
         return existing;

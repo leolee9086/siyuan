@@ -96,4 +96,6 @@ export const SForgeSymbols = Object.freeze({
     WND_DRAG_RESTORE: Symbol.for("sforge.layout.wndDragRestore"),
     /** Forge Runtime 主界面控制器 */
     FORGE_RUNTIME_CONTROL,
+    /** 文档底部反链刷新调度器 */
+    BACKLINK_REFRESH_SCHEDULER: Symbol.for("sforge.backlink.refreshScheduler"),
 } as const);

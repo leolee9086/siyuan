@@ -1,4 +1,5 @@
 {
+    "backlinkShowBottom": "הצגת קישורים אחוריים בתחתית המסמך",
 	"deleteRefConfirm": "התוכן שיימחק או ייגזר מכיל בלוקים שיש אליהם הפניות. האם להמשיך?",
 	"addAllAiModels": "הוסף את כל הדגמים",
 	"autoDetectProxy": "זיהוי אוטומטי של שרת Proxy",

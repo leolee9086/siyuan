@@ -13,63 +13,82 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import {getDocDisplayName} from "../../util/file/pathName";
 import {isEncryptedBox} from "../../util/file/notebook/store";
 import {getAllModels} from "../getAll";
-import type {ProtyleDomain, TreeDomain} from "./backlink/backlink.types";
+import type {BacklinkPresentation, BacklinkRenderData, BacklinkStatusItem, BacklinkUserTrigger, ProtyleDomain, TreeDomain} from "./backlink/backlink.types";
 import {backlinkModelBrand} from "./backlink/backlink.types";
+import {resolveBacklinkToolbarCommand, type BacklinkToolbarCommand} from "./backlink/backlinkToolbar.router";
+import {reportBacklinkUserOperationIntent} from "./backlink/backlinkOperationIntent";
 
 export class Backlink extends Model<AppFacade, LayoutTab> {
-    public override parent: LayoutTab;
-
     public get [backlinkModelBrand]() {
         return "Backlink" as const;
     }
 
     public element: HTMLElement;
     public inputsElement: NodeListOf<HTMLInputElement>;
-    public type: "pin" | "local";
+    public type: BacklinkPresentation;
     public blockId: string;
     public rootId: string; // "local" 必传
+    public ownerProtyle?: ProtyleDomain["protyle"];
     public tree: TreeDomain;
-    private notebookId: string;
+    private notebookId = "";
     public mTree: TreeDomain;
     public editors: ProtyleDomain[] = [];
-    public status: {
-        [key: string]: {
-            sort: number,
-            mSort: number,
-            scrollTop: number,
-            mScrollTop: number,
-            backlinkOpenIds: string[],
-            backlinkMOpenIds: string[],
-            backlinkMStatus: number // 0 全展开，1 展开一半箭头向下，2 展开一半箭头向上，3 全收起
-        }
-    } = {};
+    public status: Record<string, BacklinkStatusItem> = {};
+    private dirty = false;
+    private isDestroyed = false;
+    private focusRefreshTimer: number | undefined;
+    private restoreScrollTimer: number | undefined;
+    private readonly handleFocusOut = () => {
+        window.clearTimeout(this.focusRefreshTimer);
+        this.focusRefreshTimer = window.setTimeout(() => this.refreshIfVisible());
+    };
 
     constructor(options: {
         app: AppFacade,
-        tab: LayoutTab,
+        tab?: LayoutTab,
+        element?: HTMLElement,
         blockId: string,
         rootId?: string,
-        type: "pin" | "local"
+        type: BacklinkPresentation,
+        ownerProtyle?: ProtyleDomain["protyle"],
     }) {
         super({app: options.app});
-        this.parent = options.tab;
-
-        this.connect({
-            id: options.tab.id,
-            type: "backlink",
-            callback: this.handelCallback.bind(this),
-            msgCallback: this.handleMsgCallback.bind(this),
-        });
+        if (options.tab) {
+            this.parent = options.tab;
+        }
+        if (options.type !== "bottom") {
+            if (!options.tab) {
+                throw new Error("Dock Backlink requires a layout tab");
+            }
+            this.connect({
+                id: options.tab.id,
+                type: "backlink",
+                callback: this.handelCallback.bind(this),
+                msgCallback: this.handleMsgCallback.bind(this),
+            });
+        }
 
         this.blockId = options.blockId;
-        this.rootId = options.rootId;
+        this.rootId = options.rootId || "";
         this.type = options.type;
-        this.element = options.tab.panelElement;
+        if (options.ownerProtyle) {
+            this.ownerProtyle = options.ownerProtyle;
+        }
+        const element = options.element || options.tab?.panelElement;
+        if (!element) {
+            throw new Error("Backlink requires a panel element");
+        }
+        this.element = element;
         this.element.classList.add("fn__flex-column", "file-tree", "sy__backlink", "dockPanel");
+        if (this.type === "bottom") {
+            this.element.classList.add("sy__backlink--bottom");
+            this.element.tabIndex = -1;
+            this.element.addEventListener("focusout", this.handleFocusOut);
+        }
         const backlinkSort = window.siyuan.config.editor.backlinkSort;
         const backmentionSort = window.siyuan.config.editor.backmentionSort;
         this.element.innerHTML = `<div class="block__icons">
-    <div class="block__logo fn__flex-1">${siyuanI18n.backlinks}</div>
+    <div class="block__logo fn__flex-1${this.type === "bottom" ? " fn__pointer" : ""}"${this.type === "bottom" ? ' data-type="backlink"' : ""}>${siyuanI18n.backlinks}</div>
     <span class="counter listCount" style="margin-left: 0"></span>
     <span class="fn__space"></span>
     <input class="b3-text-field search__label fn__none fn__size200" placeholder="${window.siyuan.languages.filterKeywordEnter}" />
@@ -86,8 +105,10 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
     <span data-type="collapse" class="block__icon ariaLabel" data-position="north" aria-label="${window.siyuan.languages.collapse}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.collapse.custom)}">
         <svg><use xlink:href="#iconContract"></use></svg>
     </span>
-    <span class="${this.type === "local" ? "fn__none " : ""}fn__space"></span>
-    <span data-type="min" class="${this.type === "local" ? "fn__none " : ""}block__icon ariaLabel" data-position="north" aria-label="${window.siyuan.languages.min}${updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom)}"><svg><use xlink:href='#iconMin'></use></svg></span>
+    <span class="${this.type === "bottom" ? "" : "fn__none "}fn__space"></span>
+    <span data-type="bLayout" class="${this.type === "bottom" ? "" : "fn__none "}block__icon ariaLabel" data-position="north" aria-label="${window.siyuan.languages.collapse}"><svg><use xlink:href='#iconDown'></use></svg></span>
+    <span class="${this.type === "pin" ? "" : "fn__none "}fn__space"></span>
+    <span data-type="min" class="${this.type === "pin" ? "" : "fn__none "}block__icon ariaLabel" data-position="north" aria-label="${window.siyuan.languages.min}${updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom)}"><svg><use xlink:href='#iconMin'></use></svg></span>
 </div>
 <div class="backlinkList fn__flex-1"></div>
 <div class="block__icons">
@@ -130,6 +151,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
             item.addEventListener("keydown", (event: KeyboardEvent) => {
                 if (!event.isComposing && event.key === "Enter") {
                     this.searchBacklinks();
+                    this.reportUserOperation("filter", "filter-backlinks", "keyboard");
                 }
             });
         });
@@ -137,9 +159,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
             element: this.element.querySelector(".backlinkList") as HTMLElement,
             data: null,
             click: (element) => {
-                this.toggleItem(element, false);
-                this.setFocus();
-                this.mTree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.activateTreeItem(element, "click");
             },
             ctrlClick: (element) => {
                 options.app.openBlock({
@@ -148,6 +168,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                     zoomIn: false,
                 });
                 this.mTree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.reportUserOperation("tree", "open-backlink-result", "ctrl-click", element.getAttribute("data-node-id"));
             },
             altClick: (element) => {
                 options.app.openBlock({
@@ -157,6 +178,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                     zoomIn: false,
                 });
                 this.mTree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.reportUserOperation("tree", "open-backlink-result", "alt-click", element.getAttribute("data-node-id"));
             },
             shiftClick: (element) => {
                 options.app.openBlock({
@@ -166,20 +188,17 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                     zoomIn: false,
                 });
                 this.mTree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.reportUserOperation("tree", "open-backlink-result", "shift-click", element.getAttribute("data-node-id"));
             },
             toggleClick: (liElement) => {
-                this.toggleItem(liElement, false);
-                this.setFocus();
-                this.mTree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.activateTreeItem(liElement, "click");
             }
         });
         this.mTree = new Tree({
             element: this.element.querySelector(".backlinkMList") as HTMLElement,
             data: null,
             click: (element) => {
-                this.toggleItem(element, true);
-                this.setFocus();
-                this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.activateTreeItem(element, "click");
             },
             ctrlClick: (element) => {
                 options.app.openBlock({
@@ -188,6 +207,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                     zoomIn: false,
                 });
                 this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.reportUserOperation("tree", "open-backmention-result", "ctrl-click", element.getAttribute("data-node-id"));
             },
             altClick: (element) => {
                 options.app.openBlock({
@@ -197,6 +217,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                     zoomIn: false,
                 });
                 this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.reportUserOperation("tree", "open-backmention-result", "alt-click", element.getAttribute("data-node-id"));
             },
             shiftClick: (element) => {
                 options.app.openBlock({
@@ -206,11 +227,10 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                     zoomIn: false,
                 });
                 this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.reportUserOperation("tree", "open-backmention-result", "shift-click", element.getAttribute("data-node-id"));
             },
             toggleClick: (liElement) => {
-                this.toggleItem(liElement, true);
-                this.setFocus();
-                this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                this.activateTreeItem(liElement, "click");
             },
             blockExtHTML: `<span class="b3-list-item__action b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.more}"><svg><use xlink:href="#iconMore"></use></svg></span>`
         });
@@ -232,75 +252,16 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                 hlItem.classList.remove("protyle-wysiwyg--hl");
             });
         });
-        // 为了快捷键的 dispatch
-        this.element.querySelector('[data-type="collapse"]').addEventListener("click", () => {
-            this.tree.element.querySelectorAll(".protyle").forEach(item => {
-                item.classList.add("fn__none");
-            });
-            this.tree.element.querySelectorAll(".b3-list-item__arrow").forEach(item => {
-                item.classList.remove("b3-list-item__arrow--open");
-            });
-        });
-        this.element.querySelector('[data-type="expand"]').addEventListener("click", () => {
-            Array.from(this.tree.element.firstElementChild.children).forEach((item: HTMLElement) => {
-                if (item.tagName === "LI" && !item.querySelector(".b3-list-item__arrow--open")) {
-                    this.toggleItem(item, false);
-                }
-            });
-        });
         this.element.addEventListener("click", (event) => {
-            this.setFocus();
             let target = event.target as HTMLElement;
+            const eventProtyleElement = target.closest(".protyle");
+            if (this.type !== "bottom" || !eventProtyleElement || !this.element.contains(eventProtyleElement)) {
+                this.setFocus();
+            }
             while (target && !target.isEqualNode(this.element)) {
                 if ((target.classList.contains("block__icon") || target.classList.contains("block__logo")) &&
                     target.parentElement.parentElement === this.element) {
-                    const type = target.getAttribute("data-type");
-                    switch (type) {
-                        case "refresh":
-                            this.refresh();
-                            event.stopPropagation();
-                            break;
-                        case "mExpand":
-                            Array.from(this.mTree.element.firstElementChild.children).forEach((item: HTMLElement) => {
-                                if (item.tagName === "LI" && !item.querySelector(".b3-list-item__arrow--open")) {
-                                    this.toggleItem(item, true);
-                                }
-                            });
-                            event.stopPropagation();
-                            break;
-                        case "mCollapse":
-                            this.mTree.element.querySelectorAll(".protyle").forEach(item => {
-                                item.classList.add("fn__none");
-                            });
-                            this.mTree.element.querySelectorAll(".b3-list-item__arrow").forEach(item => {
-                                item.classList.remove("b3-list-item__arrow--open");
-                            });
-                            event.stopPropagation();
-                            break;
-                        case "min":
-                            getDockByType("backlink").toggleModel("backlink", false, true);
-                            event.stopPropagation();
-                            break;
-                        case "search":
-                            target.previousElementSibling.classList.remove("fn__none");
-                            (target.previousElementSibling as HTMLInputElement).select();
-                            event.stopPropagation();
-                            break;
-                        case "sort":
-                        case "mSort":
-                            this.showSortMenu(type, target.getAttribute("data-sort"));
-                            window.siyuan.menus.menu.popup({ x: event.clientX, y: event.clientY });
-                            event.stopPropagation();
-                            break;
-                        case "layout":
-                            this.setLayout(target);
-                            event.stopPropagation();
-                            break;
-                        case "mention":
-                            this.setLayout(target.parentElement.querySelector('[data-type="layout"]'));
-                            event.stopPropagation();
-                            break;
-                    }
+                    this.executeToolbarCommand(resolveBacklinkToolbarCommand(target.getAttribute("data-type"), this.type), target, event);
                 }
                 target = target.parentElement;
             }
@@ -309,11 +270,175 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
         this.searchBacklinks(true);
     }
 
+    /** Runs commands that were already partitioned by the toolbar state router. */
+    private executeToolbarCommand(command: BacklinkToolbarCommand, target: HTMLElement, event: MouseEvent) {
+        switch (command.kind) {
+            case "refresh":
+                this.refresh();
+                this.reportUserOperation("toolbar", "refresh-backlinks", "click");
+                break;
+            case "expand-backlinks":
+                this.setTreeExpanded(this.tree, false, true);
+                this.reportUserOperation("toolbar", "expand-backlinks", "click");
+                break;
+            case "collapse-backlinks":
+                this.setTreeExpanded(this.tree, false, false);
+                this.reportUserOperation("toolbar", "collapse-backlinks", "click");
+                break;
+            case "expand-mentions":
+                this.setTreeExpanded(this.mTree, true, true);
+                this.reportUserOperation("toolbar", "expand-backmentions", "click");
+                break;
+            case "collapse-mentions":
+                this.setTreeExpanded(this.mTree, true, false);
+                this.reportUserOperation("toolbar", "collapse-backmentions", "click");
+                break;
+            case "minimize":
+                getDockByType("backlink").toggleModel("backlink", false, true);
+                this.reportUserOperation("toolbar", "minimize-backlinks", "click");
+                break;
+            case "show-filter": {
+                const input = target.previousElementSibling;
+                if (!(input instanceof HTMLInputElement)) {
+                    return;
+                }
+                input.classList.remove("fn__none");
+                input.select();
+                this.reportUserOperation("toolbar", "open-filter", "click");
+                break;
+            }
+            case "show-sort": {
+                const sort = target.getAttribute("data-sort");
+                if (sort === null) {
+                    return;
+                }
+                this.showSortMenu(command.sortTarget, sort);
+                window.siyuan.menus.menu.popup({x: event.clientX, y: event.clientY});
+                this.reportUserOperation("toolbar", "open-sort-menu", "click");
+                break;
+            }
+            case "cycle-mention-layout": {
+                const layoutElement = target.getAttribute("data-type") === "mention"
+                    ? target.parentElement?.querySelector<HTMLElement>('[data-type="layout"]')
+                    : target;
+                if (!layoutElement) {
+                    return;
+                }
+                this.setLayout(layoutElement);
+                this.reportUserOperation("toolbar", "cycle-backmention-layout", "click");
+                break;
+            }
+            case "toggle-bottom-layout": {
+                const control = target.parentElement?.querySelector<HTMLElement>(command.target === "backlink"
+                    ? '[data-type="bLayout"]'
+                    : '[data-type="layout"]');
+                if (!control) {
+                    return;
+                }
+                const list = command.target === "backlink" ? this.tree.element : this.mTree.element;
+                this.setBottomLayout(control, list);
+                this.reportUserOperation(
+                    "toolbar",
+                    command.target === "backlink" ? "toggle-backlinks-layout" : "toggle-backmentions-layout",
+                    "click",
+                );
+                break;
+            }
+            case "ignore":
+                return;
+        }
+        event.stopPropagation();
+    }
+
+    /** Executes the same routed toolbar action for a keyboard gesture. */
+    public executeKeyboardToolbarAction(action: "expand" | "collapse") {
+        const command = resolveBacklinkToolbarCommand(action, this.type);
+        if (command.kind === "expand-backlinks") {
+            this.setTreeExpanded(this.tree, false, true);
+            this.reportUserOperation("toolbar", "expand-backlinks", "keyboard");
+            return;
+        }
+        if (command.kind === "collapse-backlinks") {
+            this.setTreeExpanded(this.tree, false, false);
+            this.reportUserOperation("toolbar", "collapse-backlinks", "keyboard");
+        }
+    }
+
+    /** Activates a result from a mouse or keyboard interaction. */
+    public activateTreeItem(item: HTMLElement, trigger: BacklinkUserTrigger) {
+        const isBackmention = this.mTree.element.contains(item);
+        this.toggleItem(item, isBackmention);
+        this.setFocus();
+        (isBackmention ? this.tree : this.mTree).element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+        this.reportUserOperation(
+            "tree",
+            isBackmention ? "toggle-backmention-result" : "toggle-backlink-result",
+            trigger,
+            item.getAttribute("data-node-id"),
+        );
+    }
+
+    /** Expands or folds the nested document underneath a focused result. */
+    public toggleTreeItem(item: HTMLElement, trigger: BacklinkUserTrigger) {
+        const isBackmention = this.mTree.element.contains(item);
+        (isBackmention ? this.mTree : this.tree).toggleBlocks(item);
+        this.reportUserOperation(
+            "tree",
+            isBackmention ? "toggle-backmention-children" : "toggle-backlink-children",
+            trigger,
+            item.getAttribute("data-node-id"),
+        );
+    }
+
+    /** Reports keyboard focus movement after the keydown owner updates DOM focus. */
+    public reportKeyboardTreeNavigation(item: HTMLElement) {
+        const isBackmention = this.mTree.element.contains(item);
+        this.reportUserOperation(
+            "tree",
+            isBackmention ? "focus-backmention-result" : "focus-backlink-result",
+            "keyboard",
+            item.getAttribute("data-node-id"),
+        );
+    }
+
+    private reportUserOperation(
+        source: "toolbar" | "tree" | "filter" | "sort-menu",
+        operation: string,
+        trigger: BacklinkUserTrigger,
+        targetBlockId?: string | null,
+    ) {
+        const intent = {
+            actor: "user",
+            surface: "backlink",
+            presentation: this.type,
+            source,
+            operation,
+            trigger,
+            blockId: this.blockId || null,
+        } as const;
+        reportBacklinkUserOperationIntent(this.app, targetBlockId === undefined
+            ? intent
+            : {...intent, targetBlockId});
+    }
+
+    private setTreeExpanded(tree: TreeDomain, isBackmention: boolean, expanded: boolean) {
+        if (expanded) {
+            Array.from(tree.element.firstElementChild?.children || []).forEach((item: HTMLElement) => {
+                if (item.tagName === "LI" && !item.querySelector(".b3-list-item__arrow--open")) {
+                    this.toggleItem(item, isBackmention);
+                }
+            });
+            return;
+        }
+        tree.element.querySelectorAll(".protyle").forEach(item => item.classList.add("fn__none"));
+        tree.element.querySelectorAll(".b3-list-item__arrow").forEach(item => item.classList.remove("b3-list-item__arrow--open"));
+    }
+
     private handelCallback() {
         if (this.type === "local") {
             fetchPost("/api/block/checkBlockExist", {id: this.blockId}, existResponse => {
                 if (!existResponse.data) {
-                    this.parent.parent.removeTab(this.parent.id);
+                    this.parent?.parent.removeTab(this.parent.id);
                 }
             });
         }
@@ -324,18 +449,18 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
             switch (data.cmd) {
                 case "rename":
                     if (this.rootId === data.data.id) {
-                        this.parent.updateTitle(getDocDisplayName(data.data.title, data.data.empty));
+                        this.parent?.updateTitle(getDocDisplayName(data.data.title, data.data.empty));
                     }
                     break;
                 case "closeBox":
                 case "removeBox":
                     if (this.notebookId === data.data.box && this.type === "local") {
-                        this.parent.parent.removeTab(this.parent.id);
+                        this.parent?.parent.removeTab(this.parent.id);
                     }
                     break;
                 case "removeDoc":
                     if (data.data.ids.includes(this.rootId) && this.type === "local") {
-                        this.parent.parent.removeTab(this.parent.id);
+                        this.parent?.parent.removeTab(this.parent.id);
                     }
                     break;
             }
@@ -372,11 +497,38 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
         this.mTree.element.dispatchEvent(new CustomEvent("scroll"));
     }
 
+    /** Bottom panels fold each result list independently without changing the dock layout. */
+    private setBottomLayout(element: HTMLElement, listElement: HTMLElement) {
+        const folded = !listElement.classList.contains("fn__none");
+        listElement.classList.toggle("fn__none", folded);
+        if (folded) {
+            listElement.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+        }
+        element.setAttribute("aria-label", folded ? window.siyuan.languages.expand : window.siyuan.languages.collapse);
+        element.querySelector("use")?.setAttribute("xlink:href", folded ? "#iconRight" : "#iconDown");
+        this.saveStatus();
+    }
+
     private setFocus() {
+        if (this.type === "bottom") {
+            this.setOwnerFocus();
+            this.element.focus({preventScroll: true});
+            return;
+        }
         if (this.type === "local") {
-            setPanelFocus(this.element.parentElement.parentElement);
+            const panel = this.element.parentElement?.parentElement;
+            if (panel) {
+                setPanelFocus(panel);
+            }
         } else {
             setPanelFocus(this.element);
+        }
+    }
+
+    private setOwnerFocus() {
+        const wndElement = this.ownerProtyle?.element.closest('[data-type="wnd"]');
+        if (wndElement) {
+            setPanelFocus(wndElement);
         }
     }
 
@@ -394,6 +546,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                 window.siyuan.config.editor = response.data;
             });
             this.searchBacklinks();
+            this.reportUserOperation("sort-menu", type === "sort" ? "sort-backlinks" : "sort-backmentions", "click");
         };
         window.siyuan.menus.menu.remove();
         window.siyuan.menus.menu.append(new MenuItem({
@@ -456,6 +609,9 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
     }
 
     private toggleItem(liElement: HTMLElement, isMention: boolean) {
+        if (this.isDestroyed) {
+            return;
+        }
         const svgElement = liElement.firstElementChild?.firstElementChild;
         if (!svgElement || svgElement.getAttribute("disabled")) {
             return;
@@ -481,6 +637,9 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                 highlight: !isSupportCSSHL(),
                 keyword,
             }, (response) => {
+                if (this.isDestroyed) {
+                    return;
+                }
                 svgElement.removeAttribute("disabled");
                 svgElement.classList.add("b3-list-item__arrow--open");
                 const editorElement = document.createElement("div");
@@ -510,13 +669,16 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
 
     public refresh() {
         const element = this.element.querySelector('.block__icon[data-type="refresh"] svg');
-        if (!this.blockId || element.classList.contains("fn__rotate")) {
+        if (this.isDestroyed || !this.blockId || !element || element.classList.contains("fn__rotate")) {
             return;
         }
         element.classList.add("fn__rotate");
         fetchPost("/api/ref/refreshBacklink", {
             id: this.blockId,
         }, () => {
+            if (this.isDestroyed) {
+                return;
+            }
             element.classList.remove("fn__rotate");
             this.searchBacklinks();
         });
@@ -524,7 +686,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
 
     private searchBacklinks(init = false) {
         const element = this.element.querySelector('.block__icon[data-type="refresh"] svg');
-        if (element.classList.contains("fn__rotate")) {
+        if (this.isDestroyed || !element || element.classList.contains("fn__rotate")) {
             return;
         }
         element.classList.add("fn__rotate");
@@ -550,6 +712,9 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
             param.notebook = notebookId;
         }
         fetchPost("/api/ref/getBacklink2", param, response => {
+            if (this.isDestroyed) {
+                return;
+            }
             if (!init) {
                 this.saveStatus();
             }
@@ -565,7 +730,9 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
             mScrollTop: this.mTree.element.scrollTop,
             backlinkOpenIds: [],
             backlinkMOpenIds: [],
-            backlinkMStatus: 3 // 0 全展开，1 展开一半箭头向下，2 展开一半箭头向上，3 全收起
+            backlinkMStatus: 3, // 0 全展开，1 展开一半箭头向下，2 展开一半箭头向上，3 全收起
+            backlinkFolded: this.tree.element.classList.contains("fn__none"),
+            backmentionFolded: this.mTree.element.classList.contains("fn__none"),
         };
         this.tree.element.querySelectorAll(".b3-list-item__arrow--open").forEach(item => {
             this.status[this.blockId].backlinkOpenIds.push(item.parentElement.parentElement.getAttribute("data-node-id"));
@@ -588,15 +755,10 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
         }
     }
 
-    public render(data: {
-        box: string,
-        backlinks: IBlockTree[],
-        backmentions: IBlockTree[],
-        linkRefsCount: number,
-        mentionsCount: number,
-        k: string,
-        mk: string
-    } | undefined) {
+    public render(data: BacklinkRenderData | undefined) {
+        if (this.isDestroyed) {
+            return;
+        }
         if (!data) {
             data = {
                 box: "",
@@ -641,9 +803,11 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                 mSort: window.siyuan.config.editor.backmentionSort,
                 scrollTop: 0,
                 mScrollTop: 0,
-                backlinkOpenIds: [],
-                backlinkMOpenIds: [],
-                backlinkMStatus: 3
+            backlinkOpenIds: [],
+            backlinkMOpenIds: [],
+            backlinkMStatus: 3,
+            backlinkFolded: false,
+            backmentionFolded: false,
             };
             if (data.mentionsCount === 0 || window.siyuan.config.editor.backmentionExpandCount === -1) {
                 this.status[this.blockId].backlinkMStatus = 3;
@@ -711,9 +875,75 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
         this.tree.element.previousElementSibling.querySelector('[data-type="sort"]').setAttribute("data-sort", this.status[this.blockId].sort.toString());
         this.mTree.element.previousElementSibling.querySelector('[data-type="mSort"]').setAttribute("data-sort", this.status[this.blockId].mSort.toString());
 
-        setTimeout(() => {
+        if (this.type === "bottom") {
+            const backlinkLayout = this.element.querySelector<HTMLElement>('[data-type="bLayout"]');
+            const backmentionLayout = this.element.querySelector<HTMLElement>('[data-type="layout"]');
+            if (backlinkLayout) {
+                this.restoreBottomLayout(backlinkLayout, this.tree.element, this.status[this.blockId].backlinkFolded === true);
+            }
+            if (backmentionLayout) {
+                this.restoreBottomLayout(backmentionLayout, this.mTree.element, this.status[this.blockId].backmentionFolded === true);
+            }
+        }
+
+        window.clearTimeout(this.restoreScrollTimer);
+        this.restoreScrollTimer = window.setTimeout(() => {
+            if (this.isDestroyed) {
+                return;
+            }
             this.tree.element.scrollTop = this.status[this.blockId].scrollTop;
             this.mTree.element.scrollTop = this.status[this.blockId].mScrollTop;
         }, Constants.TIMEOUT_LOAD);
+
+        const refreshAfterRender = this.dirty && this.type === "bottom" && !this.element.classList.contains("fn__none");
+        this.dirty = false;
+        if (refreshAfterRender) {
+            this.searchBacklinks();
+        }
+    }
+
+    /** A data change may arrive while the panel is off-screen; defer I/O until it becomes visible. */
+    public markDirty() {
+        if (!this.isDestroyed) {
+            this.dirty = true;
+        }
+    }
+
+    /** Focus and observer paths share the same visibility-aware refresh boundary. */
+    public refreshIfVisible() {
+        if (this.type !== "bottom" || this.isDestroyed || this.element.classList.contains("fn__none")) {
+            return;
+        }
+        this.refreshDirty();
+    }
+
+    /** Executes one deferred refresh only when no request is already rendering this panel. */
+    public refreshDirty() {
+        const refreshIcon = this.element.querySelector('.block__icon[data-type="refresh"] svg');
+        if (this.isDestroyed || !this.dirty || refreshIcon?.classList.contains("fn__rotate")) {
+            return;
+        }
+        this.dirty = false;
+        this.searchBacklinks();
+    }
+
+    /** Releases child editors, timers, focus listeners, and the optional model transport. */
+    public destroy() {
+        if (this.isDestroyed) {
+            return;
+        }
+        this.isDestroyed = true;
+        window.clearTimeout(this.focusRefreshTimer);
+        window.clearTimeout(this.restoreScrollTimer);
+        this.element.removeEventListener("focusout", this.handleFocusOut);
+        this.editors.forEach(item => item.destroy());
+        this.editors = [];
+        this.dispose();
+    }
+
+    private restoreBottomLayout(element: HTMLElement, listElement: HTMLElement, folded: boolean) {
+        listElement.classList.toggle("fn__none", folded);
+        element.setAttribute("aria-label", folded ? window.siyuan.languages.expand : window.siyuan.languages.collapse);
+        element.querySelector("use")?.setAttribute("xlink:href", folded ? "#iconRight" : "#iconDown");
     }
 }

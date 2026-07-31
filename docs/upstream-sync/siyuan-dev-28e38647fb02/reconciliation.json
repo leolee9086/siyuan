@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "sourceHead": "2772c1c44919346d2eb577ca8008c5b05ee2e0b4",
+  "sourceHead": "e957ed332a209e9ef5570b002a473f471d90896b",
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
   "upstreamTip": "401d2928cab86a9d52ed1545610b183e78f7652a",
   "summary": {
@@ -10,18 +10,18 @@
       "delivery-integrated": 12,
       "delivery-git-integrated": 0,
       "delivery-in-progress": 0,
-      "semantic-verified": 0,
+      "semantic-verified": 1,
       "audit-in-progress": 0,
       "audit-blocked": 0,
-      "audit-pending": 559
+      "audit-pending": 558
     },
     "semanticVerifiedPrefix": {
-      "count": 2,
-      "through": "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
+      "count": 6,
+      "through": "446be135969fc9676fd810968ba2f646a2ad9d55",
       "blocker": {
-        "topoIndex": 3,
-        "sha": "484e3782963cae4095bfcd71add5e168fb51d5e3",
-        "subject": ":art: Show backlinks at the bottom of documents https://github.com/siyuan-note/siyuan/issues/18319"
+        "topoIndex": 7,
+        "sha": "ab15722b032a53257c3ed6c3f076014335f72abe",
+        "subject": ":art: Refine document-bottom backlinks https://github.com/siyuan-note/siyuan/issues/18319"
       }
     },
     "deliveryIntegratedPrefix": {
@@ -46,18 +46,61 @@
       "topoIndex": 3,
       "sha": "484e3782963cae4095bfcd71add5e168fb51d5e3",
       "subject": ":art: Show backlinks at the bottom of documents https://github.com/siyuan-note/siyuan/issues/18319",
-      "state": "audit-pending",
-      "nextAction": "audit-upstream-behavior",
+      "state": "semantic-verified",
+      "nextAction": "create-rolling-delivery",
       "audit": {
-        "status": "pending",
-        "disposition": null,
-        "seriesId": null,
-        "localCommits": [],
-        "mappingEvidence": [],
-        "codeEvidence": [],
-        "testEvidence": []
+        "status": "verified",
+        "disposition": "ported-semantic",
+        "seriesId": "document-bottom-backlinks-18319",
+        "localCommits": [
+          "135723ceb1f1b78dc7d5c453f4b9981bfb5cd10c",
+          "fe5acd7d361d8294fbb5eab2512ec204f843a024"
+        ],
+        "mappingEvidence": [
+          {
+            "localCommit": "135723ceb1f1b78dc7d5c453f4b9981bfb5cd10c",
+            "declaredDisposition": "semantic-port",
+            "series": "siyuan-dev-28e38647fb02/document-bottom-backlinks-18319",
+            "audit": "docs/upstream-sync/siyuan-dev-28e38647fb02/commits.jsonl",
+            "patchId": null
+          },
+          {
+            "localCommit": "fe5acd7d361d8294fbb5eab2512ec204f843a024",
+            "declaredDisposition": "semantic-port",
+            "series": "siyuan-dev-28e38647fb02/document-bottom-backlinks-18319",
+            "audit": "docs/upstream-sync/siyuan-dev-28e38647fb02/commits.jsonl",
+            "patchId": null
+          }
+        ],
+        "codeEvidence": [
+          "app/src/editor/model/Editor.ts",
+          "app/src/layout/dock/Backlink.ts",
+          "app/src/layout/dock/backlink/backlinkRefresh.ts",
+          "app/src/layout/dock/backlink/backlinkRefresh.router.ts",
+          "app/src/dialog/processSystem.ts",
+          "app/src/util/reloadSync.ts",
+          "app/src/protyle/ui/padding.ts",
+          "app/src/protyle/wysiwyg/remove.ts",
+          "app/src/layout/Wnd.tabAction.ts",
+          "app/src/editor/tabFloat.factory.ts",
+          "kernel/conf/editor.go"
+        ],
+        "testEvidence": [
+          "pnpm test: Node 257 tests passed; all Vitest shards passed",
+          "pnpm exec vitest --run test/editor/Editor.lifecycle.test.ts test/layout/dock/backlinkToolbar.router.test.ts test/layout/dock/backlinkKeyboard.router.test.ts test/layout/LayoutDomain.contract.test.ts: 4 files, 14 tests passed",
+          "pnpm run typecheck:protyle-contract: passed",
+          "pnpm lint:cycles: processed 2396 app/src files and reported No circular dependency found in app/src.",
+          "git diff --check: passed"
+        ]
       },
-      "deliveries": [],
+      "deliveries": [
+        {
+          "deliveryId": "D005",
+          "status": "failed",
+          "integrationCommit": null,
+          "runtimeGateStatus": "not-started"
+        }
+      ],
       "topologyCheckpoints": []
     }
   },
@@ -65,6 +108,7 @@
     "semanticVerified": [
       "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
+      "484e3782963cae4095bfcd71add5e168fb51d5e3",
       "5437866299dba896b41b356abf4d28f059c9d89c",
       "b8543f5b959a94b830db45853751a52222a3df2b",
       "446be135969fc9676fd810968ba2f646a2ad9d55",
@@ -99,7 +143,6 @@
       "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8"
     ],
     "pending": [
-      "484e3782963cae4095bfcd71add5e168fb51d5e3",
       "ab15722b032a53257c3ed6c3f076014335f72abe",
       "5bc3cdc055c2eca1367c0d8180468a5805de3a37",
       "b10e729f7b703c01062f6ffe6f30e40f06b252fb",
@@ -1346,18 +1389,61 @@
       "topoIndex": 3,
       "sha": "484e3782963cae4095bfcd71add5e168fb51d5e3",
       "subject": ":art: Show backlinks at the bottom of documents https://github.com/siyuan-note/siyuan/issues/18319",
-      "state": "audit-pending",
-      "nextAction": "audit-upstream-behavior",
+      "state": "semantic-verified",
+      "nextAction": "create-rolling-delivery",
       "audit": {
-        "status": "pending",
-        "disposition": null,
-        "seriesId": null,
-        "localCommits": [],
-        "mappingEvidence": [],
-        "codeEvidence": [],
-        "testEvidence": []
+        "status": "verified",
+        "disposition": "ported-semantic",
+        "seriesId": "document-bottom-backlinks-18319",
+        "localCommits": [
+          "135723ceb1f1b78dc7d5c453f4b9981bfb5cd10c",
+          "fe5acd7d361d8294fbb5eab2512ec204f843a024"
+        ],
+        "mappingEvidence": [
+          {
+            "localCommit": "135723ceb1f1b78dc7d5c453f4b9981bfb5cd10c",
+            "declaredDisposition": "semantic-port",
+            "series": "siyuan-dev-28e38647fb02/document-bottom-backlinks-18319",
+            "audit": "docs/upstream-sync/siyuan-dev-28e38647fb02/commits.jsonl",
+            "patchId": null
+          },
+          {
+            "localCommit": "fe5acd7d361d8294fbb5eab2512ec204f843a024",
+            "declaredDisposition": "semantic-port",
+            "series": "siyuan-dev-28e38647fb02/document-bottom-backlinks-18319",
+            "audit": "docs/upstream-sync/siyuan-dev-28e38647fb02/commits.jsonl",
+            "patchId": null
+          }
+        ],
+        "codeEvidence": [
+          "app/src/editor/model/Editor.ts",
+          "app/src/layout/dock/Backlink.ts",
+          "app/src/layout/dock/backlink/backlinkRefresh.ts",
+          "app/src/layout/dock/backlink/backlinkRefresh.router.ts",
+          "app/src/dialog/processSystem.ts",
+          "app/src/util/reloadSync.ts",
+          "app/src/protyle/ui/padding.ts",
+          "app/src/protyle/wysiwyg/remove.ts",
+          "app/src/layout/Wnd.tabAction.ts",
+          "app/src/editor/tabFloat.factory.ts",
+          "kernel/conf/editor.go"
+        ],
+        "testEvidence": [
+          "pnpm test: Node 257 tests passed; all Vitest shards passed",
+          "pnpm exec vitest --run test/editor/Editor.lifecycle.test.ts test/layout/dock/backlinkToolbar.router.test.ts test/layout/dock/backlinkKeyboard.router.test.ts test/layout/LayoutDomain.contract.test.ts: 4 files, 14 tests passed",
+          "pnpm run typecheck:protyle-contract: passed",
+          "pnpm lint:cycles: processed 2396 app/src files and reported No circular dependency found in app/src.",
+          "git diff --check: passed"
+        ]
       },
-      "deliveries": [],
+      "deliveries": [
+        {
+          "deliveryId": "D005",
+          "status": "failed",
+          "integrationCommit": null,
+          "runtimeGateStatus": "not-started"
+        }
+      ],
       "topologyCheckpoints": []
     },
     {

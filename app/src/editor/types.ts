@@ -2,6 +2,7 @@
 import type {LayoutTab} from "../layout/layout.types";
 /** 用途：Editor 持有完整 Protyle 领域根；使用范围：模型状态、构造选项和初始化回调。 */
 import type {ProtyleDomain} from "../protyle/protyle.types";
+import type {AppFacade} from "../app/AppFacade.types";
 
 /** 编辑引擎创建选项保持完整 Protyle 配置，只参数化初始化回调中的引擎身份。 */
 export type EditorEngineOptions<TEditor extends ProtyleDomain> =
@@ -16,7 +17,7 @@ export type EditorEngineOptions<TEditor extends ProtyleDomain> =
  * 问题/改进：运行时创建与宿主动作由工厂另行注入，不进入业务选项。
  */
 export interface IEditorOptions<
-    TApplication extends object,
+    TApplication extends AppFacade,
     TEditor extends ProtyleDomain,
 > {
     app: TApplication;

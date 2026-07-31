@@ -104,6 +104,9 @@ const pushModel = (models: IModels, model: LayoutTab["model"]) => {
     // @无需注释
     if (isEditorDomain(model)) {
         models.editor.push(model);
+        if (model.backlink) {
+            models.backlink.push(model.backlink);
+        }
         return;
     }
     // @无需注释

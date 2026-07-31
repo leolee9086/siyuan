@@ -32,6 +32,7 @@ import { downloadProgress } from "./dialog/processSystem/downloadProgress";
 import { setTitle } from "./util/processTitle";
 import { reloadSync } from "./dialog/processSystem/reloadSync";
 import { setRefDynamicText } from "./dialog/processSystem/setRefDynamicText";
+import {scheduleBacklinkRefresh} from "./layout/dock/backlink/backlinkRefresh";
 import { hideMessage, initMessage, showMessage } from "./dialog/message";
 import { confirmDialog } from "./dialog/confirmDialog";
 import {getAllEditor, getAllModels, getAllTabs} from "./layout/getAll";
@@ -208,6 +209,9 @@ export class App {
                         case "setDefRefCount":
                             setDefRefCount(data.data);
                             break;
+                        case "transactions":
+                            scheduleBacklinkRefresh("transactions");
+                            break;
                         case "reloadTag":
                             if (getDockByType("tag")?.data.tag instanceof Tag) {
                                 (getDockByType("tag").data.tag as Tag).update();
@@ -269,6 +273,7 @@ export class App {
                             });
                             break;
                         case "rename":
+                            scheduleBacklinkRefresh("rename");
                             getAllTabs().forEach((tab) => {
                                 if (tab.headElement) {
                                     const initTab = tab.headElement.getAttribute("data-initdata");

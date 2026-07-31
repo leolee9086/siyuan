@@ -14,6 +14,7 @@ export const schema = z.object({
     backlinkExpandCount: z.number(),
     backmentionExpandCount: z.number(),
     backlinkContainChildren: z.boolean(),
+    backlinkShowBottom: z.boolean(),
     backlinkSort: z.number(),
     backmentionSort: z.number(),
     blockRefDynamicAnchorTextMaxLen: z.number(),

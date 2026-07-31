@@ -18,30 +18,28 @@ import {saveScroll} from "../protyle/scroll/saveScroll";
 import {isInAndroid, isInHarmony, isInIOS} from "../protyle/util/compatibility";
 import {Plugin} from "../plugin";
 import {rebuildDataIndex} from "../util/file/rebuildDataIndex";
+import {requestBacklinkRefresh} from "../layout/dock/backlink/backlinkRefresh";
 
 export {progressLoading} from "./progressLoading";
 export {rebuildDataIndex as refreshFileTree} from "../util/file/rebuildDataIndex";
-
-export const setRefDynamicText = (data: {
-    "blockID": string,
-    "defBlockID": string,
-    "refText": string,
-    "rootID": string
-}) => {
-    getAllEditor().forEach(editor => {
-        // 不能对比 rootId，否则嵌入块中的锚文本无法更新
-        editor.protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${data.blockID}"] span[data-type~="block-ref"][data-subtype="d"][data-id="${data.defBlockID}"]`).forEach(item => {
-            item.innerHTML = data.refText;
-        });
-    });
-};
+export {setRefDynamicText} from "./processSystem/setRefDynamicText";
 
 export const setDefRefCount = (data: {
     "blockID": string,
+    "defIDs"?: string[],
     "refCount": number,
     "rootRefCount": number,
     "rootID": string
 }) => {
+    requestBacklinkRefresh({
+        cause: "ref-count",
+        scope: {
+            kind: "targeted",
+            rootId: data.rootID,
+            relatedBlockIds: [data.blockID, data.rootID, ...(data.defIDs || [])],
+            includeRootDescendants: window.siyuan.config.editor.backlinkContainChildren,
+        },
+    });
     getAllEditor().forEach(editor => {
         if (editor.protyle.block.rootID === data.rootID && editor.protyle.title) {
             const attrElement = editor.protyle.title.element.querySelector(".protyle-attr");

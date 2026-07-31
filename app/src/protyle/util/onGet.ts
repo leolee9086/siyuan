@@ -54,11 +54,6 @@ export const onGet = (options: {
     options.protyle.path = options.data.data.path;
 
     if (options.data.data.eof && !options.scrollAttr) {
-        if (options.action.includes(Constants.CB_GET_BEFORE)) {
-            options.protyle.wysiwyg.element.firstElementChild.setAttribute("data-eof", "1");
-        } else {
-            options.protyle.wysiwyg.element.lastElementChild.setAttribute("data-eof", "2");
-        }
         if (options.data.data.mode !== 4) {
             return;
         }
@@ -92,6 +87,7 @@ export const onGet = (options: {
         // 防止动态加载加载过多的内容
         setHTML({
             content: options.data.data.content,
+            eof: options.data.data.eof,
             expand: options.data.data.isBacklinkExpand,
             action: options.action,
             scrollAttr: options.scrollAttr,
@@ -123,6 +119,7 @@ export const onGet = (options: {
 
         setHTML({
             content: options.data.data.content,
+            eof: options.data.data.eof,
             expand: options.data.data.isBacklinkExpand,
             action: options.action,
             scrollAttr: options.scrollAttr,
@@ -137,6 +134,7 @@ export const onGet = (options: {
 
 const setHTML = (options: {
     content: string,
+    eof: boolean,
     action?: string[],
     isSyncing: boolean,
     expand: boolean,
@@ -215,6 +213,14 @@ const setHTML = (options: {
             protyle.contentElement.scrollTop = options.scrollAttr.scrollTop;
             protyle.scroll.lastScrollTop = options.scrollAttr.scrollTop;
         }
+    }
+
+    if (options.eof) {
+        const loadingBefore = options.action.includes(Constants.CB_GET_BEFORE);
+        const eofElement = loadingBefore
+            ? protyle.wysiwyg.element.firstElementChild
+            : protyle.wysiwyg.element.lastElementChild;
+        eofElement?.setAttribute("data-eof", loadingBefore ? "1" : "2");
     }
 
     if (platform.isMobile) {

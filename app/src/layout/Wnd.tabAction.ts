@@ -48,7 +48,9 @@ export function destroyModel(model: ILayoutModel): void {
                 item.destroy();
             }
         });
-        model.editor.destroy();
+        // Editor owns the optional bottom backlink panel and its observers;
+        // destroying only the nested Protyle leaves those resources attached.
+        model.destroy();
         return;
     }
     if (model instanceof Search) {

@@ -1,4 +1,5 @@
 {
+    "backlinkShowBottom": "在文件底部顯示反向連結",
 	"deleteRefConfirm": "待刪除或剪下的內容中存在被引用的內容區塊，是否繼續？",
 	"addAllAiModels": "新增全部模型",
 	"autoDetectProxy": "自動偵測代理伺服器",

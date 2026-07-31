@@ -18,11 +18,17 @@ import type {EditorEngineOptions} from "./imports";
 import type {ProtyleDomain} from "./imports";
 /** 用途：布局页签完整领域根；使用范围：既有挂载流程写入 parent。 */
 import type {LayoutTab} from "../../layout/layout.types";
+/** 用途：文档底部反链面板的唯一具体初始化；使用范围：Editor 领域根的生命周期边界。 */
+import {Backlink} from "../../layout/dock/Backlink";
+/** 用途：底部反链公开领域根；使用范围：Editor 对外状态，不泄露具体 Backlink class。 */
+import type {BacklinkDomain} from "../../layout/dock/backlink/backlink.types";
+/** 用途：Editor 完整应用领域根；使用范围：底部反链创建与既有编辑器宿主。 */
+import type {AppFacade} from "../../app/AppFacade.types";
 /** 用途：Editor 运行时身份；使用范围：布局分类无需加载具体 class；解耦评估：模块级 Symbol 是跨实现与抽象的稳定名义身份，参数传递无法替代对象自身的可判别身份。 */
 import {editorModelBrand} from "./editorDomain.types";
 
 /** 初始化 Editor 持有的 Protyle，并按原顺序执行宿主同步。 */
-function initProtyle<TApplication extends object, TEditor extends ProtyleDomain>(
+function initProtyle<TApplication extends AppFacade, TEditor extends ProtyleDomain>(
     self: Editor<TApplication, TEditor>,
     options: {
     blockId: string;
@@ -39,22 +45,18 @@ function initProtyle<TApplication extends object, TEditor extends ProtyleDomain>
         options: EditorEngineOptions<TEditor>,
     ) => TEditor;
     enterFullscreen: (element: Element) => void;
-}) {
-    self.editor = options.createEditorEngine(self.app, self.element, {
+}): TEditor {
+    const engineOptions: EditorEngineOptions<TEditor> = {
         databaseAttr: true,
         action: options.action || [],
         blockId: options.blockId,
         rootId: options.rootId,
-        notebookId: options.notebookId,
-        mode: options.mode,
         render: {
             title: true,
             background: true,
             scroll: true,
         },
         typewriterMode: true,
-        status: "status",
-        scrollPosition: options.scrollPosition,
         /** 编辑器初始化后的 UI 同步回调。 */
         after: (editor) => {
             // 页面已处于编辑器全屏状态时，同步新实例的全屏 DOM 与内边距。
@@ -69,9 +71,21 @@ function initProtyle<TApplication extends object, TEditor extends ProtyleDomain>
             if (options.afterInitProtyle) {
                 options.afterInitProtyle(editor);
             }
+            self.updateBacklinkPanel();
         },
-    });
-    self.editor.protyle.model = self;
+    };
+    if (options.notebookId !== undefined) {
+        engineOptions.notebookId = options.notebookId;
+    }
+    if (options.mode !== undefined) {
+        engineOptions.mode = options.mode;
+    }
+    if (options.scrollPosition !== undefined) {
+        engineOptions.scrollPosition = options.scrollPosition;
+    }
+    const editor = options.createEditorEngine(self.app, self.element, engineOptions);
+    editor.protyle.model = self;
+    return editor;
 }
 
 /**
@@ -96,7 +110,7 @@ function initProtyle<TApplication extends object, TEditor extends ProtyleDomain>
  * Editor 引用，使关闭、复制、切换、聚焦和插件事件不会观察到临时代理对象或变化的原型链。
  * 构造过程已经把可替换的引擎创建与窗口同步移到注入参数，class 本身只剩稳定状态所有权。 */
 export class Editor<
-    TApplication extends object = object,
+    TApplication extends AppFacade = AppFacade,
     TEditor extends ProtyleDomain = ProtyleDomain,
 > {
     public readonly layoutModel = true as const;
@@ -106,6 +120,10 @@ export class Editor<
     public editor: TEditor;
     public headElement: HTMLElement;
     public app: TApplication;
+    public backlink: BacklinkDomain<AppFacade, LayoutTab> | undefined;
+    private backlinkElement: HTMLElement | undefined;
+    private backlinkIntersectionObserver: IntersectionObserver | undefined;
+    private backlinkMutationObserver: MutationObserver | undefined;
 
     public get windowHashIdentity() {
         return {kind: "document-root", value: this.editor.protyle.block.rootID} as const;
@@ -128,18 +146,119 @@ export class Editor<
         if (getSiyuanConfig().fileTree.openFilesUseCurrentTab) {
             options.tab.headElement.classList.add("item--unupdate");
         }
-        initProtyle(this, {
+        this.editor = initProtyle(this, {
             blockId: options.blockId,
-            action: options.action,
             rootId: options.rootId,
-            notebookId: options.notebookId,
-            mode: options.mode,
-            scrollPosition: options.scrollPosition,
-            afterInitProtyle: options.afterInitProtyle,
             syncWindowModelHash: options.syncWindowModelHash,
             createEditorEngine: options.createEditorEngine,
             enterFullscreen: options.enterFullscreen,
+            ...(options.action === undefined ? {} : {action: options.action}),
+            ...(options.notebookId === undefined ? {} : {notebookId: options.notebookId}),
+            ...(options.mode === undefined ? {} : {mode: options.mode}),
+            ...(options.scrollPosition === undefined ? {} : {scrollPosition: options.scrollPosition}),
+            ...(options.afterInitProtyle === undefined ? {} : {afterInitProtyle: options.afterInitProtyle}),
         });
         fetchPost("/api/storage/updateRecentDocOpenTime", {rootID: options.rootId});
+    }
+
+    /** Creates the bottom panel only after a document reaches EOF and scrolls near it. */
+    public updateBacklinkPanel() {
+        if (!getSiyuanConfig().editor.backlinkShowBottom) {
+            this.destroyBacklinkPanel();
+            return;
+        }
+        if (this.backlinkElement) {
+            this.updateBacklinkVisibility();
+            return;
+        }
+
+        const backlinkElement = document.createElement("div");
+        backlinkElement.className = "fn__none sy__backlink--bottom";
+        this.backlinkElement = backlinkElement;
+        this.editor.protyle.wysiwyg.element.after(backlinkElement);
+        setPadding(this.editor.protyle);
+
+        this.backlinkIntersectionObserver = new IntersectionObserver((entries) => {
+            if (this.backlinkElement !== backlinkElement || !entries[0]?.isIntersecting ||
+                backlinkElement.classList.contains("fn__none")) {
+                return;
+            }
+            if (!this.backlink) {
+                this.backlink = new Backlink({
+                    app: this.app,
+                    blockId: this.getBacklinkBlockId(),
+                    rootId: this.editor.protyle.block.rootID || "",
+                    type: "bottom",
+                    element: backlinkElement,
+                    ownerProtyle: this.editor.protyle,
+                });
+                return;
+            }
+            this.backlink.refreshDirty();
+        }, {
+            root: this.editor.protyle.contentElement,
+            rootMargin: "640px 0px",
+        });
+        this.backlinkIntersectionObserver.observe(backlinkElement);
+
+        this.backlinkMutationObserver = new MutationObserver(() => this.updateBacklinkVisibility());
+        this.backlinkMutationObserver.observe(this.editor.protyle.wysiwyg.element, {
+            attributes: true,
+            attributeFilter: ["data-eof"],
+            childList: true,
+            subtree: true,
+        });
+        this.updateBacklinkVisibility();
+    }
+
+    /** Destroys the optional bottom surface before the editor engine releases its DOM. */
+    public destroy() {
+        this.destroyBacklinkPanel();
+        this.editor.destroy();
+    }
+
+    /** Returns a nested read-only backlink editor when the active selection belongs to it. */
+    public getCurrentProtyle(range?: Range): IProtyle {
+        if (range) {
+            const backlinkEditor = this.backlink?.editors.find(item => item.protyle.element.contains(range.startContainer));
+            if (backlinkEditor) {
+                return backlinkEditor.protyle;
+            }
+        }
+        return this.editor.protyle;
+    }
+
+    private getBacklinkBlockId() {
+        const protyle = this.editor.protyle;
+        return protyle.block.showAll ? protyle.block.id || "" :
+            (protyle.block.parentID || protyle.block.rootID || "");
+    }
+
+    private updateBacklinkVisibility() {
+        if (!this.backlinkElement) {
+            return;
+        }
+        const lastElement = this.editor.protyle.wysiwyg.element.lastElementChild;
+        const hidden = lastElement?.getAttribute("data-eof") !== "2";
+        if (this.backlinkElement.classList.contains("fn__none") === hidden) {
+            return;
+        }
+        this.backlinkElement.classList.toggle("fn__none", hidden);
+        setPadding(this.editor.protyle);
+    }
+
+    private destroyBacklinkPanel() {
+        const hadBacklinkElement = this.backlinkElement !== undefined;
+        this.backlinkIntersectionObserver?.disconnect();
+        this.backlinkMutationObserver?.disconnect();
+        this.backlink?.destroy();
+        this.backlinkElement?.remove();
+        this.backlink = undefined;
+        this.backlinkElement = undefined;
+        this.backlinkIntersectionObserver = undefined;
+        this.backlinkMutationObserver = undefined;
+        if (hadBacklinkElement) {
+            setPadding(this.editor.protyle);
+        }
     }
 }

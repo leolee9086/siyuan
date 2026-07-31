@@ -1,4 +1,5 @@
 {
+    "backlinkShowBottom": "문서 하단에 백링크 표시",
 	"deleteRefConfirm": "삭제하거나 잘라낼 내용에 참조된 블록이 있습니다. 계속하시겠습니까?",
 	"addAllAiModels": "모든 모델 추가",
 	"autoDetectProxy": "프록시 자동 감지",

@@ -4,6 +4,7 @@
  * 解耦评估: 编辑器实例获取是全局工具函数，当前模块仅做遍历访问，不持有编辑器引用；通过本目录 `./imports` 转发可避免直接耦合 `plugin/imports`。
  */
 import { getAllEditor } from "./imports";
+import {requestBacklinkRefresh} from "../../layout/dock/backlink/backlinkRefresh";
 /**
  * 更新动态链接的锚文本
  */
@@ -32,6 +33,9 @@ export const setRefDynamicText = (data: {
             }
         }
     }
+    requestBacklinkRefresh({
+        cause: "dynamic-ref-text",
+        scope: {kind: "all"},
+    });
 };
-
 

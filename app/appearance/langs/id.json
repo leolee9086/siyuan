@@ -1,4 +1,5 @@
 {
+    "backlinkShowBottom": "Tampilkan pranala balik di bagian bawah dokumen",
 	"deleteRefConfirm": "Konten yang akan dihapus atau dipotong berisi blok yang dirujuk. Apakah Anda ingin melanjutkan?",
 	"addAllAiModels": "Tambahkan semua model",
 	"autoDetectProxy": "Deteksi proksi otomatis",
