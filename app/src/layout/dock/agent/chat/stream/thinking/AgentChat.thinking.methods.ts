@@ -28,32 +28,38 @@ export function appendThinking(runtime: AgentChatRuntime, reasoning: string) {
 /** 把累积的推理文本写入最后一个推理元素并保持贴底。 */
 function flushReasoningUpdate(runtime: AgentChatRuntime, thinking: Element) {
     runtime.pendingReasoningUpdate = false;
-    const allReasoning = thinking.querySelectorAll(".agent-chat__thinking-reasoning-text");
-    const reasoningElement = allReasoning.item(allReasoning.length - 1);
-    if (!reasoningElement) {
+    // 从 runtime 状态全量重建推理正文，保证与状态一致且不丢失任何已累积内容。
+    const body = thinking.querySelector<HTMLElement>(".agent-chat__thinking-body");
+    if (!body) {
         return;
     }
-    reasoningElement.textContent = runtime.currentThinkingReasoningContent;
-    const body = reasoningElement.closest<HTMLElement>(".agent-chat__thinking-body");
-    if (body) {
+    const allReasoning = body.querySelectorAll(".agent-chat__thinking-reasoning-text");
+    const reasoningElement = allReasoning.item(allReasoning.length - 1);
+    if (reasoningElement) {
+        reasoningElement.textContent = runtime.currentThinkingReasoningContent;
         body.scrollTop = body.scrollHeight;
+        return;
     }
+    // 推理元素不存在（例如 body 被重建过）时从状态补建，避免内容只存在于状态而界面空白。
+    if (!runtime.currentThinkingReasoningContent) {
+        return;
+    }
+    const created = document.createElement("div");
+    created.className = "agent-chat__thinking-reasoning-text";
+    created.textContent = runtime.currentThinkingReasoningContent;
+    body.appendChild(created);
+    body.scrollTop = body.scrollHeight;
 }
 
 /** 把推理令牌合并到下一渲染帧。 @同步豁免: 性能考虑 - SSE 事件必须立即累积推理内容，DOM 写入已经由 requestAnimationFrame 合并。 */
 export function appendReasoning(runtime: AgentChatRuntime, token: string) {
-    const isNewRound = runtime.currentThinkingReasoningContent.length === 0;
     runtime.currentThinkingReasoningContent += token;
+    // 活动思考卡片不存在（尚未收到 thinking 事件或已结束）时不渲染，但状态仍完整累积。
     const thinkingElements = runtime.messagesContainer.querySelectorAll(
         ".agent-chat__msg--thinking:not(.agent-chat__msg--thinking-done) .agent-chat__thinking-body");
     const thinking = thinkingElements.item(thinkingElements.length - 1);
     if (!thinking) {
         return;
-    }
-    if (isNewRound) {
-        const reasoningElement = document.createElement("div");
-        reasoningElement.className = "agent-chat__thinking-reasoning-text";
-        thinking.appendChild(reasoningElement);
     }
     if (runtime.pendingReasoningUpdate) {
         return;

@@ -1,17 +1,30 @@
+/** 用途：转义思考文本；使用范围：思考卡片构建；解耦评估：通用转义工具，保留共享工具引用。 */
 import {escapeHtml} from "./imports";
+/** 用途：绑定思考卡片折叠交互；使用范围：活动思考卡片渲染；解耦评估：渲染边界经目录网关集中导入。 */
 import {bindThinkingCardToggle} from "./imports";
+/** 用途：渲染工具名称行 HTML；使用范围：思考步骤工具明细；解耦评估：渲染边界经目录网关集中导入。 */
 import {renderToolsLineHTML} from "./imports";
+/** 用途：约束流式思考状态读写；使用范围：本文件全部函数；解耦评估：类型导入编译后消失。 */
 import type {AgentChatRuntime} from "./imports";
+/** 用途：约束思考会话条目；使用范围：思考步骤持久化；解耦评估：类型导入编译后消失。 */
 import type {SessionEntry} from "./imports";
+/** 用途：约束思考步骤快照；使用范围：步骤提交；解耦评估：类型导入编译后消失。 */
 import type {ThinkingStep} from "./imports";
+/** 用途：把流式正文归属到思考步骤；使用范围：响应脱离；解耦评估：步骤提交集中在本领域，经公开入口调用。 */
 import {attachStepContent} from "./AgentChat.thinkingStep";
+/** 用途：压缩工具调用用于持久化；使用范围：穿插条目结算；解耦评估：持久化投影经目录网关集中导入。 */
 import {slimToolCallsForPersistence} from "./imports";
+/** 用途：保持消息贴底；使用范围：思考卡片渲染收尾；解耦评估：滚动策略经目录网关集中导入。 */
 import {scrollToBottom} from "./imports";
+/** 用途：启动思考耗时刷新；使用范围：活动思考卡片渲染；解耦评估：生命周期命令经目录网关集中导入。 */
 import {startThinkingUpdates} from "./imports";
+/** 用途：在助手消息之前插入思考卡片；使用范围：活动思考卡片渲染；解耦评估：消息放置边界经目录网关集中导入。 */
 import {insertBeforeAI} from "./imports";
+/** 用途：观察卡片尺寸变化；使用范围：活动思考卡片渲染；解耦评估：滚动策略经目录网关集中导入。 */
 import {observeStickTarget} from "./imports";
 
 /** `commitPreviousThinkingStep` 负责流式响应流程中的对应步骤，由上层流程或事件回调调用并集中维护状态变化。 */
+/** @同步豁免: 生命周期 */
 export function commitPreviousThinkingStep(runtime: AgentChatRuntime) {
     if (!runtime.currentThinkingText) {
         return;
@@ -29,6 +42,7 @@ export function commitPreviousThinkingStep(runtime: AgentChatRuntime) {
 /**
  * `renderNewThinkingTools` 负责流式响应流程中的对应步骤，由上层流程或事件回调调用。
  * @显式返回类型原因 该签名跨职责模块或运行时契约使用，需固定返回边界，避免推导随实现细节漂移。
+ * @同步豁免: UI构建
  */
 export function renderNewThinkingTools(runtime: AgentChatRuntime, reasoning: string): string {
     if (reasoning !== "processing" || runtime.currentToolCalls.length === 0) {
@@ -63,6 +77,7 @@ function detachCurrentAssistant(runtime: AgentChatRuntime) {
 }
 
 /** `detachStreamingResponse` 负责流式响应流程中的对应步骤，由上层流程或事件回调调用并集中维护状态变化。 */
+/** @同步豁免: 生命周期 */
 export function detachStreamingResponse(runtime: AgentChatRuntime, reasoning: string) {
     if (reasoning !== "processing") {
         return;
@@ -140,6 +155,7 @@ function flushInterveningEntries(runtime: AgentChatRuntime) {
 }
 
 /** `settleInterveningThinkingCard` 负责流式响应流程中的对应步骤，由上层流程或事件回调调用并集中维护状态变化。 */
+/** @同步豁免: 生命周期 */
 export function settleInterveningThinkingCard(runtime: AgentChatRuntime, reasoning: string) {
     if (reasoning !== "processing" || !runtime.hasInterveningCard) {
         return;
@@ -173,20 +189,40 @@ function createActiveThinkingCard(runtime: AgentChatRuntime, text: string, detai
     return el;
 }
 
+/** 从当前 runtime 状态重建思考卡片 body 内容，保证任何重建都不丢失推理文本与工具明细。 */
+function renderActiveThinkingBody(runtime: AgentChatRuntime, body: HTMLElement) {
+    // 推理文本是唯一需要从状态重建的活动内容，避免 innerHTML 重建把 appendReasoning 写入的节点清掉。
+    if (!runtime.currentThinkingReasoningContent) {
+        return;
+    }
+    const allReasoning = body.querySelectorAll(".agent-chat__thinking-reasoning-text");
+    const reasoningElement = allReasoning.item(allReasoning.length - 1);
+    if (reasoningElement) {
+        reasoningElement.textContent = runtime.currentThinkingReasoningContent;
+        return;
+    }
+    const created = document.createElement("div");
+    created.className = "agent-chat__thinking-reasoning-text";
+    created.textContent = runtime.currentThinkingReasoningContent;
+    body.appendChild(created);
+}
+
 /** `renderActiveThinkingCard` 负责流式响应流程中的对应步骤，由上层流程或事件回调调用并集中维护状态变化。 */
+/** @同步豁免: UI构建 */
 export function renderActiveThinkingCard(runtime: AgentChatRuntime, text: string, detailLines: string) {
     const existingCard = runtime.messagesContainer.querySelector<HTMLElement>(
         ".agent-chat__msg--thinking:not(.agent-chat__msg--thinking-done)"
     );
-    const existingBody = existingCard?.querySelector(".agent-chat__thinking-body");
+    const existingBody = existingCard?.querySelector<HTMLElement>(".agent-chat__thinking-body");
     const textElement = existingCard?.querySelector(".agent-chat__thinking-text");
     if (textElement) {
         textElement.textContent = text;
     }
     // 条件 existingCard && existingBody 成立时才执行此分支，避免影响其它会话或响应阶段。
     if (existingCard && existingBody) {
-        // 与基线一致：通过 innerHTML 追加重建细节子树，基线行为即在此重建过程。
-        existingBody.innerHTML += detailLines;
+        // 使用 insertAdjacentHTML 追加而不重建 body：innerHTML 重建会清除 appendReasoning 已写入的推理文本节点。
+        existingBody.insertAdjacentHTML("beforeend", detailLines);
+        renderActiveThinkingBody(runtime, existingBody);
         scrollToBottom(runtime);
         startThinkingUpdates(runtime);
         return;
