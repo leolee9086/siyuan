@@ -12,6 +12,7 @@ const COMMIT_RUNTIME_HOOKS = Object.freeze({
     "post-commit": "post-commit",
     "pre-merge-commit": "pre-commit",
     "post-merge": "post-commit",
+    "pre-push": "pre-push",
 });
 const PAGE_PATHS = [
     "/",
@@ -72,7 +73,23 @@ const isFrontendCommitPath = (filePath) => {
 // This is deliberately a source-validation gate, not a deployment gate. The
 // committed revision is independently tested again by the controlled Forge
 // deployment workflow before any Kernel replacement is attempted.
+// 普通提交不再执行前端测试；前端全量测试只在 push 时兜底（见 runPrePushGate）。
 const runStagedCommitChecks = (root, paths, run = execFileSync) => {
+    const options = {stdio: "inherit", windowsHide: true};
+    const checks = {};
+    if (paths.some(isKernelCommitPath)) {
+        run("go", ["test", "-short", "-tags", "fts5", "./..."], {
+            ...options,
+            cwd: path.join(root, "kernel"),
+        });
+        checks.kernel = "go test -short -tags fts5 ./...";
+    }
+    return checks;
+};
+
+// Push 门禁：推送是把未经验证的提交带到远程的最后一道本地关卡。
+// 与普通提交不同，push 时前端与后端都执行全量测试，任一失败即阻止推送。
+const runPushChecks = (root, paths, run = execFileSync) => {
     const options = {stdio: "inherit", windowsHide: true};
     const checks = {};
     if (paths.some(isKernelCommitPath)) {
@@ -92,6 +109,46 @@ const runStagedCommitChecks = (root, paths, run = execFileSync) => {
         checks.frontend = "pnpm test";
     }
     return checks;
+};
+
+// git 在 pre-push 时通过 stdin 传入待推送 ref 行：
+// <local ref> <local sha> <remote ref> <remote sha>（每行一个）。
+// 对每个待推送 ref，计算 远程基线..本地 的变更路径并分类执行测试。
+const runPrePushGate = (root = repoRoot, stdin = "", run = execFileSync) => {
+    const paths = new Set();
+    for (const line of parseLines(stdin)) {
+        const parts = line.split(/\s+/);
+        if (parts.length < 4) {
+            continue;
+        }
+        const [, localSha, , remoteSha] = parts;
+        if (!/^[0-9a-f]{40,64}$/.test(localSha)) {
+            continue;
+        }
+        if (/^0+$/.test(remoteSha)) {
+            // 新分支 / 新远程：没有远程基线，回退到最近一次提交范围。
+            let parent;
+            try {
+                parent = gitOutput(root, ["rev-parse", `${localSha}^`]);
+            } catch (error) {
+                parent = "";
+            }
+            if (parent) {
+                for (const changed of changedPaths(root, parent, localSha)) {
+                    paths.add(changed);
+                }
+            }
+            continue;
+        }
+        if (/^[0-9a-f]{40,64}$/.test(remoteSha)) {
+            for (const changed of changedPaths(root, remoteSha, localSha)) {
+                paths.add(changed);
+            }
+        }
+    }
+    const pathList = [...paths];
+    const checks = runPushChecks(root, pathList, run);
+    return {paths: pathList, checks};
 };
 
 const validateCommitRuntimeHooks = (root) => {
@@ -155,14 +212,10 @@ const persistOperation = (root, operation, message) => {
     fs.appendFileSync(logPath, `[${operation.updatedAt}] ${message}\n`, "utf8");
 };
 
+// 普通提交不再以前端测试作为 freshness 门禁；保留函数与调用点，
+// 仅记录 revision（见 runPostCommitGate 的 frontend 分支）。
 const runFrontendUpdate = (root, _changedPaths, run = execFileSync) => {
-    const options = {cwd: path.join(root, "app"), stdio: "inherit", windowsHide: true};
-    if (process.platform === "win32") {
-        run(process.env.ComSpec || "cmd.exe", ["/d", "/s", "/c", "pnpm.cmd", "run", "test"], options);
-    } else {
-        run("pnpm", ["run", "test"], options);
-    }
-    return {tests: "pnpm test"};
+    return {tests: "skipped"};
 };
 
 const probePages = async (port, fetchImpl) => {
@@ -387,6 +440,11 @@ const main = async () => {
         await runPreCommitGate();
         return;
     }
+    if (mode === "pre-push") {
+        const stdin = fs.readFileSync(0, "utf8");
+        await runPrePushGate(repoRoot, stdin);
+        return;
+    }
     if (mode === "post-commit") {
         await runPostCommitHook();
         return;
@@ -395,7 +453,7 @@ const main = async () => {
         await retryFailedPostCommitGate();
         return;
     }
-    throw new Error("Expected install, pre-commit, post-commit or retry-post-commit");
+    throw new Error("Expected install, pre-commit, pre-push, post-commit or retry-post-commit");
 };
 
 if (require.main === module) {
@@ -409,11 +467,14 @@ module.exports = {
     COMMIT_RUNTIME_HOOKS,
     changedPaths,
     installCommitRuntimeHooks,
+    isFrontendCommitPath,
     isFrontendRuntimePath,
     probePages,
     readGateState,
     retryFailedPostCommitGate,
     runFrontendUpdate,
+    runPrePushGate,
+    runPushChecks,
     runStagedCommitChecks,
     runPostCommitHook,
     runPostCommitGate,

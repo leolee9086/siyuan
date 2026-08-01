@@ -147,17 +147,23 @@ SiYuan 横跨多个仓库。本仓库（分叉）继承上游的架构与依赖�
 
 ### 提交门禁（`.githooks/`）
 
-本仓库通过 `core.hooksPath` 指向 `.githooks/`，每次 `git commit` 都会执行 `app/scripts/forge-commit-runtime-gate.js`。**按暂存文件路径分流**：
+本仓库通过 `core.hooksPath` 指向 `.githooks/`，`git commit` 会执行 `app/scripts/forge-commit-runtime-gate.js`。**普通提交按暂存文件路径分流**：
 
 - 含 `kernel/` 路径 → 跑 `go test -short -tags fts5 ./...`（Go 全量测试，short 模式）
-- 含 `app/src/`、`app/appearance/`、`app/test/`、`app/scripts/`、`.githooks/`、`app/package.json`、`app/pnpm-lock.yaml`、`app/webpack*` 等前端运行路径 → 跑 **全量前端测试 `pnpm test`**（= `test:node` + `test:vitest`，遍历 `src/` 与 `test/` 下全部 `*.test.*` / `*.spec.*` 文件，按 10 个一组、单 worker 串行跑完，任一组失败即门禁失败）
-- 其他路径（如纯文档改动）→ 不触发测试
+- 其他路径（前端、文档等）→ **不触发任何测试**
 
 `pre-commit` 门禁失败会**阻止提交**（另有 `git diff --cached --check` 空白检查）；`post-commit` 门禁失败**不阻止提交**，只记录到 `.forge-runtime/operations/`（Git 已创建提交，部署失败不能追溯性地使源验证失败）。
 
+### push 门禁（`pre-push`）
+
+普通提交跳过前端测试后，由 `pre-push` 钩子兜底：**推送时对即将推送的提交范围执行全量测试**，任一失败即阻止推送：
+
+- 范围内含 `kernel/` 路径 → `go test -short -tags fts5 ./...`
+- 范围内含前端运行路径（`app/src/`、`app/appearance/`、`app/test/`、`app/scripts/`、`.githooks/`、`app/package.json`、`app/pnpm-lock.yaml`、`app/webpack*`）→ 全量 `pnpm test`（= `test:node` + `test:vitest`，遍历 `src/` 与 `test/` 下全部 `*.test.*` / `*.spec.*` 文件，按 10 个一组、单 worker 串行跑完，任一组失败即门禁失败）
+
 ### post-commit 运行时交付
 
-若提交包含前端运行时代码，post-commit 钩子会先重跑 `pnpm test` 再刷新前端；若包含内核运行时变更，则通过 Forge Supervisor **热替换内核**。随后执行健康检查：Supervisor 就绪探测（连续 2 次成功）、内核探测、6 个页面 HTTP 200（`/`、`/stage/build/agent-app/`、`magi-desktop/`、`magi-mobile/`、`magi-identity/`、`protyle-app/`）。状态记录在 `.forge-runtime/commit-runtime-gate.json`。
+若提交包含内核运行时变更，则通过 Forge Supervisor **热替换内核**；前端变更不再以测试为门禁，仅记录 revision（`runFrontendUpdate` 返回 `tests: "skipped"`）。随后执行健康检查：Supervisor 就绪探测（连续 2 次成功）、内核探测、6 个页面 HTTP 200（`/`、`/stage/build/agent-app/`、`magi-desktop/`、`magi-mobile/`、`magi-identity/`、`protyle-app/`）。状态记录在 `.forge-runtime/commit-runtime-gate.json`。
 
 ### 测试边界
 

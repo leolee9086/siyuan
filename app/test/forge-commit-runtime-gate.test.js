@@ -11,6 +11,8 @@ const {
     readGateState,
     retryFailedPostCommitGate,
     runFrontendUpdate,
+    runPrePushGate,
+    runPushChecks,
     runStagedCommitChecks,
     runPostCommitHook,
     runPostCommitGate,
@@ -74,24 +76,17 @@ test("Frontend runtime path classification excludes tooling-only changes", () =>
     assert.equal(isFrontendRuntimePath("docs/README.md"), false);
 });
 
-test("Frontend runtime update uses tests as its only freshness gate", () => {
+test("Frontend runtime update no longer runs tests on ordinary commits", () => {
     const calls = [];
     const result = runFrontendUpdate("D:/repo", ["app/src/index.ts"], (executable, args, options) => {
         calls.push({executable, args, cwd: options.cwd});
     });
 
-    if (process.platform === "win32") {
-        assert.deepEqual(calls.map((call) => call.executable), [process.env.ComSpec || "cmd.exe"]);
-        assert.deepEqual(calls.map((call) => call.args), [["/d", "/s", "/c", "pnpm.cmd", "run", "test"]]);
-    } else {
-        assert.deepEqual(calls.map((call) => call.executable), ["pnpm"]);
-        assert.deepEqual(calls.map((call) => call.args), [["run", "test"]]);
-    }
-    assert.equal(calls.every((call) => call.cwd === path.join("D:/repo", "app")), true);
-    assert.deepEqual(result, {tests: "pnpm test"});
+    assert.deepEqual(calls, []);
+    assert.deepEqual(result, {tests: "skipped"});
 });
 
-test("Staged commit checks select fixed source tests without consulting Forge runtime state", () => {
+test("Staged commit checks run backend tests only, without consulting Forge runtime state", () => {
     const calls = [];
     const result = runStagedCommitChecks(
         "D:/repo",
@@ -101,22 +96,13 @@ test("Staged commit checks select fixed source tests without consulting Forge ru
 
     assert.deepEqual(result, {
         kernel: "go test -short -tags fts5 ./...",
-        frontend: "pnpm test",
     });
+    assert.equal(calls.length, 1);
     assert.deepEqual(calls[0], {
         executable: "go",
         args: ["test", "-short", "-tags", "fts5", "./..."],
         cwd: path.join("D:/repo", "kernel"),
     });
-    const frontendCall = calls[1];
-    assert.equal(frontendCall.cwd, path.join("D:/repo", "app"));
-    if (process.platform === "win32") {
-        assert.equal(frontendCall.executable, process.env.ComSpec || "cmd.exe");
-        assert.deepEqual(frontendCall.args, ["/d", "/s", "/c", "pnpm.cmd", "run", "test"]);
-    } else {
-        assert.equal(frontendCall.executable, "pnpm");
-        assert.deepEqual(frontendCall.args, ["run", "test"]);
-    }
 });
 
 test("Supervisor readiness waits for consecutive success after transient build pressure", async () => {
@@ -341,13 +327,13 @@ test("Pre-commit gate ignores deployment lag, failed operation state and Supervi
         },
         runStagedCommitChecks: async (_root, paths) => {
             assert.deepEqual(paths, ["app/src/index.ts"]);
-            return {frontend: "pnpm test"};
+            return {};
         },
     });
 
     assert.deepEqual(result, {
         paths: ["app/src/index.ts"],
-        checks: {frontend: "pnpm test"},
+        checks: {},
     });
 });
 
@@ -386,6 +372,89 @@ test("Pre-commit gate rejects staged whitespace damage before it runs tests", as
     assert.equal(checksRan, false);
 });
 
+test("Pre-push gate runs frontend and backend tests over the pushed range", (context) => {
+    const repository = createRepository();
+    context.after(() => fs.rmSync(repository.root, {recursive: true, force: true}));
+    const {root, base, head} = repository;
+    const calls = [];
+    const stdin = `refs/heads/main ${head} refs/remotes/origin/main ${base}\n`;
+
+    const result = runPrePushGate(root, stdin, (executable, args, options) => {
+        calls.push({executable, args, cwd: options.cwd});
+    });
+
+    assert.deepEqual(result.paths.sort(), ["app/src/index.ts", "kernel/main.go"]);
+    assert.deepEqual(result.checks, {
+        kernel: "go test -short -tags fts5 ./...",
+        frontend: "pnpm test",
+    });
+    assert.deepEqual(calls[0], {
+        executable: "go",
+        args: ["test", "-short", "-tags", "fts5", "./..."],
+        cwd: path.join(root, "kernel"),
+    });
+    const frontendCall = calls[1];
+    assert.equal(frontendCall.cwd, path.join(root, "app"));
+    if (process.platform === "win32") {
+        assert.equal(frontendCall.executable, process.env.ComSpec || "cmd.exe");
+        assert.deepEqual(frontendCall.args, ["/d", "/s", "/c", "pnpm.cmd", "run", "test"]);
+    } else {
+        assert.equal(frontendCall.executable, "pnpm");
+        assert.deepEqual(frontendCall.args, ["run", "test"]);
+    }
+});
+
+test("Pre-push gate scopes tests to the pushed commits only", (context) => {
+    const repository = createRepository();
+    context.after(() => fs.rmSync(repository.root, {recursive: true, force: true}));
+    const {root, head} = repository;
+    fs.writeFileSync(path.join(root, "app", "src", "index.ts"), "export const ready = 'push';\n");
+    git(root, ["add", "app/src/index.ts"]);
+    git(root, ["commit", "-m", "frontend push"]);
+    const pushedHead = git(root, ["rev-parse", "HEAD"]);
+    const calls = [];
+    const stdin = `refs/heads/main ${pushedHead} refs/remotes/origin/main ${head}\n`;
+
+    const result = runPrePushGate(root, stdin, (executable, args, options) => {
+        calls.push({executable, args, cwd: options.cwd});
+    });
+
+    assert.deepEqual(result.paths, ["app/src/index.ts"]);
+    assert.deepEqual(result.checks, {frontend: "pnpm test"});
+    assert.equal(calls.length, 1);
+});
+
+test("Pre-push gate rejects the push when tests fail", (context) => {
+    const repository = createRepository();
+    context.after(() => fs.rmSync(repository.root, {recursive: true, force: true}));
+    const {root, base, head} = repository;
+    const stdin = `refs/heads/main ${head} refs/remotes/origin/main ${base}\n`;
+
+    assert.throws(() => runPrePushGate(root, stdin, () => {
+        throw new Error("frontend test failure");
+    }), /frontend test failure/);
+});
+
+test("Pre-push gate falls back to the last commit for a new remote ref", (context) => {
+    const repository = createRepository();
+    context.after(() => fs.rmSync(repository.root, {recursive: true, force: true}));
+    const {root} = repository;
+    fs.writeFileSync(path.join(root, "kernel", "main.go"), "package main\n\nfunc main() { println(2) }\n");
+    git(root, ["add", "kernel/main.go"]);
+    git(root, ["commit", "-m", "kernel push"]);
+    const pushedHead = git(root, ["rev-parse", "HEAD"]);
+    const calls = [];
+    const stdin = `refs/heads/feature ${pushedHead} refs/remotes/origin/feature ${"0".repeat(40)}\n`;
+
+    const result = runPrePushGate(root, stdin, (executable, args, options) => {
+        calls.push({executable, args, cwd: options.cwd});
+    });
+
+    assert.deepEqual(result.paths, ["kernel/main.go"]);
+    assert.deepEqual(result.checks, {kernel: "go test -short -tags fts5 ./..."});
+    assert.equal(calls.length, 1);
+});
+
 test("Hook installation is idempotent and never replaces another hook owner", () => {
     const calls = [];
     const installRun = (_root, args) => {
@@ -397,7 +466,7 @@ test("Hook installation is idempotent and never replaces another hook owner", ()
     assert.throws(() => installCommitRuntimeHooks("D:/repo", () => "custom-hooks", () => undefined), /refusing to replace/);
 });
 
-test("Versioned hooks cover ordinary and automatic merge commits", () => {
+test("Versioned hooks cover ordinary, automatic merge commits and push", () => {
     const root = path.resolve(__dirname, "../..");
     validateCommitRuntimeHooks(root);
     assert.deepEqual(COMMIT_RUNTIME_HOOKS, {
@@ -405,6 +474,7 @@ test("Versioned hooks cover ordinary and automatic merge commits", () => {
         "post-commit": "post-commit",
         "pre-merge-commit": "pre-commit",
         "post-merge": "post-commit",
+        "pre-push": "pre-push",
     });
 });
 
