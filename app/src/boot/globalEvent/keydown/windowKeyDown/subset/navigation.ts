@@ -58,6 +58,12 @@ import { goBack } from "./imports";
  */
 import { goForward } from "./imports";
 /**
+ * 用途：引入 DOM 类名最近祖先查询 hasClosestByClassName，用于 executeDelegatedKeydownPreHandlers 判断事件目标是否位于文档树底部反链面板（sy__backlink--bottom）内。
+ * 使用范围：仅当前文件 executeDelegatedKeydownPreHandlers 函数中调用。
+ * 解耦评估：通过 ./imports 集中转发保持解耦，与同目录其他 DOM 查询依赖一致。
+ */
+import { hasClosestByClassName } from "./imports";
+/**
  * 用途：引入导航窗口键命令常量枚举 NAVIGATION_WINDOW_KEY_COMMANDS，供所有路由链 split 条件匹配使用。
  * 使用范围：仅当前文件内 tabExecNavigationWindowKeyCommandRouter、tabSwitchNavigationWindowKeyCommandRouter、layoutNavigationWindowKeyCommandRouter、navigationWindowKeyCommandRouter 的分叉条件定义。
  * 解耦评估：命令常量是执行器与路由层之间的共享契约，为只读常量，不形成可变状态耦合。
