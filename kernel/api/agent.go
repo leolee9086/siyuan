@@ -716,6 +716,11 @@ func getAgentPromptSourceState(c *gin.Context) {
 		if current.SourceVersion != state.Source.SourceVersion && current.SourceVersion != state.Source.KeptVersion {
 			state.State = agent.PromptBindingStateSourceChanged
 			state.CurrentVersion = current.SourceVersion
+			logging.LogInfof("agent prompt source changed: session [%s] document [%s] stored %s kept %s current %s",
+				req.SessionID, state.Source.DocumentID,
+				agent.ShortPromptSourceVersion(state.Source.SourceVersion),
+				agent.ShortPromptSourceVersion(state.Source.KeptVersion),
+				agent.ShortPromptSourceVersion(current.SourceVersion))
 		}
 	}
 	ret := gulu.Ret.NewResult()

@@ -21,6 +21,7 @@ import (
 	"github.com/88250/gulu"
 	"github.com/88250/lute/ast"
 	"github.com/siyuan-note/filelock"
+	"github.com/siyuan-note/logging"
 )
 
 const (
@@ -96,7 +97,24 @@ func promptSourceMetadata(source PromptSource) PromptSourceMetadata {
 	}
 }
 
+// normalizePromptSnapshot 规范化 prompt 快照:
+//  1. 换行归一化(CRLF/CR → LF);
+//  2. IAL 属性按字典序排序 —— 与 scripts/upstream-sync/procedure-block.mjs 的
+//     canonicalizeKramdown 语义一致(实现见 ial_normalize.go)。
+//     根因修复:md 导出的 IAL 属性顺序来自 Go map 遍历、每次随机,导致同一文档
+//     每次导出 hash 漂移而误报"来源文档已变化";
+//  3. 首尾空白裁剪(与 mjs 的已知差异①:Go 整体保留 TrimSpace,mjs 无此步)。
 func normalizePromptSnapshot(snapshot string) string {
+	snapshot = strings.ReplaceAll(snapshot, "\r\n", "\n")
+	snapshot = strings.ReplaceAll(snapshot, "\r", "\n")
+	snapshot = NormalizeIALAttributes(snapshot)
+	return strings.TrimSpace(snapshot)
+}
+
+// normalizePromptSnapshotLegacy 是修复前的规范化语义(仅换行归一化 + TrimSpace,无 IAL 排序),
+// 仅用于 validatePromptSource 的存量兼容垫片,不得用于新数据。
+// 移除判据:兼容垫片命中日志(见 validatePromptSourceWithSession)长期为零。
+func normalizePromptSnapshotLegacy(snapshot string) string {
 	snapshot = strings.ReplaceAll(snapshot, "\r\n", "\n")
 	snapshot = strings.ReplaceAll(snapshot, "\r", "\n")
 	return strings.TrimSpace(snapshot)
@@ -155,7 +173,31 @@ func NewDocumentPromptSource(documentID, notebookID, title, snapshot string, cap
 	}, nil
 }
 
+// promptSourceVersionPairMatches 判断 source 的 sourceVersion/contentHash 双字段是否精确匹配
+// 同一语义下的版本号(仅匹配单字段仍会 mismatch,必须同语义配对)。
+func promptSourceVersionPairMatches(source PromptSource, version string) bool {
+	return source.SourceVersion == version && source.ContentHash == strings.TrimPrefix(version, "sha256:")
+}
+
+// ShortPromptSourceVersion 返回版本号 hash 部分的前 8 位,用于日志留痕与排障。
+func ShortPromptSourceVersion(version string) string {
+	hash := strings.TrimPrefix(version, "sha256:")
+	if len(hash) > 8 {
+		hash = hash[:8]
+	}
+	return hash
+}
+
 func validatePromptSource(source PromptSource) error {
+	return validatePromptSourceWithSession(source, "")
+}
+
+// validatePromptSourceWithSession 在 validatePromptSource 基础上携带会话 id,用于兼容垫片命中日志。
+// 兼容垫片:修复前写入的存量快照按旧语义(仅换行归一化,无 IAL 排序)hash 校验,
+// sourceVersion 与 contentHash 双字段联合兜底 —— 两字段须分别匹配"新语义 hash"或"旧语义 hash"的同一语义配对。
+// 存量会话不自动重写(零写迁移风险),待下一次用户操作(刷新/保持/重绑)自然写回新 hash;
+// 移除判据:垫片命中日志长期为零。
+func validatePromptSourceWithSession(source PromptSource, sessionID string) error {
 	switch source.Kind {
 	case PromptSourceKindDefault:
 		if source.DocumentID != "" || source.NotebookID != "" || source.PromptSnapshot != "" {
@@ -172,8 +214,13 @@ func validatePromptSource(source PromptSource) error {
 			return fmt.Errorf("invalid document prompt source snapshot")
 		}
 		version := promptSourceVersion(normalized)
-		if source.SourceVersion != version || source.ContentHash != strings.TrimPrefix(version, "sha256:") {
-			return fmt.Errorf("document prompt source fingerprint mismatch")
+		if !promptSourceVersionPairMatches(source, version) {
+			// 新语义不匹配,尝试旧语义兜底(存量兼容垫片)。
+			legacyVersion := promptSourceVersion(normalizePromptSnapshotLegacy(source.PromptSnapshot))
+			if !promptSourceVersionPairMatches(source, legacyVersion) {
+				return fmt.Errorf("document prompt source fingerprint mismatch")
+			}
+			logging.LogInfof("agent prompt source compat shim hit: session [%s] document [%s] legacy hash %s", sessionID, source.DocumentID, ShortPromptSourceVersion(source.SourceVersion))
 		}
 		if source.KeptVersion != "" && !validPromptSourceVersion(source.KeptVersion) {
 			return fmt.Errorf("invalid kept prompt source version")
@@ -196,7 +243,7 @@ func loadPromptSourceSessionLocked(sessionID string) (map[string]any, error) {
 	return session, nil
 }
 
-func promptSourceFromSessionLocked(session map[string]any) (PromptSource, error) {
+func promptSourceFromSessionLocked(sessionID string, session map[string]any) (PromptSource, error) {
 	raw, ok := session["promptSource"]
 	if !ok || raw == nil {
 		return defaultPromptSource(), nil
@@ -209,7 +256,7 @@ func promptSourceFromSessionLocked(session map[string]any) (PromptSource, error)
 	if err = gulu.JSON.UnmarshalJSON(data, &source); err != nil {
 		return PromptSource{}, fmt.Errorf("decode agent prompt source: %w", err)
 	}
-	if err = validatePromptSource(source); err != nil {
+	if err = validatePromptSourceWithSession(source, sessionID); err != nil {
 		return PromptSource{}, err
 	}
 	return source, nil
@@ -245,7 +292,7 @@ func promptSourceEligibilityLocked(sessionID string, session map[string]any) (bo
 }
 
 func promptSourceStateLocked(sessionID string, session map[string]any) (PromptSourceState, error) {
-	source, err := promptSourceFromSessionLocked(session)
+	source, err := promptSourceFromSessionLocked(sessionID, session)
 	if err != nil {
 		return PromptSourceState{}, err
 	}
@@ -301,7 +348,7 @@ func GetPromptSource(sessionID string) (PromptSource, error) {
 	if err != nil {
 		return PromptSource{}, err
 	}
-	return promptSourceFromSessionLocked(session)
+	return promptSourceFromSessionLocked(sessionID, session)
 }
 
 // GetPromptSourceState determines eligibility under the same session lock used
@@ -341,7 +388,7 @@ func mutatePromptSource(sessionID string, expectedRevision int64, mutate func(Pr
 	if !eligible {
 		return PromptSourceState{}, ErrPromptSourceLocked
 	}
-	current, err := promptSourceFromSessionLocked(session)
+	current, err := promptSourceFromSessionLocked(sessionID, session)
 	if err != nil {
 		return PromptSourceState{}, err
 	}
