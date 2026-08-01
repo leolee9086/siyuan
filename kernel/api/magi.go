@@ -587,8 +587,9 @@ func handleMagiTask(task *DispatcherTask) (result MagiTaskResult) {
 		magiRuntimeMgr.FinishForeground(result.Err)
 	}()
 
-	// 防御性注入：通知贤者此轮由外部消息触发，覆盖可能残留的心跳轮次上下文
-	injectForegroundSystemNote(task.SessionID)
+	// 防御性注入：通知贤者此轮由外部消息触发，覆盖可能残留的心跳轮次上下文。
+	// 注记拼入本轮 user 消息尾部（不持久化到历史中部），避免破坏稳定前缀。
+	userMessage += "\n\n" + foregroundSystemNote()
 
 	// 调用 Coordinator 执行决策。使用请求上下文承载取消信号，避免给整轮流程附加共享 deadline。
 	ctx := task.RequestCtx
@@ -636,8 +637,9 @@ func handleChannelTask(task *DispatcherTask) (result MagiTaskResult) {
 		magiRuntimeMgr.FinishForeground(result.Err)
 	}()
 
-	// 防御性注入：通知贤者此轮由外部消息触发，覆盖可能残留的心跳轮次上下文
-	injectForegroundSystemNote(task.SessionID)
+	// 防御性注入：通知贤者此轮由外部消息触发，覆盖可能残留的心跳轮次上下文。
+	// 注记拼入本轮 user 消息尾部（不持久化到历史中部），避免破坏稳定前缀。
+	userMessage += "\n\n" + foregroundSystemNote()
 
 	ctx := task.RequestCtx
 	if ctx == nil {
@@ -680,19 +682,11 @@ func extractChannelUserMessage(sourceCtx *types.RequestSourceContext) string {
 	return ""
 }
 
-// injectForegroundSystemNote 向三贤者注入外部消息触发提示，防御性覆盖可能残留的心跳上下文。
-func injectForegroundSystemNote(sessionID string) {
-	note := "[系统提示] 外部消息已记录，请以 <source=user_message> 为准开始处理。"
-	msg := types.ContextMessage{Role: types.RoleSystem, Content: note}
-	if magiMelchior != nil {
-		_ = magiMelchior.AddToContextWithSession(sessionID, msg)
-	}
-	if magiBalthazar != nil {
-		_ = magiBalthazar.AddToContextWithSession(sessionID, msg)
-	}
-	if magiCasper != nil {
-		_ = magiCasper.AddToContextWithSession(sessionID, msg)
-	}
+// foregroundSystemNote 返回外部消息触发提示文本，由调用方拼入本轮 user 消息尾部。
+// 原实现（injectForegroundSystemNote）向三贤者历史中部持久追加 system 消息，
+// 会持续破坏稳定前缀；改为返回文本后不再写入历史，仅影响当前请求的 user 尾部。
+func foregroundSystemNote() string {
+	return "[系统提示] 外部消息已记录，请以 <source=user_message> 为准开始处理。"
 }
 
 // handleChannelInbound 处理来自外部通道的入站消息。

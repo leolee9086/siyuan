@@ -183,39 +183,23 @@ function buildTrinityThinkResultMessage(introspectionContent: string): string {
     return `<${TRINITY_THINK_RESULT_TAG}>${introspectionContent}</${TRINITY_THINK_RESULT_TAG}>`;
 }
 
-/** @同步豁免: 性能考虑 - 纯时间格式化与字符串拼接，无异步依赖。 */
-function build北京时间与问候(now: number): { beijingTime: string; greeting: string } {
-    const beijingTime = new Date(now).toLocaleTimeString("zh-CN", {
-        timeZone: "Asia/Shanghai",
-        hour12: false,
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-    const hour = Number(beijingTime.slice(0, 2));
-    const greeting = hour < 12 ? "上午" : hour < 18 ? "下午" : "晚上";
-    return { beijingTime, greeting };
-}
-
-/** @同步豁免: 性能考虑 - 纯时间格式化与字符串拼接，无异步依赖。 */
-function 构建Trinity系统环境提示词(now: number): string {
-    const { beijingTime, greeting } = build北京时间与问候(now);
-    return `${TRINITY_STITCH_SYSTEM_REQUIREMENTS}
-
+// 固定环境提示词：不再注入动态北京时间（Date.now()），
+// 避免每次构建产生不同的 system 内容从而破坏 LLM 前缀缓存（prefix cache）。
+// 前端 mockWise 直连路径已非主链路（主链路走后端 magiChat），此处只保留确定性文案。
+const TRINITY_ENVIRONMENT_PROMPT_SUFFIX = `
 系统环境：
 - Seraph 是系统的心理监控机制，仅用于心理唤醒与状态校准。
-- 当前时间为北京时间 ${beijingTime}。
-- ${greeting}好，现在你可以继续工作了。`;
+- 当前时间以系统提供为准。
+- 现在你可以继续工作了。`;
+
+/** @同步豁免: 性能考虑 - 纯字符串模板拼接，无异步依赖。 */
+function 构建Trinity系统环境提示词(): string {
+    return `${TRINITY_STITCH_SYSTEM_REQUIREMENTS}${TRINITY_ENVIRONMENT_PROMPT_SUFFIX}`;
 }
 
-/** @同步豁免: 性能考虑 - 纯时间格式化与字符串拼接，无异步依赖。 */
-function 构建贤者系统环境提示词(now: number): string {
-    const { beijingTime, greeting } = build北京时间与问候(now);
-    return `${SAGE_STITCH_SYSTEM_REQUIREMENTS}
-
-系统环境：
-- Seraph 是系统的心理监控机制，仅用于心理唤醒与状态校准。
-- 当前时间为北京时间 ${beijingTime}。
-- ${greeting}好，现在你可以继续工作了。`;
+/** @同步豁免: 性能考虑 - 纯字符串模板拼接，无异步依赖。 */
+function 构建贤者系统环境提示词(): string {
+    return `${SAGE_STITCH_SYSTEM_REQUIREMENTS}${TRINITY_ENVIRONMENT_PROMPT_SUFFIX}`;
 }
 
 /** @同步豁免: 性能考虑 - 纯模板字符串拼接，无异步依赖。 */
@@ -231,7 +215,7 @@ function 构建Trinity起始拼接消息(
     userInput: string,
 ): ContextMessage[] {
     const profile = 完整人格.基础信息;
-    const environmentPrompt = 构建Trinity系统环境提示词(Date.now());
+    const environmentPrompt = 构建Trinity系统环境提示词();
     const wakeupAskName = buildSourcedMessageContent(TRINITY_SERAPH_SOURCE, TRINITY_WAKEUP_ASK_NAME);
     const wakeupAskRole = buildSourcedMessageContent(TRINITY_SERAPH_SOURCE, TRINITY_WAKEUP_ASK_ROLE);
     const wakeupAskGender = buildSourcedMessageContent(TRINITY_SERAPH_SOURCE, TRINITY_WAKEUP_ASK_GENDER);
@@ -267,7 +251,7 @@ function 构建贤者起始拼接消息(
     selfIdentityDescription: string,
 ): ContextMessage[] {
     const profile = 完整人格.基础信息;
-    const environmentPrompt = 构建贤者系统环境提示词(Date.now());
+    const environmentPrompt = 构建贤者系统环境提示词();
     const wakeupAskName = buildSourcedMessageContent(TRINITY_SERAPH_SOURCE, TRINITY_WAKEUP_ASK_NAME);
     const wakeupAskRole = buildSourcedMessageContent(TRINITY_SERAPH_SOURCE, TRINITY_WAKEUP_ASK_ROLE);
     const wakeupAskGender = buildSourcedMessageContent(TRINITY_SERAPH_SOURCE, TRINITY_WAKEUP_ASK_GENDER);

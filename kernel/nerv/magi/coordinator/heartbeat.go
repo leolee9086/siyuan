@@ -11,6 +11,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/websocket"
@@ -69,7 +70,9 @@ func (c *Coordinator) CoordinateHeartbeat(
 	var dominantSage *sages.Sage
 	if sleepMode {
 		c.nextSleepRoundOrdinal(sessionID)
-		imaginativeInstr := "\n\n额外要求：你的记录内容越是天马行空越好。"
+		// 睡眠模式的天马行空要求属于服务端系统指令，使用 <source=seraph> 信封封装，
+		// 避免裸文本出现在 </source> 之外干扰信任判定。
+		imaginativeInstr := "\n\n" + prompts.BuildSourcedMessageContent("seraph", "额外要求：你的记录内容越是天马行空越好。")
 		for sageName, input := range sourceAwareUserInputBySage {
 			if sageName == "melchior" {
 				continue
@@ -97,11 +100,13 @@ func (c *Coordinator) CoordinateHeartbeat(
 		}
 		dominantActionToolGovernance.RegisterRound(sessionID, roundID, userMessage, dominantSage, melchior, balthazar, casper)
 
-		// 注入工具调用提醒（仅非睡眠模式，基于上一轮的记录）
+		// 注入工具调用提醒（仅非睡眠模式，基于上一轮的记录）。
+		// 提醒是服务端生成的系统指令，使用 <source=seraph> 信封封装，
+		// 避免裸文本出现在 </source> 之外干扰信任判定。
 		reminders := c.buildHeartbeatReminders(sessionID, dominantSage)
 		for sageName, reminder := range reminders {
 			if reminder != "" {
-				sourceAwareUserInputBySage[sageName] += "\n\n" + reminder
+				sourceAwareUserInputBySage[sageName] += "\n\n" + prompts.BuildSourcedMessageContent("seraph", reminder)
 			}
 		}
 	}

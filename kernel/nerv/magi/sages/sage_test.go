@@ -269,6 +269,194 @@ func TestSageSendMessage(t *testing.T) {
 	}
 }
 
+// buildTestCoreSage 构造带固定 system prompt 的 core sage（melchior），用于前缀稳定性测试。
+func buildTestCoreSage() *Sage {
+	cfg := &config.AgentConfig{
+		Name: "melchior",
+		SEELConfig: config.SEELConfig{
+			Name: "Melchior",
+		},
+		SystemPrompt: "system prompt",
+	}
+	strategy := &config.ContextStrategy{
+		Type:  "round_count",
+		Count: 20,
+	}
+	return NewSage("melchior", cfg, &mockLLMClient{}, strategy)
+}
+
+// TestBuildRequestMessages_StablePrefix 验证相邻轮次（相同 system + wakeup，仅 user 不同）下稳定前缀逐字节一致。
+// 稳定前缀定义为：请求消息序列从首条到最后一个唤醒序列消息为止的固定段
+// （system 提示词 + 唤醒序列），不含 user、status 等动态内容。
+func TestBuildRequestMessages_StablePrefix(t *testing.T) {
+	sage := buildTestCoreSage()
+
+	// 构造两个相邻轮次的上下文：system + userA / system + userB。
+	historyA := []types.ContextMessage{
+		{Role: types.RoleSystem, Content: "system prompt"},
+		{Role: types.RoleUser, Content: "第一轮输入"},
+	}
+	historyB := []types.ContextMessage{
+		{Role: types.RoleSystem, Content: "system prompt"},
+		{Role: types.RoleUser, Content: "第二轮输入"},
+	}
+
+	requestA := sage.buildRequestMessages(historyA)
+	requestB := sage.buildRequestMessages(historyB)
+
+	prefixA := extractStablePrefix(requestA)
+	prefixB := extractStablePrefix(requestB)
+
+	if len(prefixA) != len(prefixB) {
+		t.Fatalf("稳定前缀长度不一致: A=%d B=%d (动态内容进入了前缀)", len(prefixA), len(prefixB))
+	}
+	for i := range prefixA {
+		if prefixA[i].Role != prefixB[i].Role || prefixA[i].Content != prefixB[i].Content {
+			t.Fatalf("稳定前缀在第 %d 条不一致: A=[%s]%q B=[%s]%q (动态内容进入了前缀)",
+				i, prefixA[i].Role, prefixA[i].Content, prefixB[i].Role, prefixB[i].Content)
+		}
+	}
+
+	// 强化断言：稳定前缀本身不得包含任何动态 <status> 内容。
+	for i, msg := range prefixA {
+		if strings.Contains(msg.Content, "<status>") {
+			t.Fatalf("稳定前缀第 %d 条包含动态 <status> 内容: %q", i, msg.Content)
+		}
+	}
+}
+
+// TestBuildRequestMessages_StablePrefixAcrossStatusJump 验证即使 <status> 枚举跳变（疲劳/唤醒等级变化），
+// 稳定前缀仍然逐字节一致。这是前缀缓存稳定性的最严格证明：
+// 若 status 仍前置在 system 之后，枚举跳变会改变前缀，本测试将失败。
+func TestBuildRequestMessages_StablePrefixAcrossStatusJump(t *testing.T) {
+	// 使用 token_percent 策略：历史 token 量差异可驱动疲劳/唤醒枚举跳变。
+	cfg := &config.AgentConfig{
+		Name: "melchior",
+		SEELConfig: config.SEELConfig{
+			Name: "Melchior",
+		},
+		SystemPrompt: "system prompt",
+	}
+	strategy := &config.ContextStrategy{
+		Type:    "token_percent",
+		Percent: 80,
+	}
+	sage := NewSage("melchior", cfg, &mockLLMClient{}, strategy)
+
+	// 历史A：极少 token（疲劳"正常"）；历史B：大量 token（疲劳≥"较高"）。
+	// gpt-4o 上限 128000 * 80% = 102400；100k 字符 ≈ 50k token 约 ratio 0.49 → 疲劳 ~34% → "较高"。
+	historyLight := []types.ContextMessage{
+		{Role: types.RoleSystem, Content: "system prompt"},
+		{Role: types.RoleUser, Content: "短输入"},
+	}
+	historyHeavy := []types.ContextMessage{
+		{Role: types.RoleSystem, Content: "system prompt"},
+		{Role: types.RoleUser, Content: strings.Repeat("长内容填充", 20000)},
+	}
+
+	// 先验证两轮 status 枚举确实不同，确保测试有意义。
+	statusLight := extractStatusContent(sage.buildRequestMessages(historyLight))
+	statusHeavy := extractStatusContent(sage.buildRequestMessages(historyHeavy))
+	if statusLight == "" || statusHeavy == "" {
+		t.Fatal("两轮均未提取到 <status> 内容，测试前提不成立")
+	}
+	if statusLight == statusHeavy {
+		t.Skipf("两轮 <status> 枚举未跳变（均为 %q），无法验证前缀稳定性；扩大 token 差异后重试", statusLight)
+	}
+
+	// 稳定前缀必须逐字节一致。
+	prefixLight := extractStablePrefix(sage.buildRequestMessages(historyLight))
+	prefixHeavy := extractStablePrefix(sage.buildRequestMessages(historyHeavy))
+	if len(prefixLight) != len(prefixHeavy) {
+		t.Fatalf("status 跳变时稳定前缀长度不一致: light=%d heavy=%d (status 仍前置在前缀内)",
+			len(prefixLight), len(prefixHeavy))
+	}
+	for i := range prefixLight {
+		if prefixLight[i].Role != prefixHeavy[i].Role || prefixLight[i].Content != prefixHeavy[i].Content {
+			t.Fatalf("status 跳变时稳定前缀第 %d 条不一致: light=[%s]%q heavy=[%s]%q (status 仍前置在前缀内)",
+				i, prefixLight[i].Role, prefixLight[i].Content, prefixHeavy[i].Role, prefixHeavy[i].Content)
+		}
+	}
+}
+
+// extractStatusContent 提取请求序列中第一个 <status> 信封的完整文本（用于比较枚举跳变）。
+func extractStatusContent(request []types.ContextMessage) string {
+	for _, msg := range request {
+		if strings.Contains(msg.Content, "<status>") {
+			start := strings.Index(msg.Content, "<status>")
+			end := strings.Index(msg.Content, "</status>")
+			if start >= 0 && end > start {
+				return msg.Content[start : end+len("</status>")]
+			}
+		}
+	}
+	return ""
+}
+
+// TestBuildRequestMessages_StatusEnvelopePosition 验证 <status> 信封只出现在请求序列尾部 user 消息内，
+// system 提示词之后不得出现动态 <status> 内容。
+// 当前实现（status 作为独立 system 消息位于 system 之后）下此测试应失败，作为 Phase 2 改造的基线依据。
+func TestBuildRequestMessages_StatusEnvelopePosition(t *testing.T) {
+	sage := buildTestCoreSage()
+
+	history := []types.ContextMessage{
+		{Role: types.RoleSystem, Content: "system prompt"},
+		{Role: types.RoleUser, Content: "测试输入"},
+	}
+	request := sage.buildRequestMessages(history)
+
+	// 找到第一条 user 消息（历史 user 之后追加的当前输入）。
+	firstUserIdx := -1
+	for i, msg := range request {
+		if msg.Role == types.RoleUser {
+			firstUserIdx = i
+			break
+		}
+	}
+	if firstUserIdx < 0 {
+		t.Fatal("请求序列中未找到 user 消息")
+	}
+
+	// system 提示词之后（即 [1:] 区域）不得出现 <status>。
+	for i := 1; i < firstUserIdx; i++ {
+		if strings.Contains(request[i].Content, "<status>") {
+			t.Fatalf("<status> 出现在 system 之后的第 %d 条消息（应后移至尾部 user 消息）: %q",
+				i, request[i].Content)
+		}
+	}
+
+	// 尾部 user 消息应包含 <status> 信封（Phase 2 改造后）。
+	if !strings.Contains(request[firstUserIdx].Content, "<status>") {
+		t.Fatalf("尾部 user 消息未包含 <status> 信封（Phase 2 应注入）: %q", request[firstUserIdx].Content)
+	}
+}
+
+// extractStablePrefix 提取请求序列的稳定前缀：跳过开头的 system 与 status system 消息，返回后续唤醒序列。
+// 稳定前缀定义：system 提示词之后、动态 status 之前的固定内容。由于 status 为动态，提取时跳过第一条 system 后紧邻的 status system 消息。
+func extractStablePrefix(messages []types.ContextMessage) []types.ContextMessage {
+	if len(messages) == 0 {
+		return nil
+	}
+	start := 0
+	// 跳过开头的固定 system 提示词。
+	if messages[0].Role == types.RoleSystem {
+		start = 1
+	}
+	// 跳过紧随其后的动态 status system 消息（若存在）。
+	if start < len(messages) && messages[start].Role == types.RoleSystem && strings.Contains(messages[start].Content, "<status>") {
+		start++
+	}
+	prefix := make([]types.ContextMessage, 0, len(messages)-start)
+	for _, msg := range messages[start:] {
+		// 到第一个 user 消息即前缀结束（wakeup 序列均为 system/assistant）。
+		if msg.Role == types.RoleUser {
+			break
+		}
+		prefix = append(prefix, msg)
+	}
+	return prefix
+}
+
 func TestSageSendMessageInjectsWakeupSequenceForCoreSage(t *testing.T) {
 	cfg := &config.AgentConfig{
 		Name: "melchior",

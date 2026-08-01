@@ -344,37 +344,45 @@ func (s *Sage) buildRequestMessages(history []types.ContextMessage) []types.Cont
 		return history
 	}
 
-	// 注入 <status> 信封：疲劳度和唤醒值
+	// 计算 <status> 信封内容（疲劳度和唤醒值）。
+	// 注意：status 属于动态内容，必须组装到消息序列尾部（本轮 user 消息），
+	// 不能插入 system 之后，否则会破坏 LLM 前缀缓存（prefix cache）的稳定前缀。
 	model := s.llmClient.GetModel()
 	fatigueLevel := FatigueLevel(CalculateFatigue(history, s.contextStrategy, model))
 	wakeLevel := WakefulnessLevel(CalculateWakefulness(history, s.contextStrategy, model))
-	statusMsg := types.ContextMessage{
-		Role:    types.RoleSystem,
-		Content: fmt.Sprintf("<status>\n疲劳度: %s\n唤醒值: %s\n</status>", fatigueLevel, wakeLevel),
-	}
+	statusContent := fmt.Sprintf("<status>\n疲劳度: %s\n唤醒值: %s\n</status>", fatigueLevel, wakeLevel)
 
 	wakeup := prompts.BuildWakeupSequence(util.DataDir, s.name, s.profile)
-	if len(wakeup) == 0 {
-		// 无唤醒序列时仍注入状态
-		request := make([]types.ContextMessage, 0, len(history)+1)
-		request = append(request, statusMsg)
-		request = append(request, history...)
-		return request
-	}
-
-	// 唤醒序列是固定前缀：只参与当前请求，不写入可裁剪历史。
 	request := make([]types.ContextMessage, 0, len(history)+len(wakeup)+1)
+
+	// 固定前缀：system 提示词 + 唤醒序列（唤醒序列只参与当前请求，不写入可裁剪历史）。
 	if len(history) > 0 && history[0].Role == types.RoleSystem {
 		request = append(request, history[0])
-		request = append(request, statusMsg)
-		request = append(request, wakeup...)
-		request = append(request, history[1:]...)
-		return request
 	}
-	request = append(request, statusMsg)
 	request = append(request, wakeup...)
-	request = append(request, history...)
-	return request
+
+	// 历史正文（去掉 system 首条，避免与固定前缀重复）。
+	historyTail := history
+	if len(history) > 0 && history[0].Role == types.RoleSystem {
+		historyTail = history[1:]
+	}
+	request = append(request, historyTail...)
+
+	// 动态 <status> 组装到尾部 user 消息，保持稳定前缀逐字节不变。
+	return appendStatusEnvelopeToTail(request, statusContent)
+}
+
+// appendStatusEnvelopeToTail 将 <status> 信封追加到请求序列的尾部 user 消息。
+// 动态内容追加在 user 消息末尾，避免破坏 system + wakeup 组成的稳定前缀。
+// 若请求序列中没有 user 消息（如 continuation 轮次），则作为独立 system 消息追加到末尾。
+func appendStatusEnvelopeToTail(request []types.ContextMessage, statusContent string) []types.ContextMessage {
+	for i := len(request) - 1; i >= 0; i-- {
+		if request[i].Role == types.RoleUser {
+			request[i].Content += "\n\n" + statusContent
+			return request
+		}
+	}
+	return append(request, types.ContextMessage{Role: types.RoleSystem, Content: statusContent})
 }
 
 func (s *Sage) addMessageWithSessionLocked(sessionId, roundId string, msg types.ContextMessage) types.ContextMessage {
@@ -892,5 +900,3 @@ func getPersonaProfileFromConfigManager(cfgManager *config.ConfigManager) *mardu
 	}
 	return nil
 }
-
-

@@ -9,6 +9,7 @@ import (
 
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/util"
@@ -345,5 +346,60 @@ func TestBuildHeartbeatRuntimeToolsBySage_ForgeModeAddsRepoReadingTools(t *testi
 				t.Fatalf("非主导 %s 期望10个只读工具=10，实际=%d", sageName, len(tools))
 			}
 		}
+	}
+}
+
+// TestBuildSourcedMessageContentEnvelope 验证 heartbeat 注入文本（imaginativeInstr / reminder）
+// 使用 <source=seraph> 信封封装，而非裸文本追加在 </source> 之外。
+// 所有 magi 交互中的外部消息与系统注入指令都必须有信封封装，避免干扰信任判定。
+func TestBuildSourcedMessageContentEnvelope(t *testing.T) {
+	enveloped := prompts.BuildSourcedMessageContent("seraph", "额外要求：你的记录内容越是天马行空越好。")
+	if !strings.Contains(enveloped, "<source=seraph>") {
+		t.Fatalf("信封缺少开标签: %q", enveloped)
+	}
+	if !strings.Contains(enveloped, "</source>") {
+		t.Fatalf("信封缺少闭标签: %q", enveloped)
+	}
+	if strings.Contains(enveloped, "\n\n") && !strings.HasPrefix(enveloped, "<source=seraph>") {
+		t.Fatalf("信封内容前不得有裸文本: %q", enveloped)
+	}
+}
+
+// TestHeartbeatUserInputAppendStaysWithinEnvelope 模拟心跳向 sourceAwareUserInput 追加
+// imaginativeInstr/reminder 的行为：追加后文本必须以 <source=seraph> 开头的信封追加，
+// 而不是裸露在 </source> 之外。
+func TestHeartbeatUserInputAppendStaysWithinEnvelope(t *testing.T) {
+	// 构造带标准信封的 user 输入（模拟 buildSourceAwareUserInputBySage 输出）。
+	base := prompts.BuildSourceAwareUserInput(
+		"心跳消息",
+		map[string]interface{}{
+			"channel": "system-cron", "source": "system-cron",
+			"trustBase": "high", "riskLevel": "low",
+			"principal": "magi-heartbeat", "identityId": "magi-heartbeat",
+			"nickname": "System Cron",
+		},
+		[]types.ClaimedHistoryMessage{{Role: "user", Content: "心跳消息"}},
+	)
+	if !strings.Contains(base, "<source=user_message>") {
+		t.Fatalf("基础输入缺少 user_message 信封: %q", base)
+	}
+
+	// 模拟 heartbeat.go 的追加行为（imaginativeInstr / reminder 使用 seraph 信封封装）。
+	imaginativeInstr := "\n\n" + prompts.BuildSourcedMessageContent("seraph", "额外要求：你的记录内容越是天马行空越好。")
+	appended := base + imaginativeInstr
+
+	// 校验：追加内容以 <source=seraph> 开头，处于完整信封内。
+	seraphIdx := strings.Index(appended, "<source=seraph>")
+	if seraphIdx < 0 {
+		t.Fatalf("追加内容缺少 seraph 信封: %q", appended)
+	}
+	// seraph 信封之前必须是 </source>（user_message 信封已闭合）——即追加发生在信封序列的合理位置。
+	prefixBeforeSeraph := appended[:seraphIdx]
+	if !strings.Contains(prefixBeforeSeraph, "</source>") {
+		t.Fatalf("seraph 信封前未闭合 user_message 信封: %q", prefixBeforeSeraph)
+	}
+	// seraph 信封必须完整闭合。
+	if !strings.Contains(appended[seraphIdx:], "</source>") {
+		t.Fatalf("seraph 信封未闭合: %q", appended[seraphIdx:])
 	}
 }

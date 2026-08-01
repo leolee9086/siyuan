@@ -423,7 +423,9 @@ func TestGetRealVote_UsesFullSessionHistoryAndRawToolCallForGovernedAction(t *te
 		if message.Role == types.RoleSystem && message.Content == "你是 Balthazar。" {
 			foundOriginalSystem = true
 		}
-		if message.Role == types.RoleUser && message.Content == "把这次进展记下来。" {
+		// 注意：status 信封（<status>）会追加到历史 user 消息尾部（前缀缓存优化），
+		// 因此这里用包含匹配验证用户历史仍被保留。
+		if message.Role == types.RoleUser && strings.Contains(message.Content, "把这次进展记下来。") {
 			foundOriginalUser = true
 		}
 		if message.Role == types.RoleUser {
