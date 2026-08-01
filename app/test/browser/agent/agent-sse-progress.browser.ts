@@ -2,7 +2,7 @@ import {beforeAll, describe, expect, it} from "vitest";
 import {
     renderWebSearchProgress,
     renderWebSearchResult,
-} from "../../../src/layout/dock/agent/websearch/renderer";
+} from "../../../src/layout/dock/agent/chat/interaction/tools/websearch/renderer";
 
 const encode = (value: string): Uint8Array => new TextEncoder().encode(value);
 
@@ -51,11 +51,11 @@ describe("native Agent live search SSE", () => {
         }) as typeof fetch;
 
         try {
-            await fetchAgentSSE(
-                "sse test",
-                "en_US",
-                [],
-                (event) => {
+            await fetchAgentSSE({
+                message: "sse test",
+                language: "en_US",
+                references: [],
+                onEvent: (event) => {
                     if (event.type === "tool_progress") {
                         host.innerHTML = renderWebSearchProgress("sse test", event.progress);
                         observations.push(host.textContent || "");
@@ -63,8 +63,8 @@ describe("native Agent live search SSE", () => {
                         host.innerHTML = renderWebSearchResult("sse test", event.result);
                     }
                 },
-                (error) => { throw error; },
-            );
+                onError: (error) => { throw error; },
+            });
         } finally {
             globalThis.fetch = originalFetch;
         }

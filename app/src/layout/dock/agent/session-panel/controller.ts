@@ -24,7 +24,7 @@ export function createAgentSessionPanelController(options: types.AgentSessionPan
         total: 0,
         page: 0,
         isLoadingMore: false,
-        searchTimer: null,
+        searchVersion: 0,
         searchKeyword: "",
         canBindTaskDirectories: false,
     };
@@ -65,11 +65,8 @@ function closeAgentSessionPanel(state: types.AgentSessionPanelState) {
     state.items = [];
     state.total = 0;
     state.page = 0;
-    // 关闭时取消尚未触发的搜索防抖，避免已移除弹层被异步更新。
-    if (state.searchTimer !== null) {
-        clearTimeout(state.searchTimer);
-        state.searchTimer = null;
-    }
+    // 递增版本使已经发出的搜索响应失效，避免更新已移除的弹层。
+    state.searchVersion++;
 }
 
 /** 读取首页会话，组装视图并挂载交互回调。 */
@@ -78,14 +75,14 @@ async function renderAgentSessionPanel(state: types.AgentSessionPanelState) {
     closeAgentSessionPanel(state);
     try {
         const [result, capabilities] = await Promise.all([
-            imports.SessionStore.list({
+            state.options.sessionRepository.list({
                 page: 1,
                 pageSize: 30,
                 targetKind: state.options.getTargetKind(),
             }),
-            imports.SessionStore.getTaskDirectoryCapabilities(),
+            state.options.taskDirectoryRepository.canBindTaskDirectories(),
         ]);
-        state.canBindTaskDirectories = capabilities.canBindTaskDirectories;
+        state.canBindTaskDirectories = capabilities;
         state.items = result.sessions;
         state.total = result.total;
         state.page = 1;
@@ -126,7 +123,7 @@ async function loadMoreAgentSessions(state: types.AgentSessionPanelState, contai
     }
     state.isLoadingMore = true;
     try {
-        const result = await imports.SessionStore.list({
+        const result = await state.options.sessionRepository.list({
             page: state.page + 1,
             pageSize: 30,
             keyword: state.searchKeyword,
@@ -141,29 +138,31 @@ async function loadMoreAgentSessions(state: types.AgentSessionPanelState, contai
     }
 }
 
-/** 更新搜索词并以 300ms 用户输入防抖启动后端查询。 */
+/** 更新搜索词并启动带版本保护的后端查询。 */
 function filterAgentSessions(state: types.AgentSessionPanelState, keyword: string, container: HTMLElement) {
     state.searchKeyword = keyword.trim();
-    // 新输入会替代上一次未执行查询，避免旧结果覆盖新关键词。
-    if (state.searchTimer !== null) {
-        clearTimeout(state.searchTimer);
-    }
-    // 300ms 是可感知的输入防抖窗口，不能由渲染事件或微任务替代。
-    state.searchTimer = window.setTimeout(applyAgentSessionFilter.bind(null, state, container), 300);
+    const searchVersion = ++state.searchVersion;
+    void applyAgentSessionFilter(state, container, {keyword: state.searchKeyword, searchVersion});
 }
 
 /** 执行最新搜索并用首页结果重置列表。 */
-async function applyAgentSessionFilter(state: types.AgentSessionPanelState, container: HTMLElement) {
-    const result = await imports.SessionStore.list({
+async function applyAgentSessionFilter(
+    state: types.AgentSessionPanelState,
+    container: HTMLElement,
+    search: {keyword: string; searchVersion: number},
+) {
+    const result = await state.options.sessionRepository.list({
         page: 1,
         pageSize: 30,
-        keyword: state.searchKeyword,
+        keyword: search.keyword,
         targetKind: state.options.getTargetKind(),
     });
+    if (search.searchVersion !== state.searchVersion || !container.isConnected) {
+        return;
+    }
     state.items = result.sessions;
     state.total = result.total;
     state.page = 1;
-    state.searchTimer = null;
     renderAgentSessionPage(state, {container, listItems: result.sessions, append: false});
     container.scrollTop = 0;
     view.highlightCurrentAgentSession(state.popup, state.options.getCurrentSessionId());
@@ -199,7 +198,7 @@ async function refreshAgentSessionPanel(state: types.AgentSessionPanelState) {
     if (!container) {
         return;
     }
-    const result = await imports.SessionStore.list({
+    const result = await state.options.sessionRepository.list({
         page: 1,
         pageSize: 30,
         keyword: state.searchKeyword,
@@ -238,9 +237,7 @@ function showAgentSessionMoreMenu(state: types.AgentSessionPanelState, anchor: H
         });
     }
     if (nativeAgent) {
-        for (const action of buildTaskDirectoryMenuActions(session, {
-            canBindTaskDirectories: state.canBindTaskDirectories,
-        })) {
+        for (const action of buildTaskDirectoryMenuActions(session, state.canBindTaskDirectories)) {
             menu.addItem({
                 icon: action.icon,
                 label: action.label,
@@ -267,43 +264,43 @@ async function deleteAgentSession(state: types.AgentSessionPanelState, id: strin
 
 /** 按菜单动作类型分流主目录绑定、附加目录和解除操作。 */
 function runTaskDirectoryAction(state: types.AgentSessionPanelState, id: string, action: imports.TaskDirectoryMenuAction) {
-    void runAgentTaskDirectoryAction(id, action, {
+    void runAgentTaskDirectoryAction({
+        repository: state.options.taskDirectoryRepository,
+        id,
+        action,
         onChanged: refreshAgentSessionPanel.bind(null, state),
     });
 }
 
 /** 执行现有目录菜单动作；当前会话入口和历史会话入口共用同一选择、权限与刷新流程。 */
-export async function runAgentTaskDirectoryAction(
-    id: string,
-    action: imports.TaskDirectoryMenuAction,
-    options: types.AgentTaskDirectoryActionOptions = {},
-) {
+export async function runAgentTaskDirectoryAction(request: types.AgentTaskDirectoryActionRequest) {
+    const {repository, id, action} = request;
     if (action.action === "summary") {
         return;
     }
     // 解除操作不需要选择新路径，本地和远程 owner 都沿用现有 grant 管理链。
     if (action.action === "unbind") {
-        await imports.SessionStore.unbindTaskDirectory(id, action.directoryID || "main");
-        await options.onChanged?.();
+        await repository.unbindTaskDirectory(id, action.directoryID || "main");
+        await request.onChanged?.();
         return;
     }
     const selectedPath = await selectAgentTaskDirectoryPath();
     if (!selectedPath) {
         return;
     }
-    await options.beforeBind?.();
+    await request.beforeBind?.();
     // 主目录使用固定读写权限，附加目录才携带菜单选择的权限等级。
     if (action.action === "bind-main") {
-        await imports.SessionStore.bindTaskDirectory(id, selectedPath);
-        await options.onChanged?.();
+        await repository.bindTaskDirectory(id, selectedPath);
+        await request.onChanged?.();
         return;
     }
-    await imports.SessionStore.addTaskDirectory(
+    await repository.addTaskDirectory({
         id,
-        selectedPath,
-        action.permission || "read-only",
-    );
-    await options.onChanged?.();
+        path: selectedPath,
+        permission: action.permission || "read-only",
+    });
+    await request.onChanged?.();
 }
 
 /** 在 Electron 使用原生目录选择器，Web/移动端则输入 kernel 主机绝对路径。 */

@@ -13,6 +13,8 @@ export interface AgentSessionPanelOptions {
     getCurrentSessionId: () => string;
     getDefaultTitle: () => string;
     getTargetKind: () => "native-agent" | "magi";
+    sessionRepository: AgentChatSessionRepository;
+    taskDirectoryRepository: AgentTaskDirectoryRepository;
     callbacks: AgentSessionPanelCallbacks;
 }
 
@@ -59,8 +61,11 @@ export interface AgentSessionPageRender {
     append: boolean;
 }
 
-/** 表示复用目录菜单动作时的前置持久化与完成刷新钩子。 */
-export interface AgentTaskDirectoryActionOptions {
+/** 一次目录菜单动作的完整仓储、会话、动作与生命周期钩子。 */
+export interface AgentTaskDirectoryActionRequest {
+    repository: AgentTaskDirectoryRepository;
+    id: string;
+    action: TaskDirectoryMenuAction;
     beforeBind?: () => Promise<void>;
     onChanged?: () => void | Promise<void>;
 }
@@ -74,7 +79,7 @@ export interface AgentSessionPanelState {
     total: number;
     page: number;
     isLoadingMore: boolean;
-    searchTimer: number | null;
+    searchVersion: number;
     searchKeyword: string;
     canBindTaskDirectories: boolean;
 }
@@ -94,6 +99,12 @@ export interface AgentTaskDirectoryPathDialogState {
     settled: boolean;
 }
 /** 用途：约束面板状态中的会话摘要；使用范围：控制器分页状态；解耦评估：纯类型依赖。 */
-import type {SessionIndexItem} from "../SessionStore.types";
+import type {SessionIndexItem} from "../session/AgentSession.types";
+/** 用途：约束会话面板的完整仓储依赖；使用范围：控制器选项。 */
+import type {AgentChatSessionRepository} from "../session/AgentSession.types";
+/** 用途：约束任务目录的完整仓储依赖；使用范围：控制器选项。 */
+import type {AgentTaskDirectoryRepository} from "../task-directory/AgentTaskDirectory.types";
+/** 用途：约束目录动作请求；使用范围：目录绑定、追加和解除；解耦评估：复用菜单领域动作判别联合。 */
+import type {TaskDirectoryMenuAction} from "../task-directory/AgentTaskDirectory.types";
 /** 用途：约束路径输入状态持有的对话框生命周期；使用范围：目录路径确认流程；解耦评估：复用纯 Dialog 领域契约，不依赖具体监听器实现。 */
 import type {IDialog} from "../../../../dialog/dialog.types";

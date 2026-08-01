@@ -1,7 +1,9 @@
-/** 用途：读写 Agent 会话与目录 API；使用范围：session-panel controller；解耦评估：网络边界应保持在现有 SessionStore，不重复注入低层 fetch。 */
-import {SessionStore} from "../SessionStore";
 /** 用途：约束会话摘要和目录命令；使用范围：controller/view 类型签名；解耦评估：纯类型依赖。 */
-import type {SessionIndexItem, TaskDirectoryMenuAction} from "../SessionStore.types";
+import type {SessionIndexItem} from "../session/AgentSession.types";
+/** 用途：约束目录菜单动作；使用范围：controller 命令分派。 */
+import type {TaskDirectoryMenuAction} from "../task-directory/AgentTaskDirectory.types";
+/** 用途：约束目录动作执行依赖；使用范围：共享目录命令。 */
+import type {AgentTaskDirectoryRepository} from "../task-directory/AgentTaskDirectory.types";
 /** 用途：构造会话目录路径；使用范围：Electron 文件管理器入口；解耦评估：Node path 是桌面路径标准边界。 */
 import * as path from "path";
 /** 用途：打开本地会话目录；使用范围：Electron 会话菜单；解耦评估：复用已有 shell 适配器，不直接依赖 Electron shell。 */
@@ -37,8 +39,6 @@ export {ipcInvoke};
 export {isElectron};
 /** 导出 Node 路径工具。 */
 export {path};
-/** 导出 Agent 会话 API 边界。 */
-export {SessionStore};
 /** 导出弹层定位函数。 */
 export {setPosition};
 /** 导出列表键盘导航函数。 */
@@ -49,3 +49,5 @@ export {useShell};
 export type {SessionIndexItem};
 /** 导出目录菜单动作类型。 */
 export type {TaskDirectoryMenuAction};
+/** 导出任务目录仓储类型。 */
+export type {AgentTaskDirectoryRepository};

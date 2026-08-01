@@ -28,7 +28,7 @@ const DOCK_KEYS = ["left", "right", "bottom"] as const;
  *
  * @param dockItem - 需要初始化的 Dock 项配置数组
  */
-export const initInternalDock = (dockItem: Config.IUILayoutDockTab[]): void => {
+export const initInternalDock = (dockItem: Config.IUILayoutDockTab[]) => {
     const languages = getSiyuanLanguages();
     const config = getSiyuanConfig();
 
@@ -66,7 +66,7 @@ export const initInternalDock = (dockItem: Config.IUILayoutDockTab[]): void => {
     }
 };
 
-const ensureAgentChatDock = (layout: Pick<Config.IUiLayout, "left" | "right" | "bottom">): void => {
+const ensureAgentChatDock = (layout: Pick<Config.IUiLayout, "left" | "right" | "bottom">) => {
     let hasAgentChat = false;
     for (const key of DOCK_KEYS) {
         const sections = layout[key]?.data;

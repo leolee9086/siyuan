@@ -1,10 +1,16 @@
 import {describe, expect, it} from "vitest";
 
 import {buildTaskDirectoryMenuActions} from "../../../../src/layout/dock/agent/session-panel/menu.actions";
-import type {SessionIndexItem} from "../../../../src/layout/dock/agent/SessionStore.types";
+import type {SessionIndexItem} from "../../../../src/layout/dock/agent/session/AgentSession.types";
 
 function session(taskDirectory?: SessionIndexItem["taskDirectory"]): SessionIndexItem {
-    return {id: "session-1", title: "Session", createdAt: 1, updatedAt: 1, taskDirectory};
+    return {
+        id: "session-1",
+        title: "Session",
+        createdAt: 1,
+        updatedAt: 1,
+        ...(taskDirectory ? {taskDirectory} : {}),
+    };
 }
 
 describe("Agent session task directory menu", () => {
@@ -54,7 +60,7 @@ describe("Agent session task directory menu", () => {
         const actions = buildTaskDirectoryMenuActions(session({
             main: {id: "main", name: "main", permission: "read-write", external: true, boundAt: 1},
             directories: [{id: "docs", name: "docs", permission: "read-only", external: true, boundAt: 2}],
-        }), {canBindTaskDirectories: false});
+        }), false);
 
         expect(actions.map((action) => action.action)).toEqual(["summary", "unbind"]);
         expect(actions[0]).toEqual(expect.objectContaining({disabled: true}));
@@ -63,6 +69,6 @@ describe("Agent session task directory menu", () => {
     });
 
     it("shows no directory action remotely before a session has a binding", () => {
-        expect(buildTaskDirectoryMenuActions(session(), {canBindTaskDirectories: false})).toEqual([]);
+        expect(buildTaskDirectoryMenuActions(session(), false)).toEqual([]);
     });
 });

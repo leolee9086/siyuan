@@ -12,7 +12,7 @@ import { getPdfToCssUnits } from "../../util/siyuanEnvironments/pdfjsLib.environ
  * @param pageNumber - 要获取的页码（从1开始）
  * @returns PDF页面对象和视口参数
  */
-const 获取PDF页面渲染参数 = async (pdfObj: IPdfInstance, pageNumber: number): Promise<IPDF页面渲染参数> => {
+const 获取PDF页面渲染参数 = async (pdfObj: IPdfInstance, pageNumber: number) => {
     const pdfPage = await pdfObj.pdfDocument.getPage(pageNumber);
     const viewport = pdfPage.getViewport({ scale: 1.5 * pdfObj.pdfViewer.currentScale * getPdfToCssUnits() });
     return { pdfPage, viewport };
@@ -28,7 +28,7 @@ const 获取PDF页面渲染参数 = async (pdfObj: IPdfInstance, pageNumber: num
  * @param 参数 - 包含pdfPage和viewport的渲染参数
  * @returns 渲染完成的canvas元素
  */
-const 渲染PDF页面到Canvas = async (参数: IPDF页面渲染参数): Promise<HTMLCanvasElement> => {
+const 渲染PDF页面到Canvas = async (参数: IPDF页面渲染参数)=> {
     const { pdfPage, viewport } = 参数;
     const canvas = document.createElement("canvas");
     canvas.width = Math.floor(viewport.width);
@@ -58,7 +58,7 @@ const 渲染PDF页面到Canvas = async (参数: IPDF页面渲染参数): Promise
  * @param pageNumber - 要渲染的页码（从1开始）
  * @returns 渲染完成的canvas元素
  */
-export const getCaptureCanvas = async (pdfObj: IPdfInstance, pageNumber: number): Promise<HTMLCanvasElement> => {
+export const getCaptureCanvas = async (pdfObj: IPdfInstance, pageNumber: number)=> {
     const 渲染参数 = await 获取PDF页面渲染参数(pdfObj, pageNumber);
     return 渲染PDF页面到Canvas(渲染参数);
 };

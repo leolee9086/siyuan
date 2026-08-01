@@ -9,7 +9,7 @@ import type {ILayoutTabOpenRequest} from "./tabOpen.types";
 import type {ILayoutTabHandle} from "./tabFloat.types";
 
 // 静态加载内建模型副本工厂，避免动态 import 造成初始化和构建时序不稳定。
-import "./dock/agent/tabFloat.factory";
+import "./dock/agent/runtime/host/floating/tabFloat.factory";
 
 const findCenterWnd = (): Wnd | undefined => {
     const centerLayout = getCenterLayout();
@@ -24,7 +24,8 @@ const findCenterWnd = (): Wnd | undefined => {
             return activeWnd;
         }
     }
-    return getWndByLayout(centerLayout);
+    const fallback = getWndByLayout(centerLayout);
+    return fallback instanceof Wnd ? fallback : undefined;
 };
 
 const createAppTabOpenPort = () => ({

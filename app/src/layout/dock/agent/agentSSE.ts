@@ -1,379 +1,52 @@
-export type IToolEffects = {
-    localRead?: boolean;
-    localWrite?: boolean;
-    dataEgress?: boolean;
-    externalCost?: boolean;
-};
+/** 用途：创建请求级错误与去重报告器；使用范围：SSE 编排的全部失败路径；解耦评估：同一 SSE 领域直接依赖对象工厂。 */
+import {createAgentSSEError} from "./request/sse/agentSSE.error.factory";
+/** 用途：创建请求级错误去重器；使用范围：HTTP、协议、流结束和异常路径；解耦评估：同一 SSE 领域直接依赖对象工厂。 */
+import {createAgentSSEErrorReporter} from "./request/sse/agentSSE.error.factory";
+/** 用途：识别主动中止；使用范围：异常分类；解耦评估：同一 SSE 领域直接依赖错误守卫。 */
+import {isAgentSSEAbortError} from "./request/sse/agentSSE.error.guard";
+/** 用途：识别协议错误；使用范围：保留精确协议诊断；解耦评估：同一 SSE 领域直接依赖错误守卫。 */
+import {isAgentSSEProtocolError} from "./request/sse/agentSSE.error.guard";
+/** 用途：读取未知错误消息；使用范围：超时与通用网络错误分类；解耦评估：同一 SSE 领域直接依赖错误守卫。 */
+import {readAgentSSEErrorMessage} from "./request/sse/agentSSE.error.guard";
+/** 用途：发起 HTTP 请求；使用范围：SSE 编排第一阶段；解耦评估：同一 SSE 领域直接依赖请求职责。 */
+import {requestAgentSSEResponse} from "./request/sse/agentSSE.request";
+/** 用途：校验 HTTP 响应并取得 reader；使用范围：SSE 编排第二阶段；解耦评估：同一 SSE 领域直接依赖响应职责。 */
+import {resolveAgentSSEReader} from "./request/sse/agentSSE.response";
+/** 用途：顺序消费协议流；使用范围：SSE 编排第三阶段；解耦评估：同一 SSE 领域直接依赖流职责。 */
+import {consumeAgentSSEStream} from "./request/sse/agentSSE.stream";
+/** 用途：约束一次请求的完整输入；使用范围：公开入口与错误分类；解耦评估：同一 SSE 领域的数据契约直接依赖。 */
+import type {AgentSSERequest} from "./request/sse/agentSSE.types";
 
-export type ISSEResult = {
-    type: "turn";
-    turnID: string;
-} | {
-    type: "content";
-    token: string;
-} | {
-    type: "thinking";
-    reasoning: string;
-} | {
-    type: "tool_call";
-    name: string;
-    callID: string;
-    arguments: Record<string, unknown>;
-} | {
-    type: "confirm";
-    name: string;
-    arguments: Record<string, unknown>;
-    confirmID: string;
-    effects?: IToolEffects;
-} | {
-    type: "tool_result";
-    name: string;
-    callID: string;
-    result: string;
-} | {
-    type: "tool_progress";
-    name: string;
-    callID: string;
-    progress: {
-        phase: string;
-        done: number;
-        total: number;
-        current?: string;
-        partialCount?: number;
-        latestResults?: Array<{
-            title: string;
-            url: string;
-            engine: string;
-        }>;
-    };
-} | {
-    type: "error";
-    message: string;
-} | {
-    type: "interrupted";
-    message: string;
-} | {
-    type: "done";
-    turnID: string;
-} | {
-    type: "usage";
-    promptTokens: number;
-    completionTokens: number;
-    lastPromptTokens: number;
-    tokenBreakdown: Record<string, number>;
-    cachedTokens: number;
-    contextLimit: number;
-} | {
-    type: "retry";
-    attempt: number;
-    maxRetries: number;
-} | {
-    type: "question";
-    questionID: string;
-    arguments: Record<string, unknown>;
-} | {
-    type: "reasoning";
-    token: string;
-} | {
-    type: "snapshot";
-    snapshotID: string;
-} | {
-    type: "frontend_tool_call";
-    callID: string;
-    name: string;
-    arguments: Record<string, unknown>;
-};
-
-import {Constants} from "../../../constants";
-import {agentOwnerHeaders} from "./SessionStore";
-
-export type IEditorContext = {
-    activeDocID?: string;
-    activeDocTitle?: string;
-    notebookID?: string;
-    focusedBlockID?: string;
-    selectedBlockIDs?: string[];
-    visibleBlockIDs?: string[];
-};
-
-// AgentHttpError 承载 HTTP 状态码，调用方可据此区分"互斥拒绝"(409) 等语义错误。
-export class AgentHttpError extends Error {
-    public status: number;
-    constructor(message: string, status: number) {
-        super(message);
-        this.name = "AgentHttpError";
-        this.status = status;
+/** 把读取过程中的未知异常结算为协议错误、超时错误或通用网络错误。 */
+async function reportAgentSSEFailure(error: unknown, reportError: (error: Error) => Promise<void>) {
+    if (isAgentSSEAbortError(error)) {
+        return;
     }
+    // 协议错误已包含事件名和原始 cause，应原样交给界面诊断。
+    if (isAgentSSEProtocolError(error)) {
+        await reportError(error);
+        return;
+    }
+    const message = readAgentSSEErrorMessage(error).toLowerCase();
+    const languageIndex = message.includes("timeout") || message.includes("deadline") ? 24 : 28;
+    await reportError(createAgentSSEError(window.siyuan.languages._kernel[languageIndex], error));
 }
 
-/** 表示服务端 SSE 帧不符合 Agent 协议，调用方必须进入显式错误状态。 */
-export class AgentSSEProtocolError extends Error {
-    constructor(message: string, options?: ErrorOptions) {
-        super(message, options);
-        this.name = "AgentSSEProtocolError";
-    }
-}
-
-/** 解析一帧 Agent SSE 数据；畸形载荷和未知事件均作为协议错误抛出。 */
-export function parseAgentSSEEvent(event: string, payload: string): ISSEResult {
-    let data: Record<string, unknown>;
+/** 发起并完整结算一次原生 Agent SSE 请求；所有阶段共享同一个错误出口和中止信号。 */
+export async function fetchAgentSSE(request: AgentSSERequest) {
+    const reportError = createAgentSSEErrorReporter(request.onError);
     try {
-        data = JSON.parse(payload) as Record<string, unknown>;
-    } catch (error) {
-        throw new AgentSSEProtocolError(`Invalid Agent SSE payload for event "${event}"`, {cause: error});
-    }
-    const result = buildSSEResult(event, data);
-    if (!result) {
-        throw new AgentSSEProtocolError(`Unsupported Agent SSE event "${event}"`);
-    }
-    return result;
-}
-
-export async function fetchAgentSSE(
-    message: string,
-    language: string,
-    references: Array<{id: string; title: string}>,
-    onEvent: (event: ISSEResult) => void | Promise<void>,
-    onError: (err: Error) => void | Promise<void>,
-    signal?: AbortSignal,
-    sessionID?: string,
-    model?: string,
-    reasoningEffort?: string,
-    regenerate?: boolean,
-    editorContext?: IEditorContext,
-    pluginActions?: Array<{name: string; description: string}>,
-    userEntryID?: string,
-    contentRevision?: number,
-): Promise<void> {
-    let errorReported = false;
-    const reportError = async (err: Error) => {
-        if (errorReported) {
-            return;
-        }
-        errorReported = true;
-        try {
-            await onError(err);
-        } catch (handlerErr) {
-            console.error("agent SSE error handler failed:", handlerErr);
-        }
-    };
-    try {
-        const body: Record<string, unknown> = {message: message, language: language, references: references};
-        if (sessionID) { body.sessionID = sessionID; }
-        if (model) { body.model = model; }
-        if (reasoningEffort) { body.reasoningEffort = reasoningEffort; }
-        if (regenerate) { body.regenerate = regenerate; }
-        if (editorContext) { body.editorContext = editorContext; }
-        if (pluginActions && pluginActions.length > 0) { body.pluginActions = pluginActions; }
-        if (userEntryID) { body.userEntryID = userEntryID; }
-        if (typeof contentRevision === "number") { body.contentRevision = contentRevision; }
-
-        const response = await fetch("/api/ai/agent/chat", {
-            method: "POST",
-            headers: agentOwnerHeaders({
-                "Content-Type": "application/json",
-                // 标识发起者 app，后端据此排除发起者自身的 ws 广播，并做实例级互斥。
-                "X-SiYuan-App-ID": Constants.SIYUAN_APPID,
-            }),
-            body: JSON.stringify(body),
-            signal: signal,
-        });
-
-        if (!response.ok) {
-            // 409 表示该会话正在其他实例对话中（实例级互斥）。优先用后端返回的 msg，否则用 i18n 兜底。
-            let msg = window.siyuan.languages._kernel[28];
-            if (response.status === 409) {
-                try {
-                    const data = await response.json();
-                    if (data && data.msg) { msg = data.msg; }
-                } catch (e) {
-                    // 读取 JSON 失败时使用 i18n
-                }
-                msg = window.siyuan.languages.agentChatBusy || msg;
-            }
-            await reportError(new AgentHttpError(msg, response.status));
-            return;
-        }
-
-        // 后端在无 provider/无模型等前置错误时返回 HTTP 200 + JSON 包络 {code:-1, msg}（非 SSE 流），
-        // 此时 Content-Type 为 application/json 而非 text/event-stream。检测并转 onError，避免静默卡死。
-        const contentType = response.headers.get("Content-Type") || "";
-        if (contentType.indexOf("text/event-stream") === -1) {
-            try {
-                const text = await response.text();
-                const data = text ? JSON.parse(text) : null;
-                const errMsg = (data && (data.msg || data.message)) || window.siyuan.languages._kernel[28];
-                await reportError(new AgentHttpError(errMsg, response.status));
-            } catch (e) {
-                await reportError(new Error(window.siyuan.languages._kernel[28]));
-            }
-            return;
-        }
-
-        const reader = response.body ? response.body.getReader() : null;
+        const response = await requestAgentSSEResponse(request);
+        const reader = await resolveAgentSSEReader(response, reportError);
         if (!reader) {
-            await reportError(new Error(window.siyuan.languages._kernel[28]));
             return;
         }
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let currentEvent = "";
-        let terminalReceived = false;
-
-        while (true) {
-            const readResult = await reader.read();
-            if (readResult.done) {
-                break;
-            }
-
-            buffer += decoder.decode(readResult.value, {stream: true});
-            const lines = buffer.split("\n");
-            buffer = lines.pop() || "";
-
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                if (line.indexOf("event:") === 0) {
-                    currentEvent = line.slice(6).trim();
-                } else if (line.indexOf("data:") === 0) {
-                    const dataStr = line.slice(5).trim();
-                    if (currentEvent && dataStr) {
-                        const result = parseAgentSSEEvent(currentEvent, dataStr);
-                        await onEvent(result);
-                        terminalReceived = result.type === "done" || result.type === "error" ||
-                            result.type === "interrupted" || terminalReceived;
-                    }
-                    currentEvent = "";
-                }
-            }
+        const terminalReceived = await consumeAgentSSEStream(reader, request.onEvent);
+        // 未收到 done/error/interrupted 且请求未中止时，流结束属于协议级失败。
+        if (!terminalReceived && !request.signal?.aborted) {
+            await reportError(createAgentSSEError(window.siyuan.languages._kernel[28]));
         }
-
-        buffer += decoder.decode();
-        if (buffer) {
-            const line = buffer.trim();
-            if (line.indexOf("data:") === 0 && currentEvent) {
-                const dataStr = line.slice(5).trim();
-                if (dataStr) {
-                    const result = parseAgentSSEEvent(currentEvent, dataStr);
-                    await onEvent(result);
-                    terminalReceived = result.type === "done" || result.type === "error" ||
-                        result.type === "interrupted" || terminalReceived;
-                }
-            }
-        }
-        if (!terminalReceived && !signal?.aborted) {
-            await reportError(new Error(window.siyuan.languages._kernel[28]));
-        }
-    } catch (err) {
-        const e = err as Error;
-        if (e.name !== "AbortError") {
-            if (e instanceof AgentSSEProtocolError) {
-                await reportError(e);
-                return;
-            }
-            const msg = e.message.toLowerCase();
-            if (msg.indexOf("timeout") !== -1 || msg.indexOf("deadline") !== -1) {
-                await reportError(new Error(window.siyuan.languages._kernel[24]));
-            } else {
-                await reportError(new Error(window.siyuan.languages._kernel[28]));
-            }
-        }
-    }
-}
-
-function buildSSEResult(event: string, data: Record<string, unknown>): ISSEResult | null {
-    switch (event) {
-        case "turn":
-            return {type: "turn", turnID: data.turnID as string};
-        case "content":
-            return {type: "content", token: data.token as string};
-        case "thinking":
-            return {type: "thinking", reasoning: data.reasoning as string};
-        case "tool_call":
-            return {
-                type: "tool_call",
-                name: data.name as string,
-                callID: (data.callID as string) || "",
-                arguments: (data.arguments || {}) as Record<string, unknown>,
-            };
-        case "confirm":
-            return {
-                type: "confirm",
-                name: data.name as string,
-                arguments: (data.arguments || {}) as Record<string, unknown>,
-                confirmID: data.confirmID as string,
-                ...(data.effects && typeof data.effects === "object"
-                    ? {effects: data.effects as IToolEffects}
-                    : {}),
-            };
-        case "tool_result":
-            return {
-                type: "tool_result",
-                name: data.name as string,
-                callID: (data.callID as string) || "",
-                result: data.result as string,
-            };
-        case "tool_progress": {
-            const rawProgress = (data.progress || {}) as Record<string, unknown>;
-            const rawResults = Array.isArray(rawProgress.latestResults) ? rawProgress.latestResults : [];
-            return {
-                type: "tool_progress",
-                name: data.name as string,
-                callID: (data.callID as string) || "",
-                progress: {
-                    phase: String(rawProgress.phase || "update"),
-                    done: Number(rawProgress.done) || 0,
-                    total: Number(rawProgress.total) || 0,
-                    current: typeof rawProgress.current === "string" ? rawProgress.current : undefined,
-                    partialCount: typeof rawProgress.partialCount === "number" ? rawProgress.partialCount : undefined,
-                    latestResults: rawResults.filter((item): item is Record<string, unknown> => !!item && typeof item === "object").map(item => ({
-                        title: typeof item.title === "string" ? item.title : "",
-                        url: typeof item.url === "string" ? item.url : "",
-                        engine: typeof item.engine === "string" ? item.engine : "",
-                    })),
-                },
-            };
-        }
-        case "error":
-            return {type: "error", message: data.message as string};
-        case "interrupted":
-            return {type: "interrupted", message: data.message as string};
-        case "done":
-            return {type: "done", turnID: data.turnID as string};
-        case "usage":
-            return {
-                type: "usage",
-                promptTokens: (data.promptTokens as number) || 0,
-                completionTokens: (data.completionTokens as number) || 0,
-                lastPromptTokens: (data.lastPromptTokens as number) || 0,
-                tokenBreakdown: (data.tokenBreakdown as Record<string, number>) || {},
-                cachedTokens: (data.cachedTokens as number) || 0,
-                contextLimit: (data.contextLimit as number) || 0,
-            };
-        case "retry":
-            return {
-                type: "retry",
-                attempt: (data.attempt as number) || 1,
-                maxRetries: (data.maxRetries as number) || 1,
-            };
-        case "question":
-            return {
-                type: "question",
-                questionID: data.questionID as string,
-                arguments: (data.arguments || {}) as Record<string, unknown>,
-            };
-        case "reasoning":
-            return {type: "reasoning", token: data.token as string};
-        case "snapshot":
-            return {type: "snapshot", snapshotID: data.snapshotID as string};
-        case "frontend_tool_call":
-            return {
-                type: "frontend_tool_call",
-                callID: data.callID as string,
-                name: data.name as string,
-                arguments: (data.arguments || {}) as Record<string, unknown>,
-            };
-        default:
-            return null;
+    } catch (error) {
+        await reportAgentSSEFailure(error, reportError);
     }
 }

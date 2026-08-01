@@ -2,6 +2,8 @@ import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {createTestAppFacade} from "../../../app/AppFacade.fixture";
 import {createProtyleDomainFixture} from "../../../support/protyleDomain.fixture";
 
+const mocks = vi.hoisted(() => ({fetchPost: vi.fn()}));
+
 vi.mock("../../../../src/constants", () => ({
     Constants: {ZWSP: "\u200b"},
 }));
@@ -11,7 +13,7 @@ vi.mock("../../../../src/util/DOM/escape", () => ({
 }));
 
 vi.mock("../../../../src/util/network/fetch", () => ({
-    fetchPost: vi.fn(),
+    fetchPost: mocks.fetchPost,
 }));
 
 vi.mock("../../../../src/protyle/hint/extend.hintRef", () => ({
@@ -32,8 +34,9 @@ vi.mock("../../../../src/protyle/render/blockRender", () => ({
 
 import {mountProtyleComposer} from "../../../../src/layout/dock/agent/AgentComposer.protyle";
 
-describe("Agent Protyle composer overlays", () => {
+describe("Agent Protyle composer hint lifecycle", () => {
     beforeEach(() => {
+        mocks.fetchPost.mockReset();
         Object.defineProperty(window, "siyuan", {
             configurable: true,
             value: {languages: {agentInputPlaceholder: "Input message"}},
@@ -45,11 +48,11 @@ describe("Agent Protyle composer overlays", () => {
         vi.restoreAllMocks();
     });
 
-    it("mounts the fixed hint at the viewport root and removes it on destroy", () => {
+    it("keeps the hint in the Protyle host and delegates cleanup to Protyle", () => {
         const host = document.createElement("div");
         const editorElement = document.createElement("div");
         const hintElement = document.createElement("div");
-        const destroyProtyle = vi.fn();
+        const destroyProtyle = vi.fn(() => hintElement.remove());
         document.body.append(host);
 
         const protyleDomain = createProtyleDomainFixture();
@@ -69,8 +72,8 @@ describe("Agent Protyle composer overlays", () => {
 
         const composer = mountProtyleComposer(app, host, vi.fn());
 
-        expect(hintElement.parentElement).toBe(document.body);
-        expect(host.contains(hintElement)).toBe(false);
+        expect(hintElement.parentElement).toBe(host);
+        expect(host.contains(hintElement)).toBe(true);
 
         composer.destroy();
 
@@ -94,5 +97,46 @@ describe("Agent Protyle composer overlays", () => {
             "Agent Protyle Composer requires a Hint runtime",
         );
         expect(destroyProtyle).toHaveBeenCalledOnce();
+    });
+
+    it("ignores a skill response that arrives after the Protyle composer is destroyed", () => {
+        let respond: ((response: IWebSocketData) => void) | undefined;
+        mocks.fetchPost.mockImplementation((
+            _url: string,
+            _data: unknown,
+            callback: (response: IWebSocketData) => void,
+        ) => {
+            respond = callback;
+            return Promise.resolve();
+        });
+        const host = document.createElement("div");
+        const editorElement = document.createElement("div");
+        const hintElement = document.createElement("div");
+        const genHTML = vi.fn();
+        let skillHint: ((key: string, protyle: IProtyle) => IHintData[]) | undefined;
+        const protyleDomain = createProtyleDomainFixture();
+        Object.assign(protyleDomain.protyle, {
+            hint: {element: hintElement, genLoading: vi.fn(), genHTML},
+            lute: {},
+            undo: {clear: vi.fn()},
+            wysiwyg: {element: editorElement},
+        });
+        const app = createTestAppFacade();
+        app.createProtyle = vi.fn((_target: HTMLElement, options: IProtyleOptions) => {
+            const extensions = options.hint?.extend ?? [];
+            for (const extension of extensions) {
+                if (extension.key === "/") {
+                    skillHint = extension.hint;
+                }
+            }
+            return protyleDomain;
+        });
+        const composer = mountProtyleComposer(app, host, vi.fn());
+
+        skillHint?.("", protyleDomain.protyle);
+        composer.destroy();
+        respond?.({data: [{name: "late"}], msg: "", code: 0});
+
+        expect(genHTML).not.toHaveBeenCalled();
     });
 });

@@ -16,7 +16,7 @@ import { Graph } from "./dock/Graph";
 import { Outline } from "./dock/outline/Outline";
 import { Tag } from "./dock/Tag";
 import { AgentChat } from "./dock/agent/AgentChat";
-import {createAppAgentPanelCapabilities} from "./dock/agent/runtime/host/agentPanel.capabilities.app";
+import {createAppAgentPanelCapabilities} from "./dock/agent/runtime/host/agentPanel.capabilities.app.factory";
 import { Search } from "../search";
 import { newCenterEmptyTab } from "./tabUtil";
 import { createErrorPlaceholder } from "./dock/errorPlaceholder/ErrorPlaceholder";
@@ -338,7 +338,7 @@ export const handleErrorPlaceholderInstance = (json: { errorPlaceholderData?: un
     }));
 };
 
-/** 创建并恢复 AgentChat 普通 Tab；正文从 SessionStore 异步恢复，布局树先保持稳定。 */
+/** 创建并恢复 AgentChat 普通 Tab；正文从会话仓储异步恢复，布局树先保持稳定。 */
 export const handleAgentChatInstance = (
     app: AppFacade,
     json: { sessionId?: unknown },
@@ -363,4 +363,3 @@ export const handleAgentChatInstance = (
         });
     }
 };
-

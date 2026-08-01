@@ -129,7 +129,7 @@ async function fetchHistoryPage(options: FetchHistoryPageOptions) {
 
 /**
  * 作用：读取当前 Guardian 身份的唯一 MAGI 主界面渠道记录并合并全部分页。
- * 意图：让所有 Agent Panel 宿主共享服务端权威时间线，且不依赖普通 Agent SessionStore。
+ * 意图：让所有 Agent Panel 宿主共享服务端权威时间线，且不依赖普通 Agent 会话仓储。
  * 调用时机：面板首次进入 MAGI、切回 MAGI或身份会话发生变化时。
  * 问题/改进：后续增加增量序列接口后，初次全量读取可转为最近窗口加按需加载。
  */

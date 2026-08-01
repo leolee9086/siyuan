@@ -13,7 +13,7 @@ vi.mock("../../../../src/layout/dock/agent/AgentChat", () => ({
     },
 }));
 
-vi.mock("../../../../src/layout/dock/agent/runtime/host/agentPanel.capabilities.app", () => ({
+vi.mock("../../../../src/layout/dock/agent/runtime/host/agentPanel.capabilities.app.factory", () => ({
     createAppAgentPanelCapabilities: dockSpies.createCapabilities,
 }));
 
@@ -28,7 +28,7 @@ describe("Agent Dock factory", () => {
     });
 
     it("injects the complete App capability adapter and copy factory", async () => {
-        const {createAgentDockModel} = await import("../../../../src/layout/dock/agent/dockModel.factory");
+        const {createAgentDockModel} = await import("../../../../src/layout/dock/agent/runtime/host/dock/dockModel.factory");
         const app = {name: "app"};
         const tab = {name: "dock-tab"};
 

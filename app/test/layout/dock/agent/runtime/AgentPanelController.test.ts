@@ -51,10 +51,10 @@ describe("AgentPanelController lifecycle", () => {
     });
 
     it("delegates public conversation and draft operations", async () => {
-        const {AgentPanelController} = await import(
-            "../../../../../src/layout/dock/agent/runtime/AgentPanelController"
+        const {mountAgentPanel} = await import(
+            "../../../../../src/layout/dock/agent/runtime/AgentPanelController.factory"
         );
-        const controller = new AgentPanelController(createMountOptions());
+        const controller = await mountAgentPanel(createMountOptions());
 
         await controller.openConversation({kind: "magi", sessionId: "magi-session"});
         await controller.refreshSessions();
@@ -67,10 +67,10 @@ describe("AgentPanelController lifecycle", () => {
     });
 
     it("destroys chat and DOM exactly once", async () => {
-        const {AgentPanelController} = await import(
-            "../../../../../src/layout/dock/agent/runtime/AgentPanelController"
+        const {mountAgentPanel} = await import(
+            "../../../../../src/layout/dock/agent/runtime/AgentPanelController.factory"
         );
-        const controller = new AgentPanelController(createMountOptions());
+        const controller = await mountAgentPanel(createMountOptions());
 
         controller.destroy();
         controller.destroy();
@@ -82,7 +82,7 @@ describe("AgentPanelController lifecycle", () => {
     it("destroys a partial instance when ready rejects", async () => {
         runtimeSpies.chatReady.mockRejectedValueOnce(new Error("initialization failed"));
         const {mountAgentPanel} = await import(
-            "../../../../../src/layout/dock/agent/runtime/AgentPanelController"
+            "../../../../../src/layout/dock/agent/runtime/AgentPanelController.factory"
         );
 
         await expect(mountAgentPanel(createMountOptions())).rejects.toThrow("initialization failed");

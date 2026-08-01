@@ -10,7 +10,7 @@ import type {ILayoutTabFloatCopy} from "./tabFloat.types";
 
 // 静态加载内建能力，避免运行时动态 import 导致构建产物和初始化时序不稳定。
 import "../editor/tabFloat.factory";
-import "./dock/agent/tabFloat.factory";
+import "./dock/agent/runtime/host/floating/tabFloat.factory";
 
 /**
  * 完整 App 的 Tab 浮窗适配器。

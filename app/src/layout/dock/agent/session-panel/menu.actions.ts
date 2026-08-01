@@ -1,17 +1,16 @@
 /** 用途：读取会话及目录摘要；使用范围：生成标准菜单命令；解耦评估：纯类型输入已通过参数传递，导入仅用于静态约束。 */
-import type {SessionIndexItem} from "../SessionStore.types";
+import type {SessionIndexItem} from "../session/AgentSession.types";
 /** 用途：约束目录菜单命令结构；使用范围：本模块输出；解耦评估：同目录纯类型契约，不产生运行时耦合。 */
-import type {TaskDirectoryMenuAction} from "../SessionStore.types";
+import type {TaskDirectoryMenuAction} from "../task-directory/AgentTaskDirectory.types";
 
 /**
  * 返回会话可执行的目录管理命令。菜单可见性不表示授权，后端仍需校验每次请求携带的 owner armor。
  * 用户点击“更多”时必须同步生成完整菜单项，异步化会造成空菜单闪烁并破坏当前菜单生命周期。
  * @同步豁免: UI构建
  */
-export function buildTaskDirectoryMenuActions(session: SessionIndexItem, options: {canBindTaskDirectories?: boolean} = {}) {
+export function buildTaskDirectoryMenuActions(session: SessionIndexItem, canBindTaskDirectories = true) {
     const binding = session.taskDirectory;
     const actions: TaskDirectoryMenuAction[] = [];
-    const canBindTaskDirectories = options.canBindTaskDirectories !== false;
     // 已有主目录摘要对本地和远程端都可见，不代表扩大或新增授权。
     if (binding?.main) {
         actions.push({

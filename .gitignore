@@ -60,6 +60,7 @@ toread/nanoClaw/
 test_data/
 
 # Backup files from refactoring
+.codex-backups/
 *.backup
 *.remote
 *.bak

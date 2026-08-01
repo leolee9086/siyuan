@@ -1,5 +1,12 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
-import {ComposerHistory} from "../../../../src/layout/dock/agent/AgentComposer.history";
+import {
+    beginComposerHistoryBrowsing,
+    createComposerHistory,
+    isBrowsingComposerHistory,
+    navigateComposerHistoryDown,
+    navigateComposerHistoryUp,
+    pushComposerHistory,
+} from "../../../../src/layout/dock/agent/composer/AgentComposer.history";
 
 const mocks = vi.hoisted(() => ({
     mountTiptapComposer: vi.fn(() => ({runtime: "tiptap"})),
@@ -26,7 +33,7 @@ describe("Agent Composer runtime selection", () => {
         const onSend = vi.fn();
         const onChange = vi.fn();
 
-        const handle = mountComposer(host, onSend, onChange);
+        const handle = mountComposer({host, onSend, onChange});
 
         expect(handle).toEqual({runtime: "tiptap"});
         expect(mocks.mountTiptapComposer).toHaveBeenCalledWith(host, onSend, onChange);
@@ -38,7 +45,7 @@ describe("Agent Composer runtime selection", () => {
         const app = {appId: "full-app"};
         const onSend = vi.fn();
 
-        const handle = mountComposer(host, onSend, undefined, app as never);
+        const handle = mountComposer({host, onSend, app: app as never});
 
         expect(handle).toEqual({runtime: "protyle"});
         expect(mocks.mountProtyleComposer).toHaveBeenCalledWith(app, host, onSend, undefined);
@@ -48,27 +55,27 @@ describe("Agent Composer runtime selection", () => {
 
 describe("ComposerHistory", () => {
     it("navigates sent messages and restores the unsent draft", () => {
-        const history = new ComposerHistory();
-        history.push("first");
-        history.push("second");
+        const history = createComposerHistory();
+        pushComposerHistory(history, "first");
+        pushComposerHistory(history, "second");
 
-        expect(history.beginBrowsing("draft")).toBe("second");
-        expect(history.navigateUp()).toBe("first");
-        expect(history.navigateDown()).toBe("second");
-        expect(history.navigateDown()).toBe("draft");
-        expect(history.isBrowsing()).toBe(false);
+        expect(beginComposerHistoryBrowsing(history, "draft")).toBe("second");
+        expect(navigateComposerHistoryUp(history)).toBe("first");
+        expect(navigateComposerHistoryDown(history)).toBe("second");
+        expect(navigateComposerHistoryDown(history)).toBe("draft");
+        expect(isBrowsingComposerHistory(history)).toBe(false);
     });
 
     it("deduplicates adjacent entries and retains the latest fifty", () => {
-        const history = new ComposerHistory();
-        history.push("same");
-        history.push("same");
+        const history = createComposerHistory();
+        pushComposerHistory(history, "same");
+        pushComposerHistory(history, "same");
         for (let index = 0; index < 55; index++) {
-            history.push(`message-${index}`);
+            pushComposerHistory(history, `message-${index}`);
         }
 
-        expect(history.get()).toHaveLength(50);
-        expect(history.get()[0]).toBe("message-5");
-        expect(history.get()[49]).toBe("message-54");
+        expect(history.items).toHaveLength(50);
+        expect(history.items[0]).toBe("message-5");
+        expect(history.items[49]).toBe("message-54");
     });
 });

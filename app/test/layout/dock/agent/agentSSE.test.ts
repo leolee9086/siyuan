@@ -4,14 +4,8 @@ vi.mock("../../../../src/constants", () => ({
     Constants: {SIYUAN_APPID: "test-app"},
 }));
 
-vi.mock("../../../../src/layout/dock/agent/SessionStore", () => ({
-    agentOwnerHeaders: (headers: Record<string, string>) => headers,
-}));
-
-import {
-    AgentSSEProtocolError,
-    parseAgentSSEEvent,
-} from "../../../../src/layout/dock/agent/agentSSE";
+import {isAgentSSEProtocolError} from "../../../../src/layout/dock/agent/request/sse/agentSSE.error.guard";
+import {parseAgentSSEEvent} from "../../../../src/layout/dock/agent/request/sse/agentSSE.parser.guard";
 
 describe("Agent SSE protocol parsing", () => {
     it("preserves call identity, progress and confirmation effects", () => {
@@ -41,8 +35,13 @@ describe("Agent SSE protocol parsing", () => {
     });
 
     it("rejects malformed payloads instead of dropping the frame", () => {
-        expect(() => parseAgentSSEEvent("content", "{invalid"))
-            .toThrow(AgentSSEProtocolError);
+        let thrown: unknown;
+        try {
+            parseAgentSSEEvent("content", "{invalid");
+        } catch (error) {
+            thrown = error;
+        }
+        expect(isAgentSSEProtocolError(thrown)).toBe(true);
     });
 
     it("rejects unknown events instead of silently ignoring them", () => {

@@ -16,8 +16,8 @@ registerTabFloatFactory({
     canCreate: (tab) => tab.model instanceof Editor,
     /** 作用：创建编辑器页签副本；意图：复用统一复制语义并保持原页签不变；调用时机：浮窗宿主准备临时页签。 */
     createTab: (source) => {
-        if (!(source instanceof Tab)) {
-            throw new Error("Editor tab float source is not a layout Tab");
+        if (!(source instanceof Tab) || !(source.model instanceof Editor)) {
+            throw new Error("Editor tab float source is not an initialized Editor tab");
         }
         return copyTab(source.model.app, source);
     },

@@ -4,7 +4,7 @@ import {
     bindAgentComposerBlockDrop,
     getDroppedAgentBlockIds,
     hasAgentBlockReferenceTransfer,
-} from "../../../../src/layout/dock/agent/AgentComposer.drop";
+} from "../../../../src/layout/dock/agent/composer/AgentComposer.drop";
 
 const createTransfer = (types: string[], values: Record<string, string> = {}): DataTransfer => {
     const transfer = new DataTransfer();

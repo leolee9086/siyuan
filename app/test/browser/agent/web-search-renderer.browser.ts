@@ -4,7 +4,7 @@ import {
     renderWebSearchProgress,
     renderWebSearchResult,
     resolveMappedWebReferences,
-} from "../../../src/layout/dock/agent/websearch/renderer";
+} from "../../../src/layout/dock/agent/chat/interaction/tools/websearch/renderer";
 
 describe("native Agent web search cards", () => {
     it("renders live engine progress and recent results in the DOM", () => {
@@ -59,9 +59,7 @@ describe("native Agent web search cards", () => {
         const host = document.createElement("div");
         host.innerHTML = '<a href="https://example.com/verified">verified</a><a href="https://news.invalid/invented">invented</a>';
         const opened: string[] = [];
-        protectUnverifiedWebLinks(host, new Set(["https://example.com/verified"]), {
-            onUnverified: (url) => opened.push(url),
-        });
+        protectUnverifiedWebLinks(host, new Set(["https://example.com/verified"]), (url) => opened.push(url));
 
         expect(host.querySelector("a[href=\"https://example.com/verified\"]")).not.toBeNull();
         const blocked = host.querySelector("a[data-unverified-href]");
@@ -72,9 +70,7 @@ describe("native Agent web search cards", () => {
         normalizedHost.href = "https://example.com/";
         normalizedHost.textContent = "normalized";
         host.appendChild(normalizedHost);
-        protectUnverifiedWebLinks(host, new Set(["https://example.com"]), {
-            onUnverified: (url) => opened.push(url),
-        });
+        protectUnverifiedWebLinks(host, new Set(["https://example.com"]), (url) => opened.push(url));
         expect(normalizedHost.getAttribute("href")).toBe("https://example.com/");
         expect(resolveMappedWebReferences("[source](ref:web-ab12)", {
             "ref:web-ab12": "https://example.com/verified",

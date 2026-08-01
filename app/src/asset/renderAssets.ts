@@ -19,7 +19,7 @@ const TEXT_EXTENSIONS = new Set([
  * @param ext - 文件扩展名（含前导点）
  * @returns 是否为文本文件
  */
-const isTextFile = (ext: string): boolean => {
+const isTextFile = (ext: string) => {
     return TEXT_EXTENSIONS.has(ext.toLowerCase());
 };
 
@@ -93,11 +93,11 @@ export const renderAssetsPreview = (pathString: string) => {
 };
 
 /** 将 RGB 转换为十六进制 */
-const rgbToHexStr = (r: number, g: number, b: number): string =>
+const rgbToHexStr = (r: number, g: number, b: number) =>
     `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`.toUpperCase();
 
 /** 渲染单个色块 HTML */
-const renderPaletteBlock = (p: { color: [number, number, number]; ratio: number }): string => {
+const renderPaletteBlock = (p: { color: [number, number, number]; ratio: number }) => {
     const [r, g, b] = p.color;
     const hex = rgbToHexStr(r, g, b);
     // 悬浮提示：有占比则显示百分比，否则只显示色值
@@ -106,7 +106,7 @@ const renderPaletteBlock = (p: { color: [number, number, number]; ratio: number 
 };
 
 /** 处理色块点击复制 */
-const handlePaletteClick = (e: Event): void => {
+const handlePaletteClick = (e: Event) => {
     const target = e.target;
     if (!(target instanceof HTMLElement)) {
         return;

@@ -2,9 +2,11 @@ import {beforeEach, describe, expect, it, vi} from "vitest";
 
 const mocks = vi.hoisted(() => ({
     openSettings: vi.fn(),
+    Dialog: vi.fn(),
 }));
 
 vi.mock("../../../../../src/layout/dock/agent/runtime/host/imports", () => ({
+    Dialog: mocks.Dialog,
     confirmDialog: vi.fn(),
     showMessage: vi.fn(),
     sendNotification: vi.fn(),
@@ -19,23 +21,34 @@ vi.mock("../../../../../src/layout/dock/agent/runtime/host/imports", () => ({
     postRender: vi.fn(),
 }));
 
-vi.mock("../../../../../src/layout/dock/agent/runtime/host/agentPanel.menu.app.factory", () => ({
-    createAppPanelMenuPort: vi.fn(() => ({popup: vi.fn(), close: vi.fn()})),
+vi.mock("../../../../../src/layout/dock/agent/runtime/host/agentPanel.menu.app", () => ({
+    showAppPanelMenu: vi.fn(),
+    closeAppPanelMenu: vi.fn(),
 }));
 
 vi.mock("../../../../../src/layout/dock/agent/runtime/host/agentPanel.reload.browser.factory", () => ({
     createBrowserHostReload: vi.fn(() => vi.fn()),
 }));
 
-import {createAppAgentPanelCapabilities} from "../../../../../src/layout/dock/agent/runtime/host/agentPanel.capabilities.app";
+import {createAppAgentPanelCapabilities} from "../../../../../src/layout/dock/agent/runtime/host/agentPanel.capabilities.app.factory";
 
 describe("App Agent Panel capabilities", () => {
     beforeEach(() => {
         mocks.openSettings.mockReset();
+        mocks.Dialog.mockReset();
         Object.defineProperty(window, "siyuan", {
             configurable: true,
             value: {dialogs: []},
         });
+    });
+
+    it("creates dialogs through the App host capability", () => {
+        const capabilities = createAppAgentPanelCapabilities({} as never, {} as never);
+        const options = {content: "<div></div>"};
+
+        capabilities.createDialog?.(options);
+
+        expect(mocks.Dialog).toHaveBeenCalledWith(options);
     });
 
     it("opens the AI settings through the complete App facade", async () => {
@@ -44,7 +57,7 @@ describe("App Agent Panel capabilities", () => {
             globalCommand: vi.fn(() => false),
         } as never, {} as never);
 
-        await capabilities.settingsNavigation.openAISettings();
+        await capabilities.openAISettings?.();
 
         expect(mocks.openSettings).toHaveBeenCalledWith("ai");
     });
@@ -57,7 +70,7 @@ describe("App Agent Panel capabilities", () => {
             openSettings: mocks.openSettings,
         } as never, {} as never);
 
-        await capabilities.settingsNavigation.openAISettings();
+        await capabilities.openAISettings?.();
 
         expect(mocks.openSettings).not.toHaveBeenCalled();
     });

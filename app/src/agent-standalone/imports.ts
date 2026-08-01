@@ -20,17 +20,21 @@ import type {AgentPanelConversation} from "../layout/dock/agent/runtime/agentPan
 import type {AgentPanelHandle} from "../layout/dock/agent/runtime/agentPanel.ports.types";
 /** 用途：转发面板挂载选项；使用范围：独立 ESM 公共函数参数；解耦评估：type-only 依赖不会使核心在 bootstrap 前求值。 */
 import type {AgentPanelMountOptions} from "../layout/dock/agent/runtime/agentPanel.ports.types";
-/** 用途：转发独立页消息渲染能力；使用范围：浏览器 capability；解耦评估：具体渲染器经 ContentRenderPort 注入核心。 */
+/** 用途：约束独立页完整宿主能力；使用范围：浏览器能力组合根；解耦评估：复用 Agent 面板唯一能力聚合。 */
+import type {AgentPanelCapabilities} from "../layout/dock/agent/runtime/agentPanel.ports.types";
+/** 用途：转发独立页消息渲染能力；使用范围：浏览器能力聚合；解耦评估：具体渲染器仅停留在组合根。 */
 import {postRender} from "../layout/dock/agent/AgentMessageRenderer";
-/** 用途：转发独立身份入口；使用范围：浏览器 IdentityAccessPort；解耦评估：具体导航不进入面板核心。 */
+/** 用途：转发独立身份入口；使用范围：浏览器能力聚合；解耦评估：具体导航不进入面板核心。 */
 import {openIdentityAccessStandalone} from "../magi/identity-access/adapters/open";
-/** 用途：转发浏览器重载工厂；使用范围：浏览器 FrontendReloadPort；解耦评估：核心只接收无参重载函数。 */
+/** 用途：转发浏览器重载工厂；使用范围：浏览器能力聚合；解耦评估：核心只接收无参重载函数。 */
 import {createBrowserHostReload} from "../layout/dock/agent/runtime/host/agentPanel.reload.browser.factory";
-/** 用途：在独立浏览器页面创建锚点菜单；使用范围：PanelMenuPort；解耦评估：通用菜单已支持自有 DOM 宿主。 */
+/** 用途：创建独立页标准对话框；使用范围：浏览器能力聚合；解耦评估：具体 UI 类只停留在宿主组合根。 */
+import {Dialog} from "../dialog";
+/** 用途：在独立浏览器页面创建锚点菜单；使用范围：浏览器能力聚合；解耦评估：通用菜单已支持自有 DOM 宿主。 */
 import {Menu} from "../menus/Menu";
-/** 用途：创建独立浏览器菜单项；使用范围：PanelMenuPort；解耦评估：复用通用菜单项交互与禁用状态。 */
+/** 用途：创建独立浏览器菜单项；使用范围：浏览器能力聚合；解耦评估：复用通用菜单项交互与禁用状态。 */
 import {MenuItem} from "../menus/Menu.Item";
-/** 用途：约束独立浏览器菜单适配器输入；使用范围：PanelMenuPort；解耦评估：纯类型依赖。 */
+/** 用途：约束独立浏览器菜单动作；使用范围：浏览器能力聚合；解耦评估：纯类型依赖。 */
 import type {PanelMenuItem} from "../layout/dock/agent/runtime/agentPanel.ports.types";
 
 /** 导出脚本加载能力供 Agent 启动流程使用。 */
@@ -53,12 +57,16 @@ export type {AgentPanelConversation};
 export type {AgentPanelHandle};
 /** 导出面板挂载选项。 */
 export type {AgentPanelMountOptions};
+/** 导出面板宿主能力。 */
+export type {AgentPanelCapabilities};
 /** 导出消息渲染能力供浏览器 capability 使用。 */
 export {postRender};
 /** 导出独立身份入口供浏览器 capability 使用。 */
 export {openIdentityAccessStandalone};
 /** 导出浏览器重载工厂供浏览器 capability 使用。 */
 export {createBrowserHostReload};
+/** 导出标准对话框构造器供浏览器宿主装配。 */
+export {Dialog};
 /** 导出通用菜单供独立浏览器 capability 使用。 */
 export {Menu};
 /** 导出通用菜单项供独立浏览器 capability 使用。 */

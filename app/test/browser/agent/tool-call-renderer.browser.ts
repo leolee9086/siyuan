@@ -3,7 +3,7 @@ import {
     renderToolCallProgress,
     renderToolCallResult,
     renderToolCallStart,
-} from "../../../src/layout/dock/agent/toolcall/renderer";
+} from "../../../src/layout/dock/agent/chat/interaction/tools/toolcall/renderer";
 
 describe("native Agent tool-call cards", () => {
     it("shows arguments, progress, and the complete escaped result", () => {

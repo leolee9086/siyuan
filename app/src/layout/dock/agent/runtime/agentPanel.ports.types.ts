@@ -1,5 +1,9 @@
-/** 用途：复用原生 Agent 编辑器上下文结构；使用范围：EditorContextPort 快照；解耦评估：纯类型依赖，运行时由 Port 注入。 */
-import type {IEditorContext} from "../agentSSE";
+/** 用途：复用原生 Agent 编辑器上下文结构；使用范围：宿主能力聚合的编辑器快照；解耦评估：纯类型依赖。 */
+import type {IEditorContext} from "../request/sse/agentSSE.types";
+/** 用途：约束宿主创建的 Dialog；使用范围：提示词文档选择；解耦评估：经 runtime 网关只依赖公共类型契约。 */
+import type {IDialog} from "./imports";
+/** 用途：约束宿主 Dialog 创建参数；使用范围：提示词文档选择；解耦评估：经 runtime 网关只依赖公共类型契约。 */
+import type {IDialogOptions} from "./imports";
 
 /** 表示面板可路由的两类会话目标。 */
 export type AgentPanelConversationKind = "native-agent" | "magi";
@@ -16,31 +20,6 @@ export interface AgentPanelPluginAction {
     description: string;
 }
 
-/** 提供设置页导航，供任意独立面板按需复用。 */
-export interface SettingsNavigationPort {
-    openAISettings: () => void | Promise<void>;
-}
-
-/** 提供身份状态入口，不暴露具体 Identity Access 界面实现。 */
-export interface IdentityAccessPort {
-    openIdentityAccess: () => void | Promise<void>;
-}
-
-/** 提供系统级通知，不绑定 Electron 或浏览器通知实现。 */
-export interface NotificationPort {
-    notify: (notification: {title: string; body?: string}) => void | Promise<void>;
-}
-
-/** 提供短消息提示，供复制、冲突和错误反馈复用。 */
-export interface MessagePort {
-    show: (message: string, timeout?: number) => void;
-}
-
-/** 提供确认交互，隔离具体 Dialog 和浏览器确认框。 */
-export interface ConfirmPort {
-    confirm: (title: string, message: string, onConfirm: () => void) => void;
-}
-
 /** 表示通用菜单中的一个动作。 */
 export interface PanelMenuItem {
     label: string;
@@ -51,77 +30,25 @@ export interface PanelMenuItem {
     click: () => void;
 }
 
-/** 提供锚点菜单的创建、定位与关闭能力。 */
-export interface PanelMenuPort {
-    popup: (name: string, anchor: HTMLElement, items: PanelMenuItem[]) => void;
-    close: (name?: string) => void;
-}
-
-/** 提供只读编辑器上下文快照。 */
-export interface EditorContextPort {
-    capture: () => IEditorContext | undefined;
-}
-
-/** 提供插件动作发现与执行边界。 */
-export interface PluginActionPort {
-    list: () => AgentPanelPluginAction[];
-    execute: (name: string, args: Record<string, unknown>) => Promise<unknown>;
-}
-
-/** 提供宿主面板聚焦能力。 */
-export interface PanelFocusPort {
-    focus: (panel: HTMLElement) => void;
-}
-
-/** 提供当前浏览器宿主重载能力，不包含 Kernel 重启语义。 */
-export interface FrontendReloadPort {
-    reload: () => void | Promise<void>;
-}
-
-/** 提供 Dock 可见性控制，独立页面可省略。 */
-export interface DockVisibilityPort {
-    minimize: () => void;
-}
-
-/** 提供创建普通布局 Tab 副本的能力。 */
-export interface PanelTabOpenPort {
-    open: () => void | Promise<void>;
-}
-
-/** 提供创建非模态浮窗副本的能力。 */
-export interface PanelFloatOpenPort {
-    open: () => void | Promise<void>;
-}
-
-/** 提供目录选择，平台差异由宿主实现吸收。 */
-export interface DirectoryPickerPort {
-    pickDirectory: () => Promise<string>;
-}
-
-/** 提供 Markdown 和富内容的宿主后处理。 */
-export interface ContentRenderPort {
-    postRender: (container: HTMLElement) => void;
-}
-
-/**
- * 可选能力集合只负责组合细粒度 Port。每项能力均可被其它面板单独注入和复用。
- */
+/** Agent 面板与宿主之间的完整能力聚合；调用方直接观察可用动作，不再穿过单方法对象。 */
 export interface AgentPanelCapabilities {
-    settingsNavigation?: SettingsNavigationPort;
-    identityAccess?: IdentityAccessPort;
-    notification?: NotificationPort;
-    message?: MessagePort;
-    confirm?: ConfirmPort;
-    menu?: PanelMenuPort;
-    editorContext?: EditorContextPort;
-    pluginActions?: PluginActionPort;
-    focus?: PanelFocusPort;
-    frontendReload?: FrontendReloadPort;
-    dockVisibility?: DockVisibilityPort;
-    tabOpen?: PanelTabOpenPort;
-    floatOpen?: PanelFloatOpenPort;
-    directoryPicker?: DirectoryPickerPort;
-    contentRender?: ContentRenderPort;
+    openAISettings?: () => void | Promise<void>;
+    openIdentityAccess?: () => void | Promise<void>;
+    notify?: (notification: {title: string; body?: string}) => void | Promise<void>;
+    showMessage?: (message: string, timeout?: number) => void;
+    confirm?: (title: string, message: string, onConfirm: () => void) => void;
+    createDialog?: (options: IDialogOptions) => IDialog;
+    showMenu?: (name: string, anchor: HTMLElement, items: PanelMenuItem[]) => void;
+    closeMenu?: (name?: string) => void;
+    captureEditorContext?: () => IEditorContext | undefined;
+    listPluginActions?: () => AgentPanelPluginAction[];
+    executePluginAction?: (name: string, args: Record<string, unknown>) => Promise<unknown>;
+    focusPanel?: (panel: HTMLElement) => void;
+    reloadFrontend?: () => void | Promise<void>;
+    minimizeDock?: () => void;
+    openTab?: () => void | Promise<void>;
+    openFloat?: () => void | Promise<void>;
+    postRender?: (container: HTMLElement) => void;
 }
 
 /** 表示挂载节点、初始会话和可选宿主能力。 */

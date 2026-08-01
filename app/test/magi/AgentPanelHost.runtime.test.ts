@@ -12,11 +12,11 @@ vi.mock("../../src/agent-standalone/bootstrap", () => ({
     bootstrapAgentPanelRuntime: hostSpies.bootstrap,
 }));
 
-vi.mock("../../src/agent-standalone/capabilities.browser", () => ({
+vi.mock("../../src/agent-standalone/capabilities.browser.factory", () => ({
     createBrowserAgentPanelCapabilities: hostSpies.createCapabilities,
 }));
 
-vi.mock("../../src/layout/dock/agent/runtime/AgentPanelController", () => ({
+vi.mock("../../src/layout/dock/agent/runtime/AgentPanelController.factory", () => ({
     mountAgentPanel: hostSpies.mount,
 }));
 

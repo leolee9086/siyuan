@@ -7,6 +7,14 @@ const readStringArgument = (args: Record<string, unknown>, key: string) => {
     return typeof value === "string" ? value : undefined;
 };
 
+/** 用动画完成回调清除块定位高亮。 */
+function markFocusedBlock(blockElement: HTMLElement) {
+    blockElement.classList.add("protyle-wysiwyg--hl");
+    const lifecycle = blockElement.animate([{opacity: 1}, {opacity: 1}], {duration: 2000});
+    const clear = () => blockElement.classList.remove("protyle-wysiwyg--hl");
+    void lifecycle.finished.then(clear, clear);
+}
+
 /** 创建设置动作；执行时通过 AppFacade 打开设置，并复用已经存在的设置 Dialog。 */
 const createOpenSettingsAction = () => ({
     name: "open_setting",
@@ -61,9 +69,7 @@ const createFocusBlockAction = () => ({
             return {error: `Block ${id} is not loaded in any open editor. Use open_document to open it first.`};
         }
         blockElement.scrollIntoView({behavior: "smooth", block: "center"});
-        blockElement.classList.add("protyle-wysiwyg--hl");
-        // 2 秒是面向用户的临时定位提示持续时间，不承担异步流程同步职责。
-        setTimeout(() => blockElement?.classList.remove("protyle-wysiwyg--hl"), 2000);
+        markFocusedBlock(blockElement);
         return {result: `Focused block ${id} in the active editor.`};
     },
 } satisfies FrontendAction);

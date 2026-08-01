@@ -4,12 +4,12 @@ import {bootstrapAgentPanelRuntime} from "../../../agent-standalone/bootstrap";
 export {bootstrapAgentPanelRuntime};
 
 /** 用途：转发浏览器宿主能力工厂；使用范围：MAGI 独立入口；解耦评估：细粒度 capability 组合由适配器集中提供。 */
-import {createBrowserAgentPanelCapabilities} from "../../../agent-standalone/capabilities.browser";
+import {createBrowserAgentPanelCapabilities} from "../../../agent-standalone/capabilities.browser.factory";
 /** 导出浏览器宿主能力工厂。 */
 export {createBrowserAgentPanelCapabilities};
 
 /** 用途：转发统一面板挂载入口；使用范围：MAGI CHAT 宿主；解耦评估：DOM、会话和 capability 参数构成稳定边界。 */
-import {mountAgentPanel} from "../../../layout/dock/agent/runtime/AgentPanelController";
+import {mountAgentPanel} from "../../../layout/dock/agent/runtime/AgentPanelController.factory";
 /** 导出统一面板挂载入口。 */
 export {mountAgentPanel};
 

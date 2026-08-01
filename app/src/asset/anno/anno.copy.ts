@@ -46,7 +46,7 @@ const 执行复制注释 = async (参数: 复制注释参数) => {
  * @param fileName - 文件名
  * @param pdf - PDF 实例
  */
-export const copyAnno = async (idPath: string, fileName: string, pdf: IPdfInstance): Promise<void> => {
+export const copyAnno = async (idPath: string, fileName: string, pdf: IPdfInstance)=> {
     if (!rectElement) {
         return;
     }

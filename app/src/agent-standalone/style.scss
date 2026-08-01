@@ -34,6 +34,17 @@ body {
     box-shadow: var(--b3-dialog-shadow);
     color: var(--b3-theme-on-surface);
     transform: translateX(-50%);
+    animation: agent-standalone-toast-lifecycle var(--agent-standalone-toast-duration, 2400ms) ease forwards;
+}
+
+@keyframes agent-standalone-toast-lifecycle {
+    0%, 85% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
 }
 
 .agent-standalone-error {
@@ -64,4 +75,3 @@ body {
         padding-bottom: max(8px, env(safe-area-inset-bottom));
     }
 }
-

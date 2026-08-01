@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {formatAgentUploadedFileMarkdown} from "../../../../src/layout/dock/agent/AgentUploadedFile.markdown";
+import {formatAgentUploadedFileMarkdown} from "../../../../src/layout/dock/agent/attachments/AgentUploadedFile.markdown";
 
 describe("Agent uploaded file Markdown", () => {
     it("escapes the label and encodes Markdown-significant path characters", () => {

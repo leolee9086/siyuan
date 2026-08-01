@@ -1,7 +1,7 @@
-import type {AppFacade} from "../../../app/AppFacade.types";
+import type {AppFacade} from "./imports";
 import {mountTiptapComposer} from "./AgentComposer.tiptap";
 import {mountProtyleComposer} from "./AgentComposer.protyle";
-import type {ComposerHandle} from "./AgentComposer.types";
+import type {ComposerHandle} from "./composer/AgentComposer.types";
 
 /** 统一 Agent Composer 句柄；宿主差异由是否提供完整 App 能力明确选择。 */
 export type {ComposerHandle};
@@ -12,11 +12,15 @@ export type {ComposerHandle};
  * 两者共享发送、历史、引用和销毁契约，但不伪造缺失的 Protyle 宿主能力。
  */
 export function mountComposer(
-    host: HTMLElement,
-    onSend: () => void,
-    onChange?: () => void,
-    app?: AppFacade,
-): ComposerHandle {
+    options: Readonly<{
+        host: HTMLElement;
+        onSend: () => void;
+        onChange?: () => void;
+        app?: AppFacade;
+    }>,
+) {
+    const {host, onSend, onChange, app} = options;
+    // 完整应用宿主提供 AppFacade 时复用 Protyle，其余宿主使用独立 Tiptap。
     if (app) {
         return mountProtyleComposer(app, host, onSend, onChange);
     }

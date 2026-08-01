@@ -1,0 +1,25 @@
+/** Native Agent 从 tool_progress SSE 事件接收的搜索进度聚合。 */
+export type AgentWebSearchProgress = {
+    phase: string;
+    done: number;
+    total: number;
+    current?: string;
+    partialCount?: number;
+    latestResults?: Array<{title: string; url: string; engine: string}>;
+};
+
+/** Structured search response persisted by the native web_search tool. */
+export type AgentWebSearchResponse = {
+    query?: string;
+    provider?: string;
+    linkMap?: Record<string, string>;
+    results?: Array<{
+        title?: string;
+        url?: string;
+        snippet?: string;
+        engines?: string[];
+    }>;
+    usedEngines?: string[];
+    errors?: Array<{engine?: string; message?: string}>;
+    noResults?: boolean;
+};

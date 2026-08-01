@@ -9,7 +9,7 @@ export interface ILayoutTabHandle {
     docIcon: string;
     headElement: HTMLElement;
     panelElement: HTMLElement;
-    model: ILayoutModel;
+    model: ILayoutModel | undefined;
     initialize: () => void;
     addModel: (model: ILayoutModel) => void;
 }

@@ -12,7 +12,7 @@ import { CustomLists } from "./customBlockLists/CustomLists";
 import {showCustomListMenu} from "./customBlockLists/customLists.menu";
 import { EmbeddingDock } from "./embeddingDock/EmbeddingDock";
 import { Cronjob } from "./Cronjob";
-import { createAgentDockModel } from "./agent/dockModel.factory";
+import { createAgentDockModel } from "./agent/runtime/host/dock/dockModel.factory";
 /** 用途：创建 s-forge 原生颜色 Dock；使用范围：MODEL_FACTORIES 的内建颜色类型；解耦评估：不经过插件列表，直接由颜色模块提供 Custom Model。 */
 import { createColorToolDockModel } from "../../sforge/colors/init";
 import { createIdentityAccessDockModel } from "../../magi/identity-access/adapters/dock.factory";
