@@ -38,13 +38,18 @@ type SubmitResult struct {
 //   - 全局调度（MAGI）：通过 NextDue() 轮询所有有 pending 输入的会话，
 //     由统一 dispatcher 按保护环优先级处理。
 //
+// 事件分发支持多订阅者：Subscribe 注册、返回退订函数；SetOnChanged 保留
+// 单回调兼容语义（等价于清空后注册一个订阅者）。
+//
 // 并发安全：所有方法均可安全并发调用。
 type InboxManager struct {
 	mu       sync.Mutex
 	inboxes  map[string]*SessionInbox
-	capacity int
+	settings QueueSettings
 
-	onChanged OnChangedFunc
+	// subscribers 是队列状态变化的多订阅者集合（notify 时锁外遍历调用）。
+	subscribers map[int]OnChangedFunc
+	nextSubID   int
 
 	// running 记录当前有活动处理循环的会话（由上层调用 MarkRunning 维护）。
 	running map[string]bool
@@ -52,34 +57,87 @@ type InboxManager struct {
 	closed bool
 }
 
-// NewInboxManager 创建全局输入管理器。
+// NewInboxManager 创建全局输入管理器（使用默认策略，仅覆盖容量）。
 // capacity 为每个会话队列的容量上限（<=0 使用默认值 DefaultCapacity）。
 func NewInboxManager(capacity int) *InboxManager {
-	if capacity <= 0 {
-		capacity = DefaultCapacity
+	settings := DefaultQueueSettings()
+	if capacity > 0 {
+		settings.Cap = capacity
 	}
+	return NewInboxManagerWithSettings(settings)
+}
+
+// NewInboxManagerWithSettings 使用指定策略创建全局输入管理器。
+func NewInboxManagerWithSettings(settings QueueSettings) *InboxManager {
 	return &InboxManager{
-		inboxes:  make(map[string]*SessionInbox),
-		capacity: capacity,
-		running:  make(map[string]bool),
+		inboxes:     make(map[string]*SessionInbox),
+		settings:    settings.normalize(),
+		subscribers: make(map[int]OnChangedFunc),
+		running:     make(map[string]bool),
 	}
 }
 
-// SetOnChanged 注册队列状态变化回调。传 nil 可注销。
+// SetOnChanged 注册队列状态变化回调（单回调兼容语义：清空现有订阅者后注册一个）。
+// 传 nil 可注销全部订阅者。多订阅者请使用 Subscribe。
 func (m *InboxManager) SetOnChanged(fn OnChangedFunc) {
 	m.mu.Lock()
-	m.onChanged = fn
+	m.subscribers = make(map[int]OnChangedFunc)
+	if fn != nil {
+		m.subscribers[0] = fn
+	}
 	m.mu.Unlock()
+}
+
+// Subscribe 注册队列状态变化回调，返回退订函数。
+// 回调语义与 OnChangedFunc 一致（锁外调用，回调内不得再次进入本包方法）。
+func (m *InboxManager) Subscribe(fn OnChangedFunc) func() {
+	m.mu.Lock()
+	if m.subscribers == nil {
+		m.subscribers = make(map[int]OnChangedFunc)
+	}
+	id := m.nextSubID
+	m.nextSubID++
+	m.subscribers[id] = fn
+	m.mu.Unlock()
+	return func() {
+		m.mu.Lock()
+		delete(m.subscribers, id)
+		m.mu.Unlock()
+	}
 }
 
 // notify 触发回调（锁外调用，避免回调内再次进入本包导致死锁）。
 func (m *InboxManager) notify(sessionID string) {
 	m.mu.Lock()
-	fn := m.onChanged
-	m.mu.Unlock()
-	if fn != nil && sessionID != "" {
-		fn(sessionID)
+	subs := make([]OnChangedFunc, 0, len(m.subscribers))
+	for _, fn := range m.subscribers {
+		subs = append(subs, fn)
 	}
+	m.mu.Unlock()
+	if sessionID == "" {
+		return
+	}
+	for _, fn := range subs {
+		if fn != nil {
+			fn(sessionID)
+		}
+	}
+}
+
+// RegisterInbox 注册一个外部构造的定制会话队列（携带自定义策略 / 存储）。
+// 已存在同名会话时覆盖。供上层按会话差异化配置（如 MAGI 渠道级 lane 策略）。
+func (m *InboxManager) RegisterInbox(in *SessionInbox) {
+	if in == nil {
+		return
+	}
+	m.mu.Lock()
+	m.inboxes[in.SessionID()] = in
+	m.mu.Unlock()
+}
+
+// Settings 返回管理器默认策略（副本）。
+func (m *InboxManager) Settings() QueueSettings {
+	return m.settings
 }
 
 // MarkRunning 标记会话是否有活动处理循环。
@@ -123,7 +181,7 @@ func (m *InboxManager) Submit(input *Input) (SubmitResult, error) {
 	}
 	in := m.inboxes[input.SessionID]
 	if in == nil {
-		in = NewSessionInbox(input.SessionID, m.capacity)
+		in = NewSessionInboxWithSettings(input.SessionID, m.settings)
 		m.inboxes[input.SessionID] = in
 	}
 	running := m.running[input.SessionID]
@@ -133,7 +191,7 @@ func (m *InboxManager) Submit(input *Input) (SubmitResult, error) {
 	// 默认值补齐由 SessionInbox.Submit 在内部克隆对象上完成，
 	// 避免写入调用方传入的对象（并发安全边界）。
 	seq, err := in.Submit(input)
-	if err == ErrDuplicateInput {
+	if err == ErrDuplicateInput || err == ErrDuplicatePrompt {
 		return SubmitResult{Duplicated: true, Seq: seq, Immediate: input.Semantics.IsImmediate()}, nil
 	}
 	if err != nil {
@@ -168,6 +226,61 @@ func (m *InboxManager) Take(sessionID, activeTurnID string) (*Input, error) {
 		m.notify(sessionID)
 	}
 	return input, nil
+}
+
+// TakeBatch 批量取出可投递输入（collect 模式，见 SessionInbox.TakeBatch）。
+// max <= 0 时使用会话队列策略的 CollectMax；仍 <= 0 时退化为单条。
+// 返回的切片为深拷贝；调用方须对每条分别 MarkInjected / MarkFailed。
+func (m *InboxManager) TakeBatch(sessionID, activeTurnID string, max int) ([]*Input, error) {
+	m.mu.Lock()
+	in := m.inboxes[sessionID]
+	m.mu.Unlock()
+	if in == nil {
+		return nil, nil
+	}
+	taken, err := in.TakeBatch(activeTurnID, max)
+	if err != nil {
+		return nil, err
+	}
+	if len(taken) > 0 {
+		m.notify(sessionID)
+	}
+	return taken, nil
+}
+
+// RecoverStale 将指定会话中超过策略阈值的 injecting 输入重置回 pending
+// （执行方卡死/崩溃恢复）。返回恢复条数。
+func (m *InboxManager) RecoverStale(sessionID string, now int64) int {
+	m.mu.Lock()
+	in := m.inboxes[sessionID]
+	m.mu.Unlock()
+	if in == nil {
+		return 0
+	}
+	recovered := in.RecoverStale(now)
+	if recovered > 0 {
+		m.notify(sessionID)
+	}
+	return recovered
+}
+
+// RecoverAllStale 对所有已注册会话执行 injecting 超时恢复。返回总恢复条数。
+func (m *InboxManager) RecoverAllStale(now int64) int {
+	m.mu.Lock()
+	candidates := make([]*SessionInbox, 0, len(m.inboxes))
+	for _, in := range m.inboxes {
+		candidates = append(candidates, in)
+	}
+	m.mu.Unlock()
+
+	total := 0
+	for _, in := range candidates {
+		if n := in.RecoverStale(now); n > 0 {
+			total += n
+			m.notify(in.SessionID())
+		}
+	}
+	return total
 }
 
 // Peek 非阻塞查看指定会话是否有待投递输入，返回最高优先级语义类别。
@@ -300,6 +413,51 @@ func (m *InboxManager) Prune(sessionID string, maxRetained int) int {
 		return 0
 	}
 	return in.Prune(maxRetained)
+}
+
+// AttachStorage 为指定会话挂载持久化存储（透传 SessionInbox.AttachStorage）。
+func (m *InboxManager) AttachStorage(sessionID string, storage QueueStorage) {
+	m.mu.Lock()
+	in := m.inboxes[sessionID]
+	m.mu.Unlock()
+	if in == nil {
+		return
+	}
+	in.AttachStorage(storage)
+}
+
+// Checkpoint 将指定会话队列状态持久化到已挂载存储（透传 SessionInbox.Checkpoint）。
+func (m *InboxManager) Checkpoint(sessionID string) error {
+	m.mu.Lock()
+	in := m.inboxes[sessionID]
+	m.mu.Unlock()
+	if in == nil {
+		return ErrInputNotFound
+	}
+	return in.Checkpoint()
+}
+
+// RestoreSession 从已挂载存储恢复指定会话队列（透传 SessionInbox.RestoreFromStorage）。
+// 返回 ok=false 表示该会话无持久化记录（首次启动）。
+func (m *InboxManager) RestoreSession(sessionID string) (bool, error) {
+	m.mu.Lock()
+	in := m.inboxes[sessionID]
+	m.mu.Unlock()
+	if in == nil {
+		return false, nil
+	}
+	return in.RestoreFromStorage()
+}
+
+// Summary 读取并清除指定会话的 DropSummarize 溢出摘要（透传 SessionInbox.Summary）。
+func (m *InboxManager) Summary(sessionID string) QueueSummary {
+	m.mu.Lock()
+	in := m.inboxes[sessionID]
+	m.mu.Unlock()
+	if in == nil {
+		return QueueSummary{}
+	}
+	return in.Summary()
 }
 
 // Close 关闭管理器，拒绝后续 Submit。

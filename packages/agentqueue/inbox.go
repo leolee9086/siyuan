@@ -18,6 +18,8 @@ var (
 	ErrSessionIDMismatch = errors.New("agentqueue: input session id mismatch")
 	// ErrDuplicateInput 输入 ID 重复（幂等冲突，已存在相同 ID 的输入）。
 	ErrDuplicateInput = errors.New("agentqueue: duplicate input id")
+	// ErrDuplicatePrompt 输入文本与队列中 pending 输入重复（prompt 去重命中）。
+	ErrDuplicatePrompt = errors.New("agentqueue: duplicate prompt")
 	// ErrInputNotFound 输入不存在。
 	ErrInputNotFound = errors.New("agentqueue: input not found")
 	// ErrNotPending 输入不在 pending 状态，无法执行该操作。
@@ -40,6 +42,9 @@ type inboxItem struct {
 	input *Input
 	seq   int64 // 入队序号，保证 FIFO 稳定
 	state InboxStatus
+	// injectedAt 是进入 injecting 状态的时间（Unix 毫秒），
+	// 用于 RecoverStale 判定「执行方卡死/崩溃后恢复滞留输入」。
+	injectedAt int64
 }
 
 // InboxSnapshot 是队列中一条输入的状态快照，供 UI / 事件推送使用。
@@ -56,24 +61,37 @@ type InboxSnapshot struct {
 //   - FIFO 稳定：queue / user_message 等按入队顺序投递；
 //   - steer 插队：steer / interrupt / tool_result 语义在取用时优先于普通排队消息，
 //     但仍受 ExpectedTurnID 前置校验约束（不匹配则跳过，不消费）；
-//   - 容量上限：超过容量时 Submit 返回 ErrQueueFull；
-//   - 幂等：同一 Input.ID 重复提交返回 ErrDuplicateInput。
+//   - lane 串行：同一 LaneKey 内同一时刻只允许一条输入处于 injecting 状态，
+//     后续同 lane 输入等待其完成（跨渠道消息顺序保证）；
+//   - 容量与溢出：超过容量时按 QueueSettings.DropPolicy 处理（拒绝新 / 丢旧 / 摘要丢旧）；
+//   - 去重：按 QueueSettings.DedupeMode 做 message-id 或 prompt 级去重；
+//   - 状态机：pending → injecting → injected / cancelled / failed；
+//     injecting 超时可由 RecoverStale 重置回 pending（执行方崩溃恢复）。
 type SessionInbox struct {
 	mu        sync.Mutex
 	sessionID string
 	items     []*inboxItem
-	capacity  int
+	settings  QueueSettings
+	summary   QueueSummary // DropSummarize 策略下被丢弃输入的摘要
+	storage   QueueStorage // 可选持久化存储（AttachStorage 挂载）
 	seq       int64
 }
 
-// NewSessionInbox 创建指定容量的会话输入队列。capacity <= 0 时使用默认容量 DefaultCapacity。
+// NewSessionInbox 创建指定容量的会话输入队列（使用默认策略，仅覆盖容量）。
+// capacity <= 0 时使用默认容量 DefaultCapacity。
 func NewSessionInbox(sessionID string, capacity int) *SessionInbox {
-	if capacity <= 0 {
-		capacity = DefaultCapacity
+	settings := DefaultQueueSettings()
+	if capacity > 0 {
+		settings.Cap = capacity
 	}
+	return NewSessionInboxWithSettings(sessionID, settings)
+}
+
+// NewSessionInboxWithSettings 使用指定策略创建会话输入队列。
+func NewSessionInboxWithSettings(sessionID string, settings QueueSettings) *SessionInbox {
 	return &SessionInbox{
 		sessionID: sessionID,
-		capacity:  capacity,
+		settings:  settings.normalize(),
 	}
 }
 
@@ -84,7 +102,22 @@ func (in *SessionInbox) SessionID() string {
 
 // Capacity 返回队列容量上限。
 func (in *SessionInbox) Capacity() int {
-	return in.capacity
+	return in.settings.Cap
+}
+
+// Settings 返回队列当前策略（副本，调用方修改不影响内部）。
+func (in *SessionInbox) Settings() QueueSettings {
+	return in.settings
+}
+
+// Summary 返回并清除 DropSummarize 策略累计的溢出摘要。
+// 上层在投递前读取摘要注入模型上下文；读取后计数清零。
+func (in *SessionInbox) Summary() QueueSummary {
+	in.mu.Lock()
+	defer in.mu.Unlock()
+	s := in.summary
+	in.summary = QueueSummary{}
+	return s
 }
 
 // Len 返回当前队列中的总条目数（含非 pending 状态的历史项）。
@@ -108,8 +141,13 @@ func (in *SessionInbox) PendingCount() int {
 }
 
 // Submit 将输入加入队列。成功时返回入队序号。
-// 幂等：Input.ID 已存在（任意状态）时返回 ErrDuplicateInput。
-// 容量满时返回 ErrQueueFull。
+//
+// 按 QueueSettings 应用：
+//   - DedupeMode=message-id：Input.ID 已存在（任意状态）返回 ErrDuplicateInput；
+//   - DedupeMode=prompt：存在相同 Content 的 pending 项返回 ErrDuplicatePrompt；
+//   - 容量满时按 DropPolicy 处理：
+//     DropNew → ErrQueueFull；DropOld → 丢弃最旧 pending 项并接纳新输入；
+//     DropSummarize → 丢弃最旧 pending 项、记录摘要并接纳新输入。
 func (in *SessionInbox) Submit(input *Input) (int64, error) {
 	if input == nil {
 		return 0, ErrNilInput
@@ -121,9 +159,23 @@ func (in *SessionInbox) Submit(input *Input) (int64, error) {
 	in.mu.Lock()
 	defer in.mu.Unlock()
 
-	for _, it := range in.items {
-		if it.input.ID != "" && it.input.ID == input.ID {
-			return it.seq, ErrDuplicateInput
+	switch in.settings.DedupeMode {
+	case DedupeNone:
+		// 不做重复检测。
+	case DedupePrompt:
+		for _, it := range in.items {
+			if it.state != StatusPending {
+				continue
+			}
+			if it.input.Content != "" && it.input.Content == input.Content {
+				return it.seq, ErrDuplicatePrompt
+			}
+		}
+	default: // DedupeMessageID
+		for _, it := range in.items {
+			if it.input.ID != "" && it.input.ID == input.ID {
+				return it.seq, ErrDuplicateInput
+			}
 		}
 	}
 
@@ -134,8 +186,19 @@ func (in *SessionInbox) Submit(input *Input) (int64, error) {
 			pending++
 		}
 	}
-	if pending >= in.capacity {
-		return 0, ErrQueueFull
+	if pending >= in.settings.Cap {
+		switch in.settings.DropPolicy {
+		case DropOld, DropSummarize:
+			dropped := in.dropOldestPendingLocked()
+			if in.settings.DropPolicy == DropSummarize {
+				in.summary.DroppedCount++
+				if text := summarizeInputText(dropped); text != "" {
+					in.summary.SummaryLines = append(in.summary.SummaryLines, text)
+				}
+			}
+		default: // DropNew
+			return 0, ErrQueueFull
+		}
 	}
 
 	in.seq++
@@ -152,6 +215,37 @@ func (in *SessionInbox) Submit(input *Input) (int64, error) {
 	return in.seq, nil
 }
 
+// dropOldestPendingLocked 丢弃最旧的 pending 项（须持锁调用），返回被丢弃的输入。
+// 找不到 pending 项时返回 nil（理论不可达：容量满意味着至少一条 pending）。
+func (in *SessionInbox) dropOldestPendingLocked() *Input {
+	for i, it := range in.items {
+		if it.state != StatusPending {
+			continue
+		}
+		dropped := it.input
+		in.items = append(in.items[:i], in.items[i+1:]...)
+		return dropped
+	}
+	return nil
+}
+
+// summarizeInputText 生成被丢弃输入的摘要文本（截断至单行便于注入提示词）。
+func summarizeInputText(input *Input) string {
+	if input == nil {
+		return ""
+	}
+	text := input.Content
+	if text == "" {
+		text = "(" + string(input.Semantics) + ")"
+	}
+	const limit = 160
+	runes := []rune(text)
+	if len(runes) > limit {
+		text = string(runes[:limit-1]) + "…"
+	}
+	return text
+}
+
 // Take 取出下一条可投递输入。
 //
 // 规则（按优先级从高到低扫描）：
@@ -160,12 +254,34 @@ func (in *SessionInbox) Submit(input *Input) (int64, error) {
 //  2. 普通语义（queue / user_message / channel_inbound / system / cross_agent）：
 //     按入队序号 FIFO 取出。
 //
-// 取出的输入状态置为 Injecting，调用方确认注入完成需调用 MarkInjected，
-// 取消需调用 MarkCancelled（或调用方失败时 MarkFailed）。
+// lane 串行约束：同一 LaneKey 已有输入处于 injecting 状态时，该 lane 的
+// 其他 pending 输入不被取出（等待前一条完成），不同 lane 互不影响。
+//
+// 取出的输入状态置为 Injecting（记录 injectedAt），调用方确认注入完成需调用
+// MarkInjected，取消需调用 MarkCancelled（或调用方失败时 MarkFailed）。
 // 返回的是输入深拷贝，调用方修改返回对象不影响队列内部状态（并发安全边界）。
 func (in *SessionInbox) Take(activeTurnID string) (*Input, error) {
 	in.mu.Lock()
 	defer in.mu.Unlock()
+	return in.takeLocked(activeTurnID)
+}
+
+// takeLocked 是 Take 的锁内实现（须持锁调用）。
+func (in *SessionInbox) takeLocked(activeTurnID string) (*Input, error) {
+	// 收集当前处于 injecting 状态的 lane，作为串行阻塞集合。
+	blockedLanes := make(map[string]struct{})
+	for _, it := range in.items {
+		if it.state == StatusInjecting && it.input.LaneKey != "" {
+			blockedLanes[it.input.LaneKey] = struct{}{}
+		}
+	}
+	blocked := func(laneKey string) bool {
+		if laneKey == "" {
+			return false // 无 lane 键的输入不参与串行约束
+		}
+		_, ok := blockedLanes[laneKey]
+		return ok
+	}
 
 	// 第一轮：即时交互语义，带 ExpectedTurnID 匹配。
 	for _, it := range in.items {
@@ -179,7 +295,11 @@ func (in *SessionInbox) Take(activeTurnID string) (*Input, error) {
 			// 目标 turn 未到，跳过。
 			continue
 		}
+		if blocked(it.input.LaneKey) {
+			continue
+		}
 		it.state = StatusInjecting
+		it.injectedAt = time.Now().UnixMilli()
 		return cloneInput(it.input), nil
 	}
 
@@ -191,11 +311,81 @@ func (in *SessionInbox) Take(activeTurnID string) (*Input, error) {
 		if it.input.Semantics.IsImmediate() {
 			continue
 		}
+		if blocked(it.input.LaneKey) {
+			continue
+		}
 		it.state = StatusInjecting
+		it.injectedAt = time.Now().UnixMilli()
 		return cloneInput(it.input), nil
 	}
 
 	return nil, nil
+}
+
+// TakeBatch 批量取出可投递输入（collect 模式）。
+//
+// 单次最多取出 max 条：优先即时语义（受 ExpectedTurnID 与 lane 约束），
+// 随后普通语义按 FIFO 补齐。max <= 0 时使用 settings.CollectMax；
+// 仍 <= 0 时退化为单条（与 Take 等价）。
+// 返回的切片为已取出输入的深拷贝；调用方须对每条分别 MarkInjected / MarkFailed。
+func (in *SessionInbox) TakeBatch(activeTurnID string, max int) ([]*Input, error) {
+	limit := max
+	if limit <= 0 {
+		limit = in.settings.CollectMax
+	}
+	if limit <= 0 {
+		limit = 1
+	}
+
+	in.mu.Lock()
+	defer in.mu.Unlock()
+
+	// 先做一次 stale 恢复（仅当启用 RecoverStaleMs），保证批量取用不遗漏滞留输入。
+	if in.settings.RecoverStaleMs > 0 {
+		in.recoverStaleLocked(time.Now().UnixMilli())
+	}
+
+	taken := make([]*Input, 0, limit)
+	for len(taken) < limit {
+		input, err := in.takeLocked(activeTurnID)
+		if err != nil {
+			return taken, err
+		}
+		if input == nil {
+			break
+		}
+		taken = append(taken, input)
+	}
+	return taken, nil
+}
+
+// RecoverStale 将超过 settings.RecoverStaleMs 仍处于 injecting 状态的输入
+// 重置回 pending（执行方卡死/崩溃后恢复滞留输入，允许重新投递）。
+// 未启用超时恢复（RecoverStaleMs <= 0）时返回 0。返回恢复条数。
+func (in *SessionInbox) RecoverStale(now int64) int {
+	if in.settings.RecoverStaleMs <= 0 {
+		return 0
+	}
+	in.mu.Lock()
+	defer in.mu.Unlock()
+	return in.recoverStaleLocked(now)
+}
+
+// recoverStaleLocked 是 RecoverStale 的锁内实现（须持锁调用）。
+func (in *SessionInbox) recoverStaleLocked(now int64) int {
+	if in.settings.RecoverStaleMs <= 0 {
+		return 0
+	}
+	cutoff := now - in.settings.RecoverStaleMs
+	recovered := 0
+	for _, it := range in.items {
+		if it.state == StatusInjecting && it.injectedAt > 0 && it.injectedAt <= cutoff {
+			it.state = StatusPending
+			it.injectedAt = 0
+			recovered++
+		}
+	}
+	return recovered
 }
 
 // MarkInjected 确认输入已注入 agent 上下文（调用方在注入成功后调用）。
@@ -214,6 +404,7 @@ func (in *SessionInbox) MarkFailed(id string) error {
 }
 
 // markState 将指定 ID 的条目从 fromState（anyState 表示不限制来源状态）迁移到 toState。
+// 状态迁出 injecting 时清空 injectedAt，避免残留时间戳影响后续 RecoverStale 判定。
 func (in *SessionInbox) markState(id string, fromState InboxStatus, toState InboxStatus) error {
 	in.mu.Lock()
 	defer in.mu.Unlock()
@@ -225,6 +416,9 @@ func (in *SessionInbox) markState(id string, fromState InboxStatus, toState Inbo
 			return ErrNotPending
 		}
 		it.state = toState
+		if toState != StatusInjecting {
+			it.injectedAt = 0
+		}
 		return nil
 	}
 	return ErrInputNotFound

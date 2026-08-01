@@ -213,6 +213,11 @@ type Input struct {
 	// 防止跨 turn 注入错乱。为空表示不限定（如 user_message 开新 turn）。
 	ExpectedTurnID string `json:"expectedTurnId,omitempty"`
 
+	// LaneKey lane 串行隔离键：同一 lane 内同一时刻只允许一条输入处于
+	// injecting 状态（后续同 lane 输入等待其完成）；不同 lane 可并行投递。
+	// 为空表示不参与 lane 隔离（默认行为，无串行约束）。
+	LaneKey string `json:"laneKey,omitempty"`
+
 	// ToolCallID 异步工具返回专用：对应的工具调用 ID。
 	ToolCallID string `json:"toolCallId,omitempty"`
 	// Result 异步工具返回专用：工具返回结果（原始文本）。
