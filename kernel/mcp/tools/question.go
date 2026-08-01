@@ -18,7 +18,7 @@ package tools
 
 var QuestionTool = &Tool{
 	Name:        "question",
-	Description: "Ask the user questions to clarify needs/preferences (do NOT use for plain-text option lists). questions[]: each {header (short label), question, options[] {label, description}, multiple?, custom?}.",
+	Description: "STRICT RESTRICTION — use ONLY when absolutely necessary. Every call interrupts the user and forces a choice; it is a high-cost action. NEVER use it for: decisions you can reasonably infer, choices where any option is acceptable, anything that can proceed with a sensible default, or non-blocking matters. Before calling, ALL of the following MUST hold: (1) the decision is genuinely blocking and cannot proceed without user input; (2) the options have materially different consequences that only the user can resolve; (3) no reasonable default exists. When in doubt, DO NOT call — proceed with the most sensible default and inform the user. Abuse of this tool will be treated as a serious failure. questions[]: each {header (short label), question, options[] {label, description}, multiple?, custom?}.",
 	InputSchema: ToolSchema{
 		Type: "object",
 		Properties: map[string]Property{
