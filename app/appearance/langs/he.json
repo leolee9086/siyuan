@@ -162,6 +162,8 @@
 	"reasoningEffortLow": "נמוך",
 	"reasoningEffortMedium": "בינוני",
 	"reasoningEffortHigh": "גבוה",
+	"reasoningEffortMax": "מקסימלי",
+	"reasoningEffortUltra": "אולטרה",
 	"embeddingIndexProgress": "התקדמות אינדקס שיבוץ",
 	"embeddingNotEnabledTip": "הפעל והגדר את מודל השיבוץ לעיל כדי לצפות בהתקדמות האינדקס",
 	"embeddingIndexed": "מאונדקס: ",

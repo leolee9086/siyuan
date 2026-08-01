@@ -11,6 +11,8 @@ reasoningEffortDefault: `默认`
 reasoningEffortLow: `低`
 reasoningEffortMedium: `中`
 reasoningEffortHigh: `高`
+reasoningEffortMax: `最大`
+reasoningEffortUltra: `极致`
 embeddingIndexProgress: `嵌入索引进度`
 embeddingNotEnabledTip: `启用并配置上方的嵌入模型后可查看索引进度`
 embeddingIndexed: `已索引：`

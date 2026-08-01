@@ -162,6 +162,8 @@
 	"reasoningEffortLow": "Düşük",
 	"reasoningEffortMedium": "Orta",
 	"reasoningEffortHigh": "Yüksek",
+	"reasoningEffortMax": "Maksimum",
+	"reasoningEffortUltra": "Ultra",
 	"embeddingIndexProgress": "Gömme indeksleme ilerlemesi",
 	"embeddingNotEnabledTip": "İndeksleme ilerlemesini görmek için yukarıdaki gömme modelini etkinleştirin ve yapılandırın",
 	"embeddingIndexed": "İndekslendi: ",

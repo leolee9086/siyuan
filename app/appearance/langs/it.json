@@ -162,6 +162,8 @@
 	"reasoningEffortLow": "Basso",
 	"reasoningEffortMedium": "Medio",
 	"reasoningEffortHigh": "Alto",
+	"reasoningEffortMax": "Massimo",
+	"reasoningEffortUltra": "Ultra",
 	"embeddingIndexProgress": "Avanzamento indicizzazione embedding",
 	"embeddingNotEnabledTip": "Abilita e configura il modello di embedding sopra per visualizzare l'avanzamento dell'indicizzazione",
 	"embeddingIndexed": "Indicizzati: ",

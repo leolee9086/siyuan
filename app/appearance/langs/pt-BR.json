@@ -162,6 +162,8 @@
 	"reasoningEffortLow": "Baixo",
 	"reasoningEffortMedium": "Médio",
 	"reasoningEffortHigh": "Alto",
+	"reasoningEffortMax": "Máximo",
+	"reasoningEffortUltra": "Ultra",
 	"embeddingIndexProgress": "Progresso da indexação de embedding",
 	"embeddingNotEnabledTip": "Ative e configure o modelo de embedding acima para ver o progresso da indexação",
 	"embeddingIndexed": "Indexados: ",

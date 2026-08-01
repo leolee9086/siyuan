@@ -162,6 +162,8 @@
 	"reasoningEffortLow": "ต่ำ",
 	"reasoningEffortMedium": "ปานกลาง",
 	"reasoningEffortHigh": "สูง",
+	"reasoningEffortMax": "สูงสุด",
+	"reasoningEffortUltra": "พิเศษ",
 	"embeddingIndexProgress": "ความคืบหน้าการทำดัชนีการฝัง",
 	"embeddingNotEnabledTip": "เปิดใช้งานและกำหนดค่าโมเดลการฝังด้านบนเพื่อดูความคืบหน้าการทำดัชนี",
 	"embeddingIndexed": "ทำดัชนีแล้ว: ",

@@ -162,6 +162,8 @@
 	"reasoningEffortLow": "Низьке",
 	"reasoningEffortMedium": "Середнє",
 	"reasoningEffortHigh": "Високе",
+	"reasoningEffortMax": "Максимальне",
+	"reasoningEffortUltra": "Ультра",
 	"embeddingIndexProgress": "Поступ індексації вкладень",
 	"embeddingNotEnabledTip": "Увімкніть та налаштуйте модель вкладень вище, щоб переглянути поступ індексації",
 	"embeddingIndexed": "Індексовано: ",

@@ -162,6 +162,8 @@
 	"reasoningEffortLow": "منخفض",
 	"reasoningEffortMedium": "متوسط",
 	"reasoningEffortHigh": "عالٍ",
+	"reasoningEffortMax": "أقصى",
+	"reasoningEffortUltra": "فائق",
 	"embeddingIndexProgress": "تقدم فهرسة التضمين",
 	"embeddingNotEnabledTip": "قم بتمكين وتكوين نموذج التضمين أعلاه لعرض تقدم الفهرسة",
 	"embeddingIndexed": "مفهرس: ",

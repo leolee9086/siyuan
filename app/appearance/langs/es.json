@@ -162,6 +162,8 @@
 	"reasoningEffortLow": "Bajo",
 	"reasoningEffortMedium": "Medio",
 	"reasoningEffortHigh": "Alto",
+	"reasoningEffortMax": "Máximo",
+	"reasoningEffortUltra": "Ultra",
 	"embeddingIndexProgress": "Progreso de indexación de incrustación",
 	"embeddingNotEnabledTip": "Habilite y configure el modelo de incrustación anterior para ver el progreso de indexación",
 	"embeddingIndexed": "Indexados: ",

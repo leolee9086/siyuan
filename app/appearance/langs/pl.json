@@ -162,6 +162,8 @@
 	"reasoningEffortLow": "Niski",
 	"reasoningEffortMedium": "Średni",
 	"reasoningEffortHigh": "Wysoki",
+	"reasoningEffortMax": "Maksymalny",
+	"reasoningEffortUltra": "Ultra",
 	"embeddingIndexProgress": "Postęp indeksowania osadzania",
 	"embeddingNotEnabledTip": "Włącz i skonfiguruj powyższy model osadzania, aby wyświetlić postęp indeksowania",
 	"embeddingIndexed": "Zaindeksowane: ",
