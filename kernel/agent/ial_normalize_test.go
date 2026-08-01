@@ -143,9 +143,9 @@ func TestIALNormalizeDoesNotTouchNonIALText(t *testing.T) {
 // 模式要求属性区不含 {} 与换行;不闭合的 {: 不匹配。
 func TestIALNormalizeMalformedIAL(t *testing.T) {
 	cases := []struct{ in, want string }{
-		{`{: id="a" updated="b"`, `{: id="a" updated="b"`},      // 不闭合:不匹配,原样。
+		{`{: id="a" updated="b"`, `{: id="a" updated="b"`},             // 不闭合:不匹配,原样。
 		{`{: id="a" updated="b"} 尾部 {`, `{: id="a" updated="b"} 尾部 {`}, // 尾随 { 不影响。
-		{"{: a=\"1\"\n b=\"2\"}", "{: a=\"1\"\n b=\"2\"}"},       // 跨行:不匹配,原样。
+		{"{: a=\"1\"\n b=\"2\"}", "{: a=\"1\"\n b=\"2\"}"},             // 跨行:不匹配,原样。
 	}
 	for _, c := range cases {
 		if got := NormalizeIALAttributes(c.in); got != c.want {
