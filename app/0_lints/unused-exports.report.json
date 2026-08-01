@@ -1,0 +1,7197 @@
+{
+  "generatedAt": "2026-08-01T06:42:33.610Z",
+  "target": "src/ + test/",
+  "strictMode": false,
+  "stats": {
+    "fileCount": 2630,
+    "virtualVueBlockCount": 73,
+    "exportedDeclarationCount": 5531,
+    "unusedExportCount": 898
+  },
+  "unusedExports": [
+    {
+      "name": "mountStandaloneAgentPanel",
+      "kind": "variable",
+      "file": "src/agent-standalone/index.ts",
+      "line": 16,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "cache",
+      "kind": "variable",
+      "file": "src/ai/chatStream.utils.ts",
+      "line": 35,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getPublicPrompts",
+      "kind": "variable",
+      "file": "src/ai/prompts/blockContent.builder.ts",
+      "line": 14,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "buildToolListPromptFromClient",
+      "kind": "function",
+      "file": "src/ai/prompts/toolList/fullToolList.builder.ts",
+      "line": 9,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "buildToolListPromptFromDefines",
+      "kind": "function",
+      "file": "src/ai/prompts/toolList/fullToolList.builder.ts",
+      "line": 22,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "formatSchema",
+      "kind": "variable",
+      "file": "src/ai/prompts/toolList/schema.formatter.ts",
+      "line": 9,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "updateResponseContent",
+      "kind": "function",
+      "file": "src/ai/session/assistantResponse.streaming.ts",
+      "line": 11,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "abortResponse",
+      "kind": "function",
+      "file": "src/ai/session/assistantResponse.streaming.ts",
+      "line": 74,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "saveCurrentMessage",
+      "kind": "function",
+      "file": "src/ai/session/assistantResponse.streaming.ts",
+      "line": 124,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "updateBlockDOMContent",
+      "kind": "function",
+      "file": "src/ai/session/assistantResponse.streaming.ts",
+      "line": 144,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "ToolCallExecutionCallback",
+      "kind": "type",
+      "file": "src/ai/session/session.types.ts",
+      "line": 12,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "aiConfigSchema",
+      "kind": "variable",
+      "file": "src/ai/types.ts",
+      "line": 25,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "selectorOperationConfigSchema",
+      "kind": "variable",
+      "file": "src/ai/types.ts",
+      "line": 148,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "aiActionConfigSchema",
+      "kind": "variable",
+      "file": "src/ai/types.ts",
+      "line": 175,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "思源代理请求响应",
+      "kind": "interface",
+      "file": "src/apis/modelscope/client.guard.ts",
+      "line": 10,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "检查思源代理请求响应",
+      "kind": "variable",
+      "file": "src/apis/modelscope/client.guard.ts",
+      "line": 30,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "获取任务状态",
+      "kind": "function",
+      "file": "src/apis/modelscope/client.ts",
+      "line": 257,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "API错误",
+      "kind": "interface",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 70,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "GenerationParams",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 123,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "TaskResponse",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 125,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "TaskStatusResponse",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 127,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "ApiError",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 129,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "SiyuanProxyData",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 131,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "SubmitGenerationTaskParams",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 133,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "GetTaskStatusParams",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 135,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "PollTaskParams",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 137,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "FetchImageParams",
+      "kind": "type",
+      "file": "src/apis/modelscope/types.ts",
+      "line": 139,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "解码Base64",
+      "kind": "function",
+      "file": "src/apis/modelscope/utils.ts",
+      "line": 43,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "AppFacadeShape",
+      "kind": "interface",
+      "file": "src/app/AppFacade.types.ts",
+      "line": 57,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "getHighlight",
+      "kind": "variable",
+      "file": "src/asset/anno/anno.getHighlight.ts",
+      "line": 45,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isHTMLElementSafe",
+      "kind": "variable",
+      "file": "src/asset/anno/anno.guard.ts",
+      "line": 17,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isHTMLDivElementSafe",
+      "kind": "variable",
+      "file": "src/asset/anno/anno.guard.ts",
+      "line": 27,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "IPdfPage",
+      "kind": "interface",
+      "file": "src/asset/anno/anno.types.ts",
+      "line": 118,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IEventContext",
+      "kind": "interface",
+      "file": "src/asset/anno/click/guard.ts",
+      "line": 5,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "handleContainerClick",
+      "kind": "variable",
+      "file": "src/asset/anno/index.ts",
+      "line": 17,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleContainerContextMenu",
+      "kind": "variable",
+      "file": "src/asset/anno/index.ts",
+      "line": 30,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleContainerMouseUp",
+      "kind": "variable",
+      "file": "src/asset/anno/index.ts",
+      "line": 60,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "initAnno",
+      "kind": "variable",
+      "file": "src/asset/anno/index.ts",
+      "line": 77,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isImageExt",
+      "kind": "function",
+      "file": "src/asset/components/AssetCard.utils.ts",
+      "line": 6,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "removeFilesFromTag",
+      "kind": "function",
+      "file": "src/asset/tags/assetTags.ts",
+      "line": 26,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "createTag",
+      "kind": "function",
+      "file": "src/asset/tags/assetTags.ts",
+      "line": 51,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "findTagByLabel",
+      "kind": "variable",
+      "file": "src/asset/tags/assetTags.ts",
+      "line": 66,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getTagAssets",
+      "kind": "function",
+      "file": "src/asset/tags/assetTags.ts",
+      "line": 74,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "validateTag",
+      "kind": "function",
+      "file": "src/asset/tags/assetTags.ts",
+      "line": 84,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "addFilesToTag",
+      "kind": "function",
+      "file": "src/asset/tags/assetTags.ts",
+      "line": 103,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "getLocalBazaarSourcePageURL",
+      "kind": "variable",
+      "file": "src/bazaar-hub/open.ts",
+      "line": 209,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "IBazaarInstalledPackage",
+      "kind": "interface",
+      "file": "src/bazaar-hub/types.ts",
+      "line": 41,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IBazaarSecurityClientStats",
+      "kind": "interface",
+      "file": "src/bazaar-hub/types.ts",
+      "line": 107,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "BlockPanelEditorOptions",
+      "kind": "type",
+      "file": "src/block/panel/editor.types.ts",
+      "line": 11,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "CreateBlockPanelEditor",
+      "kind": "type",
+      "file": "src/block/panel/editor.types.ts",
+      "line": 15,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "观察器实例",
+      "kind": "interface",
+      "file": "src/block/panel/Panel.observer.types.ts",
+      "line": 18,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "findBlockRefTarget",
+      "kind": "variable",
+      "file": "src/block/popover/target.ts",
+      "line": 60,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "findLinkTarget",
+      "kind": "variable",
+      "file": "src/block/popover/target.ts",
+      "line": 79,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "findTargetFromPropagatedLink",
+      "kind": "variable",
+      "file": "src/block/popover/target.ts",
+      "line": 91,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isSpecialElement",
+      "kind": "variable",
+      "file": "src/block/popover/target.ts",
+      "line": 109,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "hasBlockingAVPanel",
+      "kind": "variable",
+      "file": "src/block/popover/target.ts",
+      "line": 124,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "hasBlockingMenu",
+      "kind": "variable",
+      "file": "src/block/popover/target.ts",
+      "line": 141,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "RefDefsResult",
+      "kind": "interface",
+      "file": "src/block/popover/types.ts",
+      "line": 12,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "GlobalCommandExecutor",
+      "kind": "type",
+      "file": "src/boot/globalEvent/command/global/types.ts",
+      "line": 8,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "GlobalCommandDomain",
+      "kind": "type",
+      "file": "src/boot/globalEvent/command/global/types.ts",
+      "line": 16,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "RecentClosedRestoreExecutor",
+      "kind": "type",
+      "file": "src/boot/globalEvent/command/global/types.ts",
+      "line": 25,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "UIWindowKeyHandledCommand",
+      "kind": "type",
+      "file": "src/boot/globalEvent/keydown/windowKeyDown/commands.types.ts",
+      "line": 157,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "WINDOW_KEY_DOWN_ROUTE_DOMAINS",
+      "kind": "variable",
+      "file": "src/boot/globalEvent/keydown/windowKeyDown/route/index.ts",
+      "line": 79,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "routeWindowKeyDownDomain",
+      "kind": "variable",
+      "file": "src/boot/globalEvent/keydown/windowKeyDown/route/index.ts",
+      "line": 108,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "resolveWindowKeyDownCommands",
+      "kind": "variable",
+      "file": "src/boot/globalEvent/keydown/windowKeyDown/route/index.ts",
+      "line": 121,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "HotkeyMatcher",
+      "kind": "type",
+      "file": "src/boot/globalEvent/keydown/windowKeyDown/state/dialogHotkey.types.ts",
+      "line": 7,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "WindowKeymapItem",
+      "kind": "interface",
+      "file": "src/boot/globalEvent/keydown/windowKeyDown/types.ts",
+      "line": 31,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "WindowKeyDownDialogFacts",
+      "kind": "interface",
+      "file": "src/boot/globalEvent/keydown/windowKeyDown/types.ts",
+      "line": 82,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "WindowKeyDownUIFacts",
+      "kind": "interface",
+      "file": "src/boot/globalEvent/keydown/windowKeyDown/types.ts",
+      "line": 98,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "WindowKeyDownSystemFacts",
+      "kind": "interface",
+      "file": "src/boot/globalEvent/keydown/windowKeyDown/types.ts",
+      "line": 115,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "WindowKeyDownNavigationFacts",
+      "kind": "interface",
+      "file": "src/boot/globalEvent/keydown/windowKeyDown/types.ts",
+      "line": 165,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "getFlashcardConfig",
+      "kind": "variable",
+      "file": "src/card/flashcard.global.ts",
+      "line": 13,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "genCardItem",
+      "kind": "variable",
+      "file": "src/card/makeCard.ts",
+      "line": 14,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "useDragable",
+      "kind": "variable",
+      "file": "src/components/composables/useDragable.ts",
+      "line": 3,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "GridComponentProps",
+      "kind": "type",
+      "file": "src/components/masonry/components/VirtualMasonryDataProvider.types.ts",
+      "line": 13,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "createBushItem",
+      "kind": "function",
+      "file": "src/components/masonry/composables/layout-engines/list/list-utils.ts",
+      "line": 41,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "SpatialHashGrid",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/select-engines/spatial-hash.ts",
+      "line": 5,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "LayoutItem",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useMasonryLayout.ts",
+      "line": 12,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "LayoutColumn",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useMasonryLayout.ts",
+      "line": 29,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "UseMasonryLayoutOptions",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useMasonryLayout.ts",
+      "line": 34,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "UsePositionObserverOptions",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/usePositionObserver.ts",
+      "line": 4,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "UseScrollObserverOptions",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useScrollObserver.ts",
+      "line": 4,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "UseSelectionBoxOptions",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useSelectionBox.ts",
+      "line": 21,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "UseSelectionObserverOptions",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useSelectionObserver.ts",
+      "line": 4,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "SelectionMode",
+      "kind": "type",
+      "file": "src/components/masonry/composables/useSelectionSystem.ts",
+      "line": 5,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "SelectionState",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useSelectionSystem.ts",
+      "line": 7,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "SelectionEvent",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useSelectionSystem.ts",
+      "line": 16,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "UseSelectionSystemOptions",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useSelectionSystem.ts",
+      "line": 23,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "SelectionApi",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useSelectionSystem.ts",
+      "line": 30,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "Placeholder",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useVirtualDataSource.ts",
+      "line": 16,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "UseVirtualizationOptions",
+      "kind": "interface",
+      "file": "src/components/masonry/composables/useVirtualization.ts",
+      "line": 8,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "PositionedItem",
+      "kind": "interface",
+      "file": "src/components/masonry/utils/binarySearch.ts",
+      "line": 1,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "findVisibleRange",
+      "kind": "function",
+      "file": "src/components/masonry/utils/binarySearch.ts",
+      "line": 15,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "ScheduledFn",
+      "kind": "type",
+      "file": "src/components/masonry/utils/createRafScheduler.ts",
+      "line": 26,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "about",
+      "kind": "variable",
+      "file": "src/config/about.ts",
+      "line": 20,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "account",
+      "kind": "variable",
+      "file": "src/config/account.ts",
+      "line": 32,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "appearance",
+      "kind": "variable",
+      "file": "src/config/appearance.ts",
+      "line": 18,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "bazaar",
+      "kind": "variable",
+      "file": "src/config/bazzar/bazaar.ts",
+      "line": 12,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleSwitch",
+      "kind": "variable",
+      "file": "src/config/bazzar/bazaarInstallHandlers.ts",
+      "line": 15,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleUninstall",
+      "kind": "variable",
+      "file": "src/config/bazzar/bazaarInstallHandlers.ts",
+      "line": 47,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleInstall",
+      "kind": "variable",
+      "file": "src/config/bazzar/bazaarInstallHandlers.ts",
+      "line": 79,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handlePluginEnable",
+      "kind": "variable",
+      "file": "src/config/bazzar/bazaarInstallHandlers.ts",
+      "line": 162,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handlePluginsEnable",
+      "kind": "variable",
+      "file": "src/config/bazzar/bazaarInstallHandlers.ts",
+      "line": 190,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleExportLocalPackage",
+      "kind": "variable",
+      "file": "src/config/bazzar/bazaarInstallHandlers.ts",
+      "line": 218,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleOpen",
+      "kind": "variable",
+      "file": "src/config/bazzar/bazaarUIHandlers.ts",
+      "line": 16,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleTabSwitch",
+      "kind": "variable",
+      "file": "src/config/bazzar/bazaarUIHandlers.ts",
+      "line": 67,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "parseAsAiConfig",
+      "kind": "variable",
+      "file": "src/config/configSchemas/ai.schema.ts",
+      "line": 87,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "schema",
+      "kind": "variable",
+      "file": "src/config/configSchemas/export.ts",
+      "line": 3,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "parseAsConfig",
+      "kind": "variable",
+      "file": "src/config/configSchemas/keymap.editor.general.ts",
+      "line": 61,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "parseAsConfig",
+      "kind": "variable",
+      "file": "src/config/configSchemas/keymap.editor.heading.ts",
+      "line": 15,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "parseAsConfig",
+      "kind": "variable",
+      "file": "src/config/configSchemas/keymap.editor.insert.ts",
+      "line": 27,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "parseAsConfig",
+      "kind": "variable",
+      "file": "src/config/configSchemas/keymap.editor.list.ts",
+      "line": 10,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "parseAsConfig",
+      "kind": "variable",
+      "file": "src/config/configSchemas/keymap.editor.table.ts",
+      "line": 24,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "parseAsConfig",
+      "kind": "variable",
+      "file": "src/config/configSchemas/keymap.editor.ts",
+      "line": 16,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "parseAsSearchConfig",
+      "kind": "variable",
+      "file": "src/config/configSchemas/search.ts",
+      "line": 41,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "parseAsSyncConfig",
+      "kind": "variable",
+      "file": "src/config/configSchemas/sync.ts",
+      "line": 46,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "parseAsSystemConfig",
+      "kind": "variable",
+      "file": "src/config/configSchemas/system.ts",
+      "line": 32,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "parseAsUiLayoutConfig",
+      "kind": "variable",
+      "file": "src/config/configSchemas/uiLayout.schema.ts",
+      "line": 245,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "editor",
+      "kind": "variable",
+      "file": "src/config/editor.ts",
+      "line": 15,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "exportConfig",
+      "kind": "variable",
+      "file": "src/config/exportConfig.ts",
+      "line": 15,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "fileTree",
+      "kind": "variable",
+      "file": "src/config/fileTree.ts",
+      "line": 10,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "keymap",
+      "kind": "variable",
+      "file": "src/config/keymap.ts",
+      "line": 14,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "publish",
+      "kind": "variable",
+      "file": "src/config/publish.ts",
+      "line": 6,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "query",
+      "kind": "variable",
+      "file": "src/config/query.ts",
+      "line": 4,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getActiveElement",
+      "kind": "variable",
+      "file": "src/config/search.environment.ts",
+      "line": 16,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isHTMLElementSafe",
+      "kind": "variable",
+      "file": "src/config/search.guard.ts",
+      "line": 29,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "EDITOR_KEYS",
+      "kind": "variable",
+      "file": "src/config/search.keys.ts",
+      "line": 2,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "FILE_TREE_KEYS",
+      "kind": "variable",
+      "file": "src/config/search.keys.ts",
+      "line": 20,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "FLASHCARD_KEYS",
+      "kind": "variable",
+      "file": "src/config/search.keys.ts",
+      "line": 28,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "AI_KEYS",
+      "kind": "variable",
+      "file": "src/config/search.keys.ts",
+      "line": 37,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "EXPORT_KEYS",
+      "kind": "variable",
+      "file": "src/config/search.keys.ts",
+      "line": 43,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "APPEARANCE_KEYS",
+      "kind": "variable",
+      "file": "src/config/search.keys.ts",
+      "line": 50,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "SEARCH_KEYS",
+      "kind": "variable",
+      "file": "src/config/search.keys.ts",
+      "line": 58,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "ACCOUNT_KEYS",
+      "kind": "variable",
+      "file": "src/config/search.keys.ts",
+      "line": 65,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "CLOUD_KEYS",
+      "kind": "variable",
+      "file": "src/config/search.keys.ts",
+      "line": 70,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "PUBLISH_KEYS",
+      "kind": "variable",
+      "file": "src/config/search.keys.ts",
+      "line": 77,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "ABOUT_KEYS",
+      "kind": "variable",
+      "file": "src/config/search.keys.ts",
+      "line": 83,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "BAZAAR_KEYS",
+      "kind": "variable",
+      "file": "src/config/search.keys.ts",
+      "line": 94,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "SKIP_PANEL_FILTER_TYPES",
+      "kind": "variable",
+      "file": "src/config/search.keys.ts",
+      "line": 97,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "SettingTabShell",
+      "kind": "interface",
+      "file": "src/config/setting/builder.ts",
+      "line": 22,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "TabGroupEntry",
+      "kind": "type",
+      "file": "src/config/setting/item.ts",
+      "line": 44,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "ISettingTabShell",
+      "kind": "interface",
+      "file": "src/config/setting/tabs.ts",
+      "line": 169,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "asStyleBrushHandlers",
+      "kind": "function",
+      "file": "src/config/sforge.guard.ts",
+      "line": 25,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "isSForgeInitialized",
+      "kind": "function",
+      "file": "src/config/sforge.init.ts",
+      "line": 110,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "IRequestSemaphore",
+      "kind": "interface",
+      "file": "src/config/sforge.types.ts",
+      "line": 155,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "syncTabElement",
+      "kind": "variable",
+      "file": "src/config/tabs/syncRuntime.ts",
+      "line": 13,
+      "column": 12,
+      "exempt": false
+    },
+    {
+      "name": "localWorkerSpace",
+      "kind": "variable",
+      "file": "src/data/kernelAPI/defaultWorkspace.ts",
+      "line": 365,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "提取调色板",
+      "kind": "function",
+      "file": "src/data/kernelAPI/sforgeAssetMeta.ts",
+      "line": 60,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "批量提取调色板",
+      "kind": "function",
+      "file": "src/data/kernelAPI/sforgeAssetMeta.ts",
+      "line": 89,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "获取素材元数据",
+      "kind": "function",
+      "file": "src/data/kernelAPI/sforgeAssetMeta.ts",
+      "line": 121,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "设置素材元数据",
+      "kind": "function",
+      "file": "src/data/kernelAPI/sforgeAssetMeta.ts",
+      "line": 150,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "rgb转十六进制",
+      "kind": "function",
+      "file": "src/data/kernelAPI/sforgeAssetMeta.ts",
+      "line": 201,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "获取主色调",
+      "kind": "function",
+      "file": "src/data/kernelAPI/sforgeAssetMeta.ts",
+      "line": 212,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "findTagsByNoteID",
+      "kind": "function",
+      "file": "src/data/kernelAPI/tags.ts",
+      "line": 16,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "AllApiDefsType",
+      "kind": "type",
+      "file": "src/data/kernelSDK/client.types.ts",
+      "line": 73,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "创建遮罩点击处理器",
+      "kind": "function",
+      "file": "src/dialog/dialogHelpers.events.ts",
+      "line": 76,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "创建关闭按钮点击处理器",
+      "kind": "function",
+      "file": "src/dialog/dialogHelpers.events.ts",
+      "line": 96,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "创建全屏按钮点击处理器",
+      "kind": "function",
+      "file": "src/dialog/dialogHelpers.events.ts",
+      "line": 120,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "设置ResizeHandles显示状态",
+      "kind": "function",
+      "file": "src/dialog/dialogHelpers.ts",
+      "line": 26,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "downloadProgress",
+      "kind": "variable",
+      "file": "src/dialog/processSystem.ts",
+      "line": 319,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "processSiYuanUri",
+      "kind": "variable",
+      "file": "src/editor/openLink.ts",
+      "line": 40,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "processSYLink",
+      "kind": "variable",
+      "file": "src/editor/openLink.ts",
+      "line": 42,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "genWeekdayOptions",
+      "kind": "variable",
+      "file": "src/emoji/emoji.dynamic.ts",
+      "line": 30,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "clearHistoryEditor",
+      "kind": "variable",
+      "file": "src/history/history.panel.ts",
+      "line": 24,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "renderRepoItem",
+      "kind": "variable",
+      "file": "src/history/history.render.ts",
+      "line": 151,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "createPersistentPermissionManager",
+      "kind": "function",
+      "file": "src/inNotePlugin/permissionManager.ts",
+      "line": 70,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "initInternalDock",
+      "kind": "variable",
+      "file": "src/layout/dock-utils.ts",
+      "line": 31,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "SideData",
+      "kind": "type",
+      "file": "src/layout/dock-utils.types.ts",
+      "line": 9,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "addCopyButtons",
+      "kind": "variable",
+      "file": "src/layout/dock/agent/AgentMessageRenderer.ts",
+      "line": 218,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "AgentChatSessionProjectionPort",
+      "kind": "interface",
+      "file": "src/layout/dock/agent/chat/AgentChat.runtime.types.ts",
+      "line": 47,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "AgentChatSessionPresentationPort",
+      "kind": "interface",
+      "file": "src/layout/dock/agent/chat/AgentChat.runtime.types.ts",
+      "line": 54,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "AgentChatTurnLifecyclePort",
+      "kind": "interface",
+      "file": "src/layout/dock/agent/chat/AgentChat.runtime.types.ts",
+      "line": 71,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "AgentChatMagiIdentitySnapshot",
+      "kind": "interface",
+      "file": "src/layout/dock/agent/chat/AgentChat.runtime.types.ts",
+      "line": 79,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "AgentChatMagiConversationMessage",
+      "kind": "interface",
+      "file": "src/layout/dock/agent/chat/AgentChat.runtime.types.ts",
+      "line": 85,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "AgentChatMagiConversationPort",
+      "kind": "interface",
+      "file": "src/layout/dock/agent/chat/AgentChat.runtime.types.ts",
+      "line": 99,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "postConfirm",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/interaction/confirm/AgentChat.confirm.methods.ts",
+      "line": 60,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "postFrontendResult",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/interaction/confirm/AgentChat.confirm.methods.ts",
+      "line": 135,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "appendErrorActions",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/interaction/errors/AgentChat.errorCards.ts",
+      "line": 30,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "formatTokenCount",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/interaction/metrics/AgentChat.metrics.helpers.ts",
+      "line": 204,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "renderSingleThinkingCard",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/interaction/metrics/AgentChat.metrics.methods.ts",
+      "line": 27,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "formatThinkingHeader",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/interaction/metrics/AgentChat.metrics.methods.ts",
+      "line": 54,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "collectQuestionAnswers",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/interaction/question/AgentChat.question.helpers.ts",
+      "line": 29,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "findUserEntryIDBeforeElement",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/message/actions/AgentChat.assistantActions.ts",
+      "line": 15,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "readEditorContext",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/message/context/AgentChat.context.methods.ts",
+      "line": 31,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "createAIMessagePlaceholder",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/message/user/AgentChat.tokenStream.ts",
+      "line": 79,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "beginEditUserMessage",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/message/user/AgentChat.userActions.ts",
+      "line": 169,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "runCurrentSessionTaskDirectoryAction",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/session/files/AgentChat.files.ts",
+      "line": 57,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "buildCurrentSessionFileMenuItems",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/session/files/AgentChat.files.ts",
+      "line": 99,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "resetMagiConversationView",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/session/lifecycle/AgentChat.magi.ts",
+      "line": 11,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "renderMagiConversation",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/session/lifecycle/AgentChat.magi.ts",
+      "line": 35,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "renderMagiConversationState",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/session/lifecycle/AgentChat.magi.ts",
+      "line": 65,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "entriesEqual",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/session/persistence/AgentChat.reload.ts",
+      "line": 45,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "appendConfigurableError",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/stream/response/AgentChat.errorHandling.ts",
+      "line": 53,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "updateModelLabel",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/ui/model/AgentChat.model.methods.ts",
+      "line": 74,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "jumpToMessage",
+      "kind": "function",
+      "file": "src/layout/dock/agent/chat/ui/navigation/AgentChat.navigation.ts",
+      "line": 91,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "AgentComposerMention",
+      "kind": "interface",
+      "file": "src/layout/dock/agent/composer/AgentComposer.types.ts",
+      "line": 9,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "resetProtyleEmbedBlocks",
+      "kind": "variable",
+      "file": "src/layout/dock/agent/composer/protyle/content.ts",
+      "line": 14,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "searchComposerReferenceBlocks",
+      "kind": "variable",
+      "file": "src/layout/dock/agent/composer/tiptap/mention.ts",
+      "line": 33,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "promptSourceMenuName",
+      "kind": "variable",
+      "file": "src/layout/dock/agent/prompt/AgentPromptSource.actions.ts",
+      "line": 29,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "showPromptSourceActions",
+      "kind": "function",
+      "file": "src/layout/dock/agent/prompt/AgentPromptSource.actions.ts",
+      "line": 147,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "derivePromptSourceView",
+      "kind": "function",
+      "file": "src/layout/dock/agent/prompt/AgentPromptSource.presentation.ts",
+      "line": 27,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "renderPromptSourceView",
+      "kind": "function",
+      "file": "src/layout/dock/agent/prompt/AgentPromptSource.presentation.ts",
+      "line": 55,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "AgentPromptSourceMetadata",
+      "kind": "interface",
+      "file": "src/layout/dock/agent/prompt/AgentPromptSource.types.ts",
+      "line": 5,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "AgentRequestScope",
+      "kind": "type",
+      "file": "src/layout/dock/agent/request/AgentRequest.types.ts",
+      "line": 2,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "AgentPanelPluginAction",
+      "kind": "interface",
+      "file": "src/layout/dock/agent/runtime/agentPanel.ports.types.ts",
+      "line": 18,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "AgentPanelRetryPolicyEntry",
+      "kind": "interface",
+      "file": "src/layout/dock/agent/runtime/agentPanel.retryPolicy.types.ts",
+      "line": 7,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "AgentSessionPanelCallbacks",
+      "kind": "interface",
+      "file": "src/layout/dock/agent/session-panel/types.ts",
+      "line": 2,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "TaskDirectoryGrant",
+      "kind": "interface",
+      "file": "src/layout/dock/agent/task-directory/AgentTaskDirectory.types.ts",
+      "line": 5,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "BacklinkUserOperationIntent",
+      "kind": "type",
+      "file": "src/layout/dock/backlink/backlinkOperationIntent.ts",
+      "line": 5,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "BacklinkRefreshCommand",
+      "kind": "type",
+      "file": "src/layout/dock/backlink/backlinkRefresh.router.ts",
+      "line": 6,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "BacklinkRefreshScope",
+      "kind": "type",
+      "file": "src/layout/dock/backlink/backlinkRefresh.types.ts",
+      "line": 1,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "获取状态图标",
+      "kind": "variable",
+      "file": "src/layout/dock/cronjob.util.ts",
+      "line": 30,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "获取状态文本",
+      "kind": "variable",
+      "file": "src/layout/dock/cronjob.util.ts",
+      "line": 46,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "格式化相对时间",
+      "kind": "variable",
+      "file": "src/layout/dock/cronjob.util.ts",
+      "line": 63,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "生成任务项HTML",
+      "kind": "variable",
+      "file": "src/layout/dock/cronjob.util.ts",
+      "line": 86,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "generatePanelHTML",
+      "kind": "variable",
+      "file": "src/layout/dock/cronjob.util.ts",
+      "line": 132,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getStatusIcon",
+      "kind": "variable",
+      "file": "src/layout/dock/cronjob.util.ts",
+      "line": 133,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getStatusText",
+      "kind": "variable",
+      "file": "src/layout/dock/cronjob.util.ts",
+      "line": 134,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "formatRelativeTime",
+      "kind": "variable",
+      "file": "src/layout/dock/cronjob.util.ts",
+      "line": 135,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "generateTaskItemHTML",
+      "kind": "variable",
+      "file": "src/layout/dock/cronjob.util.ts",
+      "line": 136,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "generateTaskListHTML",
+      "kind": "variable",
+      "file": "src/layout/dock/cronjob.util.ts",
+      "line": 137,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getClosestByClassUpward",
+      "kind": "variable",
+      "file": "src/layout/dock/customBlockLists/customLists.helper.ts",
+      "line": 16,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getCustomListKey",
+      "kind": "variable",
+      "file": "src/layout/dock/customBlockLists/customLists.helper.ts",
+      "line": 31,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "ICustomListBase",
+      "kind": "interface",
+      "file": "src/layout/dock/customBlockLists/customLists.types.ts",
+      "line": 4,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IDynamicCustomList",
+      "kind": "interface",
+      "file": "src/layout/dock/customBlockLists/customLists.types.ts",
+      "line": 14,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IStaticCustomList",
+      "kind": "interface",
+      "file": "src/layout/dock/customBlockLists/customLists.types.ts",
+      "line": 23,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "generateButtonHTML",
+      "kind": "function",
+      "file": "src/layout/dock/dock.button.ts",
+      "line": 14,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "incrementSiyuanZIndex",
+      "kind": "variable",
+      "file": "src/layout/dock/dock.environment.ts",
+      "line": 30,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "createModel",
+      "kind": "variable",
+      "file": "src/layout/dock/dock.factory.ts",
+      "line": 265,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "safeCreateModel",
+      "kind": "variable",
+      "file": "src/layout/dock/dock.factory.ts",
+      "line": 303,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "initActiveElements",
+      "kind": "function",
+      "file": "src/layout/dock/dock.init.ts",
+      "line": 24,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "initNoActiveElements",
+      "kind": "function",
+      "file": "src/layout/dock/dock.init.ts",
+      "line": 41,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "insertSourceElement",
+      "kind": "function",
+      "file": "src/layout/dock/dock.init.ts",
+      "line": 132,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "initDockFiles",
+      "kind": "function",
+      "file": "src/layout/dock/dock.init.ts",
+      "line": 150,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "initDockActiveState",
+      "kind": "function",
+      "file": "src/layout/dock/dock.init.ts",
+      "line": 276,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "是本Dock的类型",
+      "kind": "function",
+      "file": "src/layout/dock/dock.registry.ts",
+      "line": 69,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "注销类型",
+      "kind": "function",
+      "file": "src/layout/dock/dock.registry.ts",
+      "line": 78,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "清空Position的类型",
+      "kind": "function",
+      "file": "src/layout/dock/dock.registry.ts",
+      "line": 90,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "获取所有已注册类型",
+      "kind": "function",
+      "file": "src/layout/dock/dock.registry.ts",
+      "line": 102,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "重置注册表",
+      "kind": "function",
+      "file": "src/layout/dock/dock.registry.ts",
+      "line": 109,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "registerType",
+      "kind": "variable",
+      "file": "src/layout/dock/dock.registry.ts",
+      "line": 114,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isTypeAvailable",
+      "kind": "variable",
+      "file": "src/layout/dock/dock.registry.ts",
+      "line": 115,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isOwnType",
+      "kind": "variable",
+      "file": "src/layout/dock/dock.registry.ts",
+      "line": 116,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "unregisterType",
+      "kind": "variable",
+      "file": "src/layout/dock/dock.registry.ts",
+      "line": 117,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "clearPositionTypes",
+      "kind": "variable",
+      "file": "src/layout/dock/dock.registry.ts",
+      "line": 118,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getAllRegisteredTypes",
+      "kind": "variable",
+      "file": "src/layout/dock/dock.registry.ts",
+      "line": 119,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "resetRegistry",
+      "kind": "variable",
+      "file": "src/layout/dock/dock.registry.ts",
+      "line": 120,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "executePanelRelationsUpdate",
+      "kind": "function",
+      "file": "src/layout/dock/dock.relation.ts",
+      "line": 141,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getSizeForItem",
+      "kind": "function",
+      "file": "src/layout/dock/dock.size.ts",
+      "line": 75,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getSortIndex",
+      "kind": "function",
+      "file": "src/layout/dock/dock.tab.ts",
+      "line": 31,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getPluginPosition",
+      "kind": "function",
+      "file": "src/layout/dock/dock.tab.ts",
+      "line": 48,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "adjustDockSplit",
+      "kind": "function",
+      "file": "src/layout/dock/dock.tab.ts",
+      "line": 79,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "addDockTab",
+      "kind": "function",
+      "file": "src/layout/dock/dock.tab.ts",
+      "line": 222,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "removeDockItem",
+      "kind": "function",
+      "file": "src/layout/dock/dock.tab.ts",
+      "line": 262,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getDatasets",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 24,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "保存数据集列表",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 29,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "saveDatasets",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 32,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "addDataset",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 42,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "removeDataset",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 51,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "updateDataset",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 62,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getPendingBlocks",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 99,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "pushBlocksWithVectors",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 129,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "获取嵌入状态",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 134,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getDatasetStatus",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 149,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "获取后端数据集列表",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 156,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getBackendDatasets",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 168,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getEmbeddedBlocks",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 198,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "删除嵌入集合",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 203,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "deleteEmbeddingCollection",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 225,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "IBlockQueryResult",
+      "kind": "interface",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 233,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "queryBlocksWithVector",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.api.ts",
+      "line": 272,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "生成ID",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.util.ts",
+      "line": 10,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "generateId",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.util.ts",
+      "line": 13,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "获取类型图标",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.util.ts",
+      "line": 18,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getTypeIcon",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.util.ts",
+      "line": 21,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "格式化时间",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.util.ts",
+      "line": 26,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "formatTime",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.util.ts",
+      "line": 42,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "验证配置",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.util.ts",
+      "line": 47,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "validateConfig",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/embeddingDock.util.ts",
+      "line": 59,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "解析语义查询",
+      "kind": "function",
+      "file": "src/layout/dock/embeddingDock/semanticSearch.api.ts",
+      "line": 20,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "parseSemanticQuery",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/semanticSearch.api.ts",
+      "line": 49,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "生成查询向量",
+      "kind": "function",
+      "file": "src/layout/dock/embeddingDock/semanticSearch.api.ts",
+      "line": 57,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "generateQueryVector",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/semanticSearch.api.ts",
+      "line": 84,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "semanticSearch",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/semanticSearch.api.ts",
+      "line": 379,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getSemanticSearchConfig",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/semanticSearch.api.ts",
+      "line": 399,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "保存语义搜索配置",
+      "kind": "function",
+      "file": "src/layout/dock/embeddingDock/semanticSearch.api.ts",
+      "line": 404,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "saveSemanticSearchConfig",
+      "kind": "variable",
+      "file": "src/layout/dock/embeddingDock/semanticSearch.api.ts",
+      "line": 411,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "createCloseElementClickHandler",
+      "kind": "function",
+      "file": "src/layout/dock/Files/eventHandlers.closeElement.ts",
+      "line": 197,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "isNavigationFile",
+      "kind": "function",
+      "file": "src/layout/dock/Files/eventHandlers.guard.ts",
+      "line": 25,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "isNavigationRoot",
+      "kind": "function",
+      "file": "src/layout/dock/Files/eventHandlers.guard.ts",
+      "line": 34,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "isOpening",
+      "kind": "function",
+      "file": "src/layout/dock/Files/eventHandlers.guard.ts",
+      "line": 43,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "generatePanelHtml",
+      "kind": "function",
+      "file": "src/layout/dock/Files/init.ts",
+      "line": 181,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "refreshExpandedFileList",
+      "kind": "function",
+      "file": "src/layout/dock/Files/onLsHTML.ts",
+      "line": 67,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "expandFileList",
+      "kind": "function",
+      "file": "src/layout/dock/Files/onLsHTML.ts",
+      "line": 98,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "isSVGElement",
+      "kind": "function",
+      "file": "src/layout/dock/Files/treeOperations.guard.ts",
+      "line": 28,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "isStylableElement",
+      "kind": "function",
+      "file": "src/layout/dock/Files/treeOperations.guard.ts",
+      "line": 38,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "assertStylableElement",
+      "kind": "variable",
+      "file": "src/layout/dock/Files/treeOperations.guard.ts",
+      "line": 65,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getOpenPaths",
+      "kind": "variable",
+      "file": "src/layout/dock/Files/treeOperations.ts",
+      "line": 154,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "clearSelectionState",
+      "kind": "variable",
+      "file": "src/layout/dock/Files/treeOperations.ts",
+      "line": 200,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "selectRange",
+      "kind": "variable",
+      "file": "src/layout/dock/Files/treeOperations.ts",
+      "line": 225,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getFolderEmoji",
+      "kind": "variable",
+      "file": "src/layout/dock/Files/wsHandlers.dom.ts",
+      "line": 30,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getFileEmoji",
+      "kind": "variable",
+      "file": "src/layout/dock/Files/wsHandlers.dom.ts",
+      "line": 39,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "updateParentStateAfterChildRemoval",
+      "kind": "variable",
+      "file": "src/layout/dock/Files/wsHandlers.dom.ts",
+      "line": 107,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isStylableElement",
+      "kind": "variable",
+      "file": "src/layout/dock/Files/wsHandlers.guard.ts",
+      "line": 35,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "findInsertPosition",
+      "kind": "variable",
+      "file": "src/layout/dock/Files/wsHandlers.mount.ts",
+      "line": 48,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "IForwardlinkTreeNode",
+      "kind": "interface",
+      "file": "src/layout/dock/Forwardlink.types.ts",
+      "line": 4,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "折叠列表项",
+      "kind": "function",
+      "file": "src/layout/dock/forwardlink/Forwardlink.helpers.ts",
+      "line": 63,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "获取并渲染块列表",
+      "kind": "function",
+      "file": "src/layout/dock/forwardlink/Forwardlink.helpers.ts",
+      "line": 97,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "渲染块编辑器",
+      "kind": "function",
+      "file": "src/layout/dock/forwardlink/Forwardlink.helpers.ts",
+      "line": 133,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "IForwardlinkStatusItem",
+      "kind": "interface",
+      "file": "src/layout/dock/forwardlink/Forwardlink.types.ts",
+      "line": 45,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "ForwardlinkRenderData",
+      "kind": "interface",
+      "file": "src/layout/dock/forwardlink/Forwardlink.types.ts",
+      "line": 94,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "GraphData",
+      "kind": "interface",
+      "file": "src/layout/dock/graph/graph.types.ts",
+      "line": 12,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "处理事务",
+      "kind": "function",
+      "file": "src/layout/dock/outline/Outline.helpers.ts",
+      "line": 97,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "ILayoutWithDocks",
+      "kind": "interface",
+      "file": "src/layout/getAll.guard.ts",
+      "line": 12,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "getSiyuanLayoutLayout",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.environment.ts",
+      "line": 33,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isLayoutInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.guard.ts",
+      "line": 14,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isWndInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.guard.ts",
+      "line": 19,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isModelInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.guard.ts",
+      "line": 29,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "IUILayoutTabErrorPlaceholder",
+      "kind": "interface",
+      "file": "src/layout/layout-deserialization.guard.ts",
+      "line": 122,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "hasObjectChildren",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.guard.ts",
+      "line": 171,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "hasEmptyChildren",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.guard.ts",
+      "line": 188,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isBacklinkType",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.guard.ts",
+      "line": 267,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isGraphType",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.guard.ts",
+      "line": 272,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isOutlineType",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.guard.ts",
+      "line": 277,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getObjectChildren",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.guard.ts",
+      "line": 299,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleBookmarkInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.handlers.ts",
+      "line": 242,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleFilesInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.handlers.ts",
+      "line": 250,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleTagInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.handlers.ts",
+      "line": 278,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "removeUnpinnedTabsOnStart",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.layout.ts",
+      "line": 39,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isPluginModelRegistered",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.layout.ts",
+      "line": 62,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "createMissingPluginPlaceholder",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.layout.ts",
+      "line": 77,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "findLatestActiveTabHeader",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.layout.ts",
+      "line": 180,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "switchToTab",
+      "kind": "variable",
+      "file": "src/layout/layout-deserialization.layout.ts",
+      "line": 204,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "serializeLayoutInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-serialization.serializers.ts",
+      "line": 35,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "serializeWndInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-serialization.serializers.ts",
+      "line": 62,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "serializeTabInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-serialization.serializers.ts",
+      "line": 105,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "serializeEditorInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-serialization.serializers.ts",
+      "line": 124,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "serializeAssetInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-serialization.serializers.ts",
+      "line": 143,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "serializeBacklinkInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-serialization.serializers.ts",
+      "line": 153,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "serializeGraphInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-serialization.serializers.ts",
+      "line": 161,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "serializeOutlineInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-serialization.serializers.ts",
+      "line": 169,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "serializeSearchInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-serialization.serializers.ts",
+      "line": 177,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "serializeCustomInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-serialization.serializers.ts",
+      "line": 183,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "serializeSimpleInstance",
+      "kind": "variable",
+      "file": "src/layout/layout-serialization.serializers.ts",
+      "line": 190,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isHTMLElement",
+      "kind": "function",
+      "file": "src/layout/layout.guard.ts",
+      "line": 17,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "isWnd",
+      "kind": "function",
+      "file": "src/layout/layout.guard.ts",
+      "line": 31,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "ILayoutModelContainer",
+      "kind": "interface",
+      "file": "src/layout/lifecycle/model.types.ts",
+      "line": 2,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "registerSiyuanProtyleLayoutPort",
+      "kind": "variable",
+      "file": "src/layout/protyleLayoutPort.factory.ts",
+      "line": 196,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "countSelectWord",
+      "kind": "variable",
+      "file": "src/layout/status.ts",
+      "line": 185,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "countBlockWord",
+      "kind": "variable",
+      "file": "src/layout/status.ts",
+      "line": 196,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "clearCounter",
+      "kind": "variable",
+      "file": "src/layout/status.ts",
+      "line": 219,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "renderStatusbarCounter",
+      "kind": "variable",
+      "file": "src/layout/status.ts",
+      "line": 229,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getLayoutTabFloatPort",
+      "kind": "variable",
+      "file": "src/layout/tabFloat.port.ts",
+      "line": 21,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "unregisterTabFloatFactory",
+      "kind": "variable",
+      "file": "src/layout/tabFloat.registry.ts",
+      "line": 28,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "resetTabFloatFactories",
+      "kind": "variable",
+      "file": "src/layout/tabFloat.registry.ts",
+      "line": 41,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getLayoutTabOpenPort",
+      "kind": "variable",
+      "file": "src/layout/tabOpen.port.ts",
+      "line": 10,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "closeTabByType",
+      "kind": "variable",
+      "file": "src/layout/tabUtil.ts",
+      "line": 300,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getWindowInnerHeight",
+      "kind": "variable",
+      "file": "src/layout/ui-utils.environment.ts",
+      "line": 13,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "hasSiyuanLayout",
+      "kind": "variable",
+      "file": "src/layout/ui-utils.environment.ts",
+      "line": 50,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getSiyuanLayout",
+      "kind": "variable",
+      "file": "src/layout/util.environment.ts",
+      "line": 12,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getSiyuanConfig",
+      "kind": "variable",
+      "file": "src/layout/util.environment.ts",
+      "line": 15,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getSiyuanLanguages",
+      "kind": "variable",
+      "file": "src/layout/util.environment.ts",
+      "line": 18,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getSiyuanStorage",
+      "kind": "variable",
+      "file": "src/layout/util.environment.ts",
+      "line": 21,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "findInstanceInLayout",
+      "kind": "variable",
+      "file": "src/layout/util.environment.ts",
+      "line": 36,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isLayoutValue",
+      "kind": "variable",
+      "file": "src/layout/util.guard.ts",
+      "line": 18,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isWndValue",
+      "kind": "variable",
+      "file": "src/layout/util.guard.ts",
+      "line": 29,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "hasChildren",
+      "kind": "variable",
+      "file": "src/layout/util.guard.ts",
+      "line": 40,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isTabValue",
+      "kind": "variable",
+      "file": "src/layout/util.guard.ts",
+      "line": 52,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "hasId",
+      "kind": "variable",
+      "file": "src/layout/util.guard.ts",
+      "line": 63,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isValidProtyleActions",
+      "kind": "variable",
+      "file": "src/layout/util.guard.ts",
+      "line": 130,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "IFRAME_INTERACTION_LOCK_CLASS",
+      "kind": "variable",
+      "file": "src/layout/utils/iframeInteractionLock.ts",
+      "line": 2,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "destroyModel",
+      "kind": "function",
+      "file": "src/layout/Wnd.tabAction.ts",
+      "line": 41,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "removeTabAction",
+      "kind": "function",
+      "file": "src/layout/Wnd.tabAction.ts",
+      "line": 73,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "parseSourceSimulationFromSystemMessages",
+      "kind": "function",
+      "file": "src/magi/adapters/magiStandardLLMAdapter.helpers.ts",
+      "line": 171,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "buildFullContentChunk",
+      "kind": "function",
+      "file": "src/magi/adapters/magiStandardLLMAdapter.helpers.ts",
+      "line": 220,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "buildFinishChunk",
+      "kind": "function",
+      "file": "src/magi/adapters/magiStandardLLMAdapter.helpers.ts",
+      "line": 244,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "StandardLLMAdapterFactoryParams",
+      "kind": "interface",
+      "file": "src/magi/adapters/standardLLMAdapterFactory.ts",
+      "line": 12,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "createStandardLLMAdapter",
+      "kind": "function",
+      "file": "src/magi/adapters/standardLLMAdapterFactory.ts",
+      "line": 25,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "extractContentFromPayload",
+      "kind": "function",
+      "file": "src/magi/components/persona/SSETextDisplay.guard.ts",
+      "line": 46,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "svgToPixels",
+      "kind": "function",
+      "file": "src/magi/components/seel-panel/SeelPanel.ctx.ts",
+      "line": 45,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "SeelVoteBadgeTone",
+      "kind": "type",
+      "file": "src/magi/components/seel-panel/SeelPanel.types.ts",
+      "line": 60,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "formatVoteTime",
+      "kind": "function",
+      "file": "src/magi/components/seel-panel/SeelPanelVoteContent.ctx.ts",
+      "line": 18,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "isRawEventMonitorMessage",
+      "kind": "function",
+      "file": "src/magi/components/trinity-monitor-panel/TrinityMonitorPanel.ctx.ts",
+      "line": 440,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "createShowWindowControls",
+      "kind": "function",
+      "file": "src/magi/composables/root/MagiRoot.windowControls.ts",
+      "line": 8,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "createOpenConsoleHandler",
+      "kind": "function",
+      "file": "src/magi/composables/root/MagiRoot.windowControls.ts",
+      "line": 14,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "createMinimizeWindowHandler",
+      "kind": "function",
+      "file": "src/magi/composables/root/MagiRoot.windowControls.ts",
+      "line": 25,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "createToggleMaximizeWindowHandler",
+      "kind": "function",
+      "file": "src/magi/composables/root/MagiRoot.windowControls.ts",
+      "line": 36,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "createCloseWindowHandler",
+      "kind": "function",
+      "file": "src/magi/composables/root/MagiRoot.windowControls.ts",
+      "line": 50,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "MagiSessionExportSageResponse",
+      "kind": "interface",
+      "file": "src/magi/composables/useMagi.types.ts",
+      "line": 44,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "MagiSessionExportVoteStatus",
+      "kind": "interface",
+      "file": "src/magi/composables/useMagi.types.ts",
+      "line": 53,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "SourceTrustBase",
+      "kind": "type",
+      "file": "src/magi/composables/useMagi.types.ts",
+      "line": 184,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "SourceRiskLevel",
+      "kind": "type",
+      "file": "src/magi/composables/useMagi.types.ts",
+      "line": 187,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "SourceMessageChannel",
+      "kind": "type",
+      "file": "src/magi/composables/useMagi.types.ts",
+      "line": 190,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "loadAIConfigFromWorkspace",
+      "kind": "function",
+      "file": "src/magi/core/configLoader.ts",
+      "line": 82,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "WISEApiPostParams",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 50,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "WISEApiResponse",
+      "kind": "interface",
+      "file": "src/magi/core/core.types.ts",
+      "line": 56,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "createGhost",
+      "kind": "function",
+      "file": "src/magi/core/dummySys/dummySys.ts",
+      "line": 113,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "薰",
+      "kind": "variable",
+      "file": "src/magi/core/dummySys/persona.ts",
+      "line": 9,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "MELCHIOR特征集",
+      "kind": "variable",
+      "file": "src/magi/core/dummySys/persona.ts",
+      "line": 129,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "BALTHAZAR特征集",
+      "kind": "variable",
+      "file": "src/magi/core/dummySys/persona.ts",
+      "line": 145,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "CASPER特征集",
+      "kind": "variable",
+      "file": "src/magi/core/dummySys/persona.ts",
+      "line": 161,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "完整人格",
+      "kind": "variable",
+      "file": "src/magi/core/dummySys/persona.ts",
+      "line": 221,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "丽",
+      "kind": "variable",
+      "file": "src/magi/core/dummySys/rei.ts",
+      "line": 9,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "MELCHIOR特征集",
+      "kind": "variable",
+      "file": "src/magi/core/dummySys/rei.ts",
+      "line": 129,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "CASPER特征集",
+      "kind": "variable",
+      "file": "src/magi/core/dummySys/rei.ts",
+      "line": 145,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "BALTHAZAR特征集",
+      "kind": "variable",
+      "file": "src/magi/core/dummySys/rei.ts",
+      "line": 199,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "完整人格",
+      "kind": "variable",
+      "file": "src/magi/core/dummySys/rei.ts",
+      "line": 215,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "织",
+      "kind": "variable",
+      "file": "src/magi/core/dummySys/zhi.ts",
+      "line": 6,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getSEELConfig",
+      "kind": "function",
+      "file": "src/magi/core/marduk.ts",
+      "line": 155,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "validateSynchronization",
+      "kind": "function",
+      "file": "src/magi/core/marduk.ts",
+      "line": 170,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "generateResponse",
+      "kind": "function",
+      "file": "src/magi/core/marduk.ts",
+      "line": 189,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "generateConsensus",
+      "kind": "function",
+      "file": "src/magi/core/marduk.ts",
+      "line": 212,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "createMarduk",
+      "kind": "function",
+      "file": "src/magi/core/marduk.ts",
+      "line": 236,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "创建WISE基础实例",
+      "kind": "variable",
+      "file": "src/magi/core/wise/baseWise.ts",
+      "line": 275,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "消费SSE桥接缓冲",
+      "kind": "function",
+      "file": "src/magi/core/wise/mockWise.ops.ts",
+      "line": 99,
+      "column": 24,
+      "exempt": false
+    },
+    {
+      "name": "创建MockMelchior实例",
+      "kind": "variable",
+      "file": "src/magi/core/wise/mockWise.subclass.ts",
+      "line": 104,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "创建MockBalthazar实例",
+      "kind": "variable",
+      "file": "src/magi/core/wise/mockWise.subclass.ts",
+      "line": 145,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "创建MockCasper实例",
+      "kind": "variable",
+      "file": "src/magi/core/wise/mockWise.subclass.ts",
+      "line": 181,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "创建MockTrinity实例",
+      "kind": "variable",
+      "file": "src/magi/core/wise/mockWise.subclass.ts",
+      "line": 218,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "合并MockWISE配置",
+      "kind": "variable",
+      "file": "src/magi/core/wise/mockWise.ts",
+      "line": 32,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "普通聊天",
+      "kind": "function",
+      "file": "src/magi/core/wise/promptTemplates/Balthazar.ts",
+      "line": 16,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "行为准则接口",
+      "kind": "interface",
+      "file": "src/magi/core/wise/promptTemplates/promptTemplate.types.ts",
+      "line": 7,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "认知控制特征",
+      "kind": "interface",
+      "file": "src/magi/core/wise/promptTemplates/promptTemplate.types.ts",
+      "line": 14,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "情感调节特征",
+      "kind": "interface",
+      "file": "src/magi/core/wise/promptTemplates/promptTemplate.types.ts",
+      "line": 47,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "TrinitySpeakChannel",
+      "kind": "type",
+      "file": "src/magi/core/wise/trinity.toolset.ts",
+      "line": 11,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "TrinitySpeakPayload",
+      "kind": "interface",
+      "file": "src/magi/core/wise/trinity.toolset.ts",
+      "line": 13,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "extractSpeakContentFromArguments",
+      "kind": "function",
+      "file": "src/magi/core/wise/trinity.toolset.ts",
+      "line": 86,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "是非空",
+      "kind": "variable",
+      "file": "src/magi/core/wise/wise.guard.ts",
+      "line": 88,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isDescriptionToQuestionnaireLLMItem",
+      "kind": "function",
+      "file": "src/magi/data/convergence/persona-seed-convergence-llm.guard.ts",
+      "line": 29,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "isConvergenceState",
+      "kind": "function",
+      "file": "src/magi/data/convergence/persona-seed-convergence.guard.ts",
+      "line": 59,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "isSuggestionStatus",
+      "kind": "function",
+      "file": "src/magi/data/convergence/persona-seed-convergence.guard.ts",
+      "line": 78,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "isDescriptionField",
+      "kind": "function",
+      "file": "src/magi/data/convergence/persona-seed-convergence.guard.ts",
+      "line": 97,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "isSuggestionPayload",
+      "kind": "function",
+      "file": "src/magi/data/convergence/persona-seed-convergence.guard.ts",
+      "line": 156,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "isConvergenceSuggestion",
+      "kind": "function",
+      "file": "src/magi/data/convergence/persona-seed-convergence.guard.ts",
+      "line": 176,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "extractSuggestions",
+      "kind": "function",
+      "file": "src/magi/data/convergence/persona-seed-convergence.guard.ts",
+      "line": 207,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "PersonaConvergenceSuggestionSource",
+      "kind": "type",
+      "file": "src/magi/data/convergence/persona-seed-convergence.types.ts",
+      "line": 12,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "PersonaConvergenceQuestionnairePayload",
+      "kind": "interface",
+      "file": "src/magi/data/convergence/persona-seed-convergence.types.ts",
+      "line": 50,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "PersonaConvergenceDescriptionPayload",
+      "kind": "interface",
+      "file": "src/magi/data/convergence/persona-seed-convergence.types.ts",
+      "line": 65,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "isPersonaDescriptionField",
+      "kind": "function",
+      "file": "src/magi/data/convergence/q2d/persona-seed-convergence-q2d-llm.guard.ts",
+      "line": 21,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "isQuestionnaireToDescriptionLLMItem",
+      "kind": "function",
+      "file": "src/magi/data/convergence/q2d/persona-seed-convergence-q2d-llm.guard.ts",
+      "line": 40,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "QuestionnaireSubQuestion",
+      "kind": "interface",
+      "file": "src/magi/data/questionnaire.types.ts",
+      "line": 8,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "SingleQuestion",
+      "kind": "interface",
+      "file": "src/magi/data/questionnaire.types.ts",
+      "line": 24,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "TextQuestion",
+      "kind": "interface",
+      "file": "src/magi/data/questionnaire.types.ts",
+      "line": 35,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "MultipleTextQuestion",
+      "kind": "interface",
+      "file": "src/magi/data/questionnaire.types.ts",
+      "line": 45,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "QuestionnaireQuestion",
+      "kind": "type",
+      "file": "src/magi/data/questionnaire.types.ts",
+      "line": 68,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "QuestionnaireSection",
+      "kind": "interface",
+      "file": "src/magi/data/questionnaire.types.ts",
+      "line": 75,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "SummaryPromptPersonaData",
+      "kind": "type",
+      "file": "src/magi/data/questionnaire.types.ts",
+      "line": 93,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "DecisionContext",
+      "kind": "interface",
+      "file": "src/magi/data/questionnaire.types.ts",
+      "line": 197,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "DecisionParameters",
+      "kind": "interface",
+      "file": "src/magi/data/questionnaire.types.ts",
+      "line": 206,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "LoadedPersonaSeedPanelData",
+      "kind": "interface",
+      "file": "src/magi/entry/persona-seed-panel/handlers/PersonaSeedPanel.loader.ts",
+      "line": 15,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "createLoadDraftHandler",
+      "kind": "function",
+      "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.draft.ts",
+      "line": 128,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "ParsedQuestionnaireDraft",
+      "kind": "interface",
+      "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.guard.ts",
+      "line": 32,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "hasAllSideDescriptions",
+      "kind": "variable",
+      "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
+      "line": 111,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isQuestionnaireProgressAboveOneThird",
+      "kind": "variable",
+      "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
+      "line": 127,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "buildSubjectCognitiveStances",
+      "kind": "variable",
+      "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
+      "line": 222,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "toProfileSubject",
+      "kind": "variable",
+      "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
+      "line": 248,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "ensurePrivateDir",
+      "kind": "variable",
+      "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
+      "line": 264,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "resolveNextSampleIndex",
+      "kind": "variable",
+      "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
+      "line": 278,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "writeJsonFile",
+      "kind": "variable",
+      "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
+      "line": 307,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "collectMissingCognitiveStanceFieldLabels",
+      "kind": "variable",
+      "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
+      "line": 393,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "ImportedPersonaProfileResult",
+      "kind": "interface",
+      "file": "src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts",
+      "line": 523,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "bootstrapMagiState",
+      "kind": "function",
+      "file": "src/magi/entry/rootctx/MagiRoot.workspace.ts",
+      "line": 111,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "refreshWorkspaceAIMainNotebookState",
+      "kind": "function",
+      "file": "src/magi/entry/rootctx/MagiRoot.workspace.ts",
+      "line": 143,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "magiEventDefines",
+      "kind": "variable",
+      "file": "src/magi/events/magiEventBus.ts",
+      "line": 31,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "打开MAGI",
+      "kind": "function",
+      "file": "src/magi/panel/magiStatusButton.ts",
+      "line": 13,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "初始化MAGI状态栏按钮",
+      "kind": "function",
+      "file": "src/magi/panel/magiStatusButton.ts",
+      "line": 28,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "generateDecisionPrompt",
+      "kind": "function",
+      "file": "src/magi/prompts/decisionTemplate.ts",
+      "line": 24,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "ActiveSeedPointer",
+      "kind": "interface",
+      "file": "src/magi/prompts/personaRuntimePromptBuilder.guard.ts",
+      "line": 192,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "resolveActiveSeedProfilePath",
+      "kind": "function",
+      "file": "src/magi/prompts/personaRuntimePromptBuilder.ts",
+      "line": 131,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "FullChannelConfigView",
+      "kind": "interface",
+      "file": "src/magi/service/magiExternalChannels.ts",
+      "line": 45,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "AccountConfigView",
+      "kind": "interface",
+      "file": "src/magi/service/magiExternalChannels.ts",
+      "line": 52,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "UserOverrideView",
+      "kind": "interface",
+      "file": "src/magi/service/magiExternalChannels.ts",
+      "line": 60,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "ChannelListResponse",
+      "kind": "interface",
+      "file": "src/magi/service/magiExternalChannels.ts",
+      "line": 72,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "CreateChannelResponse",
+      "kind": "interface",
+      "file": "src/magi/service/magiExternalChannels.ts",
+      "line": 76,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "PollLoginResponse",
+      "kind": "interface",
+      "file": "src/magi/service/magiExternalChannels.ts",
+      "line": 82,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "AccountView",
+      "kind": "interface",
+      "file": "src/magi/service/magiExternalChannels.ts",
+      "line": 86,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "AccountListResponse",
+      "kind": "interface",
+      "file": "src/magi/service/magiExternalChannels.ts",
+      "line": 92,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "listAccounts",
+      "kind": "function",
+      "file": "src/magi/service/magiExternalChannels.ts",
+      "line": 100,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "reloginChannel",
+      "kind": "function",
+      "file": "src/magi/service/magiExternalChannels.ts",
+      "line": 120,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "MagiRouteClass",
+      "kind": "type",
+      "file": "src/magi/service/magiIdentitySession.ts",
+      "line": 9,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "listMagiIdentities",
+      "kind": "function",
+      "file": "src/magi/service/magiIdentitySession.ts",
+      "line": 266,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "bindChannelIdentity",
+      "kind": "function",
+      "file": "src/magi/service/magiIdentitySession.ts",
+      "line": 566,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "unbindChannelIdentity",
+      "kind": "function",
+      "file": "src/magi/service/magiIdentitySession.ts",
+      "line": 578,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "MagiBindCodeResult",
+      "kind": "interface",
+      "file": "src/magi/service/magiIdentitySession.ts",
+      "line": 590,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "MagiPersonaStatus",
+      "kind": "interface",
+      "file": "src/magi/service/magiPersonaStatus.ts",
+      "line": 6,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "StreamProcessMode",
+      "kind": "type",
+      "file": "src/magi/types/streamProcessor.types.ts",
+      "line": 14,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "getLute",
+      "kind": "function",
+      "file": "src/magi/utils/lute.ts",
+      "line": 30,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "createErrorMessage",
+      "kind": "function",
+      "file": "src/magi/utils/messageFactory.ts",
+      "line": 43,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "validMessageTypes",
+      "kind": "variable",
+      "file": "src/magi/utils/messageFormat.ts",
+      "line": 19,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "validStatusTypes",
+      "kind": "variable",
+      "file": "src/magi/utils/messageFormat.ts",
+      "line": 33,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "validAlignments",
+      "kind": "variable",
+      "file": "src/magi/utils/messageFormat.ts",
+      "line": 43,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getMessageStyleClasses",
+      "kind": "function",
+      "file": "src/magi/utils/messageFormat.ts",
+      "line": 76,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "processStreamResponse",
+      "kind": "function",
+      "file": "src/magi/utils/streamProcessor.ts",
+      "line": 34,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "IMenuHostOptions",
+      "kind": "interface",
+      "file": "src/menus/Menu.ts",
+      "line": 14,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "isAssetItem",
+      "kind": "variable",
+      "file": "src/menus/protyleMenus/assetMenu/protyle.asset.guard.ts",
+      "line": 17,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "renderAssetList",
+      "kind": "variable",
+      "file": "src/menus/protyleMenus/assetMenu/protyle.asset.ts",
+      "line": 173,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "生成资源列表HTML",
+      "kind": "variable",
+      "file": "src/menus/protyleMenus/assetMenu/protyle.asset.view.ts",
+      "line": 42,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "应该隐藏预览区域",
+      "kind": "variable",
+      "file": "src/menus/protyleMenus/assetMenu/protyle.asset.view.ts",
+      "line": 146,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isHTMLTableCellElement",
+      "kind": "variable",
+      "file": "src/menus/protyleMenus/contentMenu/protyle.contentMenu.guard.ts",
+      "line": 17,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "添加剪切菜单项",
+      "kind": "variable",
+      "file": "src/menus/protyleMenus/linkMenu/protyle.linkMenu.items.ts",
+      "line": 149,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "添加删除菜单项",
+      "kind": "variable",
+      "file": "src/menus/protyleMenus/linkMenu/protyle.linkMenu.items.ts",
+      "line": 168,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "添加重命名菜单项",
+      "kind": "variable",
+      "file": "src/menus/protyleMenus/linkMenu/protyle.linkMenu.items.ts",
+      "line": 192,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "添加转换为引用菜单项",
+      "kind": "variable",
+      "file": "src/menus/protyleMenus/linkMenu/protyle.linkMenu.items.ts",
+      "line": 248,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "添加转换为文本菜单项",
+      "kind": "variable",
+      "file": "src/menus/protyleMenus/linkMenu/protyle.linkMenu.items.ts",
+      "line": 292,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "LinkMenuSaveBaseline",
+      "kind": "type",
+      "file": "src/menus/protyleMenus/linkMenu/protyle.linkMenu.savePlan.ts",
+      "line": 15,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "LinkMenuSavePlan",
+      "kind": "type",
+      "file": "src/menus/protyleMenus/linkMenu/protyle.linkMenu.savePlan.ts",
+      "line": 42,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "生成链接编辑区域HTML",
+      "kind": "variable",
+      "file": "src/menus/protyleMenus/linkMenu/protyle.linkMenu.utils.ts",
+      "line": 70,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "绑定链接编辑区域",
+      "kind": "variable",
+      "file": "src/menus/protyleMenus/linkMenu/protyle.linkMenu.utils.ts",
+      "line": 194,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "MobileFilesListData",
+      "kind": "interface",
+      "file": "src/mobile/dock/files/ports.types.ts",
+      "line": 2,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "MobileFilesElementPort",
+      "kind": "interface",
+      "file": "src/mobile/dock/files/ports.types.ts",
+      "line": 9,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "MobileFilesClosedElementPort",
+      "kind": "interface",
+      "file": "src/mobile/dock/files/ports.types.ts",
+      "line": 14,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "MobileFilesActionsElementPort",
+      "kind": "interface",
+      "file": "src/mobile/dock/files/ports.types.ts",
+      "line": 19,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "MobileFilesInitPort",
+      "kind": "interface",
+      "file": "src/mobile/dock/files/ports.types.ts",
+      "line": 24,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "MobileFilesLeafPort",
+      "kind": "interface",
+      "file": "src/mobile/dock/files/ports.types.ts",
+      "line": 29,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "MobileFilesSelectionPort",
+      "kind": "interface",
+      "file": "src/mobile/dock/files/ports.types.ts",
+      "line": 34,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "MobileFilesPersistencePort",
+      "kind": "interface",
+      "file": "src/mobile/dock/files/ports.types.ts",
+      "line": 46,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "MobileFilesPublishAccessPort",
+      "kind": "interface",
+      "file": "src/mobile/dock/files/ports.types.ts",
+      "line": 51,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "genSort",
+      "kind": "function",
+      "file": "src/mobile/dock/MobileFiles.event.ts",
+      "line": 24,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "genFileHTML",
+      "kind": "function",
+      "file": "src/mobile/dock/MobileFiles.render.ts",
+      "line": 16,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "updateDocActionElement",
+      "kind": "function",
+      "file": "src/mobile/dock/MobileFiles.ws.ts",
+      "line": 55,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getProtyleAndBlockElement",
+      "kind": "function",
+      "file": "src/mobile/dock/MobileOutline.contextMenu.ts",
+      "line": 23,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "genHeadingTransform",
+      "kind": "function",
+      "file": "src/mobile/dock/MobileOutline.contextMenu.ts",
+      "line": 76,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "expandToLevel",
+      "kind": "function",
+      "file": "src/mobile/dock/MobileOutline.expand.ts",
+      "line": 108,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "MobileOutlineTreeApi",
+      "kind": "interface",
+      "file": "src/mobile/dock/outline/ports.types.ts",
+      "line": 6,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "MobileOutlineSessionPort",
+      "kind": "interface",
+      "file": "src/mobile/dock/outline/ports.types.ts",
+      "line": 34,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "MobileOutlineSelectionPort",
+      "kind": "interface",
+      "file": "src/mobile/dock/outline/ports.types.ts",
+      "line": 50,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "MobileOutlineReloadPort",
+      "kind": "interface",
+      "file": "src/mobile/dock/outline/ports.types.ts",
+      "line": 59,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "updateSearchResult",
+      "kind": "variable",
+      "file": "src/mobile/menu/search.ts",
+      "line": 21,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "initAbout",
+      "kind": "variable",
+      "file": "src/mobile/settings/about.ts",
+      "line": 21,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "showAccountInfo",
+      "kind": "variable",
+      "file": "src/mobile/settings/account.ts",
+      "line": 16,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "login",
+      "kind": "variable",
+      "file": "src/mobile/settings/account.ts",
+      "line": 368,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "initAI",
+      "kind": "variable",
+      "file": "src/mobile/settings/ai.ts",
+      "line": 4,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "initAppearance",
+      "kind": "variable",
+      "file": "src/mobile/settings/appearance.ts",
+      "line": 7,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "initEditor",
+      "kind": "variable",
+      "file": "src/mobile/settings/editor.ts",
+      "line": 66,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "initFileTree",
+      "kind": "variable",
+      "file": "src/mobile/settings/fileTree.ts",
+      "line": 125,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "initRiffCard",
+      "kind": "variable",
+      "file": "src/mobile/settings/riffCard.ts",
+      "line": 5,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "clipboardRead",
+      "kind": "function",
+      "file": "src/platform/electron/clipboard.ts",
+      "line": 31,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "openPath",
+      "kind": "function",
+      "file": "src/platform/electron/shell.ts",
+      "line": 60,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "nativeRequire",
+      "kind": "variable",
+      "file": "src/platform/nativeRequire.browser.ts",
+      "line": 2,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "IOpenTabDocOptions",
+      "kind": "interface",
+      "file": "src/plugin/api/openTab.types.ts",
+      "line": 6,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IOpenTabPdfOptions",
+      "kind": "interface",
+      "file": "src/plugin/api/openTab.types.ts",
+      "line": 22,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IOpenTabAssetOptions",
+      "kind": "interface",
+      "file": "src/plugin/api/openTab.types.ts",
+      "line": 36,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IOpenTabCardOptions",
+      "kind": "interface",
+      "file": "src/plugin/api/openTab.types.ts",
+      "line": 46,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IOpenTabCustomOptions",
+      "kind": "interface",
+      "file": "src/plugin/api/openTab.types.ts",
+      "line": 60,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IOpenTabOptions",
+      "kind": "interface",
+      "file": "src/plugin/api/openTab.types.ts",
+      "line": 77,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IOpenWindowOptions",
+      "kind": "interface",
+      "file": "src/plugin/api/openWindow.ts",
+      "line": 5,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "customBlockRender",
+      "kind": "variable",
+      "file": "src/plugin/customBlockRender.ts",
+      "line": 2,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "KernelState",
+      "kind": "class",
+      "file": "src/plugin/kernel.ts",
+      "line": 234,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "JsonRpcError",
+      "kind": "class",
+      "file": "src/plugin/kernel.ts",
+      "line": 282,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "createPinUnpinSubmenu",
+      "kind": "variable",
+      "file": "src/plugin/openTopBarMenu.helpers.ts",
+      "line": 87,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "extractMenuIcon",
+      "kind": "variable",
+      "file": "src/plugin/openTopBarMenu.helpers.ts",
+      "line": 132,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getStorageVal",
+      "kind": "variable",
+      "file": "src/plugin/platformUtils.ts",
+      "line": 22,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "cancelNotification",
+      "kind": "variable",
+      "file": "src/plugin/platformUtils.ts",
+      "line": 89,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "ProtyleMethod",
+      "kind": "class",
+      "file": "src/plugin/ProtyleMethod.ts",
+      "line": 34,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "createStandaloneProtyleMenu",
+      "kind": "variable",
+      "file": "src/protyle-standalone/index.ts",
+      "line": 20,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "生成面包屑项HTML",
+      "kind": "function",
+      "file": "src/protyle/breadcrumb/breadcrumb.helpers.ts",
+      "line": 120,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "openExportOptionsDialog",
+      "kind": "variable",
+      "file": "src/protyle/export/exportMd.ts",
+      "line": 26,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "EXPORT_IMAGE_RATIO_AUTO",
+      "kind": "variable",
+      "file": "src/protyle/export/image/exportImage.ratio.ts",
+      "line": 6,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "EXPORT_IMAGE_RATIO_OPTIONS",
+      "kind": "variable",
+      "file": "src/protyle/export/image/exportImage.ratio.ts",
+      "line": 8,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "addBlockToAgent",
+      "kind": "variable",
+      "file": "src/protyle/gutter/addBlockToAgent.ts",
+      "line": 29,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "IGutterCopyMenuContext",
+      "kind": "interface",
+      "file": "src/protyle/gutter/buildGutterCopyMenu.ts",
+      "line": 47,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IGutterHeadingMenuContext",
+      "kind": "interface",
+      "file": "src/protyle/gutter/buildGutterHeadingMenu.ts",
+      "line": 24,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IGutterHeadingMenuResult",
+      "kind": "interface",
+      "file": "src/protyle/gutter/buildGutterHeadingMenu.ts",
+      "line": 40,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IGutterMultipleMenuContext",
+      "kind": "interface",
+      "file": "src/protyle/gutter/buildGutterMultipleMenu.ts",
+      "line": 14,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "创建格式刷菜单项",
+      "kind": "function",
+      "file": "src/protyle/gutter/buildGutterStyleBrushMenu.ts",
+      "line": 21,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "buildGutterHeightsMenu",
+      "kind": "variable",
+      "file": "src/protyle/gutter/buildGutterStyleMenu.ts",
+      "line": 253,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getEmbedResultIds",
+      "kind": "variable",
+      "file": "src/protyle/gutter/embedPinToSidebar.ts",
+      "line": 14,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getEmbedSqlQuery",
+      "kind": "variable",
+      "file": "src/protyle/gutter/embedPinToSidebar.ts",
+      "line": 30,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "pinEmbedResultToSidebar",
+      "kind": "variable",
+      "file": "src/protyle/gutter/embedPinToSidebar.ts",
+      "line": 114,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "pinEmbedQueryToSidebar",
+      "kind": "variable",
+      "file": "src/protyle/gutter/embedPinToSidebar.ts",
+      "line": 135,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "上传图片",
+      "kind": "function",
+      "file": "src/protyle/gutter/menus/aiImageHelpers.ts",
+      "line": 64,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "插入段落",
+      "kind": "function",
+      "file": "src/protyle/gutter/menus/aiImageHelpers.ts",
+      "line": 86,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "mergeBlockBackgroundStyle",
+      "kind": "variable",
+      "file": "src/protyle/gutter/menus/blockBackground.style.ts",
+      "line": 165,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "renderIcon",
+      "kind": "variable",
+      "file": "src/protyle/header/background/render.ts",
+      "line": 34,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "renderTags",
+      "kind": "variable",
+      "file": "src/protyle/header/background/render.ts",
+      "line": 75,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "renderImg",
+      "kind": "variable",
+      "file": "src/protyle/header/background/render.ts",
+      "line": 109,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "removeTag",
+      "kind": "variable",
+      "file": "src/protyle/header/background/tags.ts",
+      "line": 161,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "openTag",
+      "kind": "variable",
+      "file": "src/protyle/header/background/tags.ts",
+      "line": 255,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getKey",
+      "kind": "function",
+      "file": "src/protyle/hint/index.render.ts",
+      "line": 110,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "ProtyleUserOperationIntent",
+      "kind": "type",
+      "file": "src/protyle/intent/userOperationIntent.ts",
+      "line": 8,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "processWithSiyuanCDN",
+      "kind": "variable",
+      "file": "src/protyle/preview/link2online.ts",
+      "line": 5,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleBlockMoreClick",
+      "kind": "variable",
+      "file": "src/protyle/render/av/action/click/dataType.advanced.ts",
+      "line": 77,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getCellValueContent",
+      "kind": "variable",
+      "file": "src/protyle/render/av/cell.value.ts",
+      "line": 86,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "DragFillTarget",
+      "kind": "type",
+      "file": "src/protyle/render/av/cell/dragFill/dragFill.types.ts",
+      "line": 2,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "addColMenuItems",
+      "kind": "variable",
+      "file": "src/protyle/render/av/col/add/menu.factory.ts",
+      "line": 59,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getSelectTypeEditHTML",
+      "kind": "variable",
+      "file": "src/protyle/render/av/col/col.editPanel.ts",
+      "line": 39,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getNumberTypeEditHTML",
+      "kind": "variable",
+      "file": "src/protyle/render/av/col/col.editPanel.ts",
+      "line": 73,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getTemplateTypeEditHTML",
+      "kind": "variable",
+      "file": "src/protyle/render/av/col/col.editPanel.ts",
+      "line": 93,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getRelationTypeEditHTML",
+      "kind": "variable",
+      "file": "src/protyle/render/av/col/col.editPanel.ts",
+      "line": 112,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getDateTypeEditHTML",
+      "kind": "variable",
+      "file": "src/protyle/render/av/col/col.editPanel.ts",
+      "line": 145,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getTimestampTypeEditHTML",
+      "kind": "variable",
+      "file": "src/protyle/render/av/col/col.editPanel.ts",
+      "line": 170,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getRollupTypeEditHTML",
+      "kind": "variable",
+      "file": "src/protyle/render/av/col/col.editPanel.ts",
+      "line": 193,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "addShowColMenuActionItems",
+      "kind": "variable",
+      "file": "src/protyle/render/av/col/col.showColMenu.actions.ts",
+      "line": 20,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "applyColIcon",
+      "kind": "variable",
+      "file": "src/protyle/render/av/col/col.showColMenu.ts",
+      "line": 53,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "bindDescEvents",
+      "kind": "variable",
+      "file": "src/protyle/render/av/col/col.showColMenu.ts",
+      "line": 73,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "buildTwoWayRelationDialogContent",
+      "kind": "variable",
+      "file": "src/protyle/render/av/col/col.showColMenu.ts",
+      "line": 193,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleRelationDialogAction",
+      "kind": "variable",
+      "file": "src/protyle/render/av/col/col.showColMenu.ts",
+      "line": 235,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "toggleEmpty",
+      "kind": "variable",
+      "file": "src/protyle/render/av/filter.operator.ts",
+      "line": 6,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getFiltersHTML",
+      "kind": "variable",
+      "file": "src/protyle/render/av/filter.render.ts",
+      "line": 7,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "commitFilter",
+      "kind": "variable",
+      "file": "src/protyle/render/av/filter.ts",
+      "line": 929,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "avKeydown",
+      "kind": "variable",
+      "file": "src/protyle/render/av/keydown.ts",
+      "line": 13,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "openNewItemTemplateDialog",
+      "kind": "variable",
+      "file": "src/protyle/render/av/newItemTemplate.ts",
+      "line": 546,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "ITableOptions",
+      "kind": "interface",
+      "file": "src/protyle/render/av/render.table.ts",
+      "line": 19,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "updateSearch",
+      "kind": "variable",
+      "file": "src/protyle/render/av/render.ts",
+      "line": 242,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "duplicateRows",
+      "kind": "variable",
+      "file": "src/protyle/render/av/row.ts",
+      "line": 797,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "AVViewRenderRequest",
+      "kind": "interface",
+      "file": "src/protyle/render/av/view/render.types.ts",
+      "line": 11,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "trimAVRows",
+      "kind": "variable",
+      "file": "src/protyle/render/av/virtualScroll.ts",
+      "line": 361,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "resetAVVirtualScrollRegistry",
+      "kind": "variable",
+      "file": "src/protyle/render/av/virtualScroll/state.ts",
+      "line": 112,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "AVVirtualDataSource",
+      "kind": "interface",
+      "file": "src/protyle/render/av/virtualScroll/virtualScroll.types.ts",
+      "line": 14,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "setCodeTheme",
+      "kind": "variable",
+      "file": "src/protyle/render/util.ts",
+      "line": 54,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "closeAssetDialog",
+      "kind": "variable",
+      "file": "src/protyle/runtime/dialog.port.ts",
+      "line": 321,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getProtyleLayoutPort",
+      "kind": "variable",
+      "file": "src/protyle/runtime/layout.port.ts",
+      "line": 33,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "ProtyleMenuHost",
+      "kind": "type",
+      "file": "src/protyle/runtime/menu.visibility.ts",
+      "line": 6,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "IProtyleMenuContext",
+      "kind": "interface",
+      "file": "src/protyle/runtime/menu.visibility.ts",
+      "line": 8,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IProtyleMenuVisibility",
+      "kind": "interface",
+      "file": "src/protyle/runtime/menu.visibility.ts",
+      "line": 18,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "PROTYLE_MENU_CONTEXT_KEY",
+      "kind": "variable",
+      "file": "src/protyle/runtime/menu.visibility.ts",
+      "line": 31,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getProtyleStatusPort",
+      "kind": "variable",
+      "file": "src/protyle/runtime/status.port.ts",
+      "line": 16,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "resetProtyleStatusPort",
+      "kind": "variable",
+      "file": "src/protyle/runtime/status.port.ts",
+      "line": 26,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "IProtyleStatusStat",
+      "kind": "interface",
+      "file": "src/protyle/runtime/status.types.ts",
+      "line": 10,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "hasEditorProtyle",
+      "kind": "variable",
+      "file": "src/protyle/undo/globalUndo.guard.ts",
+      "line": 9,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getActiveProtyle",
+      "kind": "variable",
+      "file": "src/protyle/undo/globalUndo.ts",
+      "line": 151,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "saveZipExport",
+      "kind": "variable",
+      "file": "src/protyle/util/compatibility.ts",
+      "line": 174,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "writeTextAndConfirm",
+      "kind": "variable",
+      "file": "src/protyle/util/compatibility.ts",
+      "line": 304,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "IBlockDOMClipboardContent",
+      "kind": "interface",
+      "file": "src/protyle/util/compatibility.ts",
+      "line": 348,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "mergeAndApplySuperBlock",
+      "kind": "function",
+      "file": "src/protyle/util/dnd/drag.helpers.ts",
+      "line": 197,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "handleGutterNormalDrop",
+      "kind": "variable",
+      "file": "src/protyle/util/dnd/onDrop.helper.routing.ts",
+      "line": 146,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "UndoFocusContext",
+      "kind": "type",
+      "file": "src/protyle/util/selection.undo.ts",
+      "line": 16,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "findFirstContentChild",
+      "kind": "variable",
+      "file": "src/protyle/util/table/table.fix.navigation.helpers.ts",
+      "line": 105,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "findLastContentChild",
+      "kind": "variable",
+      "file": "src/protyle/util/table/table.fix.navigation.helpers.ts",
+      "line": 128,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "analyzeRowSpans",
+      "kind": "variable",
+      "file": "src/protyle/util/table/table.fix.structure.helpers.ts",
+      "line": 23,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isColumnPure",
+      "kind": "variable",
+      "file": "src/protyle/util/table/table.fix.structure.helpers.ts",
+      "line": 62,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getStructurePreviousRow",
+      "kind": "variable",
+      "file": "src/protyle/util/table/table.fix.structure.helpers.ts",
+      "line": 93,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getStructureNextRow",
+      "kind": "variable",
+      "file": "src/protyle/util/table/table.fix.structure.helpers.ts",
+      "line": 120,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "replaceTagInRow",
+      "kind": "variable",
+      "file": "src/protyle/util/table/table.row.helpers.ts",
+      "line": 103,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "buildDialogContent",
+      "kind": "variable",
+      "file": "src/protyle/util/table/table.title.update.ts",
+      "line": 21,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleTitleConfirm",
+      "kind": "variable",
+      "file": "src/protyle/util/table/table.title.update.ts",
+      "line": 63,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "processListWrapper",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/commonHotkey/commonHotkeyDuplicate.ts",
+      "line": 88,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "updateSubsequentMarkers",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/commonHotkey/commonHotkeyDuplicateTransaction.ts",
+      "line": 20,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "computeSelectRect",
+      "kind": "function",
+      "file": "src/protyle/wysiwyg/computeSelectRect.ts",
+      "line": 53,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "processSingleBlock",
+      "kind": "function",
+      "file": "src/protyle/wysiwyg/index.copy.helpers.ts",
+      "line": 84,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "wrapListItem",
+      "kind": "function",
+      "file": "src/protyle/wysiwyg/index.copy.helpers.ts",
+      "line": 107,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "InlineContentParams",
+      "kind": "type",
+      "file": "src/protyle/wysiwyg/index.copy.types.ts",
+      "line": 2,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "DragSelectContext",
+      "kind": "interface",
+      "file": "src/protyle/wysiwyg/index.mousedown.dragSelect.ts",
+      "line": 20,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "expandUpSelectMiddleware",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.expandSelect.ts",
+      "line": 12,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "expandDownSelectMiddleware",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.expandSelect.ts",
+      "line": 49,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "shiftUpSelectMiddleware",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.expandSelect.ts",
+      "line": 87,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "shiftDownSelectMiddleware",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.expandSelect.ts",
+      "line": 136,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "alignLeftMiddleware",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.format.ts",
+      "line": 6,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "alignCenterMiddleware",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.format.ts",
+      "line": 39,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "alignRightMiddleware",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.format.ts",
+      "line": 72,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "rtlMiddleware",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.format.ts",
+      "line": 100,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "ltrMiddleware",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.format.ts",
+      "line": 124,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "htmlBlockGuard",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.guards.ts",
+      "line": 5,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleSingleSelectToUL",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.list/executors.transform.ts",
+      "line": 66,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleSingleSelectToOL",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.list/executors.transform.ts",
+      "line": 150,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handleSingleSelectToTL",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.list/executors.transform.ts",
+      "line": 234,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "setTaskStatusDOM",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.list/toggleTaskStatusDOM.ts",
+      "line": 21,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "LogLevel",
+      "kind": "enum",
+      "file": "src/protyle/wysiwyg/keydown.list/types.ts",
+      "line": 24,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "CommandLogParams",
+      "kind": "interface",
+      "file": "src/protyle/wysiwyg/keydown.list/types.ts",
+      "line": 34,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "CheckToggleStateSchema",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.list/types.ts",
+      "line": 130,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "CheckToggleState",
+      "kind": "type",
+      "file": "src/protyle/wysiwyg/keydown.list/types.ts",
+      "line": 150,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "OutdentStateSchema",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.list/types.ts",
+      "line": 157,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "OutdentState",
+      "kind": "type",
+      "file": "src/protyle/wysiwyg/keydown.list/types.ts",
+      "line": 186,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "IndentStateSchema",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.list/types.ts",
+      "line": 193,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "IndentState",
+      "kind": "type",
+      "file": "src/protyle/wysiwyg/keydown.list/types.ts",
+      "line": 225,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "TransformStateSchema",
+      "kind": "variable",
+      "file": "src/protyle/wysiwyg/keydown.list/types.ts",
+      "line": 233,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "TransformState",
+      "kind": "type",
+      "file": "src/protyle/wysiwyg/keydown.list/types.ts",
+      "line": 271,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "IBlockRefCheckTargets",
+      "kind": "interface",
+      "file": "src/protyle/wysiwyg/remove.ts",
+      "line": 81,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "状态栏按钮位置",
+      "kind": "type",
+      "file": "src/registry/StatusBarRegistry.ts",
+      "line": 12,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "IStatusBarButtonRegistration",
+      "kind": "interface",
+      "file": "src/registry/StatusBarRegistry.ts",
+      "line": 15,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "注销状态栏按钮",
+      "kind": "function",
+      "file": "src/registry/StatusBarRegistry.ts",
+      "line": 69,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "获取所有注册",
+      "kind": "function",
+      "file": "src/registry/StatusBarRegistry.ts",
+      "line": 133,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "statusBarRegistry",
+      "kind": "variable",
+      "file": "src/registry/StatusBarRegistry.ts",
+      "line": 160,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "注册光标清理函数",
+      "kind": "function",
+      "file": "src/registry/TriggerRegistry.cursor.ts",
+      "line": 129,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "isBrushTrigger",
+      "kind": "function",
+      "file": "src/registry/TriggerRegistry.guard.ts",
+      "line": 53,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "isToggleTrigger",
+      "kind": "function",
+      "file": "src/registry/TriggerRegistry.guard.ts",
+      "line": 61,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "获取所有Protyle",
+      "kind": "function",
+      "file": "src/registry/TriggerRegistry.protyle.ts",
+      "line": 83,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "generateAssetFilterPanelHTML",
+      "kind": "variable",
+      "file": "src/search/assetFilterPanel.ts",
+      "line": 353,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "parseFilterPanelValues",
+      "kind": "variable",
+      "file": "src/search/assetFilterPanel.ts",
+      "line": 354,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "initFilterPanelEvents",
+      "kind": "variable",
+      "file": "src/search/assetFilterPanel.ts",
+      "line": 355,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "打开搜索资源面板",
+      "kind": "variable",
+      "file": "src/search/assets.openSearchAsset.ts",
+      "line": 192,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "safeURL",
+      "kind": "variable",
+      "file": "src/search/webSearchRenderer.ts",
+      "line": 5,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "cleanSnippet",
+      "kind": "variable",
+      "file": "src/search/webSearchRenderer.ts",
+      "line": 15,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "applyRgbColor",
+      "kind": "variable",
+      "file": "src/sforge/colors/apply.ts",
+      "line": 82,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "hexToRgb",
+      "kind": "variable",
+      "file": "src/sforge/colors/colorEngine.ts",
+      "line": 13,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "rgbToHsv",
+      "kind": "variable",
+      "file": "src/sforge/colors/colorEngine.ts",
+      "line": 66,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "rgbToHsl",
+      "kind": "variable",
+      "file": "src/sforge/colors/colorEngine.ts",
+      "line": 87,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "relativeLuminance",
+      "kind": "variable",
+      "file": "src/sforge/colors/colorEngine.ts",
+      "line": 108,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "contrastRatio",
+      "kind": "variable",
+      "file": "src/sforge/colors/colorEngine.ts",
+      "line": 113,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "contrastPair",
+      "kind": "variable",
+      "file": "src/sforge/colors/colorEngine.ts",
+      "line": 125,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "sortByHue",
+      "kind": "variable",
+      "file": "src/sforge/colors/colorEngine.ts",
+      "line": 131,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "kMeans",
+      "kind": "variable",
+      "file": "src/sforge/colors/colorEngine.ts",
+      "line": 204,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "sampleImagePixels",
+      "kind": "variable",
+      "file": "src/sforge/colors/colorEngine.ts",
+      "line": 306,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "downloadDataUrl",
+      "kind": "variable",
+      "file": "src/sforge/colors/exporter.ts",
+      "line": 112,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isStoredPalette",
+      "kind": "variable",
+      "file": "src/sforge/colors/store.guards.ts",
+      "line": 20,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "cloneColors",
+      "kind": "variable",
+      "file": "src/sforge/colors/store.ts",
+      "line": 49,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "forgeProtectedTestApprovalSchema",
+      "kind": "variable",
+      "file": "src/sforge/forgeRuntime/types.ts",
+      "line": 3,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "forgeRuntimeJobSchema",
+      "kind": "variable",
+      "file": "src/sforge/forgeRuntime/types.ts",
+      "line": 13,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "forgeRuntimeVersionSchema",
+      "kind": "variable",
+      "file": "src/sforge/forgeRuntime/types.ts",
+      "line": 24,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "forgeSupervisorStatusSchema",
+      "kind": "variable",
+      "file": "src/sforge/forgeRuntime/types.ts",
+      "line": 31,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "forgeRuntimeTerminalJobStates",
+      "kind": "variable",
+      "file": "src/sforge/forgeRuntime/types.ts",
+      "line": 83,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "openSmartToolbox",
+      "kind": "variable",
+      "file": "src/sforge/panel/smartToolboxPanelDialog.ts",
+      "line": 102,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "切换工具箱",
+      "kind": "function",
+      "file": "src/sforge/panel/smartToolboxStatusButton.ts",
+      "line": 43,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "addCloudName",
+      "kind": "variable",
+      "file": "src/sync/syncGuide.ts",
+      "line": 14,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "激活样式刷子",
+      "kind": "function",
+      "file": "src/triggers/styleBrush.ts",
+      "line": 133,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "退出样式刷子",
+      "kind": "function",
+      "file": "src/triggers/styleBrush.ts",
+      "line": 265,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "ForgeI18nKeys",
+      "kind": "type",
+      "file": "src/types/forgeI18n.types.ts",
+      "line": 150,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "BigIntWrapper",
+      "kind": "interface",
+      "file": "src/types/JSONSerializable-types/bigint-serialization-types.types.ts",
+      "line": 23,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "JSONSerializableValueWithBigInt",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/bigint-serialization-types.types.ts",
+      "line": 32,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "JSONSerializableArrayWithBigInt",
+      "kind": "interface",
+      "file": "src/types/JSONSerializable-types/bigint-serialization-types.types.ts",
+      "line": 39,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "JSONSerializableObjectWithBigInt",
+      "kind": "interface",
+      "file": "src/types/JSONSerializable-types/bigint-serialization-types.types.ts",
+      "line": 45,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IsBigIntWrapper",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/bigint-serialization-types.types.ts",
+      "line": 50,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "IsPlainObjectWithBigInt",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/bigint-serialization-types.types.ts",
+      "line": 55,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "IsArrayWithBigInt",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/bigint-serialization-types.types.ts",
+      "line": 60,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "JSONReplacerWithBigInt",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/bigint-serialization-types.types.ts",
+      "line": 66,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "JSONReviverWithBigInt",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/bigint-serialization-types.types.ts",
+      "line": 72,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "SymbolProcessedObjectWithBigInt",
+      "kind": "interface",
+      "file": "src/types/JSONSerializable-types/bigint-serialization-types.types.ts",
+      "line": 78,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "SerializeFunctionWithBigInt",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/bigint-serialization-types.types.ts",
+      "line": 83,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "DeserializeFunctionWithBigInt",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/bigint-serialization-types.types.ts",
+      "line": 88,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "ContainsBigIntFunctionWithBigInt",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/bigint-serialization-types.types.ts",
+      "line": 93,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "CloneFunctionWithBigInt",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/bigint-serialization-types.types.ts",
+      "line": 98,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "BaseJSONSerializableArray",
+      "kind": "interface",
+      "file": "src/types/JSONSerializable-types/JSONSerializable-types.types.ts",
+      "line": 29,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IsBaseJSONSerializablePlainObject",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/JSONSerializable-types.types.ts",
+      "line": 34,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "IsBaseJSONSerializableArray",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/JSONSerializable-types.types.ts",
+      "line": 39,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "SymbolWrapper",
+      "kind": "interface",
+      "file": "src/types/JSONSerializable-types/symbol-serialization-types.types.ts",
+      "line": 16,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "JSONSerializableValueWithRawSymbol",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/symbol-serialization-types.types.ts",
+      "line": 25,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "JSONSerializableValueWithSymbolWrapper",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/symbol-serialization-types.types.ts",
+      "line": 31,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "JSONSerializableObjectWithRawSymbol",
+      "kind": "interface",
+      "file": "src/types/JSONSerializable-types/symbol-serialization-types.types.ts",
+      "line": 37,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "JSONSerializableObjectWithSymbolWrapper",
+      "kind": "interface",
+      "file": "src/types/JSONSerializable-types/symbol-serialization-types.types.ts",
+      "line": 45,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "JSONSerializableArrayWithRawSymbol",
+      "kind": "interface",
+      "file": "src/types/JSONSerializable-types/symbol-serialization-types.types.ts",
+      "line": 51,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "JSONSerializableArrayWithSymbolWrapper",
+      "kind": "interface",
+      "file": "src/types/JSONSerializable-types/symbol-serialization-types.types.ts",
+      "line": 57,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "IsSymbolWrapper",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/symbol-serialization-types.types.ts",
+      "line": 62,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "IsPlainObjectWithRawSymbol",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/symbol-serialization-types.types.ts",
+      "line": 67,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "IsArrayWithRawSymbol",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/symbol-serialization-types.types.ts",
+      "line": 72,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "JSONReplacerWithSymbol",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/symbol-serialization-types.types.ts",
+      "line": 78,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "JSONReviverWithSymbol",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/symbol-serialization-types.types.ts",
+      "line": 85,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "SerializeFunctionWithSymbol",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/symbol-serialization-types.types.ts",
+      "line": 91,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "DeserializeFunctionWithSymbol",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/symbol-serialization-types.types.ts",
+      "line": 97,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "CloneFunctionWithSymbol",
+      "kind": "type",
+      "file": "src/types/JSONSerializable-types/symbol-serialization-types.types.ts",
+      "line": 103,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "generateLinearGradient",
+      "kind": "variable",
+      "file": "src/util/assets/backgrounds.ts/bgs.modern.ts",
+      "line": 54,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "generateRandomGradientConfig",
+      "kind": "variable",
+      "file": "src/util/assets/backgrounds.ts/bgs.modern.ts",
+      "line": 74,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "extractCSSVariables",
+      "kind": "function",
+      "file": "src/util/assets/css/extractCSSVariables.ts",
+      "line": 19,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "replaceCSSVariables",
+      "kind": "function",
+      "file": "src/util/assets/css/extractCSSVariables.ts",
+      "line": 235,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "clearVariableCache",
+      "kind": "function",
+      "file": "src/util/assets/css/extractCSSVariables.ts",
+      "line": 306,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "TBlockReferenceDropData",
+      "kind": "type",
+      "file": "src/util/blockReferenceDrop.guard.ts",
+      "line": 2,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "isBlockReferenceDropData",
+      "kind": "variable",
+      "file": "src/util/blockReferenceDrop.guard.ts",
+      "line": 10,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "IBlockRefCheckOptions",
+      "kind": "interface",
+      "file": "src/util/checkBlockRef.ts",
+      "line": 6,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "confirmBlockRef",
+      "kind": "variable",
+      "file": "src/util/checkBlockRef.ts",
+      "line": 33,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "createBlockMask",
+      "kind": "variable",
+      "file": "src/util/DOM/helpers/blockDecorations.ts",
+      "line": 7,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getElementBlockId",
+      "kind": "variable",
+      "file": "src/util/DOM/helpers/blockLikeElements.ts",
+      "line": 7,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "checkClassListContainAll",
+      "kind": "variable",
+      "file": "src/util/DOM/helpers/fnClasses.ts",
+      "line": 32,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "checkClassListContainAny",
+      "kind": "variable",
+      "file": "src/util/DOM/helpers/fnClasses.ts",
+      "line": 48,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "horizontalScrollFirst",
+      "kind": "function",
+      "file": "src/util/DOM/helpers/scroll.ts",
+      "line": 32,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "verticalScrollFirst",
+      "kind": "function",
+      "file": "src/util/DOM/helpers/scroll.ts",
+      "line": 58,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "verticalScroll",
+      "kind": "function",
+      "file": "src/util/DOM/helpers/scroll.ts",
+      "line": 83,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getIdZoomInByPath",
+      "kind": "variable",
+      "file": "src/util/file/pathName.ts",
+      "line": 36,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getBackend",
+      "kind": "variable",
+      "file": "src/util/functions.ts",
+      "line": 14,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getFrontend",
+      "kind": "variable",
+      "file": "src/util/functions.ts",
+      "line": 23,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isWindow",
+      "kind": "variable",
+      "file": "src/util/functions.ts",
+      "line": 40,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isTouchDevice",
+      "kind": "variable",
+      "file": "src/util/functions.ts",
+      "line": 44,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getRandom",
+      "kind": "variable",
+      "file": "src/util/functions.ts",
+      "line": 52,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isDynamicRef",
+      "kind": "variable",
+      "file": "src/util/functions.ts",
+      "line": 71,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isFileAnnotation",
+      "kind": "variable",
+      "file": "src/util/functions.ts",
+      "line": 75,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isValidCustomAttrName",
+      "kind": "variable",
+      "file": "src/util/functions.ts",
+      "line": 79,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "looseJsonParse",
+      "kind": "variable",
+      "file": "src/util/functions.ts",
+      "line": 84,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "duplicateNameAddOne",
+      "kind": "variable",
+      "file": "src/util/functions.ts",
+      "line": 111,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "setToolbarLeftMac",
+      "kind": "variable",
+      "file": "src/util/functions.ts",
+      "line": 126,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "创建默认模拟对象",
+      "kind": "function",
+      "file": "src/util/lib/code/executor.helpers.ts",
+      "line": 41,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "从代码中提取包名",
+      "kind": "function",
+      "file": "src/util/lib/code/executor.helpers.ts",
+      "line": 98,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "创建浏览器临时模块",
+      "kind": "function",
+      "file": "src/util/lib/code/executor.helpers.ts",
+      "line": 119,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "创建NodeJS临时模块",
+      "kind": "function",
+      "file": "src/util/lib/code/executor.helpers.ts",
+      "line": 155,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "SecurityError",
+      "kind": "class",
+      "file": "src/util/lib/code/executor.ts",
+      "line": 183,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "createTemporaryModule",
+      "kind": "function",
+      "file": "src/util/lib/code/executor.ts",
+      "line": 191,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "createDynamicSecureTemporaryModule",
+      "kind": "function",
+      "file": "src/util/lib/code/executor.ts",
+      "line": 246,
+      "column": 23,
+      "exempt": false
+    },
+    {
+      "name": "UnauthorizedImportStrategySchema",
+      "kind": "variable",
+      "file": "src/util/lib/code/executor.types.ts",
+      "line": 6,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "ImportHandlingOptionsSchema",
+      "kind": "variable",
+      "file": "src/util/lib/code/executor.types.ts",
+      "line": 11,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "ModuleRedirectConfigSchema",
+      "kind": "variable",
+      "file": "src/util/lib/code/executor.types.ts",
+      "line": 21,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "ModuleRedirectRuleSchema",
+      "kind": "variable",
+      "file": "src/util/lib/code/executor.types.ts",
+      "line": 35,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "SecureModuleCreatorConfigSchema",
+      "kind": "variable",
+      "file": "src/util/lib/code/executor.types.ts",
+      "line": 47,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "ConfigManagerConfigSchema",
+      "kind": "variable",
+      "file": "src/util/lib/code/executor.types.ts",
+      "line": 71,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "ConfigSummarySchema",
+      "kind": "variable",
+      "file": "src/util/lib/code/executor.types.ts",
+      "line": 83,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "TemporaryModuleSchema",
+      "kind": "variable",
+      "file": "src/util/lib/code/executor.types.ts",
+      "line": 98,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "ImportSpecSchema",
+      "kind": "variable",
+      "file": "src/util/lib/code/executor.types.ts",
+      "line": 114,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "looseJsonParse",
+      "kind": "variable",
+      "file": "src/util/lib/code/looseJsonParse.ts",
+      "line": 146,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "packageCacheManager",
+      "kind": "variable",
+      "file": "src/util/lib/code/looseJsonParse.ts",
+      "line": 171,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isSeriesItem",
+      "kind": "variable",
+      "file": "src/util/lib/code/object.guard.ts",
+      "line": 15,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "创建集合",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 15,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "createCollection",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 30,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "添加向量",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 35,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "addVectors",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 54,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "查询向量",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 59,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "queryVectors",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 81,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "删除向量",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 86,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "deleteVectors",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 101,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "获取所有键",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 106,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getKeys",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 121,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "获取集合状态",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 126,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getCollectionState",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 140,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "重建索引",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 145,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "rebuildIndex",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 159,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "存储文本向量",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 166,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "storeTextVector",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 179,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "文本相似查询",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 184,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "searchByText",
+      "kind": "variable",
+      "file": "src/util/lib/embedding/vectorApi.ts",
+      "line": 192,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isKeybord",
+      "kind": "variable",
+      "file": "src/util/lib/events/event.guard.ts",
+      "line": 9,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isInputEvent",
+      "kind": "variable",
+      "file": "src/util/lib/events/event.guard.ts",
+      "line": 21,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isMouseEvent",
+      "kind": "variable",
+      "file": "src/util/lib/events/event.guard.ts",
+      "line": 71,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isMouseEventWithPath",
+      "kind": "variable",
+      "file": "src/util/lib/events/event.guard.ts",
+      "line": 83,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isValidEventData",
+      "kind": "function",
+      "file": "src/util/lib/events/eventEmitter.guard.ts",
+      "line": 33,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "EventMeta",
+      "kind": "interface",
+      "file": "src/util/lib/events/eventEmitter.types.ts",
+      "line": 43,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "MatchConditionValue",
+      "kind": "type",
+      "file": "src/util/lib/matchCondition.ts",
+      "line": 1,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "MatchConditions",
+      "kind": "type",
+      "file": "src/util/lib/matchCondition.ts",
+      "line": 2,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "TypedMatchResult",
+      "kind": "interface",
+      "file": "src/util/lib/matchCondition.ts",
+      "line": 4,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "TypedMatcher",
+      "kind": "type",
+      "file": "src/util/lib/matchCondition.ts",
+      "line": 10,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "ZodDeepRawSubset",
+      "kind": "type",
+      "file": "src/util/lib/zodMethodDefinedClass/deepRaw.ts",
+      "line": 15,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "StrictZodDeepRawSubset",
+      "kind": "type",
+      "file": "src/util/lib/zodMethodDefinedClass/deepRaw.ts",
+      "line": 23,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "isSubschemaOf",
+      "kind": "function",
+      "file": "src/util/lib/zodMethodDefinedClass/deepRaw.ts",
+      "line": 71,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "isStrictSubschemaOf",
+      "kind": "function",
+      "file": "src/util/lib/zodMethodDefinedClass/deepRaw.ts",
+      "line": 106,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "BaseLayer",
+      "kind": "class",
+      "file": "src/util/lib/zodMethodDefinedClass/layer.ts",
+      "line": 42,
+      "column": 22,
+      "exempt": false
+    },
+    {
+      "name": "HANDLERMETHOD",
+      "kind": "type",
+      "file": "src/util/lib/zodMethodDefinedClass/modeRouter.types.ts",
+      "line": 15,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "TYPE_FROM_SCHEMA",
+      "kind": "type",
+      "file": "src/util/lib/zodMethodDefinedClass/modeRouter.types.ts",
+      "line": 24,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "RouterMetaMethods",
+      "kind": "type",
+      "file": "src/util/lib/zodMethodDefinedClass/modeRouter.types.ts",
+      "line": 60,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "获取任务详情",
+      "kind": "variable",
+      "file": "src/util/network/cronjobApi.ts",
+      "line": 51,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "注销扩展",
+      "kind": "variable",
+      "file": "src/util/network/cronjobApi.ts",
+      "line": 73,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "handlePublishServiceClosed",
+      "kind": "variable",
+      "file": "src/util/network/processMessage.ts",
+      "line": 256,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "ConfirmDialogPort",
+      "kind": "type",
+      "file": "src/util/network/types.ts",
+      "line": 186,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "SendAuthResponsePort",
+      "kind": "type",
+      "file": "src/util/network/types.ts",
+      "line": 200,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "ExportLayoutPort",
+      "kind": "type",
+      "file": "src/util/network/types.ts",
+      "line": 250,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "ShowMessagePort",
+      "kind": "type",
+      "file": "src/util/network/types.ts",
+      "line": 260,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "HideMessagePort",
+      "kind": "type",
+      "file": "src/util/network/types.ts",
+      "line": 272,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "formatCount",
+      "kind": "variable",
+      "file": "src/util/number.ts",
+      "line": 2,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "BaseLayerOptions",
+      "kind": "interface",
+      "file": "src/util/pathRouter/core/layerLike.types.ts",
+      "line": 5,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "createRequestLikeSchema",
+      "kind": "variable",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 73,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "requestLikeSchema",
+      "kind": "variable",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 108,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "createResponseLikeSchema",
+      "kind": "variable",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 157,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "responseLikeSchema",
+      "kind": "variable",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 191,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "contextSchema",
+      "kind": "variable",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 262,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "routeOptionsSchema",
+      "kind": "variable",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 264,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "routerOptionsSchema",
+      "kind": "variable",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 277,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "MiddlewareType",
+      "kind": "type",
+      "file": "src/util/pathRouter/core/types.ts",
+      "line": 334,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "NestedRouterPort",
+      "kind": "interface",
+      "file": "src/util/pathRouter/routerCore.port.types.ts",
+      "line": 54,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "isKernelInContainer",
+      "kind": "variable",
+      "file": "src/util/platform/functions.ts",
+      "line": 9,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isKernelInMobile",
+      "kind": "variable",
+      "file": "src/util/platform/functions.ts",
+      "line": 14,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "convertToPinyin",
+      "kind": "variable",
+      "file": "src/util/platform/pinyin.ts",
+      "line": 10,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "reloadSync",
+      "kind": "variable",
+      "file": "src/util/reloadSync.ts",
+      "line": 15,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getEcharts",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/echarts.environment.ts",
+      "line": 9,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "initForgeI18n",
+      "kind": "variable",
+      "file": "src/util/siyuanEnvironments/forgeI18n.getI18n.environment.ts",
+      "line": 84,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getSiyuanEditorIsFullscreen",
+      "kind": "variable",
+      "file": "src/util/siyuanEnvironments/getSiyuanConfig.environment.ts",
+      "line": 266,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getWindowInnerSize",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 19,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getWindowOuterWidth",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 26,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getWindowOuterHeight",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 31,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getWindowOuterSize",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 36,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getScrollX",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 43,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getScrollY",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 48,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getScrollPosition",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 53,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getWindowScreenX",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 60,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getWindowScreenY",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 65,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getWindowScreenPosition",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 70,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getScreenWidth",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 77,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getScreenHeight",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 82,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getScreenSize",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 87,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getScreenAvailWidth",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 92,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getScreenAvailHeight",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 97,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getScreenAvailSize",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 102,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getDevicePixelRatio",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/getWindowSize.environment.ts",
+      "line": 109,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getPdfjsLib",
+      "kind": "variable",
+      "file": "src/util/siyuanEnvironments/pdfjsLib.environment.ts",
+      "line": 13,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "IPdfjsPixelsPerInch",
+      "kind": "interface",
+      "file": "src/util/siyuanEnvironments/pdfjsLib.types.ts",
+      "line": 8,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "getSiyuanZIndex",
+      "kind": "variable",
+      "file": "src/util/siyuanEnvironments/siyuanDialogs.environment.ts",
+      "line": 7,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "reloadWindow",
+      "kind": "function",
+      "file": "src/util/siyuanEnvironments/window.environment.ts",
+      "line": 101,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "getLocationHash",
+      "kind": "variable",
+      "file": "src/util/siyuanEnvironments/windowLocation.environment.ts",
+      "line": 19,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "isSecureContext",
+      "kind": "variable",
+      "file": "src/util/siyuanEnvironments/windowStandard.environment.ts",
+      "line": 50,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "AssertStrictEqual",
+      "kind": "type",
+      "file": "src/util/types/LooksLike.types.ts",
+      "line": 13,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "StaticLooksLike",
+      "kind": "type",
+      "file": "src/util/types/LooksLike.types.ts",
+      "line": 32,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "ClassIfLooksLike",
+      "kind": "type",
+      "file": "src/util/types/LooksLike.types.ts",
+      "line": 36,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "绑定组件vmodel到带有getter函数和setter函数的值对象",
+      "kind": "variable",
+      "file": "src/util/vue/context.model.ts",
+      "line": 15,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "创建vmodel绑定器",
+      "kind": "variable",
+      "file": "src/util/vue/context.model.ts",
+      "line": 88,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "批量绑定组件vmodel",
+      "kind": "variable",
+      "file": "src/util/vue/context.model.ts",
+      "line": 108,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "创建响应式vmodel绑定器",
+      "kind": "variable",
+      "file": "src/util/vue/context.model.ts",
+      "line": 129,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "VueDialogConfig",
+      "kind": "interface",
+      "file": "src/util/vue/createVueDialog.ts",
+      "line": 9,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "VueRefsHolder",
+      "kind": "interface",
+      "file": "src/util/vue/mount.guard.ts",
+      "line": 8,
+      "column": 18,
+      "exempt": false
+    },
+    {
+      "name": "createWrappedVueComponentLoader",
+      "kind": "variable",
+      "file": "src/util/vue/mount.ts",
+      "line": 274,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "createCustomWrappedVueComponentLoader",
+      "kind": "variable",
+      "file": "src/util/vue/mount.ts",
+      "line": 311,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "getComponentIo",
+      "kind": "variable",
+      "file": "src/util/vue/wrapper/io.ts",
+      "line": 3,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "mergeWrapperConfigs",
+      "kind": "function",
+      "file": "src/util/vue/wrapper/utils.ts",
+      "line": 50,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "createDevConfig",
+      "kind": "function",
+      "file": "src/util/vue/wrapper/utils.ts",
+      "line": 110,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "createProdConfig",
+      "kind": "function",
+      "file": "src/util/vue/wrapper/utils.ts",
+      "line": 124,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "analyzePerformance",
+      "kind": "function",
+      "file": "src/util/vue/wrapper/utils.ts",
+      "line": 140,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "deepEqual",
+      "kind": "function",
+      "file": "src/util/zodMethodDefinedClass/deepEqual.ts",
+      "line": 2,
+      "column": 17,
+      "exempt": false
+    },
+    {
+      "name": "WindowHashIdentity",
+      "kind": "type",
+      "file": "src/window/modelHash/modelHash.types.ts",
+      "line": 2,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "WindowCreator",
+      "kind": "type",
+      "file": "src/window/openNewWindow.types.ts",
+      "line": 16,
+      "column": 13,
+      "exempt": false
+    },
+    {
+      "name": "portableNativeZodPattern",
+      "kind": "variable",
+      "file": "test/caliburRouter/portableDeclarations.fixture.ts",
+      "line": 12,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "portableNativeZodRoundTrip",
+      "kind": "variable",
+      "file": "test/caliburRouter/portableDeclarations.fixture.ts",
+      "line": 13,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "portableNativeZodProjection",
+      "kind": "variable",
+      "file": "test/caliburRouter/portableDeclarations.fixture.ts",
+      "line": 14,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "portableArkTypeRouter",
+      "kind": "variable",
+      "file": "test/caliburRouter/portableDeclarations.fixture.ts",
+      "line": 16,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "portableZodRouter",
+      "kind": "variable",
+      "file": "test/caliburRouter/portableDeclarations.fixture.ts",
+      "line": 25,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "portableEffectRouter",
+      "kind": "variable",
+      "file": "test/caliburRouter/portableDeclarations.fixture.ts",
+      "line": 37,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "portableZodUnion",
+      "kind": "variable",
+      "file": "test/caliburRouter/portableDeclarations.fixture.ts",
+      "line": 49,
+      "column": 14,
+      "exempt": false
+    },
+    {
+      "name": "portableEffectUnion",
+      "kind": "variable",
+      "file": "test/caliburRouter/portableDeclarations.fixture.ts",
+      "line": 54,
+      "column": 14,
+      "exempt": false
+    }
+  ]
+}

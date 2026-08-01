@@ -67,6 +67,8 @@
     "scan:types:low-usage": "node ./scripts/checker/scanLowUsageTypes.js",
     "scan:unused:frontend": "node ./scripts/checker/scanUnusedFrontend.js",
     "scan:unused:frontend:strict": "node ./scripts/checker/scanUnusedFrontend.js --strict",
+    "scan:unused:exports": "node ./scripts/checker/scanUnusedExports.js",
+    "scan:unused:exports:strict": "node ./scripts/checker/scanUnusedExports.js --strict",
     "genI18nTypes": "node ./scripts/i18n.generateTypes.js",
     "genI18nTypes:en": "node ./scripts/i18n.generateTypes.js -l en_US -i ./appearance/langs/en_US.json -o ./src/types/i18n.types.ts",
     "genI18nTypes:zh_CN": "node ./scripts/i18n.generateTypes.js -l zh_CN -i ./appearance/langs/zh_CN.json -o ./src/types/i18n.types.ts",
