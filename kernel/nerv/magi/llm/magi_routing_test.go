@@ -35,7 +35,7 @@ func testTool(name, description string) openai.Tool {
 
 // TestApplyMagiToolRouting_ToolsFixedAndTailList 验证：
 //  1. tools 字段被替换为唯一 magi_tool（字节级固定）；
-//  2. 真实工具列表作为 <tool_list> system 消息追加到 messages 尾部。
+//  2. 真实工具列表作为 <tool_list> user 消息追加到 messages 尾部。
 func TestApplyMagiToolRouting_ToolsFixedAndTailList(t *testing.T) {
 	messages := []openai.ChatCompletionMessage{
 		{Role: openai.ChatMessageRoleSystem, Content: "system"},
@@ -56,13 +56,13 @@ func TestApplyMagiToolRouting_ToolsFixedAndTailList(t *testing.T) {
 		t.Fatalf("唯一工具名 = %v, want %s", effectiveTools[0].Function, config.MagiToolName)
 	}
 
-	// 尾部追加了 <tool_list> system 消息
+	// 尾部追加了 <tool_list> user 消息
 	if len(msgs) != len(messages)+1 {
 		t.Fatalf("messages 应追加 1 条 tool_list，实际 %d → %d", len(messages), len(msgs))
 	}
 	tail := msgs[len(msgs)-1]
-	if tail.Role != openai.ChatMessageRoleSystem {
-		t.Fatalf("tool_list 消息角色 = %s, want system", tail.Role)
+	if tail.Role != openai.ChatMessageRoleUser {
+		t.Fatalf("tool_list 消息角色 = %s, want user", tail.Role)
 	}
 	if !strings.Contains(tail.Content, "<tool_list>") {
 		t.Fatalf("尾部消息缺少 <tool_list> 标记: %q", tail.Content)

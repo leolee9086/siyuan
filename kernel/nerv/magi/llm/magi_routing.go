@@ -4,7 +4,7 @@ package llm
 // 单工具路由（MCP 风格）：
 //   - 请求方向：MAGI 所有请求路径的真实工具列表统一变换为「唯一通用工具 magi_tool」，
 //     实际工具名通过参数 tool_name 指定；真实工具列表（名称/描述/参数 schema）作为
-//     <tool_list> system 消息追加到 messages 序列**尾部**（动态内容后缀化）。
+//     <tool_list> user 消息追加到 messages 序列**尾部**（动态内容后缀化）。
 //   - 效果：tools 字段字节级固定 → 前缀缓存最前部永不变化；工具集变化只影响尾部消息。
 //   - 响应方向：模型输出的 magi_tool 调用解析回真实工具名与参数（ResolveMagiToolCall），
 //     上层调用方（投票/选举/心跳/avatar）完全无感，仍按真实工具名分发执行。
@@ -41,7 +41,7 @@ func magiTool() openai.Tool {
 }
 
 // buildToolListContent 把真实工具列表序列化为 <tool_list> 文本。
-// OpenAI 兼容渠道作为 system 消息、Anthropic 兼容渠道作为 user 消息追加到 messages 尾部；
+// OpenAI/Anthropic 兼容渠道都作为 user 消息追加到 messages 尾部；
 // 该文本是动态内容，只存在于请求快照，不写入历史。
 func buildToolListContent(tools []openai.Tool) string {
 	briefs := make([]map[string]any, 0, len(tools))
@@ -61,16 +61,16 @@ func buildToolListContent(tools []openai.Tool) string {
 	return "<tool_list>\n" + chatseqtrie.RenderToolList(briefs) + "\n</tool_list>"
 }
 
-// buildToolListSystemMessage 把真实工具列表序列化为 <tool_list> system 消息（OpenAI 兼容渠道）。
-func buildToolListSystemMessage(tools []openai.Tool) openai.ChatCompletionMessage {
+// buildToolListTailMessage 把真实工具列表序列化为 <tool_list> user 消息。
+func buildToolListTailMessage(tools []openai.Tool) openai.ChatCompletionMessage {
 	return openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleSystem,
+		Role:    openai.ChatMessageRoleUser,
 		Content: buildToolListContent(tools),
 	}
 }
 
 // applyMagiToolRouting 应用单工具路由变换（OpenAI 兼容渠道）：
-//  1. 工具列表序列化为 system 消息追加到 messages 尾部（动态内容后缀化）；
+//  1. 工具列表序列化为 user 消息追加到 messages 尾部（动态内容后缀化）；
 //  2. tools 字段替换为唯一 magi_tool（字节级固定）。
 //
 // 无工具（len(tools)==0）时原样返回，不注入工具列表消息。
@@ -80,7 +80,7 @@ func applyMagiToolRouting(messages []openai.ChatCompletionMessage, tools []opena
 	}
 	msgs := make([]openai.ChatCompletionMessage, 0, len(messages)+1)
 	msgs = append(msgs, messages...)
-	msgs = append(msgs, buildToolListSystemMessage(tools))
+	msgs = append(msgs, buildToolListTailMessage(tools))
 	return msgs, []openai.Tool{magiTool()}
 }
 

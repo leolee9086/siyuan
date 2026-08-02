@@ -167,7 +167,8 @@ func fmtSeq(seq int64) string {
 // ---- 暴露点 3：tools 指纹注入 ----
 
 // chatseqtrie 不感知 tools；DeepSeek 输入序列含 tools 定义（位于最前）。
-// 监控需在序列最前注入 tools_fingerprint 消息；tools 变化 → 首条消息不匹配 → CommonPrefixLen=0。
+// 监控需在序列最前注入 tools_fingerprint，并用 PinnedPrefixCount=1 固定该辅助节点；
+// tools 变化 → 首条消息不匹配 → CommonPrefixLen=0。
 func TestExposure_ToolsFingerprintInjection(t *testing.T) {
 	reqs := loadSyntheticRequests(t)
 	base := make([]Message, 0, len(reqs[0].Messages))
@@ -176,7 +177,10 @@ func TestExposure_ToolsFingerprintInjection(t *testing.T) {
 	}
 
 	var full *FieldPolicy
-	trie := New(WithFieldPolicy(full))
+	trie := New(
+		WithFieldPolicy(full),
+		WithSequencePolicy(SystemMessagesFirstSequencePolicy(1)),
+	)
 
 	toolsA := MustNewMessage(map[string]any{"type": "tools_fingerprint", "content": "hash-11-tools"})
 	toolsB := MustNewMessage(map[string]any{"type": "tools_fingerprint", "content": "hash-1-tool"})

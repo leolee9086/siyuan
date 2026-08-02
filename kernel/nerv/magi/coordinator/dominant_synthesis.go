@@ -58,7 +58,7 @@ func (c *Coordinator) SynthesizeResponsesWithDominant(
 	requestMessages := workingSage.BuildRequestMessagesForSession(
 		sessionID,
 		types.ContextMessage{
-			Role:    types.RoleSystem,
+			Role:    types.RoleUser,
 			Content: prompts.BuildDominantConsensusSynthesisPrompt(election.DominantStance),
 		},
 		types.ContextMessage{

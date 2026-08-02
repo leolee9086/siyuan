@@ -393,7 +393,7 @@ func extractStatusContent(request []types.ContextMessage) string {
 	return ""
 }
 
-// TestBuildRequestMessages_StatusEnvelopePosition 验证 <status> 信封只作为**独立 system 消息**出现在
+// TestBuildRequestMessages_StatusEnvelopePosition 验证 <status> 信封只作为**独立 user 消息**出现在
 // 请求序列真正末尾，绝不附着/修改任何已有消息（含末尾 user 消息）：
 // status 是动态内容，若附着到历史中的 user 消息上，请求快照与历史内容不一致，
 // 下一轮请求在该位置前缀断裂，其后全部缓存 MISS。
@@ -416,13 +416,13 @@ func TestBuildRequestMessages_StatusEnvelopePosition(t *testing.T) {
 		}
 	}
 
-	// 最后一条必须是独立 system 消息且包含 <status> 信封。
+	// 最后一条必须是独立 user 消息且包含 <status> 信封。
 	last := request[len(request)-1]
-	if last.Role != types.RoleSystem {
-		t.Fatalf("末尾消息角色 = %s, want system（status 应为独立 system 消息）", last.Role)
+	if last.Role != types.RoleUser {
+		t.Fatalf("末尾消息角色 = %s, want user（status 应为独立 user 消息）", last.Role)
 	}
 	if !strings.Contains(last.Content, "<status>") {
-		t.Fatalf("末尾独立 system 消息未包含 <status> 信封: %q", last.Content)
+		t.Fatalf("末尾独立 user 消息未包含 <status> 信封: %q", last.Content)
 	}
 }
 

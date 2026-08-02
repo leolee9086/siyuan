@@ -437,7 +437,7 @@ func buildGovernedActionVoteRequestMessages(
 
 	return sage.BuildRequestMessagesForSession(
 		sessionId,
-		types.ContextMessage{Role: types.RoleSystem, Content: systemPrompt},
+		types.ContextMessage{Role: types.RoleUser, Content: systemPrompt},
 		types.ContextMessage{
 			Role:    types.RoleUser,
 			Content: reviewInput,

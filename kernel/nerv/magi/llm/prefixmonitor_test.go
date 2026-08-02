@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"s-forge.local/chatseqtrie"
 )
 
 // TestBuildMonitorSequence_ToolsFingerprint 验证：tools 指纹作为序列首条消息，
@@ -35,7 +37,45 @@ func TestBuildMonitorSequence_ToolsFingerprint(t *testing.T) {
 	}
 }
 
-// TestPredictAndRecord_SyntheticStream 用脱敏合成流验证：相邻请求预测命中 = 前一请求消息数。
+func TestSystemMessagesFirstDetectsHoistedTailSystemCacheBreak(t *testing.T) {
+	previous := []byte(`{"messages":[{"role":"system","content":"base"},{"role":"system","content":"wakeup"},{"role":"user","content":"history"},{"role":"assistant","content":"reply"}],"tools":[]}`)
+	current := []byte(`{"messages":[{"role":"system","content":"base"},{"role":"system","content":"wakeup"},{"role":"user","content":"history"},{"role":"assistant","content":"reply"},{"role":"system","content":"dynamic-tail"}],"tools":[]}`)
+
+	preserveMonitor := newPrefixCacheMonitorWithSequencePolicy(chatseqtrie.PreserveOrderSequencePolicy())
+	preservePrevious, _ := buildMonitorSequence(previous)
+	preserveCurrent, _ := buildMonitorSequence(current)
+	preserveMonitor.predictAndRecord(preservePrevious, RequestSource{})
+	preservePrediction := preserveMonitor.predictAndRecord(preserveCurrent, RequestSource{})
+	if preservePrediction.commonPrefixLen != len(preservePrevious) {
+		t.Fatalf("raw-order 应误判旧请求全部可复用: got %d, want %d",
+			preservePrediction.commonPrefixLen, len(preservePrevious))
+	}
+
+	systemFirstMonitor := NewPrefixCacheMonitor()
+	systemFirstPrevious, _ := buildMonitorSequence(previous)
+	systemFirstCurrent, _ := buildMonitorSequence(current)
+	systemFirstMonitor.predictAndRecord(systemFirstPrevious, RequestSource{})
+	systemFirstPrediction := systemFirstMonitor.predictAndRecord(systemFirstCurrent, RequestSource{})
+	const wantCommonPrefix = 3 // tools 指纹 + 两条此前已存在的 system
+	if systemFirstPrediction.commonPrefixLen != wantCommonPrefix {
+		t.Fatalf("system-first 应在新 system 被前置处断裂: got %d, want %d",
+			systemFirstPrediction.commonPrefixLen, wantCommonPrefix)
+	}
+	if systemFirstPrediction.commonPrefixLen >= preservePrediction.commonPrefixLen {
+		t.Fatalf("system-first 未暴露 raw-order 盲区: projected=%d raw=%d",
+			systemFirstPrediction.commonPrefixLen, preservePrediction.commonPrefixLen)
+	}
+}
+
+func TestSummarizeRequestBodyReportsNonLeadingSystem(t *testing.T) {
+	summary := summarizeRequestBody([]byte(`{"model":"deepseek","messages":[{"role":"system","content":"base"},{"role":"user","content":"history"},{"role":"system","content":"dynamic"}]}`))
+	if !strings.Contains(summary, "system_msgs=2 non_leading_system=1") {
+		t.Fatalf("摘要未报告中途 system: %s", summary)
+	}
+}
+
+// TestPredictAndRecord_SyntheticStream 用脱敏合成流验证 system-first 视图既能识别正常尾部延伸，
+// 也能识别「原始 messages 仍以前一请求开头，但新增 system 被 provider 前置」的有效前缀断裂。
 func TestPredictAndRecord_SyntheticStream(t *testing.T) {
 	bodies := loadSyntheticRequestBodies(t)
 	if len(bodies) < 3 {
@@ -43,6 +83,8 @@ func TestPredictAndRecord_SyntheticStream(t *testing.T) {
 	}
 	m := NewPrefixCacheMonitor()
 	var prevLen int
+	fullPrefixExtensions := 0
+	providerEffectiveBreaks := 0
 	for i, body := range bodies {
 		seq, err := buildMonitorSequence(body)
 		if err != nil {
@@ -53,8 +95,12 @@ func TestPredictAndRecord_SyntheticStream(t *testing.T) {
 			t.Fatalf("predictAndRecord #%d 返回 nil", i)
 		}
 		if i > 0 {
-			if pred.commonPrefixLen != prevLen {
-				t.Errorf("请求 #%d: 公共前缀=%d, 前一请求消息数=%d → 前缀断裂(中段被改?)",
+			switch {
+			case pred.commonPrefixLen == prevLen:
+				fullPrefixExtensions++
+			case pred.commonPrefixLen < prevLen:
+				providerEffectiveBreaks++
+				t.Logf("请求 #%d: system-first 公共前缀=%d, 前一请求消息数=%d → 检出 provider 有效前缀断裂",
 					i, pred.commonPrefixLen, prevLen)
 			}
 		}
@@ -62,6 +108,12 @@ func TestPredictAndRecord_SyntheticStream(t *testing.T) {
 			t.Errorf("请求 #%d: seqLen=%d, want %d", i, pred.seqLen, len(seq))
 		}
 		prevLen = len(seq)
+	}
+	if fullPrefixExtensions == 0 {
+		t.Fatal("合成请求流未覆盖正常尾部延伸")
+	}
+	if providerEffectiveBreaks == 0 {
+		t.Fatal("合成请求流未检出任何 system-first 有效前缀断裂")
 	}
 	// 校验：新增消息数应 > 0（每请求至少新增尾部）
 	lastSeq, err := buildMonitorSequence(bodies[len(bodies)-1])

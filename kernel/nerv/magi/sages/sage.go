@@ -378,17 +378,17 @@ func (s *Sage) buildRequestMessages(history []types.ContextMessage) []types.Cont
 	}
 	request = append(request, historyTail...)
 
-	// 动态 <status> 作为独立新消息追加到序列真正末尾，保持稳定前缀逐字节不变。
+	// 动态 <status> 作为独立 user 消息追加到序列真正末尾，保持稳定前缀逐字节不变。
 	return appendStatusEnvelopeToTail(request, statusContent)
 }
 
-// appendStatusEnvelopeToTail 将 <status> 信封作为独立 system 消息追加到请求序列的**真正末尾**。
+// appendStatusEnvelopeToTail 将 <status> 信封作为独立 user 消息追加到请求序列的**真正末尾**。
 // 绝不修改/附着任何已有消息（含末尾消息）：status 是动态内容（每次请求重新计算），
 // 若附着到某条已有消息上，该消息在请求快照与历史中的内容不一致，下一轮请求在该位置
 // 前缀断裂，其后全部缓存 MISS。作为独立尾部新消息时，前缀（system + wakeup + 历史）逐字节稳定。
 // status 只存在于本次请求快照，不写回 contextManager 历史（GetMessagesForSession 深拷贝保证）。
 func appendStatusEnvelopeToTail(request []types.ContextMessage, statusContent string) []types.ContextMessage {
-	return append(request, types.ContextMessage{Role: types.RoleSystem, Content: statusContent})
+	return append(request, types.ContextMessage{Role: types.RoleUser, Content: statusContent})
 }
 
 func (s *Sage) addMessageWithSessionLocked(sessionId, roundId string, msg types.ContextMessage) types.ContextMessage {

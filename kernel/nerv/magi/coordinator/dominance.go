@@ -339,7 +339,7 @@ func scoreDominantCandidate(
 	messages := voter.BuildRequestMessagesForSession(
 		sessionID,
 		types.ContextMessage{
-			Role:    types.RoleSystem,
+			Role:    types.RoleUser,
 			Content: prompts.BuildDominantElectionSystemPrompt(),
 		},
 		types.ContextMessage{
@@ -627,7 +627,7 @@ func collectActionPlans(
 		messages := sage.BuildRequestMessagesForSession(
 			sessionID,
 			types.ContextMessage{
-				Role:    types.RoleSystem,
+				Role:    types.RoleUser,
 				Content: prompts.BuildActionPlanProposalSystemPrompt(),
 			},
 			types.ContextMessage{

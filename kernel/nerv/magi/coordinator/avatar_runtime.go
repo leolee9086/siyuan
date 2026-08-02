@@ -193,10 +193,10 @@ func (r *AvatarRuntime) DispatchForSourceWithReplyStream(
 	boundDocumentID := resolveBoundDocumentID(sourceCtx)
 	if boundDocumentID != "" {
 		if docContent := model.GetBlockDOM(boundDocumentID); docContent != "" {
-			_ = binding.Agent.AddToContextWithSession(sessionID, types.ContextMessage{
-				Role:    types.RoleSystem,
-				Content: fmt.Sprintf("<bound_document>\n<id>%s</id>\n%s\n</bound_document>", boundDocumentID, docContent),
-			})
+			// 绑定文档是本轮动态输入，随当前 user 后缀发送，不写成历史中的 system。
+			// 否则 provider 会把每轮文档快照抽到顶部，既破坏前缀缓存，也可能让新会话
+			// 因上下文已非空而跳过 Avatar 自身的稳定 system prompt。
+			sourceAwareInput += fmt.Sprintf("\n\n<bound_document>\n<id>%s</id>\n%s\n</bound_document>", boundDocumentID, docContent)
 		}
 	}
 

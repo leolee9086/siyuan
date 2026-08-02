@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sashabaranov/go-openai"
+	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
@@ -272,6 +273,78 @@ func createMockSageWithClient(name, displayName string, client *mockLLMClient) *
 	sage := sages.NewSage(name, cfg, client, strategy)
 	sage.SetProfile(buildDominantReplyTestProfile())
 	return sage
+}
+
+func TestCollectSingleSageResponseAddsTodoUnchangedPromptOnlyOnce(t *testing.T) {
+	originalSearch := runNoteKeywordFullTextSearch
+	searchCalls := 0
+	runNoteKeywordFullTextSearch = func(query string, limit int) ([]*model.Block, int, int, int, bool) {
+		searchCalls++
+		updated := "20260802170000"
+		if searchCalls >= 4 {
+			updated = "20260802170100"
+		}
+		return []*model.Block{{ID: "todo-1", Updated: updated}}, 1, 1, 0, false
+	}
+	t.Cleanup(func() {
+		runNoteKeywordFullTextSearch = originalSearch
+	})
+
+	repeatedWorkTurn := mockTurn{toolCalls: []types.ToolCallDelta{
+		toolCallDelta(0, config.NoteKeywordSearchToolName, `{"purpose":"检查待办","query":"#todo#"}`),
+		toolCallDelta(1, config.WriteDiaryToolName, `{"motivation":"记录检查结果","markdown":"记录"}`),
+	}}
+	client := &mockLLMClient{scriptedTurns: []mockTurn{
+		repeatedWorkTurn,
+		repeatedWorkTurn,
+		completedSpeakTurn("待办已经更新"),
+	}}
+	cfg := &config.AgentConfig{SEELConfig: config.SEELConfig{Name: "Melchior"}}
+	sage := sages.NewSage(
+		"melchior",
+		cfg,
+		client,
+		&config.ContextStrategy{Type: "message_count", Count: 100},
+	)
+
+	response, err := NewResponseCollector(5*time.Second).collectSingleSageResponse(
+		context.Background(),
+		"todo-prompt-session",
+		"todo-prompt-round",
+		sage,
+		"检查并推进待办",
+		CollectResponsesOptions{
+			AllowWannaSleep: true,
+			RuntimeTools: []openai.Tool{
+				buildRuntimeTool(config.BuildNoteKeywordSearchToolDef()),
+				buildRuntimeTool(config.BuildWriteDiaryToolDef()),
+			},
+		},
+	)
+	if err != nil {
+		t.Fatalf("collectSingleSageResponse() error = %v", err)
+	}
+	if response == nil || response.Content != "待办已经更新" {
+		t.Fatalf("响应未正常收敛: %+v", response)
+	}
+	if searchCalls != 4 {
+		t.Fatalf("TODO 快照搜索次数 = %d, want 4", searchCalls)
+	}
+
+	const todoUnchangedPrompt = "[系统提示] 本轮 #todo# 无任何变化，必须在笔记中标记完成或新增待办,使得#todo#标签搜索结果发生变化后才能进入工作日志。"
+	promptCount := 0
+	for _, message := range sage.GetContextForSession("todo-prompt-session") {
+		if message.Content != todoUnchangedPrompt {
+			continue
+		}
+		promptCount++
+		if message.Role != types.RoleUser {
+			t.Fatalf("TODO 无变化提示角色 = %s, want user", message.Role)
+		}
+	}
+	if promptCount != 1 {
+		t.Fatalf("TODO 无变化提示注入次数 = %d, want 1", promptCount)
+	}
 }
 
 func TestCollectResponses_AllSuccess(t *testing.T) {

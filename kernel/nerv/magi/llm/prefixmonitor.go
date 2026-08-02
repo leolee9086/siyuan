@@ -43,10 +43,27 @@ type PrefixCacheMonitor struct {
 
 // NewPrefixCacheMonitor 创建前缀缓存监控器。
 func NewPrefixCacheMonitor() *PrefixCacheMonitor {
+	return newPrefixCacheMonitorWithSequencePolicy(chatseqtrie.SystemMessagesFirstSequencePolicy(1))
+}
+
+func newPrefixCacheMonitorWithSequencePolicy(sequencePolicy *chatseqtrie.SequencePolicy) *PrefixCacheMonitor {
 	return &PrefixCacheMonitor{
 		// 全字段策略（nil = 全部字段参与匹配）：与 DeepSeek token 化对齐
 		// （暴露测试结论：默认 FieldPolicy 忽略 tool_calls id / reasoning_content，会高估命中）
-		trie: chatseqtrie.New(chatseqtrie.WithFieldPolicy(nil)),
+		//
+		// 若直接按 request.messages 的表面顺序监控前缀，OpenAI-compatible 网关或
+		// chat template 可能抽取会话中的全部 system，并合并/前置到服务端有效 prompt 顶部。
+		// 此时，尾部新增动态 system 的原始数组仍完整包含上一请求，看起来可复用巨量前缀；
+		// 服务端序列却会在顶部 system 块内提前分叉，实际缓存长期失效。raw-order 前缀树
+		// 会漏报这一类失效，正是本次监控高估命中的盲区。
+		//
+		// tools_fingerprint 是监控辅助节点，固定在绝对首位；后续真实消息按 system-first
+		// 投影，模拟服务端有效顺序。PreserveOrderSequencePolicy 仅适用于明确保证严格保留
+		// 消息顺序的目标 provider。
+		trie: chatseqtrie.New(
+			chatseqtrie.WithFieldPolicy(nil),
+			chatseqtrie.WithSequencePolicy(sequencePolicy),
+		),
 	}
 }
 
@@ -313,7 +330,7 @@ func buildMonitorSequence(rawBody []byte) ([]chatseqtrie.Message, error) {
 		return nil, err
 	}
 
-	// tools 指纹
+	// tools 指纹作为监控辅助节点固定在绝对首位；前缀树配置负责投影后续消息。
 	toolsJSON, _ := json.Marshal(payload.Tools)
 	sum := sha256.Sum256(toolsJSON)
 	seq := []chatseqtrie.Message{
@@ -384,10 +401,15 @@ func summarizeRequestBody(rawBody []byte) string {
 		tcJSON, _ := json.Marshal(payload.ToolChoice)
 		b.WriteString(" tool_choice=" + string(tcJSON))
 	}
+	systemMsgs, nonLeadingSystemMsgs := countSystemMessagePlacement(payload.Messages)
+	if systemMsgs > 0 {
+		fmt.Fprintf(&b, " system_msgs=%d non_leading_system=%d", systemMsgs, nonLeadingSystemMsgs)
+	}
 
-	// 每条消息：role + 长度 + 内容前 40 字符。
-	// 前缀断裂点必然位于请求体前部，只输出前 30 条即可定位；超大请求（数百条）不全量输出。
-	const maxMsgSummary = 30
+	// 每条消息：role + 长度 + SHA-256 前 16 位。
+	// 输出哈希而非内容预览：内容可能含换行（污染日志单行结构）且可能极长；
+	// 哈希足以精确对比相邻请求的逐条字节差异，定位「每一次请求都在变化」的消息。
+	const maxMsgSummary = 50
 	b.WriteString(" msgs=")
 	total := len(payload.Messages)
 	shown := total
@@ -406,16 +428,31 @@ func summarizeRequestBody(rawBody []byte) string {
 				content = fmt.Sprintf("[multi:%d]", len(arr))
 			}
 		}
-		preview := content
-		if len(preview) > 40 {
-			preview = preview[:40] + "..."
-		}
-		fmt.Fprintf(&b, "[%d]%s(%d):%s", i, role, len(content), preview)
+		// 内容哈希（覆盖 content 及其它字段，如 tool_calls）
+		msgJSON, _ := json.Marshal(m)
+		sum := sha256.Sum256(msgJSON)
+		fmt.Fprintf(&b, "[%d]%s(%d)#%s", i, role, len(content), hex.EncodeToString(sum[:8]))
 	}
 	if total > shown {
 		fmt.Fprintf(&b, " | ...共%d条", total)
 	}
 	return b.String()
+}
+
+func countSystemMessagePlacement(messages []map[string]any) (systemMsgs, nonLeadingSystemMsgs int) {
+	seenNonSystem := false
+	for _, msg := range messages {
+		role, _ := msg["role"].(string)
+		if role == openai.ChatMessageRoleSystem {
+			systemMsgs++
+			if seenNonSystem {
+				nonLeadingSystemMsgs++
+			}
+			continue
+		}
+		seenNonSystem = true
+	}
+	return systemMsgs, nonLeadingSystemMsgs
 }
 
 // summarizeMatchPath 输出 chatseqtrie 匹配路径经过的 session（预测命中来自哪条历史路径）。

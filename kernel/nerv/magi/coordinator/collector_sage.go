@@ -45,6 +45,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 	hbActionToolUsed := false
 	requireActionTool := false
 	workLogToolAdded := false
+	todoUnchangedPromptAdded := false
 	for _, t := range options.RuntimeTools {
 		if isHeartbeatActionTool(strings.TrimSpace(t.Function.Name)) {
 			requireActionTool = true
@@ -78,7 +79,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			logging.LogWarnf("贤者 %s 连续 %d 轮调用相同工具 (%s)，注入提示 [会话:%s 轮次:%s]",
 				sage.GetDisplayName(), maxConsecutiveToolCallNudge, fp, sessionId, roundId)
 			_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
-				Role: types.RoleSystem,
+				Role: types.RoleUser,
 				Content: fmt.Sprintf(
 					"[系统提示] 你已经连续 %d 轮调用相同工具 (%s) 但未取得实质进展。请停止重复调用，根据已有信息直接输出回复。",
 					maxConsecutiveToolCallNudge, fp,
@@ -114,16 +115,20 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 					curFP := computeTodoFP(curBlocks)
 
 					if curFP == preFP {
-						_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
-							Role:    types.RoleSystem,
-							Content: "[系统提示] 本轮 #todo# 无任何变化，必须在笔记中标记完成或新增待办,使得#todo#标签搜索结果发生变化后才能进入工作日志。",
-						})
+						// 提示一旦进入历史，后续重试仍然可见；重复追加只会线性膨胀上下文。
+						if !todoUnchangedPromptAdded {
+							_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
+								Role:    types.RoleUser,
+								Content: "[系统提示] 本轮 #todo# 无任何变化，必须在笔记中标记完成或新增待办,使得#todo#标签搜索结果发生变化后才能进入工作日志。",
+							})
+							todoUnchangedPromptAdded = true
+						}
 						continue
 					}
 
 					if diff := countBlockDiff(preTodoBlocks, curBlocks); diff > maxTodoChurnPerRound {
 						_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
-							Role:    types.RoleSystem,
+							Role:    types.RoleUser,
 							Content: fmt.Sprintf("[系统提示] 本轮 #todo# 变化较多（%d 个块），请注意收敛操作范围。", diff),
 						})
 					}
@@ -141,7 +146,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 					novel, msg := rc.workLogHistory.isNovel(sessionId, sage.GetName(), resp.DowntimeSummary)
 					if !novel {
 						_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
-							Role:    types.RoleSystem,
+							Role:    types.RoleUser,
 							Content: "[系统提示] " + msg,
 						})
 						continue
@@ -171,7 +176,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				config.WannaSpeakStopToolName,
 			)
 			_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
-				Role:    types.RoleSystem,
+				Role:    types.RoleUser,
 				Content: correctionPrompt,
 			})
 			processor = utilstream.NewProcessor()
@@ -191,7 +196,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				if appendResult.RequiresGovernedRetry {
 					if prompt := strings.TrimSpace(appendResult.GovernedInstruction); prompt != "" {
 						_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
-							Role:    types.RoleSystem,
+							Role:    types.RoleUser,
 							Content: prompt,
 						})
 					}
@@ -203,7 +208,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				if appendResult.RequiresLinkRetry {
 					if prompt := strings.TrimSpace(appendResult.LinkRetryInstruction); prompt != "" {
 						_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
-							Role:    types.RoleSystem,
+							Role:    types.RoleUser,
 							Content: prompt,
 						})
 					}
@@ -261,7 +266,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			if appendResult.RequiresGovernedRetry {
 				if prompt := strings.TrimSpace(appendResult.GovernedInstruction); prompt != "" {
 					_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
-						Role:    types.RoleSystem,
+						Role:    types.RoleUser,
 						Content: prompt,
 					})
 				}
@@ -273,7 +278,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			if appendResult.RequiresLinkRetry {
 				if prompt := strings.TrimSpace(appendResult.LinkRetryInstruction); prompt != "" {
 					_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
-						Role:    types.RoleSystem,
+						Role:    types.RoleUser,
 						Content: prompt,
 					})
 				}
@@ -295,13 +300,13 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 
 		if wannaSpeakTracker.ShouldInjectContinuationPrompt() {
 			_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
-				Role:    types.RoleSystem,
+				Role:    types.RoleUser,
 				Content: wannaSpeakTracker.BuildContinuationPrompt(),
 			})
 		}
 		if options.IsExternalMessageTriggered && wannaSpeakTracker.HasNoExpressionProgress() {
 			_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
-				Role: types.RoleSystem,
+				Role: types.RoleUser,
 				Content: fmt.Sprintf(
 					"你还没有开始回复消息。当前状态下,你所说的任何内容都不会发送给外界,如果你要回复消息,请先调用 %s 开始表达，然后通过 %s 追加内容，最后调用 %s 结束。",
 					config.WannaSpeakStartToolName,
@@ -312,7 +317,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		}
 		if len(turnToolCalls) == 0 {
 			_ = sage.AddToContextWithSession(sessionId, types.ContextMessage{
-				Role:    types.RoleSystem,
+				Role:    types.RoleUser,
 				Content: "本次回复未检测到工具调用。你必须调用工具才能输出内容，否则响应将被系统拒绝。",
 			})
 		}

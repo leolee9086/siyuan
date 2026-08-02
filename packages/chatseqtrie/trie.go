@@ -67,11 +67,12 @@ type trieNode struct {
 //   - Remove：移除一个会话及其可能产生的死分支
 //   - FindVariants：查找与指定会话共享前缀的所有变体会话
 type Trie struct {
-	mu      sync.RWMutex
-	root    *trieNode
-	policy  *FieldPolicy
-	storage Storage          // 可选的持久化存储后端
-	nextID  atomic.Int64     // 下一个节点 ID
+	mu             sync.RWMutex
+	root           *trieNode
+	policy         *FieldPolicy
+	sequencePolicy SequencePolicy
+	storage        Storage      // 可选的持久化存储后端
+	nextID         atomic.Int64 // 下一个节点 ID
 
 	// sessionToNode 维护 sessionID → 终节点的映射，用于：
 	//   1. 同一 sessionID 重复 Insert 不同路径时，清理旧标记
@@ -97,6 +98,14 @@ func WithStorage(s Storage) Option {
 	}
 }
 
+// WithSequencePolicy 设置消息序列投影。未设置时默认将所有 system 消息稳定前置，
+// 以模拟会抽取/合并 system 的常见 provider 有效 prompt。
+func WithSequencePolicy(p *SequencePolicy) Option {
+	return func(t *Trie) {
+		t.sequencePolicy = normalizeSequencePolicy(p)
+	}
+}
+
 // New 创建前缀树。
 func New(opts ...Option) *Trie {
 	t := &Trie{
@@ -106,7 +115,8 @@ func New(opts ...Option) *Trie {
 			depth:    0,
 			nodeID:   0,
 		},
-		policy: DefaultFieldPolicy(),
+		policy:         DefaultFieldPolicy(),
+		sequencePolicy: normalizeSequencePolicy(nil),
 	}
 	t.sessionToNode = make(map[string]*trieNode)
 	for _, opt := range opts {
@@ -137,6 +147,7 @@ func (t *Trie) computeKey(msg Message) (string, string, error) {
 //  3. 遇到不匹配的消息时创建新分支
 //  4. 走完后在终节点标记 session ID
 func (t *Trie) Insert(sessionID string, messages []Message) (*MatchResult, error) {
+	messages = t.sequencePolicy.project(messages)
 	if len(messages) == 0 {
 		return &MatchResult{BranchPoint: -1}, nil
 	}
@@ -277,6 +288,7 @@ func (t *Trie) Insert(sessionID string, messages []Message) (*MatchResult, error
 
 // Match 查找最长前缀匹配，不插入任何内容。
 func (t *Trie) Match(messages []Message) (*MatchResult, error) {
+	messages = t.sequencePolicy.project(messages)
 	if len(messages) == 0 {
 		return &MatchResult{BranchPoint: -1}, nil
 	}

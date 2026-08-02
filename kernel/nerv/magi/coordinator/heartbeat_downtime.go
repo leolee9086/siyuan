@@ -309,7 +309,7 @@ func synthesizeHeartbeatDowntimeWithDominant(
 	requestMessages := dominantSage.BuildRequestMessagesForSession(
 		sessionID,
 		types.ContextMessage{
-			Role:    types.RoleSystem,
+			Role:    types.RoleUser,
 			Content: prompts.BuildDominantSleepSynthesisPrompt(dominantResult.DominantStance),
 		},
 		types.ContextMessage{

@@ -468,7 +468,7 @@ func appendDominanceRevokedHandoff(sessionID string, prompt string, sagesToSync 
 			continue
 		}
 		_ = sage.AddToContextWithSession(sessionID, types.ContextMessage{
-			Role:    types.RoleSystem,
+			Role:    types.RoleUser,
 			Content: prompt,
 		})
 	}
@@ -504,7 +504,7 @@ func injectPeerDoubts(dominantSage *sages.Sage, sessionID string, election *Domi
 	}
 	if len(allDoubts) > 0 {
 		_ = dominantSage.AddToContextWithSession(sessionID, types.ContextMessage{
-			Role:    types.RoleSystem,
+			Role:    types.RoleUser,
 			Content: "以下是安全团队对当前输入提出的质疑，请在回应时一并考量：\n" + strings.Join(allDoubts, "\n"),
 		})
 	}
@@ -519,7 +519,7 @@ func runPeerSecurityReview(
 	msgs := peer.BuildRequestMessagesForSession(
 		sessionID,
 		types.ContextMessage{
-			Role:    types.RoleSystem,
+			Role:    types.RoleUser,
 			Content: prompts.BuildSecurityReviewPrompt(userMessage),
 		},
 	)
