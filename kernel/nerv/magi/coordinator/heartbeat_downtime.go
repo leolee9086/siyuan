@@ -10,6 +10,7 @@ import (
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
@@ -324,6 +325,13 @@ func synthesizeHeartbeatDowntimeWithDominant(
 		},
 	)
 
+	// 注入请求来源（心跳休眠合成路径），供前缀缓存监控日志定位调用方。
+	ctx = llm.WithRequestSource(ctx, llm.RequestSource{
+		SageName:    dominantSage.GetName(),
+		DisplayName: dominantSage.GetDisplayName(),
+		RequestType: "heartbeat-downtime",
+		SessionID:   sessionID,
+	})
 	content, err := dominantSage.GetLLMClient().SendChatRequestSync(ctx, requestMessages, nil, nil)
 	if err != nil {
 		return "", err

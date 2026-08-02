@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
@@ -74,6 +75,13 @@ func (c *Coordinator) SynthesizeResponsesWithDominant(
 		},
 	)
 
+	// 注入请求来源（主导合成路径），供前缀缓存监控日志定位调用方。
+	ctx = llm.WithRequestSource(ctx, llm.RequestSource{
+		SageName:    workingSage.GetName(),
+		DisplayName: workingSage.GetDisplayName(),
+		RequestType: "dominant-synthesis",
+		SessionID:   sessionID,
+	})
 	content, err := workingSage.GetLLMClient().SendChatRequestSync(ctx, requestMessages, nil, nil)
 	if err != nil {
 		return nil, err

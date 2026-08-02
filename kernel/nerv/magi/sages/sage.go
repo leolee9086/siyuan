@@ -158,6 +158,15 @@ func (s *Sage) sendMessageInternal(
 		_ = websocket.PushLLMRequestSent(websocket.RuntimeMonitorSessionID, roundId, s.name, s.displayName, model, requestMessages, toolCount)
 	}
 
+	// 注入请求来源（sage 名/展示名/会话/轮次），供前缀缓存监控日志定位调用方。
+	ctx = llm.WithRequestSource(ctx, llm.RequestSource{
+		SageName:    s.name,
+		DisplayName: s.displayName,
+		RequestType: "sage-chat",
+		SessionID:   sessionId,
+		RoundID:     roundId,
+	})
+
 	// 发送请求
 	return s.llmClient.SendChatRequest(ctx, requestMessages, requestTools, requestToolChoice)
 }

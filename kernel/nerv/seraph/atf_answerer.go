@@ -11,6 +11,7 @@ import (
 
 	"github.com/siyuan-note/siyuan/kernel/nerv/dummysys"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/coordinator"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/nerv/marduk"
@@ -78,13 +79,13 @@ func (a *MAGIAnswerer) Answer(ctx context.Context, subject MonitorSubject, entit
 
 // AnswerAllEntities 按照新流程完成 ATF 采样：
 //
-//	1. 非主导者 2 人先用全量 120 题作答
-//	2. 每题得分 → OCEAN 计分 → 传递至 Seraph 心理医生
-//	3. Seraph 做出大五人格基础报告 + 与自我描述的对比诊断建议
-//	4. 诊断建议压入对应贤者的 memory
-//	5. 诊断结论传递给主导贤者
-//	6. 主导者答题 → OCEAN 计分 → Seraph 诊断 → 结果同时进入三贤人的 memory
-//	7. Avatar 裸 LLM 独立作答
+//  1. 非主导者 2 人先用全量 120 题作答
+//  2. 每题得分 → OCEAN 计分 → 传递至 Seraph 心理医生
+//  3. Seraph 做出大五人格基础报告 + 与自我描述的对比诊断建议
+//  4. 诊断建议压入对应贤者的 memory
+//  5. 诊断结论传递给主导贤者
+//  6. 主导者答题 → OCEAN 计分 → Seraph 诊断 → 结果同时进入三贤人的 memory
+//  7. Avatar 裸 LLM 独立作答
 func (a *MAGIAnswerer) AnswerAllEntities(
 	ctx context.Context,
 	subject MonitorSubject,
@@ -417,6 +418,13 @@ func (a *MAGIAnswerer) callSageLLM(ctx context.Context, sage *sages.Sage, userPr
 		}
 	}
 
+	// 注入请求来源（ATF 采样路径），供前缀缓存监控日志定位调用方。
+	ctx = llm.WithRequestSource(ctx, llm.RequestSource{
+		SageName:    sage.GetName(),
+		DisplayName: sage.GetDisplayName(),
+		RequestType: "atf-sampling",
+		SessionID:   sessionId,
+	})
 	content, err := client.SendChatRequestSync(ctx, requestMessages, nil, nil)
 	if err != nil {
 		return "", err

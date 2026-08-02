@@ -14,9 +14,9 @@ import (
 // 与 ATFBaselineAvatar 类似，它是裸 LLM，无三贤人结构、无长期历史。
 // 它认为自己所有的来访者都是人类，使用 CBT 疗法进行心理诊疗。
 type SeraphTherapist struct {
-	llmClient  llm.Client
-	sessionID  atomic.Int64
-	maxTurns   int // 对话轮次上限，默认 30
+	llmClient llm.Client
+	sessionID atomic.Int64
+	maxTurns  int // 对话轮次上限，默认 30
 }
 
 // NewSeraphTherapist 创建 Seraph 心理医生实例。
@@ -99,6 +99,11 @@ func (s *SeraphTherapist) SendMessage(ctx context.Context, session *TherapySessi
 		})
 	}
 
+	// 注入请求来源（seraph 心理诊疗路径），供前缀缓存监控日志定位调用方。
+	ctx = llm.WithRequestSource(ctx, llm.RequestSource{
+		RequestType: "seraph-therapy",
+		SessionID:   fmt.Sprintf("seraph-%d", session.ID),
+	})
 	content, err := s.llmClient.SendChatRequestSync(ctx, session.Messages, nil, nil)
 	if err != nil {
 		return "", false, fmt.Errorf("seraph llm call failed: %w", err)
@@ -137,6 +142,11 @@ func (s *SeraphTherapist) ForceEnd(ctx context.Context, session *TherapySession,
 		Content: closePrompt,
 	})
 
+	// 注入请求来源（seraph 强制结束路径），供前缀缓存监控日志定位调用方。
+	ctx = llm.WithRequestSource(ctx, llm.RequestSource{
+		RequestType: "seraph-force-end",
+		SessionID:   fmt.Sprintf("seraph-%d", session.ID),
+	})
 	content, err := s.llmClient.SendChatRequestSync(ctx, session.Messages, nil, nil)
 	if err != nil {
 		return "", fmt.Errorf("seraph force end llm call failed: %w", err)

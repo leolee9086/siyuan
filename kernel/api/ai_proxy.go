@@ -109,6 +109,11 @@ func toContextMessages(msgs []openai.ChatCompletionMessage) []types.ContextMessa
 func handleSync(c *gin.Context, req *openai.ChatCompletionRequest, client llm.Client) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), time.Duration(aiProxyTimeout())*time.Second)
 	defer cancel()
+	// 注入请求来源（AI 代理路径），供前缀缓存监控日志定位调用方。
+	ctx = llm.WithRequestSource(ctx, llm.RequestSource{
+		RequestType: "ai-proxy",
+		SessionID:   c.GetHeader("x-session-affinity"),
+	})
 
 	messages := toContextMessages(req.Messages)
 
@@ -172,6 +177,11 @@ func handleStream(c *gin.Context, req *openai.ChatCompletionRequest, client llm.
 
 	ctx, cancel := context.WithCancel(c.Request.Context())
 	defer cancel()
+	// 注入请求来源（AI 代理流式路径），供前缀缓存监控日志定位调用方。
+	ctx = llm.WithRequestSource(ctx, llm.RequestSource{
+		RequestType: "ai-proxy",
+		SessionID:   c.GetHeader("x-session-affinity"),
+	})
 
 	chunkChan, err := client.SendChatRequest(ctx, toContextMessages(req.Messages), req.Tools, nil)
 	if err != nil {

@@ -17,6 +17,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	ignore "github.com/sabhiram/go-gitignore"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/observability"
@@ -444,6 +445,15 @@ func executeForgeDevRepoSearch(rawArgs string) (string, error) {
 		return "", fmt.Errorf("%s 参数错误: %w", config.ForgeDevRepoSearchToolName, err)
 	}
 	filePattern := strings.TrimSpace(input.Fields["filepattern"])
+	// 尊重 .gitignore 规则：默认跳过被忽略路径；includeIgnored=true 时强制包含
+	respectGitIgnore, err := input.boolValue("respectgitignore", true)
+	if err != nil {
+		return "", fmt.Errorf("%s 参数错误: %w", config.ForgeDevRepoSearchToolName, err)
+	}
+	includeIgnored, err := input.boolValue("includeignored", false)
+	if err != nil {
+		return "", fmt.Errorf("%s 参数错误: %w", config.ForgeDevRepoSearchToolName, err)
+	}
 
 	// 预编译正则表达式
 	var regex *regexp.Regexp
@@ -484,6 +494,19 @@ func executeForgeDevRepoSearch(rawArgs string) (string, error) {
 	needle := pattern
 	if !useRegex && ignoreCase {
 		needle = strings.ToLower(pattern)
+	}
+
+	// 尊重 .gitignore 规则：加载仓库根 .gitignore（若存在），默认跳过被忽略路径；
+	// includeIgnored=true 时强制包含被忽略路径（不做忽略过滤）。
+	var gitIgnoreMatcher *ignore.GitIgnore
+	if respectGitIgnore && !includeIgnored {
+		if gitIgnorePath := filepath.Join(root, ".gitignore"); pathExists(gitIgnorePath) {
+			if data, readErr := os.ReadFile(gitIgnorePath); readErr == nil {
+				text := strings.ReplaceAll(string(data), "\r\n", "\n")
+				lines := strings.Split(text, "\n")
+				gitIgnoreMatcher = ignore.CompileIgnoreLines(lines...)
+			}
+		}
 	}
 
 	appendMatchesFromFile := func(fileAbsPath, fileRelPath string) error {
@@ -569,6 +592,9 @@ func executeForgeDevRepoSearch(rawArgs string) (string, error) {
 				return nil
 			}
 			if d.IsDir() {
+				return nil
+			}
+			if gitIgnoreMatcher != nil && gitIgnoreMatcher.MatchesPath(rel) {
 				return nil
 			}
 			return appendMatchesFromFile(path, rel)

@@ -74,9 +74,9 @@ type AvatarDescriptor struct {
 	lastHeartbeatAt       time.Time
 	destroyedAt           *time.Time
 	roundsSinceMetaReport int
-	noteID                string       // 对应的笔记 ID，用于变更检测
-	noteContent           string       // 笔记内容缓存
-	noteContentHash       string       // 笔记哈希，用于检测变更
+	noteID                string // 对应的笔记 ID，用于变更检测
+	noteContent           string // 笔记内容缓存
+	noteContentHash       string // 笔记哈希，用于检测变更
 }
 
 // NewAvatar creates a new Avatar instance
@@ -261,6 +261,11 @@ func (a *AvatarDescriptor) streamAndFilter(ctx context.Context, messages []types
 			tools = buildExternalToolsOnly(allTools)
 		}
 
+		// 注入请求来源（avatar 路径），供前缀缓存监控日志定位调用方。
+		ctx = llm.WithRequestSource(ctx, llm.RequestSource{
+			RequestType: "avatar",
+		})
+
 		chunkChan, err := a.llmClient.SendChatRequest(ctx, messages, tools, nil)
 		if err != nil {
 			return nil, fmt.Errorf("avatar llm call failed: %w", err)
@@ -349,6 +354,10 @@ func convertToMagiStreamResult(utilResult *stream.StreamResult) *types.StreamRes
 func (a *AvatarDescriptor) processMessageOld(ctx context.Context) (*types.StreamResult, error) {
 	// 旧实现保留用于参考
 	messages := a.GetContext()
+	// 注入请求来源（avatar 旧路径），供前缀缓存监控日志定位调用方。
+	ctx = llm.WithRequestSource(ctx, llm.RequestSource{
+		RequestType: "avatar-old",
+	})
 	chunkChan, err := a.llmClient.SendChatRequest(ctx, messages, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("avatar llm call failed: %w", err)

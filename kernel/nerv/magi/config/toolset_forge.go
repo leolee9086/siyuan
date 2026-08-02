@@ -59,13 +59,13 @@ func BuildForgeDevRepoSearchToolDef() ToolDef {
 		Type: "function",
 		Function: ToolFunctionDef{
 			Name:        ForgeDevRepoSearchToolName,
-			Description: "仅在 forge 模式可用。只读搜索开发代码仓库。input 为纯文本，使用 key=value 行，例如：pattern=buildToolResultExecutor\\npath=kernel/nerv/magi\\nlimit=20。支持 ignoreCase=true 忽略大小写、useRegex=true 启用正则表达式匹配、filePattern=*.go 按文件名称模式过滤。调用时必须显式填写本次搜索目的。",
+			Description: "仅在 forge 模式可用。只读搜索开发代码仓库。input 为纯文本，使用 key=value 行，例如：pattern=buildToolResultExecutor\\npath=kernel/nerv/magi\\nlimit=20。支持 ignoreCase=true 忽略大小写、useRegex=true 启用正则表达式匹配、filePattern=*.go 按文件名称模式过滤；默认尊重仓库根 .gitignore 规则（respectGitIgnore=true 可显式开启，includeIgnored=true 可强制包含被忽略路径）。调用时必须显式填写本次搜索目的。",
 			Parameters: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"input": map[string]interface{}{
 						"type":        "string",
-						"description": "纯文本参数，支持 pattern=<文本>、path=<相对路径>、limit=<数量>、ignoreCase=<true|false>、useRegex=<true|false>、filePattern=<glob 模式>",
+						"description": "纯文本参数，支持 pattern=<文本>、path=<相对路径>、limit=<数量>、ignoreCase=<true|false>、useRegex=<true|false>、filePattern=<glob 模式>、respectGitIgnore=<true|false 默认 true>、includeIgnored=<true|false 默认 false>",
 					},
 				},
 				"required": []string{"input"},

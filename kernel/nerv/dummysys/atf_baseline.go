@@ -50,6 +50,10 @@ func (a *ATFBaselineAvatar) AnswerQuestionnaire(ctx context.Context, questionPro
 		{Role: types.RoleUser, Content: questionPrompt},
 	}
 
+	// 注入请求来源（ATF 基线路径），供前缀缓存监控日志定位调用方。
+	ctx = llm.WithRequestSource(ctx, llm.RequestSource{
+		RequestType: "atf-baseline",
+	})
 	content, err := a.llmClient.SendChatRequestSync(ctx, messages, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("baseline avatar llm call failed: %w", err)

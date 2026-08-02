@@ -48,7 +48,7 @@ func TestPredictAndRecord_SyntheticStream(t *testing.T) {
 		if err != nil {
 			t.Fatalf("buildMonitorSequence #%d: %v", i, err)
 		}
-		pred := m.predictAndRecord(seq)
+		pred := m.predictAndRecord(seq, RequestSource{})
 		if pred == nil {
 			t.Fatalf("predictAndRecord #%d 返回 nil", i)
 		}
@@ -68,7 +68,7 @@ func TestPredictAndRecord_SyntheticStream(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildMonitorSequence(last): %v", err)
 	}
-	if pred := m.predictAndRecord(lastSeq); pred != nil && pred.suffixMsgs < 1 {
+	if pred := m.predictAndRecord(lastSeq, RequestSource{}); pred != nil && pred.suffixMsgs < 1 {
 		t.Logf("重复请求新增消息数=%d（首次插入后再次 Match 应为 0，若 >0 说明上次未正确记录）", pred.suffixMsgs)
 	}
 }
@@ -92,9 +92,9 @@ func TestCaptureUsage_NonStream(t *testing.T) {
 	}
 	// 需要先有预测上下文：构造一个 pred 记录后缀消息数
 	seq, _ := buildMonitorSequence([]byte(`{"messages":[{"role":"user","content":"x"}],"tools":[]}`))
-	pred := m.predictAndRecord(seq)
+	pred := m.predictAndRecord(seq, RequestSource{})
 
-	m.captureResponseUsage(resp, pred, 0)
+	m.captureResponseUsage(resp, pred, 0, RequestSource{})
 
 	// 校准系数应被更新：miss=200 / suffixMsgs=1（消息"x"）= 200
 	m.mu.RLock()
@@ -113,7 +113,7 @@ func TestCaptureUsage_NonStream(t *testing.T) {
 func TestCaptureUsage_SSE(t *testing.T) {
 	m := NewPrefixCacheMonitor()
 	seq, _ := buildMonitorSequence([]byte(`{"messages":[{"role":"user","content":"x"}],"tools":[]}`))
-	pred := m.predictAndRecord(seq)
+	pred := m.predictAndRecord(seq, RequestSource{})
 
 	sse := "data: {\"choices\":[{\"delta\":{\"content\":\"a\"}}]}\n\n" +
 		"data: {\"choices\":[{\"delta\":{\"content\":\"b\"}}]}\n\n" +
@@ -123,7 +123,7 @@ func TestCaptureUsage_SSE(t *testing.T) {
 		Header: http.Header{"Content-Type": {"text/event-stream"}},
 		Body:   io.NopCloser(strings.NewReader(sse)),
 	}
-	m.captureResponseUsage(resp, pred, 0)
+	m.captureResponseUsage(resp, pred, 0, RequestSource{})
 
 	// 读取响应体（透传），应完整拿到 SSE 内容
 	got, _ := io.ReadAll(resp.Body)
@@ -146,7 +146,7 @@ func TestCalibration_FallbackEstimate(t *testing.T) {
 
 	// 先制造一次校准：miss=200/新增1条 → 系数≈200
 	seq1, _ := buildMonitorSequence([]byte(`{"messages":[{"role":"user","content":"x"}],"tools":[]}`))
-	pred1 := m.predictAndRecord(seq1)
+	pred1 := m.predictAndRecord(seq1, RequestSource{})
 	resp1 := &http.Response{
 		Header: http.Header{},
 		Body: io.NopCloser(strings.NewReader(`{
@@ -154,16 +154,16 @@ func TestCalibration_FallbackEstimate(t *testing.T) {
 			"usage":{"prompt_cache_hit_tokens":0,"prompt_cache_miss_tokens":200,"prompt_tokens":200}
 		}`)),
 	}
-	m.captureResponseUsage(resp1, pred1, 0)
+	m.captureResponseUsage(resp1, pred1, 0, RequestSource{})
 
 	// 无 usage 的响应 → 走估算分支（不应 panic，应记录估算值）
 	seq2, _ := buildMonitorSequence([]byte(`{"messages":[{"role":"user","content":"x"},{"role":"assistant","content":"y"}],"tools":[]}`))
-	pred2 := m.predictAndRecord(seq2)
+	pred2 := m.predictAndRecord(seq2, RequestSource{})
 	resp2 := &http.Response{
 		Header: http.Header{},
 		Body:   io.NopCloser(strings.NewReader(`{"choices":[]}`)), // 无 usage
 	}
-	m.captureResponseUsage(resp2, pred2, 0)
+	m.captureResponseUsage(resp2, pred2, 0, RequestSource{})
 
 	m.mu.RLock()
 	samples := m.calibSamples
@@ -182,15 +182,15 @@ func TestPredictAndRecord_IndependentSessionID(t *testing.T) {
 	m := NewPrefixCacheMonitor()
 	// 插入两条递增序列
 	seq1, _ := buildMonitorSequence([]byte(`{"messages":[{"role":"user","content":"a"}],"tools":[]}`))
-	m.predictAndRecord(seq1)
+	m.predictAndRecord(seq1, RequestSource{})
 	seq2, _ := buildMonitorSequence([]byte(`{"messages":[{"role":"user","content":"a"},{"role":"assistant","content":"b"}],"tools":[]}`))
-	pred2 := m.predictAndRecord(seq2)
+	pred2 := m.predictAndRecord(seq2, RequestSource{})
 	if pred2.commonPrefixLen != len(seq1) {
 		t.Errorf("第二条应命中第一条全部: commonPrefixLen=%d, want %d", pred2.commonPrefixLen, len(seq1))
 	}
 	// 第三条回到与 seq1 相同 → 应命中 seq1（历史保留）
 	seq3, _ := buildMonitorSequence([]byte(`{"messages":[{"role":"user","content":"a"}],"tools":[]}`))
-	pred3 := m.predictAndRecord(seq3)
+	pred3 := m.predictAndRecord(seq3, RequestSource{})
 	if pred3.commonPrefixLen != len(seq3) {
 		t.Errorf("第三条应命中首条全部: commonPrefixLen=%d, want %d", pred3.commonPrefixLen, len(seq3))
 	}

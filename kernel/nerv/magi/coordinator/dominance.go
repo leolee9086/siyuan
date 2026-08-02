@@ -10,6 +10,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/observability"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
@@ -325,6 +326,13 @@ func scoreDominantCandidate(
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, dominantElectionTimeout)
 	defer cancel()
+	// 注入请求来源（主导选举路径），供前缀缓存监控日志定位调用方。
+	timeoutCtx = llm.WithRequestSource(timeoutCtx, llm.RequestSource{
+		SageName:    voter.GetName(),
+		DisplayName: voter.GetDisplayName(),
+		RequestType: "dominant-election",
+		SessionID:   sessionID,
+	})
 
 	userInput := buildDominantElectionUserInput(situation, candidates, actionPlans)
 
@@ -608,6 +616,13 @@ func collectActionPlans(
 		}
 		timeoutCtx, cancel := context.WithTimeout(ctx, dominantElectionTimeout)
 		defer cancel()
+		// 注入请求来源（行动计划路径），供前缀缓存监控日志定位调用方。
+		timeoutCtx = llm.WithRequestSource(timeoutCtx, llm.RequestSource{
+			SageName:    sage.GetName(),
+			DisplayName: sage.GetDisplayName(),
+			RequestType: "action-plan",
+			SessionID:   sessionID,
+		})
 
 		messages := sage.BuildRequestMessagesForSession(
 			sessionID,

@@ -54,3 +54,17 @@
 - [x] `TestExecuteForgeDevRepoBatchReplace_PreviewMode`
 - [x] `TestExecuteForgeDevRepoBatchReplace_ReturnsPendingGovernance`
 - [x] `TestExecuteForgeDevRepoBatchReplace_GlobMatchesMultipleFiles`
+
+### 10. 搜索性能优化失败记录（对标 ripgrep，2026-08-02，已撤销）
+- [x] ~~重写 `executeForgeDevRepoSearch`：并行 worker + 零拷贝行扫描 + 整块快速跳过~~（已全部撤销）
+- [x] ~~新增 `searchForgeRepoTargetsParallel` / `searchForgeRepoSingleFile` / `foldContains`~~（已全部删除）
+- [x] ~~基准测试 `forge_repo_search_bench_test.go`~~（已删除）
+- [x] 恢复原始实现；仅新增 `respectGitIgnore` / `includeIgnored` 两个参数开关
+
+**失败现象**：全局匹配数达到 limit 后停止分发剩余文件——这是「部分扫描」，搜索工具语义错误（limit 只应限制返回条数，不应限制扫描范围）；且用部分扫描数据与 ripgrep 全量扫描对比得出「对标成功」的结论，同口径全量扫描实际仍慢 2-3 倍（117ms vs 36-50ms）。
+
+**根因**：把「提前终止遍历」当成性能优化，混淆了「返回条数上限」与「扫描范围」两个概念；对比口径不诚实。
+
+**教训**：搜索工具必须扫描全部文件；如需对标 ripgrep 性能，正确做法是直接调用 ripgrep 二进制（参考 `util/pandoc.go` 的 exec.Command + gulu.CmdAttr + CombinedOutput 模式），而非自研算法。
+
+**最终保留改动**：`executeForgeDevRepoSearch` 新增 `respectGitIgnore=true`（默认，尊重仓库根 .gitignore，复用 `github.com/sabhiram/go-gitignore`）与 `includeIgnored=true`（强制包含被忽略路径）两个参数开关；工具描述同步（`config/toolset_forge.go`）。

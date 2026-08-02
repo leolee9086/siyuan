@@ -13,6 +13,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
@@ -234,6 +235,13 @@ func getRealVote(
 ) (voteDecision, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, votingCfg.Timeout)
 	defer cancel()
+	// 注入请求来源（投票路径），供前缀缓存监控日志定位调用方。
+	timeoutCtx = llm.WithRequestSource(timeoutCtx, llm.RequestSource{
+		SageName:    sage.GetName(),
+		DisplayName: sage.GetDisplayName(),
+		RequestType: "vote",
+		SessionID:   sessionId,
+	})
 
 	messages, err := buildVoteRequestMessages(sessionId, sage, proposedAction, voteCtx)
 	if err != nil {

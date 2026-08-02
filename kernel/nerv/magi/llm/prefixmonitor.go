@@ -60,9 +60,18 @@ type MonitorTransport struct {
 //     chatseqtrie.Match 预测 → chatseqtrie.Insert 记录；随后恢复请求体原样转发；
 //  2. 转发请求；
 //  3. 响应后：读取原始响应体，提取 usage 缓存命中信息 → 校准或估算；随后恢复响应体。
+//
+// 请求来源（sage/业务类型/会话）通过 ctx 注入（llm.WithRequestSource），
+// go-openai 用 http.NewRequestWithContext 构造请求，因此 req.Context() 可直接读取。
 func (t *MonitorTransport) Do(req *http.Request) (*http.Response, error) {
 	if t.monitor == nil || req == nil || req.Body == nil {
 		return t.base.Do(req)
+	}
+
+	// 读取请求来源并补充 URL，供缓存命中日志定位调用方。
+	src := RequestSourceFromContext(req.Context())
+	if src.URL == "" && req.URL != nil {
+		src.URL = req.URL.String()
 	}
 
 	// ---- 请求前：提取原始请求体，构造监控序列 ----
@@ -78,9 +87,9 @@ func (t *MonitorTransport) Do(req *http.Request) (*http.Response, error) {
 	seq, parseErr := buildMonitorSequence(rawBody)
 	var prediction *prefixPrediction
 	if parseErr == nil && len(seq) > 0 {
-		prediction = t.monitor.predictAndRecord(seq)
+		prediction = t.monitor.predictAndRecord(seq, src)
 	} else if parseErr != nil {
-		observability.Detailf("[prefix-cache] 请求体解析失败: %v", parseErr)
+		observability.Detailf("[prefix-cache] %s 请求体解析失败: %v", src, parseErr)
 	}
 
 	// ---- 转发 ----
@@ -89,13 +98,13 @@ func (t *MonitorTransport) Do(req *http.Request) (*http.Response, error) {
 	elapsed := time.Since(start)
 	if err != nil {
 		if prediction != nil {
-			t.monitor.recordRequest(prediction, nil, elapsed, err)
+			t.monitor.recordRequest(prediction, nil, elapsed, err, src)
 		}
 		return nil, err
 	}
 
 	// ---- 响应后：提取 usage 缓存命中信息（原始响应体） ----
-	t.monitor.captureResponseUsage(resp, prediction, elapsed)
+	t.monitor.captureResponseUsage(resp, prediction, elapsed, src)
 	return resp, nil
 }
 
@@ -138,7 +147,8 @@ func (p *prefixPrediction) hitModelMsgs() int {
 
 // predictAndRecord 用 chatseqtrie 预测本次请求并记录新前缀链条。
 // 每请求独立 sessionID（暴露测试结论：复用 sessionID 会移动终标记、丢失历史）。
-func (m *PrefixCacheMonitor) predictAndRecord(seq []chatseqtrie.Message) *prefixPrediction {
+// src 为请求来源（sage/业务类型/会话），写入日志便于事后定位低命中率来源。
+func (m *PrefixCacheMonitor) predictAndRecord(seq []chatseqtrie.Message, src RequestSource) *prefixPrediction {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -146,11 +156,11 @@ func (m *PrefixCacheMonitor) predictAndRecord(seq []chatseqtrie.Message) *prefix
 	// 先 Match 预测（不插入），再 Insert 记录
 	match, err := m.trie.Match(seq)
 	if err != nil {
-		observability.Detailf("[prefix-cache] Match 失败: %v", err)
+		observability.Detailf("[prefix-cache] %s Match 失败: %v", src, err)
 		return nil
 	}
 	if _, err := m.trie.Insert(sessionID, seq); err != nil {
-		observability.Detailf("[prefix-cache] Insert 失败: %v", err)
+		observability.Detailf("[prefix-cache] %s Insert 失败: %v", src, err)
 	}
 
 	pred := &prefixPrediction{
@@ -160,8 +170,8 @@ func (m *PrefixCacheMonitor) predictAndRecord(seq []chatseqtrie.Message) *prefix
 		branchPoint:     match.BranchPoint,
 		seqLen:          len(seq),
 	}
-	observability.Detailf("[prefix-cache] 预测: 命中=%d 新增=%d 变体=%v 分叉=%d 序列=%d",
-		pred.commonPrefixLen, pred.suffixMsgs, pred.isVariant, pred.branchPoint, pred.seqLen)
+	observability.Detailf("[prefix-cache] %s 预测: 命中=%d 新增=%d 变体=%v 分叉=%d 序列=%d",
+		src, pred.commonPrefixLen, pred.suffixMsgs, pred.isVariant, pred.branchPoint, pred.seqLen)
 	return pred
 }
 
@@ -179,7 +189,8 @@ type usageCacheInfo struct {
 //   - 流式（SSE）：DeepSeek 在流末尾的 data 块携带 usage，需边透传边解析。
 //
 // 响应体会被包装/恢复，不破坏原始消费方（go-openai）。
-func (m *PrefixCacheMonitor) captureResponseUsage(resp *http.Response, prediction *prefixPrediction, elapsed time.Duration) {
+// src 为请求来源（sage/业务类型/会话），随记录写入日志便于事后定位。
+func (m *PrefixCacheMonitor) captureResponseUsage(resp *http.Response, prediction *prefixPrediction, elapsed time.Duration, src RequestSource) {
 	if resp == nil || resp.Body == nil {
 		return
 	}
@@ -189,7 +200,7 @@ func (m *PrefixCacheMonitor) captureResponseUsage(resp *http.Response, predictio
 		resp.Body = &sseUsageBody{
 			src: resp.Body,
 			onUsage: func(hit, miss int) {
-				m.recordRequest(prediction, &usageCacheInfo{HitTokens: hit, MissTokens: miss}, elapsed, nil)
+				m.recordRequest(prediction, &usageCacheInfo{HitTokens: hit, MissTokens: miss}, elapsed, nil, src)
 			},
 		}
 		return
@@ -213,7 +224,7 @@ func (m *PrefixCacheMonitor) captureResponseUsage(resp *http.Response, predictio
 	}
 	if err := json.Unmarshal(raw, &payload); err != nil || payload.Usage == nil {
 		// 无 usage 字段：用已校准算法估算（本地预测仍有效）
-		m.recordRequest(prediction, nil, elapsed, nil)
+		m.recordRequest(prediction, nil, elapsed, nil, src)
 		return
 	}
 	u := payload.Usage
@@ -227,13 +238,15 @@ func (m *PrefixCacheMonitor) captureResponseUsage(resp *http.Response, predictio
 		MissTokens:   miss,
 		PromptTokens: u.PromptTokens,
 		CachedTokens: u.PromptTokensDetails.CachedTokens,
-	}, elapsed, nil)
+	}, elapsed, nil, src)
 }
 
 // recordRequest 汇总一次请求的监控数据：
 //   - 有真实 usage → 校准本地算法（EMA 更新每条新增消息的平均 token 数），并记录实际值；
 //   - 无真实 usage → 用已校准系数估算命中/新增 token，记录估算值。
-func (m *PrefixCacheMonitor) recordRequest(pred *prefixPrediction, usage *usageCacheInfo, elapsed time.Duration, err error) {
+//
+// src 为请求来源（sage/业务类型/会话），随记录写入日志便于事后定位。
+func (m *PrefixCacheMonitor) recordRequest(pred *prefixPrediction, usage *usageCacheInfo, elapsed time.Duration, err error, src RequestSource) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -259,8 +272,8 @@ func (m *PrefixCacheMonitor) recordRequest(pred *prefixPrediction, usage *usageC
 			m.calibSamples++
 			m.calibLastAt = time.Now()
 		}
-		observability.Detailf("[prefix-cache] 实际: hit=%d miss=%d prompt=%d 校准系数=%.2f/条(样本%d)",
-			usage.HitTokens, usage.MissTokens, usage.PromptTokens, m.calibratedTokenPerMsg, m.calibSamples)
+		observability.Detailf("[prefix-cache] %s 实际: hit=%d miss=%d prompt=%d 校准系数=%.2f/条(样本%d)",
+			src, usage.HitTokens, usage.MissTokens, usage.PromptTokens, m.calibratedTokenPerMsg, m.calibSamples)
 		return
 	}
 
@@ -275,8 +288,8 @@ func (m *PrefixCacheMonitor) recordRequest(pred *prefixPrediction, usage *usageC
 	if m.calibSamples == 0 {
 		status = "估算(未校准)"
 	}
-	observability.Detailf("[prefix-cache] %s: 命中≈%d 新增≈%d tokens (系数=%.2f/条, 样本=%d) 变体=%v 分叉=%d 耗时=%v err=%v",
-		status, estHit, estMiss, m.calibratedTokenPerMsg, m.calibSamples, pred.isVariant, pred.branchPoint, elapsed, err)
+	observability.Detailf("[prefix-cache] %s %s: 命中≈%d 新增≈%d tokens (系数=%.2f/条, 样本=%d) 变体=%v 分叉=%d 耗时=%v err=%v",
+		src, status, estHit, estMiss, m.calibratedTokenPerMsg, m.calibSamples, pred.isVariant, pred.branchPoint, elapsed, err)
 }
 
 // buildMonitorSequence 从原始请求体构造监控序列：

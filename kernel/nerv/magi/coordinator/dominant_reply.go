@@ -11,6 +11,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/observability"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
@@ -522,6 +523,13 @@ func runPeerSecurityReview(
 			Content: prompts.BuildSecurityReviewPrompt(userMessage),
 		},
 	)
+	// 注入请求来源（安全审查路径），供前缀缓存监控日志定位调用方。
+	ctx = llm.WithRequestSource(ctx, llm.RequestSource{
+		SageName:    peer.GetName(),
+		DisplayName: peer.GetDisplayName(),
+		RequestType: "security-review",
+		SessionID:   sessionID,
+	})
 	result, err := peer.GetLLMClient().SendChatRequestSyncDetailed(ctx, msgs, nil, nil)
 	if err != nil {
 		return nil, err
