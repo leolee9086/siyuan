@@ -46,6 +46,8 @@ import type { SeelMessageListPort } from "./SeelPanel.types";
 import type { SeelPanelProps } from "./SeelPanel.types";
 /** 用途：虚拟列表条目类型。使用范围：滚动 watcher。解耦评估：同目录稳定边界。 */
 import type { SeelVirtualListItem } from "./SeelPanel.types";
+/** 用途：DOM 观察器工厂。使用范围：卡片高度观察。解耦评估：由同目录网关转发工厂 API。 */
+import { createResizeObserver } from "./imports";
 
 const HEADER_HEIGHT_RATIO = 0.17;
 const MIN_HEADER_HEIGHT = 52;
@@ -55,6 +57,7 @@ const DEFAULT_HEADER_DIVIDER_Y = 21.6666666667;
 const EVENT_PULSE_DURATION_MS = 780;
 
 /** 将贤人颜色标识映射为实际 CSS 颜色。 */
+/** @同步豁免: UI构建 - Vue computed 与模板必须同步获得 CSS 颜色值。 */
 /** 用途：贤人颜色标识到 CSS 颜色的映射。使用范围：SeelPanel 卡片边框与其他 MAGI 面板（如 MagiWorkspace 集群主色）。解耦评估：纯展示函数，跨模块复用。 */
 export function getColor(colorName: string) {
     if (colorName === "red") {
@@ -95,7 +98,7 @@ function setupResizeObserver(
     panelContainer: Ref<HTMLElement | null>,
     containerHeight: Ref<number>,
 ) {
-    const observer = new ResizeObserver((entries) => {
+    const observer = createResizeObserver((entries) => {
         const entry = entries[0];
         if (entry) {
             containerHeight.value = entry.contentRect.height;
