@@ -178,7 +178,7 @@ func (c *openaiClient) SendChatRequest(ctx context.Context, messages []types.Con
 	// 保证前缀缓存最前部（tools 定义）字节级稳定，工具集变化只影响尾部 <tool_list> 消息。
 	reqMsgs, effectiveTools := applyMagiToolRouting(reqMsgs, tools)
 
-	tc := toolChoice
+	tc := routedMagiToolChoice(tools, toolChoice)
 	if c.config.OmitToolChoice {
 		tc = nil
 	}
@@ -202,10 +202,14 @@ func (c *openaiClient) SendChatRequest(ctx context.Context, messages []types.Con
 		return nil, fmt.Errorf("create stream failed: %w", err)
 	}
 
-	return c.startChunkProcessor(ctx, stream), nil
+	return c.startChunkProcessor(ctx, stream, len(tools) > 0), nil
 }
 
-func (c *openaiClient) startChunkProcessor(ctx context.Context, stream *openai.ChatCompletionStream) <-chan types.StreamChunk {
+func (c *openaiClient) startChunkProcessor(
+	ctx context.Context,
+	stream *openai.ChatCompletionStream,
+	allowToolCalls bool,
+) <-chan types.StreamChunk {
 
 	chunkChan := make(chan types.StreamChunk, 10)
 
@@ -236,6 +240,17 @@ func (c *openaiClient) startChunkProcessor(ctx context.Context, stream *openai.C
 			}
 
 			choice := response.Choices[0]
+			if !allowToolCalls && len(choice.Delta.ToolCalls) > 0 {
+				select {
+				case chunkChan <- types.StreamChunk{
+					ID:     "逻辑无工具请求返回了流式工具调用",
+					Object: "error",
+					Model:  c.config.APIModel,
+				}:
+				case <-ctx.Done():
+				}
+				return
+			}
 			var finishReason *string
 			if choice.FinishReason != "" {
 				fr := string(choice.FinishReason)
@@ -308,7 +323,7 @@ func (c *openaiClient) SendChatRequestSyncDetailed(ctx context.Context, messages
 	// 保证前缀缓存最前部（tools 定义）字节级稳定，工具集变化只影响尾部 <tool_list> 消息。
 	reqMsgs, effectiveTools := applyMagiToolRouting(reqMsgs, tools)
 
-	tc := toolChoice
+	tc := routedMagiToolChoice(tools, toolChoice)
 	if c.config.OmitToolChoice {
 		tc = nil
 	}
@@ -331,8 +346,12 @@ func (c *openaiClient) SendChatRequestSyncDetailed(ctx context.Context, messages
 	}
 
 	choice := resp.Choices[0]
+	rawToolCalls := convertOpenAIToolCalls(choice.Message.ToolCalls)
+	if err := rejectUnexpectedToolCalls(tools, rawToolCalls); err != nil {
+		return nil, err
+	}
 	// 响应方向：把 magi_tool 调用解析回真实工具名与参数（tool_name 字段 → Function.Name）。
-	toolCalls, resolveErr := resolveMagiToolCalls(convertOpenAIToolCalls(choice.Message.ToolCalls))
+	toolCalls, resolveErr := resolveMagiToolCalls(rawToolCalls)
 	if resolveErr != nil {
 		return nil, fmt.Errorf("resolve magi tool call failed: %w", resolveErr)
 	}

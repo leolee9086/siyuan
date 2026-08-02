@@ -58,7 +58,8 @@ func buildToolListContent(tools []openai.Tool) string {
 		}
 		briefs = append(briefs, brief)
 	}
-	return "<tool_list>\n" + chatseqtrie.RenderToolList(briefs) + "\n</tool_list>"
+	return "<tool_list>\n" + chatseqtrie.RenderToolList(briefs) + "\n</tool_list>\n" +
+		"<tool_policy>只能调用列表中的工具；列表为空时直接返回文本，不得调用 tool_call。</tool_policy>"
 }
 
 // buildToolListTailMessage 把真实工具列表序列化为 <tool_list> user 消息。
@@ -73,15 +74,23 @@ func buildToolListTailMessage(tools []openai.Tool) openai.ChatCompletionMessage 
 //  1. 工具列表序列化为 user 消息追加到 messages 尾部（动态内容后缀化）；
 //  2. tools 字段替换为唯一 magi_tool（字节级固定）。
 //
-// 无工具（len(tools)==0）时原样返回，不注入工具列表消息。
+// 逻辑上无工具时也必须发送固定 magi_tool，并在尾部发送空 <tool_list>。DeepSeek 的
+// 服务端前缀包含 tools 定义；若空工具请求把 tools 从固定包装工具切换为 []，缓存会从
+// 请求最前部失效。空列表语义由 tool_choice="none"（渠道支持时）与尾部约束共同表达。
 func applyMagiToolRouting(messages []openai.ChatCompletionMessage, tools []openai.Tool) ([]openai.ChatCompletionMessage, []openai.Tool) {
-	if len(tools) == 0 {
-		return messages, tools
-	}
 	msgs := make([]openai.ChatCompletionMessage, 0, len(messages)+1)
 	msgs = append(msgs, messages...)
 	msgs = append(msgs, buildToolListTailMessage(tools))
 	return msgs, []openai.Tool{magiTool()}
+}
+
+// routedMagiToolChoice 返回 OpenAI 兼容请求的工具选择策略。逻辑上无工具时优先显式
+// 禁用工具调用；OmitToolChoice 渠道会在组装请求时移除此字段，并依赖空列表提示约束。
+func routedMagiToolChoice(tools []openai.Tool, toolChoice any) any {
+	if len(tools) == 0 {
+		return "none"
+	}
+	return toolChoice
 }
 
 // applyMagiToolRoutingForClaude 应用单工具路由变换（Anthropic 兼容渠道）。
@@ -89,9 +98,6 @@ func applyMagiToolRouting(messages []openai.ChatCompletionMessage, tools []opena
 // Anthropic 的 system 字段位于输入序列最前部，动态内容绝不能进 system（否则破坏前缀缓存）；
 // user 消息追加到末尾后由 convertOpenAIMessagesToClaude 归一化（同角色合并/末尾追加）。
 func applyMagiToolRoutingForClaude(messages []openai.ChatCompletionMessage, tools []openai.Tool) ([]openai.ChatCompletionMessage, []openai.Tool) {
-	if len(tools) == 0 {
-		return messages, tools
-	}
 	msgs := make([]openai.ChatCompletionMessage, 0, len(messages)+1)
 	msgs = append(msgs, messages...)
 	msgs = append(msgs, openai.ChatCompletionMessage{
@@ -99,6 +105,15 @@ func applyMagiToolRoutingForClaude(messages []openai.ChatCompletionMessage, tool
 		Content: buildToolListContent(tools),
 	})
 	return msgs, []openai.Tool{magiTool()}
+}
+
+// rejectUnexpectedToolCalls 防止不支持 tool_choice="none" 的渠道在逻辑无工具请求中
+// 幻觉调用包装工具。调用方不会执行这类调用，也不能把空内容误当成正常业务结果。
+func rejectUnexpectedToolCalls(tools []openai.Tool, calls []types.ToolCall) error {
+	if len(tools) == 0 && len(calls) > 0 {
+		return fmt.Errorf("逻辑无工具请求返回了 %d 个工具调用", len(calls))
+	}
+	return nil
 }
 
 // ResolveMagiToolCall 将 magi_tool 调用解析为实际工具调用。

@@ -321,6 +321,10 @@ func (m *PrefixCacheMonitor) recordRequest(pred *prefixPrediction, usage *usageC
 // [tools_fingerprint] + OpenAI 消息序列。
 // tools 指纹作为首条消息：tools 一旦变化，首条不匹配 → 全量 MISS 被精确捕获
 // （对应 DeepSeek 前缀最前部，暴露测试结论 4）。
+//
+// MAGI 即使在逻辑无工具请求中也应保留固定包装工具，并把空列表放到尾部消息。
+// 因而这里看到 tools=[]/tools=0 不是正常的「少一个动态后缀」，而是绕过单工具路由、
+// 会令服务端从绝对首位重置缓存的回归；指纹节点必须继续把它报告为全量 MISS。
 func buildMonitorSequence(rawBody []byte) ([]chatseqtrie.Message, error) {
 	var payload struct {
 		Messages []map[string]any `json:"messages"`

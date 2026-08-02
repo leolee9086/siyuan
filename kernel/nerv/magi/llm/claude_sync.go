@@ -75,6 +75,9 @@ func (c *claudeClient) SendChatRequestSyncDetailed(
 	}
 
 	result := convertClaudeResponse(resp)
+	if err := rejectUnexpectedToolCalls(tools, result.ToolCalls); err != nil {
+		return nil, err
+	}
 	// 响应方向：把 magi_tool 调用解析回真实工具名与参数（tool_name 字段 → Function.Name）。
 	toolCalls, resolveErr := resolveMagiToolCalls(result.ToolCalls)
 	if resolveErr != nil {

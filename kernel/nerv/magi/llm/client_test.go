@@ -11,6 +11,7 @@ import (
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/siyuan/kernel/conf"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 )
 
@@ -89,6 +90,77 @@ func TestOpenAIClientOmitsNilToolChoice(t *testing.T) {
 	}
 	if len(result.ToolCalls) != 1 || result.ToolCalls[0].Function.Name != "test_tool" {
 		t.Fatalf("unexpected tool result: %+v", result)
+	}
+}
+
+func TestOpenAIClientLogicalNoToolsKeepsFixedWrapperOnWire(t *testing.T) {
+	tests := []struct {
+		name           string
+		omitToolChoice bool
+		wantChoice     bool
+	}{
+		{name: "supports-none", wantChoice: true},
+		{name: "gateway-omits-tool-choice", omitToolChoice: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				body, err := io.ReadAll(r.Body)
+				if err != nil {
+					t.Fatalf("read request body failed: %v", err)
+				}
+				var payload struct {
+					Messages   []map[string]any `json:"messages"`
+					Tools      []map[string]any `json:"tools"`
+					ToolChoice any              `json:"tool_choice"`
+				}
+				if err = json.Unmarshal(body, &payload); err != nil {
+					t.Fatalf("decode request body failed: %v", err)
+				}
+				if len(payload.Tools) != 1 {
+					t.Fatalf("逻辑无工具请求仍应发送固定包装工具: tools=%v", payload.Tools)
+				}
+				function, _ := payload.Tools[0]["function"].(map[string]any)
+				if function["name"] != config.MagiToolName {
+					t.Fatalf("包装工具名=%v, want %s", function["name"], config.MagiToolName)
+				}
+				if len(payload.Messages) != 2 {
+					t.Fatalf("应在原消息后追加空 tool_list: messages=%d", len(payload.Messages))
+				}
+				tail, _ := payload.Messages[len(payload.Messages)-1]["content"].(string)
+				if !strings.Contains(tail, "<tool_list>\n[]\n</tool_list>") {
+					t.Fatalf("尾部缺少空 tool_list: %q", tail)
+				}
+				if tt.wantChoice && payload.ToolChoice != "none" {
+					t.Fatalf("逻辑无工具请求 tool_choice=%v, want none", payload.ToolChoice)
+				}
+				if !tt.wantChoice && payload.ToolChoice != nil {
+					t.Fatalf("OmitToolChoice 通道应省略 tool_choice: %v", payload.ToolChoice)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"id":"test","object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}`))
+			}))
+			defer server.Close()
+
+			client := newOpenAIClient(&Config{
+				APIKey:         "test-key",
+				APIBaseURL:     server.URL + "/v1",
+				APIModel:       "test-model",
+				OmitToolChoice: tt.omitToolChoice,
+			})
+			result, err := client.SendChatRequestSyncDetailed(
+				context.Background(),
+				[]types.ContextMessage{{Role: types.RoleUser, Content: "test"}},
+				nil,
+				nil,
+			)
+			if err != nil {
+				t.Fatalf("request failed: %v", err)
+			}
+			if result.Content != "ok" {
+				t.Fatalf("content=%q, want ok", result.Content)
+			}
+		})
 	}
 }
 

@@ -81,12 +81,56 @@ func TestApplyMagiToolRouting_ToolsFixedAndTailList(t *testing.T) {
 	}
 }
 
-// TestApplyMagiToolRouting_NoToolsNoChange 验证：无工具时原样返回，不注入 tool_list。
-func TestApplyMagiToolRouting_NoToolsNoChange(t *testing.T) {
+// TestApplyMagiToolRouting_NoToolsKeepsFixedWrapper 验证：逻辑上无工具时仍保持固定
+// magi_tool，仅由尾部空 tool_list 表达本请求没有可调用工具。
+func TestApplyMagiToolRouting_NoToolsKeepsFixedWrapper(t *testing.T) {
 	messages := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "x"}}
 	msgs, tools := applyMagiToolRouting(messages, nil)
-	if len(msgs) != 1 || len(tools) != 0 {
-		t.Fatalf("无工具时应原样返回: msgs=%d tools=%d", len(msgs), len(tools))
+	if len(msgs) != len(messages)+1 {
+		t.Fatalf("无工具时也应追加空 tool_list: msgs=%d", len(msgs))
+	}
+	if len(tools) != 1 || tools[0].Function == nil || tools[0].Function.Name != config.MagiToolName {
+		t.Fatalf("无工具时 tools 仍应固定为 magi_tool: %+v", tools)
+	}
+	tail := msgs[len(msgs)-1]
+	if tail.Role != openai.ChatMessageRoleUser || !strings.Contains(tail.Content, "[]") {
+		t.Fatalf("尾部应为 user 空工具列表: %+v", tail)
+	}
+	if !strings.Contains(tail.Content, "不得调用") {
+		t.Fatalf("空工具列表缺少禁止调用约束: %q", tail.Content)
+	}
+}
+
+func TestApplyMagiToolRoutingForClaude_NoToolsKeepsFixedWrapper(t *testing.T) {
+	messages := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "x"}}
+	msgs, tools := applyMagiToolRoutingForClaude(messages, nil)
+	if len(msgs) != len(messages)+1 || len(tools) != 1 {
+		t.Fatalf("Claude 空工具请求也应保持固定包装工具: msgs=%d tools=%d", len(msgs), len(tools))
+	}
+	if tools[0].Function == nil || tools[0].Function.Name != config.MagiToolName {
+		t.Fatalf("Claude 包装工具不稳定: %+v", tools)
+	}
+	if tail := msgs[len(msgs)-1]; tail.Role != openai.ChatMessageRoleUser || !strings.Contains(tail.Content, "[]") {
+		t.Fatalf("Claude 尾部应为 user 空工具列表: %+v", tail)
+	}
+}
+
+func TestRoutedMagiToolChoice_NoToolsUsesNone(t *testing.T) {
+	if got := routedMagiToolChoice(nil, nil); got != "none" {
+		t.Fatalf("逻辑无工具请求 tool_choice=%v, want none", got)
+	}
+	if got := routedMagiToolChoice([]openai.Tool{testTool("search", "")}, "required"); got != "required" {
+		t.Fatalf("有工具请求应保留原 tool_choice: %v", got)
+	}
+}
+
+func TestRejectUnexpectedToolCalls_NoLogicalTools(t *testing.T) {
+	calls := []types.ToolCall{{Function: types.ToolCallFunction{Name: config.MagiToolName}}}
+	if err := rejectUnexpectedToolCalls(nil, calls); err == nil {
+		t.Fatal("逻辑无工具请求中的工具调用应被拒绝")
+	}
+	if err := rejectUnexpectedToolCalls([]openai.Tool{testTool("search", "")}, calls); err != nil {
+		t.Fatalf("有工具请求不应被拒绝: %v", err)
 	}
 }
 

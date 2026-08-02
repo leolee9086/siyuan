@@ -5,10 +5,13 @@ package llm
 // 不基于理想状况。
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/sashabaranov/go-openai"
 
 	"s-forge.local/chatseqtrie"
 )
@@ -34,6 +37,42 @@ func TestBuildMonitorSequence_ToolsFingerprint(t *testing.T) {
 	seqB, _ := buildMonitorSequence(bodyB)
 	if seqB[0]["content"] == fpA {
 		t.Fatal("tools 变化后指纹应不同")
+	}
+}
+
+// TestRoutedLogicalNoToolsKeepsToolsFingerprint 回归 2026-08-02 线上问题：
+// heartbeat-downtime 传 nil tools 时曾令固定包装工具变成 tools=0，服务端实际只命中
+// 896/86741 tokens。本测试要求逻辑有工具/无工具经过路由后的首节点指纹完全一致。
+func TestRoutedLogicalNoToolsKeepsToolsFingerprint(t *testing.T) {
+	base := []openai.ChatCompletionMessage{
+		{Role: openai.ChatMessageRoleSystem, Content: "stable-system"},
+		{Role: openai.ChatMessageRoleUser, Content: "stable-history"},
+	}
+	withMessages, withTools := applyMagiToolRouting(base, []openai.Tool{testTool("search", "搜索")})
+	withoutMessages, withoutTools := applyMagiToolRouting(base, nil)
+
+	withBody, _ := json.Marshal(map[string]any{"messages": withMessages, "tools": withTools})
+	withoutBody, _ := json.Marshal(map[string]any{"messages": withoutMessages, "tools": withoutTools})
+	withSeq, err := buildMonitorSequence(withBody)
+	if err != nil {
+		t.Fatalf("buildMonitorSequence(with tools): %v", err)
+	}
+	withoutSeq, err := buildMonitorSequence(withoutBody)
+	if err != nil {
+		t.Fatalf("buildMonitorSequence(without tools): %v", err)
+	}
+	if withSeq[0]["content"] != withoutSeq[0]["content"] {
+		t.Fatalf("逻辑工具列表变化不应改变 tools 指纹: with=%v without=%v",
+			withSeq[0]["content"], withoutSeq[0]["content"])
+	}
+
+	monitor := NewPrefixCacheMonitor()
+	monitor.predictAndRecord(withSeq, RequestSource{})
+	prediction := monitor.predictAndRecord(withoutSeq, RequestSource{})
+	const wantCommonPrefix = 3 // tools 指纹 + system + 稳定历史；仅尾部 tool_list 分叉
+	if prediction.commonPrefixLen != wantCommonPrefix {
+		t.Fatalf("逻辑无工具请求应只在尾部列表分叉: got %d, want %d",
+			prediction.commonPrefixLen, wantCommonPrefix)
 	}
 }
 

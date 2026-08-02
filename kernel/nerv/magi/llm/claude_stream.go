@@ -71,6 +71,7 @@ func (c *claudeClient) SendChatRequest(
 		var modelName string
 		toolUseBlocks := make(map[int]*toolUseBlockState)
 		sentRole := false
+		unexpectedToolCall := false
 
 		sendRole := func() {
 			if sentRole {
@@ -109,6 +110,17 @@ func (c *claudeClient) SendChatRequest(
 				if data.ContentBlock.MessageContentToolUse == nil {
 					return
 				}
+				if len(tools) == 0 {
+					if !unexpectedToolCall {
+						unexpectedToolCall = true
+						sendChunk(ctx, chunkChan, types.StreamChunk{
+							ID:     "逻辑无工具请求返回了流式工具调用",
+							Object: "error",
+							Model:  modelName,
+						})
+					}
+					return
+				}
 				tc := data.ContentBlock.MessageContentToolUse
 				toolUseBlocks[data.Index] = &toolUseBlockState{
 					id:   tc.ID,
@@ -135,6 +147,9 @@ func (c *claudeClient) SendChatRequest(
 				})
 			},
 			OnContentBlockDelta: func(data anthropic.MessagesEventContentBlockDeltaData) {
+				if unexpectedToolCall {
+					return
+				}
 				sendRole()
 				switch data.Delta.Type {
 				case anthropic.MessagesContentTypeTextDelta:
@@ -195,6 +210,9 @@ func (c *claudeClient) SendChatRequest(
 				}
 			},
 			OnMessageDelta: func(data anthropic.MessagesEventMessageDeltaData) {
+				if unexpectedToolCall {
+					return
+				}
 				if data.Delta.StopReason == "" {
 					return
 				}
