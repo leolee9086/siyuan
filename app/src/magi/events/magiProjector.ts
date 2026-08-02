@@ -50,6 +50,8 @@ import { projectRawEventToMonitor } from "./projector/magiProjector.shared";
 import { shouldProcessEvent } from "./projector/magiProjector.shared";
 /** 用途：稳定排序并原位更新消息。使用范围：回复与错误活动。解耦评估：共享模块统一流式顺序。 */
 import { upsertMessage } from "./projector/magiProjector.shared";
+/** 用途：保留流式思考快照。使用范围：回复增量与完成事件。解耦评估：回复持久化规则由专用模块维护。 */
+import { preserveReplyThinking } from "./projector/magiProjector.reply";
 /** 用途：审慎信号处理器。使用范围：事件订阅装配。解耦评估：工具模块拥有审慎工具语义。 */
 import { projectDeliberationSignal } from "./projector/magiProjector.tool";
 /** 用途：工具生命周期处理器。使用范围：事件订阅装配。解耦评估：工具模块拥有单条活动更新规则。 */
@@ -95,7 +97,7 @@ function projectSeelReplyChunk(
     projectRawEventToMonitor(state, "SEEL_REPLY_CHUNK", event);
     const seel = findSeelByName(state.target.seels, event.seelName, event.displayName);
     if (seel) {
-        upsertMessage(seel.messages, event.message);
+        upsertMessage(seel.messages, preserveReplyThinking(seel.messages, event.message));
     }
 }
 
@@ -113,7 +115,7 @@ function projectSeelReplyCompleted(
         return;
     }
     seel.loading = false;
-    upsertMessage(seel.messages, event.message);
+    upsertMessage(seel.messages, preserveReplyThinking(seel.messages, event.message));
 }
 
 /** 投影贤者回复失败事件。 */

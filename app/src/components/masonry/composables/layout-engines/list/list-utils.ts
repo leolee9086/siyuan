@@ -30,8 +30,9 @@ export function findItemsInYRange(
   startY: number,
   endY: number
 ): LayoutItem[] {
-  const startIndex = binarySearch(sortedItems, item => item.y >= startY);
-  const endIndex = binarySearch(sortedItems, item => item.y > endY);
+  // 列表项高度可变，起点在视口上方但底部仍与视口相交的项目必须继续渲染。
+  const startIndex = binarySearch(sortedItems, item => item.y + item.height > startY);
+  const endIndex = binarySearch(sortedItems, item => item.y >= endY);
   return sortedItems.slice(startIndex, endIndex);
 }
 
@@ -47,6 +48,26 @@ export function createBushItem(item: LayoutItem): BushItem {
  */
 export function createBushItems(items: LayoutItem[]): BushItem[] {
   return items.map(createBushItem);
+}
+
+function createListLayoutItem({
+  item, index, y, height, containerWidth, gap, idKey
+}: {
+  item: any;
+  index: number;
+  y: number;
+  height: number;
+  containerWidth: number;
+  gap: number;
+  idKey: string;
+}): LayoutItem {
+  const width = Math.max(0, containerWidth - gap);
+  return {
+    id: item[idKey], data: item, index, x: 0, y, width, height,
+    minX: 0, minY: y, maxX: width, maxY: y + height,
+    columnIndex: 0, indexInColumn: index,
+    isPlaceholder: !!item.isPlaceholder
+  };
 }
 
 /**
@@ -124,23 +145,9 @@ export function appendListItems({
   itemsToAppend.forEach((item, indexInBatch) => {
     const globalIndex = existingItems.length + indexInBatch;
     const height = itemHeight(item);
-    
-    const layoutItem: LayoutItem = {
-      id: item[idKey],
-      data: item,
-      index: globalIndex,
-      x: 0,
-      y: currentY,
-      width: Math.max(0, containerWidth - gap), // 减去间距，防止溢出
-      height,
-      minX: 0,
-      minY: currentY,
-      maxX: Math.max(0, containerWidth - gap),
-      maxY: currentY + height,
-      columnIndex: 0,
-      indexInColumn: globalIndex,
-      isPlaceholder: !!item.isPlaceholder
-    };
+    const layoutItem = createListLayoutItem({
+      item, index: globalIndex, y: currentY, height, containerWidth, gap, idKey
+    });
 
     newLayoutItems.push(layoutItem);
     idToItemMap.set(item[idKey], layoutItem);
@@ -252,4 +259,4 @@ export function findItemsInSelectionBox({
   });
   
   return bushItems.map(bushItem => bushItem);
-} 
+}

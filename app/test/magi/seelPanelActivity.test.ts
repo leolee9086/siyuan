@@ -74,4 +74,21 @@ describe("SeelPanel activity presentation", () => {
         expect(formatToolCallArgs(meta)).toBe('{\n  "query": "前缀缓存"\n}');
         expect(getToolOutput(meta)).toBe("索引不可用");
     });
+
+    it("应保留全部历史思考消息供卡片持续上下滚动", () => {
+        const messages = Array.from({ length: 600 }, (_, index) => createMessage(
+            `thinking-${index}`,
+            index,
+            {
+                type: "ai",
+                content: `<think>第 ${index} 条思考</think>第 ${index} 条结论`,
+            },
+        ));
+
+        const items = buildSeelVirtualItems(messages, false, "MELCHIOR-01");
+
+        expect(items).toHaveLength(600);
+        expect(items[0]?.virtualId).toBe("thinking-0");
+        expect(items[599]?.virtualId).toBe("thinking-599");
+    });
 });

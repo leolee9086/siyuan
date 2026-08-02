@@ -29,6 +29,7 @@ import { useVirtualization } from "../composables/useVirtualization";
 import { useScrollObserver } from "../composables/useScrollObserver";
 import { useVirtualScrollbar } from "../composables/useVirtualScrollbar";
 import type { LayoutItem } from "../composables/layout-engines/types";
+import { useVirtualMasonryScrollController } from "./VirtualMasonryGrid.scroll";
 // 为 props 定义类型
 interface Props {
     items: any[];
@@ -88,9 +89,21 @@ const { scrollTop, isScrolling, scrollDirection, ignoreScrollEventsFor } = useSc
     }
 });
 
-// 保存滚动位置相关的状态
-const savedScrollRatio = ref(-1);
-const shouldStickToBottom = ref(Boolean(props.followOutput));
+const {
+    shouldStickToBottom,
+    captureCurrentScrollAnchor,
+    restoreSavedScrollAnchor,
+    syncStickToBottomState,
+    scrollToBottom,
+    isNearBottom,
+    disposeScrollController,
+} = useVirtualMasonryScrollController({
+    scrollContainer,
+    scrollTop,
+    followOutput: toRef(props, "followOutput"),
+    followThresholdPx: toRef(props, "followThresholdPx"),
+    ignoreScrollEventsFor,
+});
 
 // --- 1. 布局引擎 (已重构为双缓存) ---
 const {
@@ -113,29 +126,8 @@ const {
     itemHeight: props.itemHeight,
     estimatedTotalCount: toRef(props, "estimatedTotalCount"),
     mode: props.mode,
-    // 传入保存/恢复滚动位置的回调函数
-    onBeforeRebuildLayout: () => {
-        // 只在已经有内容并且用户已经滚动的情况下保存位置
-        if (scrollContainer.value && scrollContainer.value.scrollHeight > 0 && scrollContainer.value.scrollTop > 0) {
-            // 保存滚动比例而不是绝对位置
-            savedScrollRatio.value = scrollContainer.value.scrollTop / scrollContainer.value.scrollHeight;
-        }
-    },
-    onAfterRebuildLayout: () => {
-        // 在布局重建后恢复滚动位置
-        if (scrollContainer.value && savedScrollRatio.value > 0) {
-            // 使用 requestAnimationFrame 确保DOM已更新
-            requestAnimationFrame(() => {
-                if (scrollContainer.value) {
-                    // 根据保存的比例计算新的滚动位置
-                    const newScrollTop = savedScrollRatio.value * scrollContainer.value.scrollHeight;
-                    scrollContainer.value.scrollTop = newScrollTop;
-                    // 重置保存的比例
-                    savedScrollRatio.value = -1;
-                }
-            });
-        }
-    }
+    onBeforeRebuildLayout: captureCurrentScrollAnchor,
+    onAfterRebuildLayout: restoreSavedScrollAnchor,
 });
 
 // @织: --- 虚拟滚动条 ---
@@ -143,41 +135,6 @@ const { thumbRef, trackRef } = useVirtualScrollbar({
     scrollContainer,
     totalHeight: totalHeight,
 });
-
-const getBottomDistance = (container: HTMLElement): number => {
-    return Math.max(0, container.scrollHeight - container.clientHeight - container.scrollTop);
-};
-
-const isNearBottom = (container: HTMLElement | null = scrollContainer.value): boolean => {
-    if (!container) {
-        return true;
-    }
-    return getBottomDistance(container) <= props.followThresholdPx;
-};
-
-const syncStickToBottomState = () => {
-    if (!props.followOutput) {
-        return;
-    }
-    shouldStickToBottom.value = isNearBottom();
-};
-
-const scrollToBottom = async (force = false): Promise<void> => {
-    await nextTick();
-    const container = scrollContainer.value;
-    if (!container) {
-        return;
-    }
-    if (!force && props.followOutput && !shouldStickToBottom.value && !isNearBottom(container)) {
-        return;
-    }
-    ignoreScrollEventsFor(80);
-    container.scrollTop = container.scrollHeight;
-    scrollTop.value = container.scrollTop;
-    if (props.followOutput) {
-        shouldStickToBottom.value = true;
-    }
-};
 
 const refreshLayout = async (): Promise<void> => {
     rebuildLayout();
@@ -230,10 +187,6 @@ const contentStyle = computed(() => {
 
 watch(logicalScrollHeight, (height) => {
     totalHeight.value = height;
-}, { immediate: true });
-
-watch(() => props.followOutput, (enabled) => {
-    shouldStickToBottom.value = enabled ? isNearBottom() : false;
 }, { immediate: true });
 
 // @织: 记录上一次滚动停止的位置
@@ -375,29 +328,8 @@ watch(layoutUpdateStamp, () => {
 // 它会自动调用 rebuildLayout，所以顶层不再需要 watch props.items。
 
 watch([containerWidth, () => props.columnWidth, () => props.gap, () => props.rowHeight], () => {
-    // 在属性变化前保存滚动位置
-    if (scrollContainer.value && scrollContainer.value.scrollHeight > 0) {
-        savedScrollRatio.value = scrollContainer.value.scrollTop / scrollContainer.value.scrollHeight;
-    }
-
-    // @织: 这个 watch 仍然需要，因为它会触发 useLayoutEngine 内部的 rebuildLayout
+    // rebuildLayout 的统一锚点回调负责保存并恢复位置，避免同一次变化重复写 scrollTop。
     rebuildLayout();
-
-    // 在下一帧恢复滚动位置
-    if (savedScrollRatio.value > 0) {
-        nextTick(() => {
-            requestAnimationFrame(() => {
-                if (scrollContainer.value) {
-                    const newScrollTop = savedScrollRatio.value * scrollContainer.value.scrollHeight;
-                    // 使用 scrollTo 使滚动更平滑
-                    scrollContainer.value.scrollTo({
-                        top: newScrollTop,
-                        behavior: "auto"
-                    });
-                }
-            });
-        });
-    }
 });
 
 // --- 生命周期与 DOM 观察 ---
@@ -420,12 +352,6 @@ return;
         if (entries[0]) {
             const { width, height } = entries[0].contentRect;
 
-            // 保存当前滚动比例
-            let scrollRatio = -1;
-            if (scrollContainer.value && scrollContainer.value.scrollHeight > 0) {
-                scrollRatio = scrollContainer.value.scrollTop / scrollContainer.value.scrollHeight;
-            }
-
             containerWidth.value = width;
             containerHeight.value = height;
 
@@ -433,27 +359,9 @@ return;
             nextTick(() => {
                 // 确保布局引擎和滚动条都能感知新的尺寸
                 rebuildLayout();
-
-                // 恢复滚动位置
-                if (scrollRatio > 0 && scrollContainer.value) {
-                    // 确保DOM更新后再恢复滚动位置
-                    requestAnimationFrame(() => {
-                        if (scrollContainer.value) {
-                            const newScrollTop = scrollRatio * scrollContainer.value.scrollHeight;
-                            scrollContainer.value.scrollTop = newScrollTop;
-                        }
-
-                        // 更新完滚动位置后再触发滚动事件以更新滚动条
-                        setTimeout(() => {
-                            scrollContainer.value?.dispatchEvent(new Event("scroll"));
-                        }, 50);
-                    });
-                } else {
-                    // 如果没有滚动位置需要恢复，直接触发滚动事件
-                    setTimeout(() => {
-                        scrollContainer.value?.dispatchEvent(new Event("scroll"));
-                    }, 50);
-                }
+                setTimeout(() => {
+                    scrollContainer.value?.dispatchEvent(new Event("scroll"));
+                }, 50);
             });
         }
     });
@@ -471,110 +379,10 @@ return;
 
     onUnmounted(() => {
         resizeObserver.disconnect();
+        disposeScrollController();
     });
 });
 
 </script>
 
-<style lang="scss" scoped>
-/* @织: 新增 wrapper, 用于相对定位 */
-.virtual-masonry-grid-wrapper {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    /* 确保所有内容都在 wrapper 内部 */
-    isolation: isolate;
-    /* 创建新的层叠上下文，帮助处理z-index问题 */
-}
-
-.virtual-masonry-grid-container {
-    width: 100%;
-    height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    /* @织: position: relative 已移动到 wrapper */
-    -webkit-overflow-scrolling: touch;
-
-    /* @织: 隐藏所有浏览器的原生滚动条 */
-    scrollbar-width: none;
-    /* Firefox */
-    -ms-overflow-style: none;
-    /* Internet Explorer 10+ */
-}
-
-.virtual-masonry-grid-container::-webkit-scrollbar {
-    display: none;
-    /* WebKit */
-}
-
-.virtual-masonry-grid-content {
-    position: relative;
-    width: 100%;
-    overflow: hidden;
-    /* @织: 新增, 防止内容在容器更新前溢出 */
-}
-
-.virtual-masonry-grid-item {
-    position: absolute;
-    /* transition 从 JS 移到这里，但由 getStyle 覆盖 */
-    overflow: hidden;
-    /* @织: 新增, 防止内容在容器更新前溢出 */
-}
-
-/* @织: 虚拟滚动条样式 */
-.scrollbar-track {
-    position: absolute;
-    /* @织: 必须是 absolute 让其脱离文档流，成为覆盖层 */
-    right: 2px;
-    top: 0;
-    width: 8px;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.05);
-    border-radius: 4px;
-    opacity: 0.2;
-    /* 默认轻微显示，确保用户知道有滚动功能 */
-    transition: opacity 0.3s ease;
-    z-index: 10;
-    /* 确保滚动条在所有内容之上 */
-    pointer-events: auto;
-    /* 确保即使在容器禁用指针事件时仍可点击滚动条 */
-}
-
-.scrollbar-track:hover {
-    opacity: 1;
-}
-
-.virtual-masonry-grid-container:hover~.scrollbar-track {
-    opacity: 1;
-}
-
-.scrollbar-thumb {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 100%;
-    /* height 由 js 控制 */
-    background-color: rgba(0, 0, 0, 0.4);
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    position: relative;
-    /* @织: 为伪元素提供定位上下文 */
-}
-
-/* @织: 使用伪元素扩展点击区域 */
-.scrollbar-thumb::after {
-    content: '';
-    position: absolute;
-    top: -10px;
-    bottom: -10px;
-    left: -5px;
-    right: -5px;
-    /* 扩展点击区域，增加用户友好性 */
-}
-
-.scrollbar-thumb:hover {
-    background-color: rgba(0, 0, 0, 0.6);
-}
-</style>
+<style src="./VirtualMasonryGrid.scss" lang="scss" scoped></style>

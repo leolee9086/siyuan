@@ -137,6 +137,59 @@ describe("MAGI Event Bridge - 事件投影", () => {
         stop();
     });
 
+    it("应将贤者思考过程持久化为可滚动活动，最终回复覆盖时不丢失", async () => {
+        const bus = await createMagiEventBus();
+        const seel = createWrappedSeel("MELCHIOR-01", "MELCHIOR");
+        const consensusMessages: MagiMessage[] = [];
+        const stop = await bindMagiProjector(bus, { seels: [seel], consensusMessages });
+        const streamMessage: MagiMessage = {
+            id: "thinking-stream-1",
+            type: "sse_stream",
+            content: "",
+            status: "streaming",
+            timestamp: 10_000,
+        };
+
+        emitTestEvent(bus, "SEEL_REPLY_STARTED", {
+            roundId: "round-thinking-1",
+            timestamp: 10_000,
+            seelName: "MELCHIOR-01",
+            displayName: "MELCHIOR",
+            userInput: "诊断缓存",
+            streamMessage,
+        });
+        emitTestEvent(bus, "SEEL_REPLY_CHUNK", {
+            roundId: "round-thinking-1",
+            timestamp: 10_010,
+            seelName: "MELCHIOR-01",
+            displayName: "MELCHIOR",
+            message: {
+                ...streamMessage,
+                content: "<think>先检查前缀树，再核对网关缓存</think>",
+                status: "streaming",
+            },
+        });
+        emitTestEvent(bus, "SEEL_REPLY_COMPLETED", {
+            roundId: "round-thinking-1",
+            timestamp: 10_020,
+            seelName: "MELCHIOR-01",
+            displayName: "MELCHIOR",
+            message: {
+                ...streamMessage,
+                type: "ai",
+                content: "结论: 本地前缀持续变化",
+                status: "success",
+            },
+        });
+
+        const finalMessage = seel.messages.find((message) => message.id === "thinking-stream-1");
+        expect(finalMessage?.content).toContain("<think>先检查前缀树，再核对网关缓存</think>");
+        expect(finalMessage?.content).toContain("结论: 本地前缀持续变化");
+        expect(finalMessage?.status).toBe("success");
+
+        stop();
+    });
+
     it("应将共识事件和投票进度事件投影到主消息流", async () => {
         const bus = await createMagiEventBus();
         const seel = createWrappedSeel("BALTHASAR-02", "BALTHASAR");
