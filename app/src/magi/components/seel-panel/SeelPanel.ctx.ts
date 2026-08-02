@@ -55,7 +55,8 @@ const DEFAULT_HEADER_DIVIDER_Y = 21.6666666667;
 const EVENT_PULSE_DURATION_MS = 780;
 
 /** 将贤人颜色标识映射为实际 CSS 颜色。 */
-function getColor(colorName: string) {
+/** 用途：贤人颜色标识到 CSS 颜色的映射。使用范围：SeelPanel 卡片边框与其他 MAGI 面板（如 MagiWorkspace 集群主色）。解耦评估：纯展示函数，跨模块复用。 */
+export function getColor(colorName: string) {
     if (colorName === "red") {
         return "#ff3366";
     }
