@@ -3,12 +3,12 @@ package config
 // ── Forge 模式开发仓库工具 ──
 
 const (
-	ForgeDevRepoListToolName       = "forge_dev_repo_list"
-	ForgeDevRepoReadToolName       = "forge_dev_repo_read"
-	ForgeDevRepoSearchToolName     = "forge_dev_repo_search"
-	ForgeDevRepoEditToolName       = "forge_dev_repo_edit"
+	ForgeDevRepoListToolName         = "forge_dev_repo_list"
+	ForgeDevRepoReadToolName         = "forge_dev_repo_read"
+	ForgeDevRepoSearchToolName       = "forge_dev_repo_search"
+	ForgeDevRepoEditToolName         = "forge_dev_repo_edit"
 	ForgeDevRepoBatchReplaceToolName = "forge_dev_repo_batch_replace"
-	ForgeDevRepoBashToolName       = "forge_dev_repo_bash"
+	ForgeDevRepoBashToolName         = "forge_dev_repo_bash"
 )
 
 // BuildForgeDevRepoListToolDef 构建 forge 模式开发仓库目录查看工具定义。
