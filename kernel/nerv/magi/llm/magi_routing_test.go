@@ -156,7 +156,7 @@ func TestResolveMagiToolCall_ArgumentsObject(t *testing.T) {
 // TestResolveStreamResultMagiTools 验证：聚合结果中的 magi_tool 条目重新归档到真实工具名。
 func TestResolveStreamResultMagiTools(t *testing.T) {
 	result := &utilstream.StreamResult{
-		HasToolCalls: true,
+		HasToolCalls:  true,
 		ToolCallNames: []string{config.MagiToolName},
 		ToolArgumentsByName: map[string][]string{
 			config.MagiToolName: {

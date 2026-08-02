@@ -187,8 +187,10 @@ func (m *PrefixCacheMonitor) captureResponseUsage(resp *http.Response, predictio
 	if strings.Contains(strings.ToLower(contentType), "text/event-stream") {
 		// 流式：包装 body 为透传 + SSE usage 解析器
 		resp.Body = &sseUsageBody{
-			src:     resp.Body,
-			onUsage: func(hit, miss int) { m.recordRequest(prediction, &usageCacheInfo{HitTokens: hit, MissTokens: miss}, elapsed, nil) },
+			src: resp.Body,
+			onUsage: func(hit, miss int) {
+				m.recordRequest(prediction, &usageCacheInfo{HitTokens: hit, MissTokens: miss}, elapsed, nil)
+			},
 		}
 		return
 	}
@@ -201,10 +203,10 @@ func (m *PrefixCacheMonitor) captureResponseUsage(resp *http.Response, predictio
 	resp.Body = io.NopCloser(bytes.NewReader(raw))
 	var payload struct {
 		Usage *struct {
-			PromptTokens           int `json:"prompt_tokens"`
-			PromptCacheHitTokens   int `json:"prompt_cache_hit_tokens"`
-			PromptCacheMissTokens  int `json:"prompt_cache_miss_tokens"`
-			PromptTokensDetails    struct {
+			PromptTokens          int `json:"prompt_tokens"`
+			PromptCacheHitTokens  int `json:"prompt_cache_hit_tokens"`
+			PromptCacheMissTokens int `json:"prompt_cache_miss_tokens"`
+			PromptTokensDetails   struct {
 				CachedTokens int `json:"cached_tokens"`
 			} `json:"prompt_tokens_details"`
 		} `json:"usage"`
@@ -221,8 +223,8 @@ func (m *PrefixCacheMonitor) captureResponseUsage(resp *http.Response, predictio
 	}
 	miss := u.PromptCacheMissTokens
 	m.recordRequest(prediction, &usageCacheInfo{
-		HitTokens:  hit,
-		MissTokens: miss,
+		HitTokens:    hit,
+		MissTokens:   miss,
 		PromptTokens: u.PromptTokens,
 		CachedTokens: u.PromptTokensDetails.CachedTokens,
 	}, elapsed, nil)

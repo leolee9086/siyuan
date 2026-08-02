@@ -205,7 +205,7 @@ func (c *claudeClient) SendChatRequest(
 					Created: time.Now().Unix(),
 					Model:   modelName,
 					Choices: []types.ChunkChoice{{
-						Index:         0,
+						Index:        0,
 						FinishReason: &reason,
 					}},
 				})
@@ -223,8 +223,8 @@ func (c *claudeClient) SendChatRequest(
 }
 
 type toolUseBlockState struct {
-	id        string
-	name      string
+	id   string
+	name string
 }
 
 func sendChunk(ctx context.Context, ch chan<- types.StreamChunk, chunk types.StreamChunk) {
@@ -323,7 +323,7 @@ func emitSyncResultAsStream(
 		Created: time.Now().Unix(),
 		Model:   c.config.APIModel,
 		Choices: []types.ChunkChoice{{
-			Index:         0,
+			Index:        0,
 			FinishReason: &finishReason,
 		}},
 	})
