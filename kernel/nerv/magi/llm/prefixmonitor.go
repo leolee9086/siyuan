@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -83,6 +84,12 @@ func (t *MonitorTransport) Do(req *http.Request) (*http.Response, error) {
 	// 恢复请求体（必须，go-openai 还需要它）
 	req.Body = io.NopCloser(bytes.NewReader(rawBody))
 	req.ContentLength = int64(len(rawBody))
+
+	// 记录实际请求体的结构化摘要（所有类型，含 action-plan/vote/election 等
+	// 不走 LLM_REQUEST_SENT 推送的路径），供事后逐字节对比定位前缀分叉点。
+	if summary := summarizeRequestBody(rawBody); summary != "" {
+		observability.Detailf("[prefix-cache] %s 请求体: %s", src, summary)
+	}
 
 	seq, parseErr := buildMonitorSequence(rawBody)
 	var prediction *prefixPrediction
@@ -170,8 +177,9 @@ func (m *PrefixCacheMonitor) predictAndRecord(seq []chatseqtrie.Message, src Req
 		branchPoint:     match.BranchPoint,
 		seqLen:          len(seq),
 	}
-	observability.Detailf("[prefix-cache] %s 预测: 命中=%d 新增=%d 变体=%v 分叉=%d 序列=%d",
-		src, pred.commonPrefixLen, pred.suffixMsgs, pred.isVariant, pred.branchPoint, pred.seqLen)
+	observability.Detailf("[prefix-cache] %s 预测: 命中=%d 新增=%d 变体=%v 分叉=%d 序列=%d %s",
+		src, pred.commonPrefixLen, pred.suffixMsgs, pred.isVariant, pred.branchPoint, pred.seqLen,
+		summarizeMatchPath(match))
 	return pred
 }
 
@@ -314,6 +322,129 @@ func buildMonitorSequence(rawBody []byte) ([]chatseqtrie.Message, error) {
 
 	seq = append(seq, chatseqtrie.ConvertOpenAIMessages(payload.Messages)...)
 	return seq, nil
+}
+
+// summarizeRequestBody 从原始请求体提取结构化摘要，供事后逐字节对比定位前缀分叉点。
+// 服务端缓存按「完整请求体字节最长公共前缀」匹配，因此不仅 messages 内容，
+// model / temperature / max_tokens / tools / tool_choice 等字段的字节差异都会导致前缀断裂。
+// 摘要输出：model、请求参数、每条消息的 role + 长度 + 内容前 40 字符、tools 指纹。
+func summarizeRequestBody(rawBody []byte) string {
+	var payload struct {
+		Model               string           `json:"model"`
+		Messages            []map[string]any `json:"messages"`
+		MaxTokens           int              `json:"max_tokens"`
+		MaxCompletionTokens int              `json:"max_completion_tokens"`
+		Temperature         float64          `json:"temperature"`
+		TopP                float64          `json:"top_p"`
+		N                   int              `json:"n"`
+		Stream              bool             `json:"stream"`
+		Stop                []string         `json:"stop"`
+		PresencePenalty     float64          `json:"presence_penalty"`
+		FrequencyPenalty    float64          `json:"frequency_penalty"`
+		User                string           `json:"user"`
+		Tools               []any            `json:"tools"`
+		ToolChoice          any              `json:"tool_choice"`
+	}
+	if err := json.Unmarshal(rawBody, &payload); err != nil {
+		return ""
+	}
+	if payload.Model == "" {
+		return ""
+	}
+
+	var b strings.Builder
+	b.WriteString("model=" + payload.Model)
+	if payload.MaxTokens != 0 {
+		fmt.Fprintf(&b, " max_tokens=%d", payload.MaxTokens)
+	}
+	if payload.MaxCompletionTokens != 0 {
+		fmt.Fprintf(&b, " max_completion_tokens=%d", payload.MaxCompletionTokens)
+	}
+	fmt.Fprintf(&b, " temperature=%.4f top_p=%.4f n=%d stream=%v", payload.Temperature, payload.TopP, payload.N, payload.Stream)
+	if len(payload.Stop) > 0 {
+		fmt.Fprintf(&b, " stop=%v", payload.Stop)
+	}
+	if payload.PresencePenalty != 0 {
+		fmt.Fprintf(&b, " presence_penalty=%.4f", payload.PresencePenalty)
+	}
+	if payload.FrequencyPenalty != 0 {
+		fmt.Fprintf(&b, " frequency_penalty=%.4f", payload.FrequencyPenalty)
+	}
+	if payload.User != "" {
+		b.WriteString(" user=" + payload.User)
+	}
+	if len(payload.Tools) > 0 {
+		toolsJSON, _ := json.Marshal(payload.Tools)
+		sum := sha256.Sum256(toolsJSON)
+		fmt.Fprintf(&b, " tools=%d fp=%s", len(payload.Tools), hex.EncodeToString(sum[:8]))
+	} else {
+		b.WriteString(" tools=0")
+	}
+	if payload.ToolChoice != nil {
+		tcJSON, _ := json.Marshal(payload.ToolChoice)
+		b.WriteString(" tool_choice=" + string(tcJSON))
+	}
+
+	// 每条消息：role + 长度 + 内容前 40 字符。
+	// 前缀断裂点必然位于请求体前部，只输出前 30 条即可定位；超大请求（数百条）不全量输出。
+	const maxMsgSummary = 30
+	b.WriteString(" msgs=")
+	total := len(payload.Messages)
+	shown := total
+	if shown > maxMsgSummary {
+		shown = maxMsgSummary
+	}
+	for i := 0; i < shown; i++ {
+		if i > 0 {
+			b.WriteString(" | ")
+		}
+		m := payload.Messages[i]
+		role, _ := m["role"].(string)
+		content, _ := m["content"].(string)
+		if content == "" {
+			if arr, ok := m["content"].([]any); ok {
+				content = fmt.Sprintf("[multi:%d]", len(arr))
+			}
+		}
+		preview := content
+		if len(preview) > 40 {
+			preview = preview[:40] + "..."
+		}
+		fmt.Fprintf(&b, "[%d]%s(%d):%s", i, role, len(content), preview)
+	}
+	if total > shown {
+		fmt.Fprintf(&b, " | ...共%d条", total)
+	}
+	return b.String()
+}
+
+// summarizeMatchPath 输出 chatseqtrie 匹配路径经过的 session（预测命中来自哪条历史路径）。
+// 用于区分：预测命中是同一调用方的连续历史，还是跨 session / 跨类型的旧路径误匹配。
+func summarizeMatchPath(match *chatseqtrie.MatchResult) string {
+	if match == nil {
+		return ""
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "matched=%s len=%d", match.MatchedSession, match.MatchedLen)
+	if len(match.PathSessions) > 0 {
+		shown := match.PathSessions
+		if len(shown) > 5 {
+			shown = shown[:5]
+		}
+		b.WriteString(" path=[")
+		for i, sid := range shown {
+			if i > 0 {
+				b.WriteString(",")
+			}
+			b.WriteString(sid)
+		}
+		if len(match.PathSessions) > 5 {
+			fmt.Fprintf(&b, ",...共%d]", len(match.PathSessions))
+		} else {
+			b.WriteString("]")
+		}
+	}
+	return b.String()
 }
 
 // sseUsageBody 透传 SSE 流，同时解析 data 块中的 usage 缓存命中信息。
