@@ -335,8 +335,9 @@ func (s *Service) selectEngines(opts SearchOptions) ([]SearchEngine, []EngineDia
 		}
 		cfg := s.engineConfig(name, selectedEngine.Config())
 		if cfg.RequiresKey && strings.TrimSpace(cfg.APIKey) == "" {
+			// 对齐 s-code：缺 key 不跳过引擎（照常尝试；无凭据请求通常被 API
+			// 拒绝并转为 zero_results，与 s-code 行为一致）。requires_credentials 仅作诊断提示。
 			diagnostics = append(diagnostics, EngineDiagnostic{Name: name, Category: cfg.Category, RequiresKey: true, Status: "requires_credentials"})
-			continue
 		}
 		engines = append(engines, factory(cfg))
 	}
@@ -389,7 +390,7 @@ func mergeSearchOptions(defaults, opts SearchOptions) SearchOptions {
 		opts.NumResults = defaults.NumResults
 	}
 	if opts.NumResults <= 0 {
-		opts.NumResults = 8
+		opts.NumResults = 300
 	}
 	if opts.SafeSearch == 0 {
 		opts.SafeSearch = defaults.SafeSearch
@@ -402,6 +403,15 @@ func mergeSearchOptions(defaults, opts SearchOptions) SearchOptions {
 	}
 	if opts.SearchType == "" {
 		opts.SearchType = defaults.SearchType
+	}
+	// 对齐 s-code 配置语义：调用方未显式指定时继承默认配置。
+	// 此前漏掉 QueryType/TimeRange，导致 conf.json 中 ai.webSearch.queryType
+	// 与实际搜索脱节（配置形同虚设）。
+	if opts.QueryType == "" {
+		opts.QueryType = defaults.QueryType
+	}
+	if opts.TimeRange == "" {
+		opts.TimeRange = defaults.TimeRange
 	}
 	return opts
 }

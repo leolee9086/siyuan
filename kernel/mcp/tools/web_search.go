@@ -31,7 +31,7 @@ var WebSearchTool = &Tool{
 		Type: "object",
 		Properties: map[string]Property{
 			"query":      {Type: "string", Description: "Search query keywords"},
-			"numResults": {Type: "number", Description: "Number of results, default 8, maximum 50"},
+			"numResults": {Type: "number", Description: "Number of results, default 300 (aligned with s-code), no hard cap"},
 			"queryType":  {Type: "string", Description: "general, code, news, academic, social, video, or shopping"},
 			"timeRange":  {Type: "string", Description: "day, week, month, or year"},
 			"lang":       {Type: "string", Description: "Preferred language or locale"},
@@ -130,9 +130,8 @@ func intArg(args map[string]interface{}, key string, fallback int) int {
 	if !ok || value <= 0 {
 		return fallback
 	}
-	if value > 50 {
-		return 50
-	}
+	// 对齐 s-code：numResults 不设硬上限（s-code 默认 300，无 cap）。
+	// 引擎层（parse* 的 maxResults）与聚合层（Aggregate MaxResults）均以该值截断。
 	return int(value)
 }
 

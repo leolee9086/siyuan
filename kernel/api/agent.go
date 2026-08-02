@@ -30,12 +30,14 @@ import (
 	"time"
 
 	"github.com/88250/gulu"
+	"github.com/88250/lute/ast"
 	"github.com/gin-gonic/gin"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/agent"
 	"github.com/siyuan-note/siyuan/kernel/conf"
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/util"
+	"github.com/siyuan-note/siyuan/packages/agentqueue"
 )
 
 const agentOwnerTokenHeader = "X-SiYuan-Agent-Owner-Token"
@@ -219,7 +221,6 @@ type runningSession struct {
 	turnID          string
 	committed       bool
 	terminal        bool
-	eventCh         <-chan agent.AgentEvent
 	ownerIdentityID string
 }
 
@@ -270,8 +271,6 @@ func agentChat(c *gin.Context) {
 		c.JSON(http.StatusOK, ret)
 		return
 	}
-	client := util.NewOpenAIClientWithModel(selectedProvider.APIKey, selectedProvider.BaseURL, selectedModel.Name, model.Conf.AI.EffectiveAPIProxy(model.Conf.System))
-
 	confirmTimeout := time.Duration(model.Conf.AI.Agent.ConfirmTimeout) * time.Second
 	if confirmTimeout <= 0 {
 		confirmTimeout = 120 * time.Second
@@ -320,12 +319,70 @@ func agentChat(c *gin.Context) {
 	if req.ContentRevision != nil {
 		contentRevision = *req.ContentRevision
 	}
-	eventCh := agent.AgentChat(ctx, client, selectedModel.Name, req.SessionID, req.UserEntryID, contentRevision, req.Message, req.Language, req.References, req.EditorContext, req.PluginActions, req.Regenerate, confirmTimeout, maxRetries, req.ReasoningEffort, taskDirectory, ownerIdentityID, ownerExpiresAt, requestTimeout, streamIdleTimeout)
-	sessionsMu.Lock()
-	if runningSessions[req.SessionID] == running {
-		running.eventCh = eventCh
+
+	// 中断模型（外部行为一致）：请求语义从「启动 agent」变为「投递消息到消息源 + 订阅响应」。
+	// 执行器常驻阻塞在 WaitNext 上（闲时零 CPU），消息入队（Submit）触发唤醒（中断），
+	// 执行器 Take 后启动 AgentChat（turn 执行体）并把事件转发到订阅 channel；
+	// 本 handler 只负责从订阅 channel 读事件写 SSE——事件类型与 runningSessions
+	// 语义（409 互斥、streamStart/streamEnd）与改造前完全一致。
+	executor := getAgentExecutor(req.SessionID)
+	subCh, subErr := executor.subscribe(ctx)
+	if subErr != nil {
+		// 单流限制（当前由 runningSessions 409 互斥保证不可达，防御路径）：
+		// 释放占位并返回冲突，不破坏已存在的响应流。
+		sessionsMu.Lock()
+		if runningSessions[req.SessionID] == running {
+			delete(runningSessions, req.SessionID)
+		}
+		sessionsMu.Unlock()
+		cancel()
+		ret := gulu.Ret.NewResult()
+		ret.Code = -1
+		ret.Msg = subErr.Error()
+		c.JSON(http.StatusConflict, ret)
+		return
 	}
-	sessionsMu.Unlock()
+	defer executor.unsubscribe()
+
+	input := &agentqueue.Input{
+		ID:        ast.NewNodeID(),
+		SessionID: req.SessionID,
+		Semantics: agentqueue.SemanticsUserMessage,
+		Content:   req.Message,
+		Metadata: map[string]any{
+			turnParamsKey: &agentChatTurnParams{
+				ModelID:             req.Model,
+				UserEntryID:         req.UserEntryID,
+				ContentRevision:     contentRevision,
+				Language:            req.Language,
+				References:          req.References,
+				EditorContext:       req.EditorContext,
+				PluginActions:       req.PluginActions,
+				Regenerate:          req.Regenerate,
+				ReasoningEffort:     req.ReasoningEffort,
+				OwnerIdentityID:     ownerIdentityID,
+				OwnerExpiresAt:      ownerExpiresAt,
+				ConfirmTimeoutMs:    confirmTimeout.Milliseconds(),
+				MaxRetries:          maxRetries,
+				RequestTimeoutMs:    requestTimeout.Milliseconds(),
+				StreamIdleTimeoutMs: streamIdleTimeout.Milliseconds(),
+			},
+		},
+	}
+	if _, err := agentInboxManager.Submit(input); err != nil {
+		// 入队失败（如队列已满）：释放占位并返回冲突，保持与「无法启动」一致的失败语义。
+		sessionsMu.Lock()
+		if runningSessions[req.SessionID] == running {
+			delete(runningSessions, req.SessionID)
+		}
+		sessionsMu.Unlock()
+		cancel()
+		ret := gulu.Ret.NewResult()
+		ret.Code = -1
+		ret.Msg = "session queue rejected the message: " + err.Error()
+		c.JSON(http.StatusConflict, ret)
+		return
+	}
 	defer cancel()
 	streamClosed := false
 	defer func() {
@@ -333,7 +390,7 @@ func agentChat(c *gin.Context) {
 			return
 		}
 		go func() {
-			for event := range eventCh {
+			for event := range subCh {
 				recordRunningEvent(req.SessionID, running, event)
 			}
 			finishRunningSession(req.SessionID, running)
@@ -368,7 +425,7 @@ func agentChat(c *gin.Context) {
 
 	for {
 		select {
-		case event, ok := <-eventCh:
+		case event, ok := <-subCh:
 			if !ok {
 				streamClosed = true
 				finishRunningSession(req.SessionID, running)
@@ -1017,6 +1074,8 @@ func removeSession(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, ret)
 		return
 	}
+	// 会话删除后停止其常驻执行器（阻塞在 WaitNext 上的 goroutine）并清理队列。
+	stopAgentExecutor(req.ID)
 	// 外部会话删除后 capability 已移除，不能再通过通用广播函数判断敏感性。
 	if binding == nil {
 		broadcastAgentSessionChanged(c.GetHeader("X-SiYuan-App-ID"), req.ID, "delete")

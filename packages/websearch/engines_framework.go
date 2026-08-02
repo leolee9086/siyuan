@@ -4,7 +4,6 @@ package websearch
 import (
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -69,9 +68,8 @@ func (e *jsonAPIEngine) Search(query string, opts SearchOptions, headers map[str
 	for k, v := range e.cfg.Headers {
 		client.SetHeader(k, v)
 	}
-	if e.cfg.RequiresKey && strings.TrimSpace(e.config.APIKey) == "" {
-		return nil, &MissingCredentialError{Engine: e.config.Name}
-	}
+	// 对齐 s-code：缺 key 不跳过引擎（照常请求，无 Authorization header）。
+	// 无凭据请求通常返回 401/403，由下方的 HTTP 非 2xx 分支转为 zero_results。
 	if strings.TrimSpace(e.config.APIKey) != "" {
 		h := e.cfg.APIKeyHeader
 		if h == "" {
@@ -94,7 +92,8 @@ func (e *jsonAPIEngine) Search(query string, opts SearchOptions, headers map[str
 		return nil, err
 	}
 	if status < 200 || status >= 400 {
-		return nil, &EngineError{Engine: e.config.Name, Message: fmt.Sprintf("%s returned HTTP %d", e.config.Name, status), Retryable: status == 429 || status >= 500}
+		// 对齐 s-code：非 2xx 返回空结果（zero_results），不报错、不触发熔断
+		return []SearchResult{}, nil
 	}
 	if strings.TrimSpace(body) == "" {
 		return nil, &ProtocolError{Engine: e.config.Name, Message: "returned an empty response"}
@@ -110,8 +109,10 @@ func (e *jsonAPIEngine) Search(query string, opts SearchOptions, headers map[str
 	if err != nil {
 		return nil, &ProtocolError{Engine: e.config.Name, Message: "response parsing failed: " + err.Error()}
 	}
+	// 对齐 s-code：解析函数"正常但无匹配"时返回空结果（zero_results），
+	// 不算协议错误、不触发熔断。真实的解析缺陷会通过 err 暴露。
 	if results == nil {
-		return nil, &ProtocolError{Engine: e.config.Name, Message: "response parser returned nil results"}
+		results = []SearchResult{}
 	}
 	return results, nil
 }
@@ -160,7 +161,8 @@ func (e *htmlScraperEngine) Search(query string, opts SearchOptions, headers map
 		return nil, err
 	}
 	if status < 200 || status >= 400 {
-		return nil, &EngineError{Engine: e.config.Name, Message: fmt.Sprintf("%s returned HTTP %d", e.config.Name, status), Retryable: status == 429 || status >= 500}
+		// 对齐 s-code：非 2xx 返回空结果（zero_results），不报错、不触发熔断
+		return []SearchResult{}, nil
 	}
 	if strings.TrimSpace(body) == "" {
 		return nil, &ProtocolError{Engine: e.config.Name, Message: "returned an empty response"}
@@ -177,8 +179,10 @@ func (e *htmlScraperEngine) Search(query string, opts SearchOptions, headers map
 		}
 		return nil, &ProtocolError{Engine: e.config.Name, Message: "response parsing failed: " + err.Error()}
 	}
+	// 对齐 s-code：解析函数"正常但无匹配"时返回空结果（zero_results），
+	// 不算协议错误、不触发熔断。真实的解析缺陷会通过 err 暴露。
 	if results == nil {
-		return nil, &ProtocolError{Engine: e.config.Name, Message: "response parser returned nil results"}
+		results = []SearchResult{}
 	}
 	return results, nil
 }
@@ -212,10 +216,12 @@ func (e *siteScopedEngine) Search(query string, opts SearchOptions, headers map[
 		return nil, err
 	}
 	if status < 200 || status >= 400 {
-		return nil, &EngineError{Engine: e.config.Name, Message: fmt.Sprintf("%s returned HTTP %d", e.config.Name, status), Retryable: status == 429 || status >= 500}
+		// 对齐 s-code：非 2xx 返回空结果（zero_results），不报错、不触发熔断
+		return []SearchResult{}, nil
 	}
 	if strings.Contains(body, "challenge-form") {
-		return nil, &CaptchaError{Engine: e.config.Name, Message: e.config.Name + " returned a CAPTCHA challenge"}
+		// 对齐 s-code：反爬拦截视为空结果（zero_results），不触发熔断
+		return []SearchResult{}, nil
 	}
 	return parseDdgHTML(body, opts.NumResults, e.engineName, e.domain)
 }
@@ -227,7 +233,8 @@ func (e *siteScopedEngine) Search(query string, opts SearchOptions, headers map[
 // ── DuckDuckGo HTML 结果解析 ──────────────────────────
 
 func parseDdgHTML(html string, maxResults int, engineName, domainFilter string) ([]SearchResult, error) {
-	var results []SearchResult
+	// 显式初始化空切片：无匹配时返回 zero_results 而非 nil（对齐 s-code）
+	results := make([]SearchResult, 0, 32)
 	pos := 0
 	resultRegex := regexp.MustCompile(`<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>`)
 	matches := resultRegex.FindAllStringSubmatch(html, -1)
@@ -304,7 +311,8 @@ func decodeBingURL(href string) string {
 // parseGoogleResults 解析 Google 搜索结果 HTML
 // 对应 TS google.ts 的 parseGoogleResults()
 func parseGoogleResults(body string, maxResults int) ([]SearchResult, error) {
-	var results []SearchResult
+	// 显式初始化空切片：无匹配时返回 zero_results 而非 nil（对齐 s-code）
+	results := make([]SearchResult, 0, 32)
 	pos := 0
 
 	// 步骤1: 使用 data-ved + /url?q= 提取标题和 URL
@@ -365,7 +373,8 @@ func parseGoogleResults(body string, maxResults int) ([]SearchResult, error) {
 // 逐行对齐 TS parseBingResults + extractResult + extractSnippet
 
 func parseBingResults(body string, maxResults int) ([]SearchResult, error) {
-	var results []SearchResult
+	// 显式初始化空切片：无匹配时返回 zero_results 而非 nil（对齐 s-code）
+	results := make([]SearchResult, 0, 32)
 	pos := 0
 	seen := make(map[string]bool)
 
@@ -458,7 +467,8 @@ func rxReplaceAllString(s, pattern, repl string) string {
 // ── Google Scholar 结果解析 ───────────────────────────
 
 func parseGoogleScholarResults(body string, maxResults int) ([]SearchResult, error) {
-	var results []SearchResult
+	// 显式初始化空切片：无匹配时返回 zero_results 而非 nil（对齐 s-code）
+	results := make([]SearchResult, 0, 32)
 	blockStartRegex := regexp.MustCompile(`<div[^>]*class="gs_ri"[^>]*>`)
 	starts := blockStartRegex.FindAllStringIndex(body, -1)
 	for i, match := range starts {

@@ -80,6 +80,7 @@ require (
 	github.com/siyuan-note/httpclient v0.0.0-20260713023353-9c69b62d9749
 	github.com/siyuan-note/logging v0.0.0-20260513050044-06b8e04d5490
 	github.com/siyuan-note/riff v0.0.0-20251022131846-228528e70754
+	github.com/siyuan-note/siyuan/packages/agentqueue v0.0.0
 	github.com/siyuan-note/siyuan/packages/websearch v0.0.0
 	github.com/smallnest/chanx v1.2.0
 	github.com/soheilhy/cmux v0.1.5
@@ -247,6 +248,8 @@ replace github.com/88250/lute => github.com/leolee9086/lute v0.0.0-2026070121224
 replace github.com/leolee9086/string-metrics-damerau-levenshtein => ../packages/string-metrics-damerau-levenshtein
 
 replace github.com/siyuan-note/siyuan/packages/websearch => ../packages/websearch
+
+replace github.com/siyuan-note/siyuan/packages/agentqueue => ../packages/agentqueue
 
 replace github.com/siyuan-note/logging => ./logging
 

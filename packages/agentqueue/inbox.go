@@ -74,7 +74,12 @@ type SessionInbox struct {
 	settings  QueueSettings
 	summary   QueueSummary // DropSummarize 策略下被丢弃输入的摘要
 	storage   QueueStorage // 可选持久化存储（AttachStorage 挂载）
-	seq       int64
+	// signal 是「有新输入可拉取」的合并唤醒信号（容量 1）。
+	// Submit 成功入队后非阻塞发送；多个消息到达时只保留一个待消费信号，
+	// 避免信号堆积。执行器阻塞在 WaitNext() 上实现「闲时零 CPU 挂起」，
+	// 等价于 OS 中进程阻塞等待中断。
+	signal chan struct{}
+	seq    int64
 }
 
 // NewSessionInbox 创建指定容量的会话输入队列（使用默认策略，仅覆盖容量）。
@@ -92,6 +97,7 @@ func NewSessionInboxWithSettings(sessionID string, settings QueueSettings) *Sess
 	return &SessionInbox{
 		sessionID: sessionID,
 		settings:  settings.normalize(),
+		signal:    make(chan struct{}, 1),
 	}
 }
 
@@ -212,6 +218,13 @@ func (in *SessionInbox) Submit(input *Input) (int64, error) {
 		seq:   in.seq,
 		state: StatusPending,
 	})
+	// 入队成功后发唤醒信号（持锁内非阻塞发送）：确保「入队成功 → 必有信号」
+	// 的原子性，执行器阻塞在 WaitNext() 上可被及时唤醒。
+	select {
+	case in.signal <- struct{}{}:
+	default:
+		// 已有未消费信号（合并唤醒），无需重复发送。
+	}
 	return in.seq, nil
 }
 

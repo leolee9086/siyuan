@@ -373,7 +373,8 @@ func tryTwitterDirect(query string, numResults int, timeout int) ([]SearchResult
 	url := "https://x.com/search?q=" + url.QueryEscape(query) + "&src=typed_query&f=live"
 	status, body, err := client.Get(url, nil)
 	if err != nil || status < 200 || status >= 400 {
-		return nil, nil
+		// 对齐 s-code：网络失败/非 2xx 返回空结果（zero_results），不触发熔断
+		return []SearchResult{}, nil
 	}
 	re := regexp.MustCompile(`"globalObjects"\s*:\s*(\{[\s\S]*?\})\s*[,}]?\s*\}`)
 	if m := re.FindStringSubmatch(body); len(m) > 1 {
@@ -421,7 +422,8 @@ func tryTwitterDirect(query string, numResults int, timeout int) ([]SearchResult
 			}
 		}
 	}
-	return nil, nil
+	// 对齐 s-code：无结果时返回空结果（zero_results），不触发熔断
+	return []SearchResult{}, nil
 }
 
 // ── Mastodon ───────────────────────────────────────────
@@ -730,7 +732,10 @@ func newGenius(config EngineConfig) SearchEngine {
 				Response *struct {
 					Hits []struct {
 						Result struct {
-							Title, URL, PrimaryArtistName, HeaderImageURL string `json:"primary_artist"`
+							Title          string           `json:"title"`
+							URL            string           `json:"url"`
+							PrimaryArtist  *struct{ Name string } `json:"primary_artist"`
+							HeaderImageURL string           `json:"header_image_url"`
 						} `json:"result"`
 					} `json:"hits"`
 				} `json:"response"`
@@ -743,7 +748,11 @@ func newGenius(config EngineConfig) SearchEngine {
 				if i >= max || h.Result.Title == "" || h.Result.URL == "" {
 					break
 				}
-				results = append(results, SearchResult{Title: h.Result.Title, URL: h.Result.URL, Snippet: h.Result.PrimaryArtistName, Engine: "genius", Position: i + 1, Category: "music"})
+				artist := ""
+				if h.Result.PrimaryArtist != nil {
+					artist = h.Result.PrimaryArtist.Name
+				}
+				results = append(results, SearchResult{Title: h.Result.Title, URL: h.Result.URL, Snippet: artist, Engine: "genius", Position: i + 1, Category: "music"})
 			}
 			return results, nil
 		},
@@ -1054,10 +1063,11 @@ func newUnsplash(config EngineConfig) SearchEngine {
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
 				Results []struct {
-					ID                     string
-					URLs                   struct{ Regular string } `json:"urls"`
-					User                   struct{ Name string }    `json:"user"`
-					Description, LinksHTML string                   `json:"links"`
+					ID          string `json:"id"`
+					URLs        struct{ Regular string } `json:"urls"`
+					User        struct{ Name string }    `json:"user"`
+					Description string                  `json:"description"`
+					Links       struct{ HTML string }   `json:"links"`
 				} `json:"results"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
@@ -1072,7 +1082,7 @@ func newUnsplash(config EngineConfig) SearchEngine {
 				if title == "" {
 					title = "Unsplash " + p.ID
 				}
-				results = append(results, SearchResult{Title: title, URL: p.LinksHTML, Snippet: "Photo by " + p.User.Name, Engine: "unsplash", Position: i + 1, Category: "image"})
+				results = append(results, SearchResult{Title: title, URL: p.Links.HTML, Snippet: "Photo by " + p.User.Name, Engine: "unsplash", Position: i + 1, Category: "image"})
 			}
 			return results, nil
 		},
@@ -1089,8 +1099,11 @@ func newPixabay(config EngineConfig) SearchEngine {
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
 				Hits []struct {
-					ID                        int
-					PageURL, Tags, User, Type string `json:"pageURL"`
+					ID      int    `json:"id"`
+					PageURL string `json:"pageURL"`
+					Tags    string `json:"tags"`
+					User    string `json:"user"`
+					Type    string `json:"type"`
 				} `json:"hits"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
@@ -1433,10 +1446,13 @@ func newAdobeStock(config EngineConfig) SearchEngine {
 		Parse: func(body string, max int) ([]SearchResult, error) {
 			var raw struct {
 				Items map[string]struct {
-					Title, ContentURL                           string `json:"content_url"`
-					Author, Format                              string
-					AssetType                                   string `json:"asset_type"`
-					ContentOriginalWidth, ContentOriginalHeight int    `json:"content_original_width"`
+					Title                 string `json:"title"`
+					ContentURL            string `json:"content_url"`
+					Author                string `json:"author"`
+					Format                string `json:"format"`
+					AssetType             string `json:"asset_type"`
+					ContentOriginalWidth  int    `json:"content_original_width"`
+					ContentOriginalHeight int    `json:"content_original_height"`
 				}
 			}
 			if err := json.Unmarshal([]byte(body), &raw); err != nil {
@@ -1469,25 +1485,33 @@ func (e *findThatMemeEngine) Search(query string, opts SearchOptions, headers ma
 	body := fmt.Sprintf(`{"search":"%s","offset":0}`, query)
 	status, resp, err := client.PostJSON("https://findthatmeme.com/api/v1/search", body, nil)
 	if err != nil || status < 200 || status >= 400 {
-		return nil, nil
+		// 对齐 s-code：网络失败/非 2xx 返回空结果（zero_results），不触发熔断
+		return []SearchResult{}, nil
 	}
 	var items []struct {
-		ImagePath, SourcePageURL, SourceSite string `json:"source_page_url"`
-		MemeFileSize                         int64  `json:"meme_file_size"`
+		ImagePath     string `json:"image_path"`
+		SourcePageURL string `json:"source_page_url"`
+		SourceSite    string `json:"source_site"`
+		MemeFileSize  int64  `json:"meme_file_size"`
 	}
 	if err := json.Unmarshal([]byte(resp), &items); err != nil {
-		return nil, nil
+		return []SearchResult{}, nil
 	}
-	var results []SearchResult
-	for i, item := range items {
-		if i >= opts.NumResults || item.SourcePageURL == "" {
+	// 显式初始化空切片：无匹配时返回 zero_results 而非 nil（对齐 s-code）
+	results := make([]SearchResult, 0, 16)
+	for _, item := range items {
+		if len(results) >= opts.NumResults {
 			break
+		}
+		// 对齐 s-code：跳过缺少 source_page_url 的项（continue），而不是中断整个循环
+		if item.SourcePageURL == "" {
+			continue
 		}
 		snippet := ""
 		if item.MemeFileSize > 0 {
 			snippet = formatBytes(item.MemeFileSize)
 		}
-		results = append(results, SearchResult{Title: item.SourceSite, URL: item.SourcePageURL, Snippet: snippet, Engine: "findthatmeme", Position: i + 1, Category: "image"})
+		results = append(results, SearchResult{Title: item.SourceSite, URL: item.SourcePageURL, Snippet: snippet, Engine: "findthatmeme", Position: len(results) + 1, Category: "image"})
 	}
 	return results, nil
 }
@@ -1514,17 +1538,20 @@ func (e *tinEyeEngine) Search(query string, opts SearchOptions, headers map[stri
 	client := NewEngineHTTPClient(e.config)
 	status, resp, err := client.Get("https://api.tineye.com/rest/search/?q="+url.QueryEscape(query), map[string]string{"Accept": "application/json"})
 	if err != nil || status < 200 || status >= 400 {
-		return nil, nil
+		// 对齐 s-code：网络失败/非 2xx 返回空结果（zero_results），不触发熔断
+		return []SearchResult{}, nil
 	}
 	var data struct {
 		Results []struct {
-			ImageURL, PageURL string `json:"image_url"`
+			ImageURL string `json:"image_url"`
+			PageURL  string `json:"page_url"`
 		} `json:"results"`
 	}
 	if err := json.Unmarshal([]byte(resp), &data); err != nil {
-		return nil, nil
+		return []SearchResult{}, nil
 	}
-	var results []SearchResult
+	// 显式初始化空切片：无匹配时返回 zero_results 而非 nil（对齐 s-code）
+	results := make([]SearchResult, 0, 16)
 	for i, r := range data.Results {
 		if i >= opts.NumResults || r.PageURL == "" {
 			break
@@ -1569,13 +1596,69 @@ func newBingImages(config EngineConfig) SearchEngine {
 	return newHTMLScraperEngine(htmlScraperConfig{
 		Name: "bing-images",
 		BuildURL: func(q string, opts SearchOptions) string {
-			return "https://www.bing.com/images/search?q=" + url.QueryEscape(q)
+			// 对齐 s-code bing-images.ts：Bing Images 使用异步 HTML 端点，
+			// 普通搜索页解析器（parseBingResults）无法匹配图片结果结构。
+			return "https://www.bing.com/images/async?q=" + url.QueryEscape(q) +
+				"&async=1&first=1&count=" + strconv.Itoa(minInt(opts.NumResults, 35))
+		},
+		Headers: map[string]string{
+			"User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+			"Accept-Language": "en-US,en;q=0.9,zh-CN;q=0.8",
+			"Accept":          "text/html,application/xhtml+xml",
 		},
 		Parse: func(body string, max int) ([]SearchResult, error) {
-			results, _ := parseBingResults(body, max)
-			for i := range results {
-				results[i].Engine = "bing-images"
-				results[i].Category = "image"
+			// 对齐 s-code：验证码页返回空结果
+			if strings.Contains(body, "captcha") {
+				return []SearchResult{}, nil
+			}
+			// 定位结果列表容器 dgControl_list（对齐 s-code parseBingImagesResults）
+			searchHTML := body
+			if idx := strings.Index(body, "dgControl_list"); idx >= 0 {
+				searchHTML = body[idx:]
+			}
+			// 匹配 <li> 内 <a class="iusc" m="JSON">，m 属性含 purl(页面URL)/murl(图片URL)
+			results := make([]SearchResult, 0, 16)
+			pos := 0
+			itemRegex := regexp.MustCompile(`<li[^>]*>[\s\S]*?<a[^>]*class="iusc"[^>]*m="([^"]*)"[\s\S]*?<\/li>`)
+			for _, m := range itemRegex.FindAllStringSubmatch(searchHTML, -1) {
+				if len(results) >= max {
+					break
+				}
+				block := m[0]
+				metadataRaw := strings.NewReplacer("&quot;", "\"", "&#39;", "'").Replace(m[1])
+				var metadata struct {
+					PURL string `json:"purl"`
+					MURL string `json:"murl"`
+					TURL string `json:"turl"`
+				}
+				if err := json.Unmarshal([]byte(metadataRaw), &metadata); err != nil {
+					continue
+				}
+				if metadata.PURL == "" || metadata.MURL == "" {
+					continue
+				}
+				// 标题：infnmpt 容器
+				title := ""
+				if tm := regexp.MustCompile(`<div[^>]*class="infnmpt"[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>`).FindStringSubmatch(block); tm != nil {
+					title = StripHTML(tm[1])
+				}
+				// 格式/尺寸：imgpt 容器
+				resolution := ""
+				if fm := regexp.MustCompile(`<div[^>]*class="imgpt"[^>]*>[\s\S]*?<span[^>]*>([^<]*)<\/span>`).FindStringSubmatch(block); fm != nil {
+					resolution = strings.TrimSpace(fm[1])
+				}
+				if title == "" {
+					title = fmt.Sprintf("Image %d", pos+1)
+				}
+				snippet := strings.TrimSpace(resolution + " · " + metadata.MURL)
+				if len(snippet) > 300 {
+					snippet = snippet[:300]
+				}
+				pos++
+				results = append(results, SearchResult{
+					Title: title, URL: metadata.PURL, Snippet: snippet,
+					Engine: "bing-images", Position: pos, Category: "image",
+				})
 			}
 			return results, nil
 		},
@@ -1586,22 +1669,64 @@ func newSogouImages(config EngineConfig) SearchEngine {
 	return newHTMLScraperEngine(htmlScraperConfig{
 		Name: "sogou-images",
 		BuildURL: func(q string, opts SearchOptions) string {
-			return "https://pic.sogou.com/pics?query=" + url.QueryEscape(q) + "&mode=1"
+			// 对齐 s-code sogou-images.ts：start=0 参数
+			return "https://pic.sogou.com/pics?query=" + url.QueryEscape(q) + "&start=0"
+		},
+		Headers: map[string]string{
+			"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+			"Accept":     "text/html",
+			"Referer":    "https://pic.sogou.com/",
 		},
 		Parse: func(body string, max int) ([]SearchResult, error) {
-			var results []SearchResult
+			// 对齐 s-code sogou-images.ts parseSogouImagesResults：
+			// 搜狗图片页的 img 是懒加载（src 为空占位），真实数据在 window.__INITIAL_STATE__ JSON 中
+			results := make([]SearchResult, 0, 16)
+			stateRe := regexp.MustCompile(`window\.__INITIAL_STATE__\s*=\s*({.*?});`)
+			m := stateRe.FindStringSubmatch(body)
+			if len(m) < 2 {
+				return results, nil
+			}
+			var state struct {
+				SearchList *struct {
+					SearchList []struct {
+						URL          string `json:"url"`
+						PicURL       string `json:"picUrl"`
+						Title        string `json:"title"`
+						ContentMajor string `json:"content_major"`
+						ChSiteName   string `json:"ch_site_name"`
+					} `json:"searchList"`
+				} `json:"searchList"`
+			}
+			if err := json.Unmarshal([]byte(m[1]), &state); err != nil || state.SearchList == nil {
+				return results, nil
+			}
 			pos := 0
-			re := regexp.MustCompile(`<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"`)
-			for _, m := range re.FindAllStringSubmatch(body, -1) {
+			for _, item := range state.SearchList.SearchList {
 				if len(results) >= max {
 					break
 				}
-				title := m[2]
-				if title == "" || m[1] == "" {
+				if item.URL == "" || item.PicURL == "" {
 					continue
 				}
+				snippet := ""
+				if item.ChSiteName != "" {
+					snippet = item.ChSiteName
+				}
+				if item.ContentMajor != "" {
+					if snippet != "" {
+						snippet += " · "
+					}
+					snippet += item.ContentMajor
+				}
+				if snippet == "" {
+					snippet = "Sogou image"
+				}
+				title := item.Title
+				if title == "" {
+					title = fmt.Sprintf("Image %d", pos+1)
+				}
 				pos++
-				results = append(results, SearchResult{Title: title, URL: m[1], Snippet: "", Engine: "sogou-images", Position: pos, Category: "image"})
+				results = append(results, SearchResult{Title: title, URL: item.URL, Snippet: snippet, Engine: "sogou-images", Position: pos, Category: "image"})
 			}
 			return results, nil
 		},
@@ -1732,16 +1857,22 @@ func newYahoo(config EngineConfig) SearchEngine {
 		BuildURL: func(q string, opts SearchOptions) string {
 			return "https://search.yahoo.com/search?p=" + url.QueryEscape(q)
 		},
+		Headers: map[string]string{
+			"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+			"Accept":     "text/html",
+		},
 		Parse: func(body string, max int) ([]SearchResult, error) {
-			var results []SearchResult
+			// 对齐 s-code yahoo.ts parseYahooResults：algo-sr 容器 + compText 摘要 + fallback
+			results := make([]SearchResult, 0, 16)
 			pos := 0
-			re := regexp.MustCompile(`<div[^>]*class="[^"]*algo-sr[^"]*"[^>]*>[\s\S]*?<h3[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"[^>]*>[\s\S]*?<span[^>]*>([\s\S]*?)<\/span>`)
-			for _, m := range re.FindAllStringSubmatch(body, -1) {
+			resultRegex := regexp.MustCompile(`<div[^>]*class="[^"]*algo-sr[^"]*"[^>]*>[\s\S]*?<h3[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"[^>]*>[\s\S]*?<span[^>]*>([\s\S]*?)<\/span>[\s\S]*?<\/h3>[\s\S]*?<div[^>]*class="[^"]*compText[^"]*"[^>]*>([\s\S]*?)<\/div>`)
+			for _, m := range resultRegex.FindAllStringSubmatch(body, -1) {
 				if len(results) >= max {
 					break
 				}
 				title := StripHTML(m[2])
 				u := m[1]
+				content := StripHTML(m[3])
 				if title == "" || u == "" {
 					continue
 				}
@@ -1751,7 +1882,28 @@ func newYahoo(config EngineConfig) SearchEngine {
 					}
 				}
 				pos++
-				results = append(results, SearchResult{Title: title, URL: u, Snippet: "", Engine: "yahoo", Position: pos})
+				results = append(results, SearchResult{Title: title, URL: u, Snippet: content, Engine: "yahoo", Position: pos})
+			}
+			// 备用模式：d-ib + fc-falcon（对齐 s-code fallback）
+			if len(results) == 0 {
+				fallbackRegex := regexp.MustCompile(`<a[^>]*class="[^"]*d-ib[^"]*"[^>]*href="([^"]*)"[^>]*>[\s\S]*?<span[^>]*class="[^"]*fc-falcon[^"]*"[^>]*>([\s\S]*?)<\/span>`)
+				for _, m := range fallbackRegex.FindAllStringSubmatch(body, -1) {
+					if len(results) >= max {
+						break
+					}
+					title := StripHTML(m[2])
+					u := m[1]
+					if title == "" {
+						continue
+					}
+					if ru := regexp.MustCompile(`/RU=([^/]+)/RK`).FindStringSubmatch(u); len(ru) > 1 {
+						if decoded, err := url.QueryUnescape(ru[1]); err == nil {
+							u = decoded
+						}
+					}
+					pos++
+					results = append(results, SearchResult{Title: title, URL: u, Snippet: "Yahoo search result", Engine: "yahoo", Position: pos})
+				}
 			}
 			return results, nil
 		},

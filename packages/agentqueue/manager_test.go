@@ -1,6 +1,7 @@
 package agentqueue
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -442,5 +443,189 @@ func TestManagerOnChangedNotBlocking(t *testing.T) {
 	case <-done:
 	case <-time.After(5 * time.Second):
 		t.Fatal("submit loop blocked by onChanged callback")
+	}
+}
+
+// TestManagerWaitNextUnknownSession 验证会话不存在时 WaitNext 返回 nil channel
+// （select 中永不触发，须由调用方配合 ctx.Done() 兜底退出）。
+func TestManagerWaitNextUnknownSession(t *testing.T) {
+	m := NewInboxManager(10)
+	if sig := m.WaitNext("sess-missing"); sig != nil {
+		t.Fatalf("unknown session should return nil channel, got %v", sig)
+	}
+}
+
+// TestManagerWaitNextBlocksWhenIdle 验证无消息时 WaitNext 阻塞（闲时挂起）。
+// 这是「零 CPU 挂起」的语义基础：阻塞在 channel 上的 goroutine 由 runtime 挂起。
+func TestManagerWaitNextBlocksWhenIdle(t *testing.T) {
+	m := NewInboxManager(10)
+	// 先注册会话（Submit 自动创建 inbox），使 WaitNext 返回真实信号 channel。
+	m.Submit(newTestInput("a", "sess-1", SemanticsQueue))
+	sig := m.WaitNext("sess-1")
+	// 消费掉入队时遗留的信号，恢复空闲状态。
+	select {
+	case <-sig:
+	default:
+	}
+	// 空闲时不应在超时内返回。
+	select {
+	case <-sig:
+		t.Fatal("wait next returned while idle")
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+// TestManagerWaitNextWakesOnSubmit 验证 Submit 入队后 WaitNext 被唤醒。
+func TestManagerWaitNextWakesOnSubmit(t *testing.T) {
+	m := NewInboxManager(10)
+	m.Submit(newTestInput("a", "sess-1", SemanticsQueue))
+	// 消费入队信号，回到空闲。
+	sig := m.WaitNext("sess-1")
+	select {
+	case <-sig:
+	default:
+	}
+	woken := make(chan struct{})
+	go func() {
+		<-sig
+		close(woken)
+	}()
+	m.Submit(newTestInput("b", "sess-1", SemanticsQueue))
+	select {
+	case <-woken:
+	case <-time.After(1 * time.Second):
+		t.Fatal("wait next not woken by submit")
+	}
+}
+
+// TestManagerWaitNextMergedSignal 验证合并唤醒：多次 Submit 只产生一个待消费信号
+// （信号 channel 容量 1，未消费时后续入队不堆积信号）。
+func TestManagerWaitNextMergedSignal(t *testing.T) {
+	m := NewInboxManager(10)
+	m.Submit(newTestInput("a", "sess-1", SemanticsQueue))
+	sig := m.WaitNext("sess-1")
+	// 连续多次 Submit：第一条产生信号，后续合并（不堆积）。
+	m.Submit(newTestInput("b", "sess-1", SemanticsQueue))
+	m.Submit(newTestInput("c", "sess-1", SemanticsQueue))
+	// 只能消费到一个信号。
+	select {
+	case <-sig:
+	default:
+		t.Fatal("expected one merged signal")
+	}
+	// 没有第二个信号可消费。
+	select {
+	case <-sig:
+		t.Fatal("merged signal should be consumed exactly once")
+	default:
+	}
+	// 队列中 3 条消息都 pending，唤醒后应循环 Take 取空。
+	if m.PendingCount("sess-1") != 3 {
+		t.Fatalf("pending count: got %d, want 3", m.PendingCount("sess-1"))
+	}
+}
+
+// TestManagerWaitNextConcurrent 验证并发 Submit / WaitNext 无竞态（-race 兜底）
+// 且不丢唤醒：每批 Submit 后等待者都能及时醒来并取空。
+func TestManagerWaitNextConcurrent(t *testing.T) {
+	m := NewInboxManager(100)
+	m.Submit(newTestInput("init", "sess-1", SemanticsQueue))
+	sig := m.WaitNext("sess-1")
+	select {
+	case <-sig:
+	default:
+	}
+	// 取走 init 消息，使队列回到空状态（后续只统计批量入队的消息）。
+	if got, err := m.Take("sess-1", ""); err != nil || got == nil {
+		t.Fatalf("init item should be taken: got=%v err=%v", got, err)
+	}
+
+	const batches = 10
+	const perBatch = 20
+	var wg sync.WaitGroup
+	// 消费者：循环等待唤醒并取空。
+	consumed := make(chan int, batches)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		total := 0
+		for total < batches*perBatch {
+			select {
+			case <-sig:
+			case <-time.After(5 * time.Second):
+				t.Error("consumer starved: no wake within timeout")
+				return
+			}
+			for {
+				got, err := m.Take("sess-1", "")
+				if err != nil || got == nil {
+					break
+				}
+				total++
+			}
+		}
+		consumed <- total
+	}()
+
+	// 生产者：分批发入队。
+	for b := 0; b < batches; b++ {
+		wg.Add(1)
+		go func(b int) {
+			defer wg.Done()
+			for i := 0; i < perBatch; i++ {
+				id := string(rune('a'+b%26)) + fmt.Sprintf("-%d", i)
+				if _, err := m.Submit(newTestInput(id, "sess-1", SemanticsQueue)); err != nil {
+					t.Errorf("submit: %v", err)
+					return
+				}
+			}
+		}(b)
+	}
+	wg.Wait()
+
+	select {
+	case total := <-consumed:
+		if total != batches*perBatch {
+			t.Fatalf("consumed: got %d, want %d", total, batches*perBatch)
+		}
+	case <-time.After(6 * time.Second):
+		t.Fatal("consumer did not finish within timeout")
+	}
+}
+
+// TestManagerGetOrCreateInboxCreatesAndReuses 验证 GetOrCreateInbox：
+// 不存在时创建并注册；已存在时复用同一实例（不覆盖，区别于 RegisterInbox）。
+func TestManagerGetOrCreateInboxCreatesAndReuses(t *testing.T) {
+	m := NewInboxManager(10)
+	in1 := m.GetOrCreateInbox("sess-1")
+	if in1 == nil {
+		t.Fatal("GetOrCreateInbox should create an inbox")
+	}
+	in2 := m.GetOrCreateInbox("sess-1")
+	if in1 != in2 {
+		t.Fatal("GetOrCreateInbox should reuse the existing inbox")
+	}
+}
+
+// TestManagerGetOrCreateInboxPreservesItems 验证复用时不丢弃已有条目
+// （执行器空闲回收后重建的核心保证：竞态窗口内入队的消息不被覆盖丢失）。
+func TestManagerGetOrCreateInboxPreservesItems(t *testing.T) {
+	m := NewInboxManager(10)
+	in1 := m.GetOrCreateInbox("sess-1")
+	if _, err := in1.Submit(newTestInput("keep", "sess-1", SemanticsUserMessage)); err != nil {
+		t.Fatalf("submit failed: %v", err)
+	}
+	// 复用已有 inbox：条目保留。
+	in2 := m.GetOrCreateInbox("sess-1")
+	if in1 != in2 {
+		t.Fatal("GetOrCreateInbox should reuse the existing inbox")
+	}
+	if in2.PendingCount() != 1 {
+		t.Fatalf("pending count after reuse: got %d, want 1", in2.PendingCount())
+	}
+	// RegisterInbox 会覆盖（对比语义：无条件替换），而 GetOrCreateInbox 不会。
+	m.RegisterInbox(NewSessionInboxWithSettings("sess-1", m.Settings()))
+	if m.PendingCount("sess-1") != 0 {
+		t.Fatal("RegisterInbox should replace the inbox (contrast semantics)")
 	}
 }

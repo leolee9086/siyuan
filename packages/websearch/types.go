@@ -117,9 +117,11 @@ type SearchOptions struct {
 }
 
 // DefaultSearchOptions 创建默认搜索选项
+// NumResults 与 s-code 对齐（websearch.ts 中 params.numResults || 300），
+// 保证单次搜索聚合后可返回足够多的结果供 LLM 消费。
 func DefaultSearchOptions() SearchOptions {
 	return SearchOptions{
-		NumResults: 8,
+		NumResults: 300,
 		SafeSearch: 1,
 		Provider:   ProviderAuto,
 		SearchType: "auto",

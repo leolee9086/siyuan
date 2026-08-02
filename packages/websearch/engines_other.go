@@ -671,11 +671,10 @@ func newBBCNews(config EngineConfig) SearchEngine {
 func newTheGuardian(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "theguardian", Category: "news",
-		RequiresKey:      true,
-		APIKeyQueryParam: "api-key",
-		UserAgent:        "opencode-search/1.0",
+		// 对齐 s-code theguardian.ts：公开 API 无需 key（默认 "test" 测试 key，5000 次/天限速）
+		UserAgent: "opencode-search/1.0",
 		URL: func(q string, n int) string {
-			return "https://content.guardianapis.com/search?q=" + url.QueryEscape(q) + "&page-size=" + strconv.Itoa(minInt(n, 20)) + "&show-fields=trailText,byline,publication"
+			return "https://content.guardianapis.com/search?q=" + url.QueryEscape(q) + "&page-size=" + strconv.Itoa(minInt(n, 20)) + "&api-key=test&show-fields=trailText,byline,publication"
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
@@ -1216,7 +1215,11 @@ func newYahooFinance(config EngineConfig) SearchEngine {
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
 				Quotes []struct {
-					Symbol, ShortName, LongName, Exchange, QuoteType string `json:"quoteType"`
+					Symbol    string `json:"symbol"`
+					ShortName string `json:"shortname"`
+					LongName  string `json:"longname"`
+					Exchange  string `json:"exchange"`
+					QuoteType string `json:"quoteType"`
 				} `json:"quotes"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
@@ -1247,8 +1250,12 @@ func newFred(config EngineConfig) SearchEngine {
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
 				Seriess []struct {
-					ID, Title, Popularity, Frequency, Units string `json:"seriess"`
-				}
+					ID         string `json:"id"`
+					Title      string `json:"title"`
+					Popularity string `json:"popularity"`
+					Frequency  string `json:"frequency"`
+					Units      string `json:"units"`
+				} `json:"seriess"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
 				return nil, nil
@@ -1271,10 +1278,20 @@ func newWttr(config EngineConfig) SearchEngine {
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
 				CurrentCondition []struct {
-					TempC, WeatherDesc, Humidity, WindSpeed string `json:"temp_C"`
+					TempC       string `json:"temp_C"`
+					WeatherDesc []struct {
+						Value string `json:"value"`
+					} `json:"weatherDesc"`
+					Humidity  string `json:"humidity"`
+					WindSpeed string `json:"windspeed"`
 				} `json:"current_condition"`
 				NearestArea []struct {
-					AreaName, Country string `json:"areaName"`
+					AreaName []struct {
+						Value string `json:"value"`
+					} `json:"areaName"`
+					Country []struct {
+						Value string `json:"value"`
+					} `json:"country"`
 				} `json:"nearest_area"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
@@ -1287,9 +1304,21 @@ func newWttr(config EngineConfig) SearchEngine {
 				}
 				loc := ""
 				if len(resp.NearestArea) > 0 {
-					loc = resp.NearestArea[0].AreaName + ", " + resp.NearestArea[0].Country
+					if len(resp.NearestArea[0].AreaName) > 0 {
+						loc = resp.NearestArea[0].AreaName[0].Value
+					}
+					if len(resp.NearestArea[0].Country) > 0 {
+						if loc != "" {
+							loc += ", "
+						}
+						loc += resp.NearestArea[0].Country[0].Value
+					}
 				}
-				results = append(results, SearchResult{Title: fmt.Sprintf("Weather: %s°C", c.TempC), URL: "https://wttr.in/" + loc, Snippet: fmt.Sprintf("%s · Humidity: %s · Wind: %s · %s", c.WeatherDesc, c.Humidity, c.WindSpeed, loc), Engine: "wttr", Position: i + 1, Category: "weather"})
+				weatherDesc := ""
+				if len(c.WeatherDesc) > 0 {
+					weatherDesc = c.WeatherDesc[0].Value
+				}
+				results = append(results, SearchResult{Title: fmt.Sprintf("Weather: %s°C", c.TempC), URL: "https://wttr.in/" + loc, Snippet: fmt.Sprintf("%s · Humidity: %s · Wind: %s · %s", weatherDesc, c.Humidity, c.WindSpeed, loc), Engine: "wttr", Position: i + 1, Category: "weather"})
 			}
 			return results, nil
 		},
@@ -1323,7 +1352,8 @@ func (e *openMeteoEngine) Search(query string, opts SearchOptions, headers map[s
 	geoClient.SetHeader("Accept", "application/json")
 	geoStatus, geoBody, err := geoClient.Get(geoURL, nil)
 	if err != nil || geoStatus < 200 || geoStatus >= 400 {
-		return nil, nil
+		// 对齐 s-code：网络失败/非 2xx 返回空结果（zero_results），不触发熔断
+		return []SearchResult{}, nil
 	}
 	var geoResp struct {
 		Results []struct {
@@ -1333,7 +1363,7 @@ func (e *openMeteoEngine) Search(query string, opts SearchOptions, headers map[s
 		} `json:"results"`
 	}
 	if err := json.Unmarshal([]byte(geoBody), &geoResp); err != nil || len(geoResp.Results) == 0 {
-		return nil, nil
+		return []SearchResult{}, nil
 	}
 	loc := geoResp.Results[0]
 
@@ -1344,7 +1374,7 @@ func (e *openMeteoEngine) Search(query string, opts SearchOptions, headers map[s
 	weatherClient.SetHeader("Accept", "application/json")
 	wStatus, wBody, err := weatherClient.Get(weatherURL, nil)
 	if err != nil || wStatus < 200 || wStatus >= 400 {
-		return nil, nil
+		return []SearchResult{}, nil
 	}
 	var weatherResp struct {
 		Current *struct {
@@ -1356,7 +1386,7 @@ func (e *openMeteoEngine) Search(query string, opts SearchOptions, headers map[s
 		} `json:"current"`
 	}
 	if err := json.Unmarshal([]byte(wBody), &weatherResp); err != nil || weatherResp.Current == nil {
-		return nil, nil
+		return []SearchResult{}, nil
 	}
 	cur := weatherResp.Current
 	condition := "Unknown"
@@ -2209,8 +2239,9 @@ func newCurrencyConvert(config EngineConfig) SearchEngine {
 		URL: func(q string, n int) string { return "https://open.er-api.com/v6/latest/" + url.QueryEscape(q) },
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
-				BaseCode, TimeLastUpdateUnix string `json:"base_code"`
-				Rates                        map[string]float64
+				BaseCode           string             `json:"base_code"`
+				TimeLastUpdateUnix string             `json:"time_last_update_unix"`
+				Rates              map[string]float64 `json:"rates"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
 				return nil, nil
@@ -2264,7 +2295,9 @@ func newEncyclosearch(config EngineConfig) SearchEngine {
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
 				Results []struct {
-					Title, SourceURL, Description string `json:"SourceURL"`
+					Title       string `json:"Title"`
+					SourceURL   string `json:"SourceURL"`
+					Description string `json:"Description"`
 				} `json:"Results"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
@@ -2287,7 +2320,10 @@ func newEncyclosearch(config EngineConfig) SearchEngine {
 }
 func newOpenFoodFacts(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
-		Name: "openfoodfacts", Category: "general", UserAgent: "opencode-search/1.0",
+		Name: "openfoodfacts", Category: "general",
+		// 实测确认（2026-08-02）：OpenFoodFacts 只接受 "opencode-search/1.0" UA（返回 200），
+		// 浏览器 UA / Bun UA 均返回 503。s-code 侧（openfoodfacts.ts）同样使用该 UA。
+		UserAgent: "opencode-search/1.0",
 		URL: func(q string, n int) string {
 			return "https://world.openfoodfacts.org/api/v2/search?search_terms=" + url.QueryEscape(q) + "&page_size=" + strconv.Itoa(minInt(n, 20)) + "&json=1"
 		},
@@ -2468,8 +2504,11 @@ func (e *context7Engine) Search(query string, opts SearchOptions, headers map[st
 	}
 	var data struct {
 		Results []struct {
-			LibraryID, Name, Description string `json:"libraryId"`
-			SnippetCount, BenchmarkScore int
+			LibraryID      string `json:"libraryId"`
+			Name           string `json:"name"`
+			Description    string `json:"description"`
+			SnippetCount   int    `json:"snippetCount"`
+			BenchmarkScore int    `json:"benchmarkScore"`
 		} `json:"results"`
 	}
 	if err := json.Unmarshal([]byte(resp), &data); err != nil {

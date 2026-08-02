@@ -39,25 +39,62 @@ func newArxiv(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
 		Name: "arxiv", Category: "academic",
 		URL: func(q string, n int) string {
-			return "http://export.arxiv.org/api/query?search_query=all:" + url.QueryEscape(q) + "&max_results=" + strconv.Itoa(minInt(n, 50)) + "&sortBy=relevance&sortOrder=descending"
+			// 对齐 s-code arxiv.ts：必须使用 https（http 端点经代理会失败）
+			return "https://export.arxiv.org/api/query?search_query=all:" + url.QueryEscape(q) + "&max_results=" + strconv.Itoa(minInt(n, 50)) + "&sortBy=relevance&sortOrder=descending"
 		},
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
+			// 对齐 s-code arxiv.ts parseArxivResults：
+			// 先匹配整个 <entry>...</entry>，再逐字段提取（避免整段正则因字段缺失而少匹配）
 			body := string(data)
-			var results []SearchResult
-			re := regexp.MustCompile(`<entry>[\s\S]*?<title>([\s\S]*?)<\/title>[\s\S]*?<id>([\s\S]*?)<\/id>[\s\S]*?<summary>([\s\S]*?)<\/summary>`)
-			matches := re.FindAllStringSubmatch(body, -1)
-			for i, m := range matches {
-				if i >= max {
+			results := make([]SearchResult, 0, 16)
+			pos := 0
+			entryRegex := regexp.MustCompile(`<entry>[\s\S]*?<\/entry>`)
+			for _, entry := range entryRegex.FindAllString(body, -1) {
+				if len(results) >= max {
 					break
 				}
+				title := extractXMLValue(entry, "title")
+				id := extractXMLValue(entry, "id")
+				summary := extractXMLValue(entry, "summary")
+				published := extractXMLValue(entry, "published")
+				author := extractXMLValue(entry, "name")
+				if title == "" || id == "" {
+					continue
+				}
+				// 对齐 s-code：Arxiv URL 统一 https
+				u := strings.Replace(strings.TrimSpace(id), "http://", "https://", 1)
+				snippet := StripHTML(summary)
+				if author != "" {
+					snippet = author + ": " + snippet
+				}
+				if len(snippet) > 250 {
+					snippet = snippet[:250]
+				}
+				var publishedDate int64
+				if published != "" {
+					if t, err := time.Parse(time.RFC3339, published); err == nil {
+						publishedDate = t.UnixMilli()
+					}
+				}
+				pos++
 				results = append(results, SearchResult{
-					Title: StripHTML(m[1]), URL: strings.TrimSpace(m[2]),
-					Snippet: StripHTML(m[3]), Engine: "arxiv", Position: i + 1, Category: "academic",
+					Title: strings.TrimSpace(title), URL: u,
+					Snippet: snippet, Engine: "arxiv", Position: pos,
+					PublishedDate: publishedDate, Category: "academic",
 				})
 			}
 			return results, nil
 		},
 	})(config)
+}
+
+// extractXMLValue 从 XML 片段中提取指定标签的文本内容（对齐 s-code extractXmlValue）
+func extractXMLValue(xml, tag string) string {
+	re := regexp.MustCompile(`<` + tag + `[^>]*>([\s\S]*?)<\/` + tag + `>`)
+	if m := re.FindStringSubmatch(xml); m != nil {
+		return strings.TrimSpace(m[1])
+	}
+	return ""
 }
 
 // ── Semantic Scholar ──────────────────────────────────
@@ -266,7 +303,8 @@ func (e *pubmedEngine) Search(query string, opts SearchOptions, headers map[stri
 	client := NewEngineHTTPClient(e.config)
 	status, body, err := client.Get("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term="+url.QueryEscape(query)+"&retmax="+strconv.Itoa(minInt(opts.NumResults, 50))+"&retmode=json&sort=relevance", map[string]string{"Accept": "application/json"})
 	if err != nil || status < 200 || status >= 400 {
-		return nil, nil
+		// 对齐 s-code：网络失败/非 2xx 返回空结果（zero_results），不触发熔断
+		return []SearchResult{}, nil
 	}
 	var resp struct {
 		ESearchResult *struct {
@@ -275,9 +313,10 @@ func (e *pubmedEngine) Search(query string, opts SearchOptions, headers map[stri
 		} `json:"esearchresult"`
 	}
 	if err := json.Unmarshal([]byte(body), &resp); err != nil || resp.ESearchResult == nil {
-		return nil, nil
+		return []SearchResult{}, nil
 	}
-	var results []SearchResult
+	// 显式初始化空切片：无匹配时返回 zero_results 而非 nil（对齐 s-code）
+	results := make([]SearchResult, 0, 16)
 	for i, id := range resp.ESearchResult.IDList {
 		if i >= opts.NumResults {
 			break
@@ -368,18 +407,23 @@ func (e *coreEngine) Search(query string, opts SearchOptions, headers map[string
 	client := NewEngineHTTPClient(e.config)
 	status, body, err := client.Get("https://api.core.ac.uk/v3/search/works?q="+url.QueryEscape(query)+"&limit="+strconv.Itoa(minInt(opts.NumResults, 50)), map[string]string{"Accept": "application/json"})
 	if err != nil || status < 200 || status >= 400 {
-		return nil, nil
+		// 对齐 s-code：网络失败/非 2xx 返回空结果（zero_results），不触发熔断
+		return []SearchResult{}, nil
 	}
 	var resp struct {
 		Results []struct {
-			Title, DownloadURL, Doi, PublishedDate string                  `json:"downloadUrl"`
-			Authors                                []struct{ Name string } `json:"authors"`
+			Title         string                  `json:"title"`
+			DownloadURL   string                  `json:"downloadUrl"`
+			Doi           string                  `json:"doi"`
+			PublishedDate string                  `json:"publishedDate"`
+			Authors       []struct{ Name string } `json:"authors"`
 		} `json:"results"`
 	}
 	if err := json.Unmarshal([]byte(body), &resp); err != nil {
-		return nil, nil
+		return []SearchResult{}, nil
 	}
-	var results []SearchResult
+	// 显式初始化空切片：无匹配时返回 zero_results 而非 nil（对齐 s-code）
+	results := make([]SearchResult, 0, 16)
 	for i, r := range resp.Results {
 		if i >= opts.NumResults || r.Title == "" {
 			break
@@ -462,23 +506,49 @@ func newGoodreads(config EngineConfig) SearchEngine {
 			return "https://www.goodreads.com/search?q=" + url.QueryEscape(q)
 		},
 		Parse: func(body string, max int) ([]SearchResult, error) {
-			var results []SearchResult
+			// 对齐 s-code goodreads.ts parseGoodreadsResults：
+			// 主模式匹配 <tr> 行内 bookTitle 链接 + authorName；无匹配时回退宽松 bookTitle+span
+			results := make([]SearchResult, 0, 16)
 			pos := 0
-			re := regexp.MustCompile(`<a[^>]*class="bookTitle"[^>]*href="([^"]*)"[^>]*>[\s\S]*?<span[^>]*itemprop="name"[^>]*>([\s\S]*?)<\/span>`)
-			for _, m := range re.FindAllStringSubmatch(body, -1) {
+			rowRegex := regexp.MustCompile(`<tr[^>]*>[\s\S]*?<a[^>]*class="[^"]*bookTitle[^"]*"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]*class="[^"]*authorName[^"]*"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/tr>`)
+			for _, m := range rowRegex.FindAllStringSubmatch(body, -1) {
 				if len(results) >= max {
 					break
 				}
 				title := StripHTML(m[2])
 				url := m[1]
-				if title == "" || url == "" {
+				if title == "" {
 					continue
 				}
 				if !strings.HasPrefix(url, "http") {
 					url = "https://www.goodreads.com" + url
 				}
+				author := StripHTML(m[3])
+				snippet := "Goodreads"
+				if author != "" {
+					snippet = "by " + author
+				}
 				pos++
-				results = append(results, SearchResult{Title: title, URL: url, Snippet: "Goodreads book", Engine: "goodreads", Position: pos, Category: "academic"})
+				results = append(results, SearchResult{Title: title, URL: url, Snippet: snippet, Engine: "goodreads", Position: pos, Category: "books"})
+			}
+			// 备用模式：宽松匹配 bookTitle 链接 + span 标题
+			if len(results) == 0 {
+				fallbackRegex := regexp.MustCompile(`<a[^>]*class="[^"]*bookTitle[^"]*"[^>]*href="([^"]*)"[^>]*>[\s\S]*?<span[^>]*>([^<]+)<\/span>`)
+				for _, m := range fallbackRegex.FindAllStringSubmatch(body, -1) {
+					if len(results) >= max {
+						break
+					}
+					title := StripHTML(m[2])
+					url := m[1]
+					if title == "" {
+						continue
+					}
+					if !strings.HasPrefix(url, "http") {
+						url = "https://www.goodreads.com" + url
+					}
+					pos++
+					results = append(results, SearchResult{Title: title, URL: url, Snippet: "Goodreads", Engine: "goodreads", Position: pos, Category: "books"})
+				}
 			}
 			return results, nil
 		},
@@ -560,7 +630,8 @@ func newPdbe(config EngineConfig) SearchEngine {
 					HITS []struct {
 						ID     string `json:"_id"`
 						Source struct {
-							Title, Description string `json:"title"`
+							Title       string `json:"title"`
+							Description string `json:"description"`
 						} `json:"_source"`
 					} `json:"hits"`
 				} `json:"hits"`
@@ -738,7 +809,8 @@ func (e *annasArchiveEngine) Search(query string, opts SearchOptions, headers ma
 			return results, nil
 		}
 	}
-	return nil, nil
+	// 对齐 s-code：所有镜像无结果时返回空结果（zero_results），不触发熔断
+	return []SearchResult{}, nil
 }
 func newMoviepilot(config EngineConfig) SearchEngine {
 	return newHTMLScraperEngine(htmlScraperConfig{

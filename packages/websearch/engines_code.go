@@ -883,7 +883,7 @@ func newGitHubCode(config EngineConfig) SearchEngine {
 }
 func newGitHubIssues(config EngineConfig) SearchEngine {
 	return newJSONAPIEngine(jsonAPIConfig{
-		Name: "github-issues", Category: "code", UserAgent: "opencode-search/1.0",
+		Name: "github-issues", Category: "code", UserAgent: "opencode-search/1.0", RequiresKey: true,
 		URL: func(q string, n int) string {
 			return "https://api.github.com/search/issues?q=" + url.QueryEscape(q) + "+type:issue&per_page=" + strconv.Itoa(minInt(n, 50)) + "&sort=relevance&order=desc"
 		},
@@ -933,8 +933,11 @@ func newGitHubRepoFiles(config EngineConfig) SearchEngine {
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
 				Items []struct {
-					FullName, HTMLURL, Description, DefaultBranch string `json:"html_url"`
-					Stars                                         int    `json:"stargazers_count"`
+					FullName      string `json:"full_name"`
+					HTMLURL       string `json:"html_url"`
+					Description   string `json:"description"`
+					DefaultBranch string `json:"default_branch"`
+					Stars         int    `json:"stargazers_count"`
 				} `json:"items"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {
@@ -1095,8 +1098,11 @@ func newGitea(config EngineConfig) SearchEngine {
 		Parse: func(data []byte, max int) ([]SearchResult, error) {
 			var resp struct {
 				Data []struct {
-					FullName, HTMLURL, Description string `json:"html_url"`
-					Stars, Forks                   int
+					FullName    string `json:"full_name"`
+					HTMLURL     string `json:"html_url"`
+					Description string `json:"description"`
+					Stars       int    `json:"stargazers_count"`
+					Forks       int    `json:"forks_count"`
 				} `json:"data"`
 			}
 			if err := json.Unmarshal(data, &resp); err != nil {

@@ -135,6 +135,22 @@ func (m *InboxManager) RegisterInbox(in *SessionInbox) {
 	m.mu.Unlock()
 }
 
+// GetOrCreateInbox 返回指定会话的 inbox；不存在时按管理器默认策略创建并注册。
+//
+// 与 RegisterInbox（无条件覆盖）的区别：GetOrCreateInbox 复用已有 inbox，
+// 不覆盖——执行器空闲回收（selfStop）后 inbox 仍保留，若重建执行器时用
+// RegisterInbox 覆盖，会丢弃竞态窗口内刚入队的消息。执行器创建应使用本方法。
+func (m *InboxManager) GetOrCreateInbox(sessionID string) *SessionInbox {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if in, ok := m.inboxes[sessionID]; ok {
+		return in
+	}
+	in := NewSessionInboxWithSettings(sessionID, m.settings)
+	m.inboxes[sessionID] = in
+	return in
+}
+
 // Settings 返回管理器默认策略（副本）。
 func (m *InboxManager) Settings() QueueSettings {
 	return m.settings
@@ -157,6 +173,25 @@ func (m *InboxManager) IsRunning(sessionID string) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.running[sessionID]
+}
+
+// WaitNext 返回指定会话「有新输入可拉取」的合并唤醒信号 channel，
+// 供执行器 select 与 ctx.Done() 组合实现「闲时零 CPU 挂起」。
+//
+// 语义约定：
+//   - 会话不存在时返回 nil channel（select 中永不触发，须配合 ctx.Done() 兜底）；
+//   - 信号是「可能有新输入」的提示而非「一定有」：唤醒后应循环 Take 直到返回 nil，
+//     再回到 WaitNext 阻塞，避免遗漏同批到达的消息；
+//   - 信号由 Submit 入队成功后非阻塞发送（见 SessionInbox.Submit），
+//     多个消息合并为一次唤醒（容量 1）。
+func (m *InboxManager) WaitNext(sessionID string) <-chan struct{} {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	in := m.inboxes[sessionID]
+	if in == nil {
+		return nil
+	}
+	return in.signal // 同包直接访问私有字段，无需 SessionInbox 层透传
 }
 
 // Submit 提交一条输入到指定会话的队列。

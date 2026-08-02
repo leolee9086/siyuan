@@ -60,10 +60,47 @@ type ddgEngine struct{ config EngineConfig }
 
 func (e *ddgEngine) Name() string         { return "duckduckgo" }
 func (e *ddgEngine) Config() EngineConfig { return e.config }
+// Search 对齐 s-code duckduckgo.ts 的 searchWithFallback：
+// HTML POST + JSON API + Lite 三路并发执行，全部完成后按优先级取第一个
+// 非空结果（HTML 含时间过滤与拼写建议，优先级最高；HTML 被反爬拦截时
+// JSON/Lite 通道仍可兜底，避免主力引擎直接失败）。
 func (e *ddgEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
+	type outcome struct {
+		results []SearchResult
+		err     error
+	}
+	htmlCh := make(chan outcome, 1)
+	jsonCh := make(chan outcome, 1)
+	liteCh := make(chan outcome, 1)
+	go func() {
+		results, err := e.searchHtmlPost(query, opts, headers)
+		htmlCh <- outcome{results: results, err: err}
+	}()
+	go func() {
+		results, err := e.searchJsonApi(query, opts)
+		jsonCh <- outcome{results: results, err: err}
+	}()
+	go func() {
+		results, err := e.searchLite(query, opts)
+		liteCh <- outcome{results: results, err: err}
+	}()
+
+	html, json, lite := <-htmlCh, <-jsonCh, <-liteCh
+	// 优先级：HTML POST（含时间过滤和拼写建议）> JSON API > Lite
+	if len(html.results) > 0 {
+		return html.results, html.err
+	}
+	if len(json.results) > 0 {
+		return json.results, json.err
+	}
+	return lite.results, lite.err
+}
+
+// searchHtmlPost 对应 TS searchHtmlPost：DDG HTML POST 通道（默认主通道）
+func (e *ddgEngine) searchHtmlPost(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
 	client := NewEngineHTTPClient(e.config)
 	// 对应 TS: headers
-	client.SetHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36")
+	client.SetHeader("User-Agent", ddgUserAgent)
 	client.SetHeader("Content-Type", "application/x-www-form-urlencoded")
 	client.SetHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 	// 对应 TS: Accept-Language
@@ -92,21 +129,82 @@ func (e *ddgEngine) Search(query string, opts SearchOptions, headers map[string]
 	}
 	// 对应 TS: if (response.status < 200 || response.status >= 400) return []
 	if status < 200 || status >= 400 {
-		return nil, nil
+		return []SearchResult{}, nil
 	}
 	// 对应 TS: if (response.status === 303 || response.status === 403) return []
 	if status == 303 || status == 403 {
-		return nil, nil
+		return []SearchResult{}, nil
 	}
 	// 对应 TS: if (html.length < 500) return []
 	if len(body) < 500 {
-		return nil, nil
+		return []SearchResult{}, nil
 	}
 	// 对应 TS: if (html.includes('id="challenge-form"') || html.includes('id="captcha"')) return []
+	// 对齐 s-code：反爬拦截返回空结果（zero_results），不触发熔断
 	if strings.Contains(body, `id="challenge-form"`) || strings.Contains(body, `id="captcha"`) {
-		return nil, nil
+		return []SearchResult{}, nil
 	}
-	return parseDdgHTML(body, opts.NumResults, "duckduckgo", "")
+	results, err := parseDdgHTML(body, opts.NumResults, "duckduckgo", "")
+	if err != nil {
+		return nil, err
+	}
+	// 对应 TS: extractSuggestion 提取拼写建议并附加到第一条结果
+	if suggestion := extractDdgSuggestion(body); suggestion != "" && len(results) > 0 {
+		results[0].Suggestion = suggestion
+	}
+	return results, nil
+}
+
+// searchJsonApi 对应 TS searchJsonApi：DDG JSON API 通道（vqd 令牌 + d.js 接口）
+func (e *ddgEngine) searchJsonApi(query string, opts SearchOptions) ([]SearchResult, error) {
+	client := NewEngineHTTPClient(e.config)
+	client.SetHeader("User-Agent", ddgUserAgent)
+	client.SetHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	client.SetHeader("Accept-Language", "en-US,en;q=0.9")
+
+	// 对应 TS: 先请求主页 HTML 提取 vqd 令牌
+	status, html, err := client.Get("https://duckduckgo.com/?q="+url.QueryEscape(query), nil)
+	if err != nil {
+		return nil, err
+	}
+	if status < 200 || status >= 400 {
+		return []SearchResult{}, nil
+	}
+	vqd := extractDDGVqd(html)
+	if vqd == "" {
+		return []SearchResult{}, nil
+	}
+
+	// 对应 TS: d.js JSON 接口（kl/l/o/sp/ex 参数逐项对齐）
+	jsonURL := "https://links.duckduckgo.com/d.js?q=" + url.QueryEscape(query) +
+		"&vqd=" + url.QueryEscape(vqd) + "&kl=wt-wt&l=wt-wt&o=json&sp=0&ex=-1"
+	client.SetHeader("Accept", "application/json, text/plain, */*")
+	client.SetHeader("Referer", "https://duckduckgo.com/")
+	status, body, err := client.Get(jsonURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	if status < 200 || status >= 400 {
+		return []SearchResult{}, nil
+	}
+	return parseDdgJSON([]byte(body), opts.NumResults)
+}
+
+// searchLite 对应 TS searchLite：DDG Lite HTML 通道
+func (e *ddgEngine) searchLite(query string, opts SearchOptions) ([]SearchResult, error) {
+	client := NewEngineHTTPClient(e.config)
+	client.SetHeader("User-Agent", ddgUserAgent)
+	client.SetHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	client.SetHeader("Accept-Language", "en-US,en;q=0.9")
+
+	status, body, err := client.Get("https://lite.duckduckgo.com/lite/?q="+url.QueryEscape(query), nil)
+	if err != nil {
+		return nil, err
+	}
+	if status < 200 || status >= 400 {
+		return []SearchResult{}, nil
+	}
+	return parseDdgLiteHTML(body, opts.NumResults)
 }
 
 // ── Bing ──────────────────────────────────────────────
@@ -123,6 +221,10 @@ func newBing(config EngineConfig) SearchEngine {
 			"Accept":          "text/html,application/xhtml+xml",
 		},
 		Parse: func(body string, max int) ([]SearchResult, error) {
+			// 对齐 s-code bing.ts:51：验证码/验证页返回空结果（zero_results），不触发熔断
+			if strings.Contains(body, "captcha") || strings.Contains(body, "verify") {
+				return []SearchResult{}, nil
+			}
 			results, _ := parseBingResults(body, max)
 			if len(results) > 0 {
 				return results, nil
@@ -383,15 +485,16 @@ func (e *googleEngine) Search(query string, opts SearchOptions, headers map[stri
 	if err != nil {
 		return nil, err
 	}
+	// 对齐 s-code：非 2xx / 空 body / CAPTCHA 均返回空结果（zero_results），不触发熔断
 	if status < 200 || status >= 400 {
-		return nil, nil
+		return []SearchResult{}, nil
 	}
 	if body == "" {
-		return nil, nil
+		return []SearchResult{}, nil
 	}
 	// CAPTCHA 检测: 对应 TS isGoogleCaptcha
 	if isGoogleCaptcha(status, body) {
-		return nil, nil
+		return []SearchResult{}, nil
 	}
 	return parseGoogleResults(body, opts.NumResults)
 }
@@ -456,4 +559,123 @@ func newBaidu(config EngineConfig) SearchEngine {
 			return results, nil
 		},
 	})(config)
+}
+
+// ── DuckDuckGo 三路 fallback 辅助 ─────────────────────
+// 对应 s-code duckduckgo.ts：JSON API / Lite 通道 + vqd / suggestion 提取
+
+const ddgUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+
+// extractDDGVqd 从 DDG 主页 HTML 提取 vqd 令牌（对应 TS: /vqd\s*=\s*["']([^"']+)["']/ 及 input 变体）
+func extractDDGVqd(html string) string {
+	if m := regexp.MustCompile(`vqd\s*=\s*["']([^"']+)["']`).FindStringSubmatch(html); m != nil {
+		return m[1]
+	}
+	if m := regexp.MustCompile(`<input[^>]*name=["']vqd["'][^>]*value=["']([^"']+)["']`).FindStringSubmatch(html); m != nil {
+		return m[1]
+	}
+	return ""
+}
+
+// parseDdgJSON 解析 DDG d.js JSON 响应（对应 TS searchJsonApi 的 JSON 解析）
+func parseDdgJSON(data []byte, maxResults int) ([]SearchResult, error) {
+	var resp struct {
+		Results []struct {
+			U string `json:"u"`
+			T string `json:"t"`
+			A string `json:"a"`
+		} `json:"results"`
+	}
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return []SearchResult{}, nil
+	}
+	results := make([]SearchResult, 0, len(resp.Results))
+	pos := 0
+	for _, r := range resp.Results {
+		if len(results) >= maxResults {
+			break
+		}
+		u := extractDDGURL(r.U)
+		title := StripHTML(r.T)
+		if u == "" || title == "" {
+			continue
+		}
+		pos++
+		results = append(results, SearchResult{
+			Title: title, URL: u, Snippet: StripHTML(r.A),
+			Engine: "duckduckgo", Position: pos, Category: "general",
+		})
+	}
+	return results, nil
+}
+
+// parseDdgLiteHTML 解析 DDG Lite HTML 响应（对应 TS parseLiteResults）
+func parseDdgLiteHTML(html string, maxResults int) ([]SearchResult, error) {
+	results := make([]SearchResult, 0, 16)
+	seen := make(map[string]bool)
+	pos := 0
+	// 表格结构：<tr>...<a href="URL">TITLE</a>...<td class="snippet">SNIPPET</td>
+	tableRegex := regexp.MustCompile(`<tr[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<td[^>]*class="[^"]*snippet[^"]*"[^>]*>([\s\S]*?)<\/td>`)
+	for _, m := range tableRegex.FindAllStringSubmatch(html, -1) {
+		if len(results) >= maxResults {
+			break
+		}
+		u := extractDDGURL(m[1])
+		if u == "" || seen[u] {
+			continue
+		}
+		seen[u] = true
+		pos++
+		results = append(results, SearchResult{
+			Title: StripHTML(m[2]), URL: u, Snippet: StripHTML(m[3]),
+			Engine: "duckduckgo", Position: pos, Category: "general",
+		})
+	}
+	if len(results) > 0 {
+		return results, nil
+	}
+	// 备用：div.result 结构
+	divRegex := regexp.MustCompile(`<div[^>]*class="[^"]*\bresult\b[^"]*"[^>]*>[\s\S]*?<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<span[^>]*class="[^"]*snippet[^"]*"[^>]*>([\s\S]*?)<\/span>`)
+	for _, m := range divRegex.FindAllStringSubmatch(html, -1) {
+		if len(results) >= maxResults {
+			break
+		}
+		u := extractDDGURL(m[1])
+		if u == "" || seen[u] {
+			continue
+		}
+		seen[u] = true
+		pos++
+		results = append(results, SearchResult{
+			Title: StripHTML(m[2]), URL: u, Snippet: StripHTML(m[3]),
+			Engine: "duckduckgo", Position: pos, Category: "general",
+		})
+	}
+	return results, nil
+}
+
+// extractDdgSuggestion 提取 DDG 拼写建议（对应 TS extractSuggestion）
+func extractDdgSuggestion(html string) string {
+	// "Showing results for" 模式：spelling 容器内的 result__suggestion
+	showingRegex := regexp.MustCompile(`class=["'][^"']*spelling[^"']*["'][^>]*>.*?class=["'][^"']*result__suggestion[^"']*["'][^>]*>([^<]+)`)
+	if m := showingRegex.FindStringSubmatch(html); m != nil {
+		if s := StripHTML(m[1]); s != "" {
+			return s
+		}
+	}
+	// 备选：<a class="result__suggestion" ...>
+	linkRegex := regexp.MustCompile(`class=["'][^"']*result__suggestion[^"']*["'][^>]*>([^<]+)`)
+	if m := linkRegex.FindStringSubmatch(html); m != nil {
+		if s := StripHTML(m[1]); s != "" {
+			return s
+		}
+	}
+	// "Did you mean" 文本模式
+	didYouMeanRegex := regexp.MustCompile(`(?i)did\s+you\s+mean[:\s]+([^<.]+)`)
+	if m := didYouMeanRegex.FindStringSubmatch(html); m != nil {
+		if s := StripHTML(m[1]); s != "" {
+			return s
+		}
+	}
+	return ""
 }

@@ -305,7 +305,8 @@ func (e *odyseeEngine) Search(query string, opts SearchOptions, headers map[stri
 	body := fmt.Sprintf(`{"jsonrpc":"2.0","method":"search","params":{"query":"%s","page":1,"limit":%d,"nsfw":false}}`, query, minInt(opts.NumResults, 20))
 	status, resp, err := client.PostJSON("https://api.na-backend.odysee.com/api/v1/proxy", body, nil)
 	if err != nil || status < 200 || status >= 400 {
-		return nil, nil
+		// 对齐 s-code：网络失败/非 2xx 返回空结果（zero_results），不触发熔断
+		return []SearchResult{}, nil
 	}
 	var data struct {
 		Result []struct {
@@ -315,9 +316,10 @@ func (e *odyseeEngine) Search(query string, opts SearchOptions, headers map[stri
 		} `json:"result"`
 	}
 	if err := json.Unmarshal([]byte(resp), &data); err != nil {
-		return nil, nil
+		return []SearchResult{}, nil
 	}
-	var results []SearchResult
+	// 显式初始化空切片：无匹配时返回 zero_results 而非 nil（对齐 s-code）
+	results := make([]SearchResult, 0, 16)
 	for i, item := range data.Result {
 		if i >= opts.NumResults || (item.Title == "" && item.Name == "") {
 			break
@@ -782,7 +784,8 @@ func (e *pipedEngine) Name() string         { return "piped" }
 func (e *pipedEngine) Config() EngineConfig { return e.config }
 func (e *pipedEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
 	instances := []string{"https://pipedapi.kavin.rocks", "https://pipedapi.adminforge.de", "https://api.piped.yt"}
-	var all []SearchResult
+	// 显式初始化空切片：所有实例失败时返回 zero_results 而非 nil（对齐 s-code）
+	all := make([]SearchResult, 0, 16)
 	seen := map[string]bool{}
 	for _, inst := range instances {
 		if len(all) >= opts.NumResults {
@@ -838,7 +841,8 @@ func (e *invidiousEngine) Name() string         { return "invidious" }
 func (e *invidiousEngine) Config() EngineConfig { return e.config }
 func (e *invidiousEngine) Search(query string, opts SearchOptions, headers map[string]string) ([]SearchResult, error) {
 	instances := []string{"https://vid.puffyan.us", "https://invidious.nerdvpn.de", "https://invidious.privacyredirect.com"}
-	var all []SearchResult
+	// 显式初始化空切片：所有实例失败时返回 zero_results 而非 nil（对齐 s-code）
+	all := make([]SearchResult, 0, 16)
 	seen := map[string]bool{}
 	for _, inst := range instances {
 		if len(all) >= opts.NumResults {
