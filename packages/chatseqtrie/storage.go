@@ -352,9 +352,14 @@ func (t *Trie) LoadFromStorage() error {
 		}
 	}
 
-	// 第三遍：恢复 session 标记
+	// 第三遍：恢复 session 标记（sessions map + sessionOrder 稳定迭代序，
+	// 两者必须同时恢复——Match/Insert 依赖 sessionOrder 遍历 session，
+	// 只恢复 map 会导致 MatchedSession 恒为空）。
 	for _, se := range data.Sessions {
 		if node, ok := nodeMap[se.NodeID]; ok {
+			if !node.sessions[se.SessionID] {
+				node.sessionOrder = append(node.sessionOrder, se.SessionID)
+			}
 			node.sessions[se.SessionID] = true
 		}
 	}

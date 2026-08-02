@@ -13,6 +13,7 @@ import (
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/observability"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
@@ -219,9 +220,16 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				return nil, err
 			}
 
+			streamResult := processor.GetResult(true)
+			// 单工具路由：processor 累积的是 magi_tool 形式，解析回真实工具名后上层才能按真实名查找。
+			// 解析失败必须报错终止（静默跳过会导致参数丢失、上层按真实名找不到工具）。
+			if resolveErr := llm.ResolveStreamResultMagiTools(streamResult); resolveErr != nil {
+				rc.pushFailed(sage, roundId, resolveErr.Error())
+				return nil, resolveErr
+			}
 			response, buildErr := rc.buildSageResponse(
 				sessionId, roundId, sage,
-				processor.GetResult(true),
+				streamResult,
 				wannaSpeakTracker,
 				reasoningContent,
 			)

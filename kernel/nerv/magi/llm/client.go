@@ -107,17 +107,28 @@ func deepSeekToOaURL(raw string) string {
 	return clean
 }
 
+// prefixCacheMonitor 全局前缀缓存监控器：所有请求路径（心跳/投票/选举/行动计划/avatar）
+// 共用同一个 chatseqtrie 前缀树，跨请求累积历史，用于预测与校准（DeepSeek 自动前缀缓存语义）。
+var prefixCacheMonitor = NewPrefixCacheMonitor()
+
 func newOpenAIClient(cfg *Config) *openaiClient {
+	client := util.NewOpenAIClientWithHTTPDoer(
+		cfg.APIKey,
+		func(base openai.HTTPDoer) openai.HTTPDoer {
+			// 在请求到达 go-openai 之前拦截原始请求/响应：
+			// 请求前 chatseqtrie 预测（命中/新增消息、是否新前缀链条），
+			// 响应后从原始响应体提取 usage 缓存命中信息（go-openai 会丢弃 prompt_cache_hit/miss_tokens）校准或估算。
+			return &MonitorTransport{base: base, monitor: prefixCacheMonitor}
+		},
+		cfg.APIProxy,
+		cfg.APIBaseURL,
+		cfg.UserAgent,
+		cfg.APIVersion,
+		cfg.Provider,
+	)
 	return &openaiClient{
 		config: cfg,
-		client: util.NewOpenAIClient(
-			cfg.APIKey,
-			cfg.APIProxy,
-			cfg.APIBaseURL,
-			cfg.UserAgent,
-			cfg.APIVersion,
-			cfg.Provider,
-		),
+		client: client,
 	}
 }
 
@@ -163,6 +174,9 @@ type openaiClient struct {
 
 func (c *openaiClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
 	reqMsgs := convertToOpenAIMessages(messages)
+	// 单工具路由（MCP 风格）：工具列表尾部化 + tools 字段固定为 magi_tool，
+	// 保证前缀缓存最前部（tools 定义）字节级稳定，工具集变化只影响尾部 <tool_list> 消息。
+	reqMsgs, effectiveTools := applyMagiToolRouting(reqMsgs, tools)
 
 	tc := toolChoice
 	if c.config.OmitToolChoice {
@@ -173,7 +187,7 @@ func (c *openaiClient) SendChatRequest(ctx context.Context, messages []types.Con
 		Messages:            reqMsgs,
 		MaxCompletionTokens: c.config.MaxTokens,
 		Temperature:         float32(c.config.Temperature),
-		Tools:               tools,
+		Tools:               effectiveTools,
 		ToolChoice:          tc,
 		Stream:              true,
 	}
@@ -290,6 +304,9 @@ func (c *openaiClient) SendChatRequestSync(ctx context.Context, messages []types
 
 func (c *openaiClient) SendChatRequestSyncDetailed(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (*types.SyncChatResult, error) {
 	reqMsgs := convertToOpenAIMessages(messages)
+	// 单工具路由（MCP 风格）：工具列表尾部化 + tools 字段固定为 magi_tool，
+	// 保证前缀缓存最前部（tools 定义）字节级稳定，工具集变化只影响尾部 <tool_list> 消息。
+	reqMsgs, effectiveTools := applyMagiToolRouting(reqMsgs, tools)
 
 	tc := toolChoice
 	if c.config.OmitToolChoice {
@@ -300,7 +317,7 @@ func (c *openaiClient) SendChatRequestSyncDetailed(ctx context.Context, messages
 		Messages:            reqMsgs,
 		MaxCompletionTokens: c.config.MaxTokens,
 		Temperature:         float32(c.config.Temperature),
-		Tools:               tools,
+		Tools:               effectiveTools,
 		ToolChoice:          tc,
 	}
 
@@ -314,10 +331,15 @@ func (c *openaiClient) SendChatRequestSyncDetailed(ctx context.Context, messages
 	}
 
 	choice := resp.Choices[0]
+	// 响应方向：把 magi_tool 调用解析回真实工具名与参数（tool_name 字段 → Function.Name）。
+	toolCalls, resolveErr := resolveMagiToolCalls(convertOpenAIToolCalls(choice.Message.ToolCalls))
+	if resolveErr != nil {
+		return nil, fmt.Errorf("resolve magi tool call failed: %w", resolveErr)
+	}
 	result := &types.SyncChatResult{
 		Content:          choice.Message.Content,
 		ReasoningContent: choice.Message.ReasoningContent,
-		ToolCalls:        convertOpenAIToolCalls(choice.Message.ToolCalls),
+		ToolCalls:        toolCalls,
 		FinishReason:     string(choice.FinishReason),
 	}
 	return result, nil

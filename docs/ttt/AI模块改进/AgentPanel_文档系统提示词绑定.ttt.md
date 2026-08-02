@@ -94,8 +94,8 @@ interface AgentPromptSourcePolicy {
 - [ ] 新建原生 Agent 会话可选择一篇可访问文档并显示来源标题、快照时间和状态。
 - [ ] eligible 原生会话中，来源名称/文件主按钮直接进入文档选择；下拉箭头不重复“选择文档”，只呈现来源生命周期动作。
 - [ ] 首次成功发送后服务端拒绝任何绑定替换；并发请求、刷新和旧 UI 回调均不能绕过锁定。
-- [ ] 来源文档变化后用户可显式刷新或保持；保持不会改变下一次模型请求的已确认快照。
-- [ ] 当前有效提示词可创建为独立文档，且不影响原来源和当前会话行为。
+- [x] 来源文档变化后用户可显式刷新或保持；保持不会改变下一次模型请求的已确认快照。
+- [x] 当前有效提示词可创建为独立文档，且不影响原来源和当前会话行为。
 - [ ] 所有失败路径有界面状态与结构化无正文审计；没有静默使用空提示词或未确认的新文档内容。
 - [ ] Dock、Tab、浮窗、独立页可正常打开；MAGI 连续会话不显示不适用动作。
 - [ ] 后端/前端定向测试、类型新增诊断审计与视觉检查均有证据记录。
@@ -124,4 +124,5 @@ interface AgentPromptSourcePolicy {
 - `2026-07-30`：加入来源变更的主动保护。切回窗口时刷新服务端来源状态；首次发送前再次读取权威版本，若已变化则打开同一菜单并中止发送，要求用户显式选择刷新或保持，避免一次发送将旧快照静默锁死。`SessionStore.headers.test.ts` 覆盖状态读取、revision 链接的刷新/保持和服务端失败传播；`pnpm exec vitest run test/layout/dock/agent/SessionStore.headers.test.ts test/layout/dock/agent/runtime/agentPanel.targetPolicy.test.ts` 通过（20 tests）。
 - `2026-07-30`：完成提示词控件的职责分离。输入区现在有独立“文件图标 + 来源名称”主按钮和紧凑的下拉箭头：主按钮直接进入共享文档选择 Dialog；箭头只显示刷新当前文档、保持当前快照和创建文档。已锁定会话禁用文档选择但保留“创建当前有效提示词为文档”；没有 `PanelMenuPort` 的宿主仍能选择文档，并按 capability 隐藏箭头动作。`pnpm run test:agent-panel` 通过（29 files / 95 tests），`pnpm run dev:once` 的全部构建目标通过。
 - `2026-07-30`：完整 Agent Panel 回归 `pnpm run test:agent-panel` 通过（29 files / 94 tests）；浏览器契约 `pnpm exec vitest --run --config vitest.browser.config.ts test/browser/agent/standaloneEntry.browser.ts` 通过（独立 ESM 导出可由浏览器模块加载）；Kernel 定向回归 `go test -tags fts5 ./agent -run "Test(DocumentPromptSource|TurnContext|SystemPrompt|CheckpointMessages|SaveSessionRevision)" -count=1` 与 `go test -tags fts5 ./api -run "^$" -count=1` 通过。
+- `2026-07-30`：补强两个用户决策路径的回归证据。`TestDocumentPromptSourceRefreshReplacesSnapshotOnlyAfterExplicitAction` 证明文档内容变化不会自动替换当前有效快照，只有“刷新为当前文档”才写入新版本；既有 `KeepDocumentPromptSource` 用例证明“保持当前快照”只确认观察到的版本。`SessionStore.headers.test.ts` 新增“重新创建为文档”受控请求测试，验证其携带工作区认证、身份认证与检查点头。`go test -tags fts5 ./agent -run "TestDocumentPromptSource" -count=1` 及 `pnpm exec vitest run test/layout/dock/agent/SessionStore.headers.test.ts test/layout/dock/agent/runtime/agentPanel.targetPolicy.test.ts` 通过（21 tests）。
 - `2026-07-30`：`pnpm run build:agent-app` 成功，产出独立 ESM 和网页入口。全量 `pnpm run typecheck` 仍由既有跨模块诊断阻断；对本任务的 `AgentPromptSourceDialog` 和新增 `AgentChat` 段落未发现新增诊断。自动浏览器会话访问 `/stage/build/agent-app/` 时只观测到空 `main#agent-panel`，尚未取得足以证明运行态挂载的 DOM 证据，保留为 Phase 5 阻塞项，不宣称独立页验收完成。

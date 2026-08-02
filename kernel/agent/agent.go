@@ -661,10 +661,14 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 				sendEvent(ch, AgentEvent{Type: "thinking", Reasoning: "processing"})
 			}
 
+			// 单工具路由（包装工具模式）：真实工具列表 → 尾部 <tool_list> 动态区段消息，
+			// tools 字段固定为包装工具（chatseqtrie 默认值 tool_call，与 magi 侧一致）。
+			// 不修改 messages 变量本身——动态区段只存在于本次请求快照，不写入历史。
+			reqMessages, reqTools := applyAgentToolRouting(messages, tools)
 			req := openai.ChatCompletionRequest{
 				Model:               model,
-				Messages:            messages,
-				Tools:               tools,
+				Messages:            reqMessages,
+				Tools:               reqTools,
 				Stream:              true,
 				StreamOptions:       &openai.StreamOptions{IncludeUsage: true},
 				Temperature:         float32(temperature),
@@ -798,6 +802,25 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 					if aggregatedToolCalls[i].ID == "" {
 						aggregatedToolCalls[i].ID = fmt.Sprintf("agent-tool-%d-%d", round, i)
 					}
+				}
+
+				// 单工具路由逆变换：把包装工具调用（tool_call）解析回真实工具名与参数，
+				// 在写入历史/checkpoint/向前端回显**之前**完成——序列变换对前端完全透明，
+				// 前端 agent 面板始终看到真实工具名，无需任何前端适配。
+				// 逆变换失败必须直接报错终止：保留 tool_call 会导致落盘格式错误、
+				// 前端显示错误、executor 找不到工具——没有可靠兜底，绝不静默继续。
+				for i := range aggregatedToolCalls {
+					resolved, resolveErr := ResolveAgentToolCall(aggregatedToolCalls[i])
+					if resolveErr != nil {
+						errMsg := "agent 工具路由逆变换失败: " + resolveErr.Error()
+						logging.LogErrorf("%s", errMsg)
+						if !saveTurn("interrupted") {
+							return
+						}
+						sendCriticalEvent(ctx, ch, AgentEvent{Type: "error", Error: errMsg})
+						return
+					}
+					aggregatedToolCalls[i] = resolved
 				}
 
 				messages = append(messages, openai.ChatCompletionMessage{

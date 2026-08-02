@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"github.com/sashabaranov/go-openai"
+	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 )
@@ -148,6 +150,13 @@ func (c *streamedToolCallCollector) BuildSorted() []types.ToolCall {
 		}
 		if call.Type == "" {
 			call.Type = "function"
+		}
+		// 单工具路由（MCP 风格）：流式累积完整后，把 magi_tool 调用解析回真实工具名与参数
+		// （tool_name 字段 → Function.Name）。解析失败保留原样，由 executor 分发时按未识别工具兜底。
+		if resolved, err := llm.ResolveMagiToolCall(call); err == nil {
+			call = resolved
+		} else {
+			logging.LogWarnf("解析 magi_tool 调用失败（保留原样）: %v", err)
 		}
 		result = append(result, call)
 	}

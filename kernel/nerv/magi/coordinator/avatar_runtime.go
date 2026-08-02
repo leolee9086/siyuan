@@ -657,6 +657,11 @@ func runSageToolCallWithRuntimeTools(
 		case chunk, ok := <-streamCh:
 			if !ok {
 				result := processor.GetResult(true)
+				// 单工具路由：processor 累积的是 magi_tool 形式，解析回真实工具名后按 expectedToolName 查找。
+				// 解析失败必须报错（静默跳过会导致参数丢失、按真实工具名找不到参数）。
+				if resolveErr := llm.ResolveStreamResultMagiTools(result); resolveErr != nil {
+					return "", resolveErr
+				}
 				argsList := result.ToolArgumentsByName[expectedToolName]
 				if len(argsList) == 0 {
 					return "", fmt.Errorf("%s did not call tool %s", sage.GetName(), expectedToolName)

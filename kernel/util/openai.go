@@ -261,6 +261,17 @@ func NewOpenAIClientWithModel(apiKey, apiBaseURL, model string, apiProxy ...stri
 	return openai.NewClientWithConfig(config)
 }
 
+// NewOpenAIClientWithHTTPDoer 创建 OpenAI client，并允许调用方包装底层 HTTPDoer（用于在请求到达
+// go-openai 之前拦截原始请求/响应，例如前缀缓存监控、usage 原始字段提取等）。
+// wrap 返回的 doer 会被作为 config.HTTPClient 使用；wrap 为 nil 时行为等同 NewOpenAIClient。
+func NewOpenAIClientWithHTTPDoer(apiKey string, wrap func(openai.HTTPDoer) openai.HTTPDoer, args ...string) *openai.Client {
+	config := newOpenAIClientConfig(apiKey, args...)
+	if wrap != nil {
+		config.HTTPClient = wrap(config.HTTPClient)
+	}
+	return openai.NewClientWithConfig(config)
+}
+
 func newOpenAIHTTPClient(apiProxy, apiUserAgent string) *http.Client {
 	transport := &http.Transport{}
 	if "" != apiProxy {

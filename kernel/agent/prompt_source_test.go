@@ -136,6 +136,50 @@ func TestDocumentPromptSourceVersionAcknowledgementIsExplicit(t *testing.T) {
 	}
 }
 
+func TestDocumentPromptSourceRefreshReplacesSnapshotOnlyAfterExplicitAction(t *testing.T) {
+	useTestDataDir(t)
+	if revision := savePromptSourceTestSession(t, []any{}); revision != 1 {
+		t.Fatalf("unexpected initial revision: %d", revision)
+	}
+	initial, err := NewDocumentPromptSource(
+		"20260715120007-abcdefg", "20260715120008-abcdefg", "Rules", "first version", 10,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = BindDocumentPromptSource(testSessionID, 1, initial); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := NewDocumentPromptSource(
+		"20260715120007-abcdefg", "20260715120008-abcdefg", "Rules", "second version", 11,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeRefresh, err := GetPromptSource(testSessionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if beforeRefresh.PromptSnapshot != initial.PromptSnapshot {
+		t.Fatalf("document change replaced the snapshot without a user decision: %#v", beforeRefresh)
+	}
+
+	state, err := RefreshDocumentPromptSource(testSessionID, 2, changed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state.State != PromptBindingStateBound || state.Revision != 3 || state.Source.SourceVersion != changed.SourceVersion {
+		t.Fatalf("unexpected refresh state: %#v", state)
+	}
+	afterRefresh, err := GetPromptSource(testSessionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if afterRefresh.PromptSnapshot != changed.PromptSnapshot || afterRefresh.KeptVersion != "" {
+		t.Fatalf("explicit refresh did not replace the effective snapshot: %#v", afterRefresh)
+	}
+}
+
 func TestDocumentPromptSourceRejectsEmptyAndOversizedSnapshots(t *testing.T) {
 	if _, err := NewDocumentPromptSource("20260715120006-abcdefg", "notebook", "Rules", "", 1); err == nil {
 		t.Fatal("empty prompt source was accepted")

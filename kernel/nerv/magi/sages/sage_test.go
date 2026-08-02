@@ -393,9 +393,10 @@ func extractStatusContent(request []types.ContextMessage) string {
 	return ""
 }
 
-// TestBuildRequestMessages_StatusEnvelopePosition 验证 <status> 信封只出现在请求序列尾部 user 消息内，
-// system 提示词之后不得出现动态 <status> 内容。
-// 当前实现（status 作为独立 system 消息位于 system 之后）下此测试应失败，作为 Phase 2 改造的基线依据。
+// TestBuildRequestMessages_StatusEnvelopePosition 验证 <status> 信封只作为**独立 system 消息**出现在
+// 请求序列真正末尾，绝不附着/修改任何已有消息（含末尾 user 消息）：
+// status 是动态内容，若附着到历史中的 user 消息上，请求快照与历史内容不一致，
+// 下一轮请求在该位置前缀断裂，其后全部缓存 MISS。
 func TestBuildRequestMessages_StatusEnvelopePosition(t *testing.T) {
 	sage := buildTestCoreSage()
 
@@ -404,35 +405,30 @@ func TestBuildRequestMessages_StatusEnvelopePosition(t *testing.T) {
 		{Role: types.RoleUser, Content: "测试输入"},
 	}
 	request := sage.buildRequestMessages(history)
-
-	// 找到第一条 user 消息（历史 user 之后追加的当前输入）。
-	firstUserIdx := -1
-	for i, msg := range request {
-		if msg.Role == types.RoleUser {
-			firstUserIdx = i
-			break
-		}
-	}
-	if firstUserIdx < 0 {
-		t.Fatal("请求序列中未找到 user 消息")
+	if len(request) == 0 {
+		t.Fatal("请求序列为空")
 	}
 
-	// system 提示词之后（即 [1:] 区域）不得出现 <status>。
-	for i := 1; i < firstUserIdx; i++ {
+	// 除最后一条外，任何消息（system/wakeup/user）都不得包含 <status>——status 绝不附着在已有消息上。
+	for i := 0; i < len(request)-1; i++ {
 		if strings.Contains(request[i].Content, "<status>") {
-			t.Fatalf("<status> 出现在 system 之后的第 %d 条消息（应后移至尾部 user 消息）: %q",
-				i, request[i].Content)
+			t.Fatalf("<status> 附着在第 %d 条已有消息上（应作为独立尾部消息）: %q", i, request[i].Content)
 		}
 	}
 
-	// 尾部 user 消息应包含 <status> 信封（Phase 2 改造后）。
-	if !strings.Contains(request[firstUserIdx].Content, "<status>") {
-		t.Fatalf("尾部 user 消息未包含 <status> 信封（Phase 2 应注入）: %q", request[firstUserIdx].Content)
+	// 最后一条必须是独立 system 消息且包含 <status> 信封。
+	last := request[len(request)-1]
+	if last.Role != types.RoleSystem {
+		t.Fatalf("末尾消息角色 = %s, want system（status 应为独立 system 消息）", last.Role)
+	}
+	if !strings.Contains(last.Content, "<status>") {
+		t.Fatalf("末尾独立 system 消息未包含 <status> 信封: %q", last.Content)
 	}
 }
 
-// extractStablePrefix 提取请求序列的稳定前缀：跳过开头的 system 与 status system 消息，返回后续唤醒序列。
-// 稳定前缀定义：system 提示词之后、动态 status 之前的固定内容。由于 status 为动态，提取时跳过第一条 system 后紧邻的 status system 消息。
+// extractStablePrefix 提取请求序列的稳定前缀：跳过开头的固定 system 提示词，返回后续唤醒序列。
+// 稳定前缀定义：system 提示词之后、动态 status 之前的固定内容。
+// 由于 status 现在始终作为独立消息位于真正末尾，前缀即 system + wakeup 序列。
 func extractStablePrefix(messages []types.ContextMessage) []types.ContextMessage {
 	if len(messages) == 0 {
 		return nil
@@ -441,10 +437,6 @@ func extractStablePrefix(messages []types.ContextMessage) []types.ContextMessage
 	// 跳过开头的固定 system 提示词。
 	if messages[0].Role == types.RoleSystem {
 		start = 1
-	}
-	// 跳过紧随其后的动态 status system 消息（若存在）。
-	if start < len(messages) && messages[start].Role == types.RoleSystem && strings.Contains(messages[start].Content, "<status>") {
-		start++
 	}
 	prefix := make([]types.ContextMessage, 0, len(messages)-start)
 	for _, msg := range messages[start:] {

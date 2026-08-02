@@ -70,6 +70,9 @@ test_messages.json
 test_messages_stream.json
 kernel/util/out.txt
 
+# MAGI 原始请求抓取包含私密内容，仅限本地使用
+packages/chatseqtrie/testdata/real_requests*.json
+
 # Workshop mode (工坊模式) - 开发目录内置工作空间
 .dev-workspace/
 .dev-workspace-progress/

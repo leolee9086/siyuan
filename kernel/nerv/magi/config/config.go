@@ -4,6 +4,8 @@ package config
 import (
 	"time"
 
+	"s-forge.local/chatseqtrie"
+
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 )
 
@@ -234,7 +236,28 @@ const (
 	RecallCrossSessionMemoriesToolName = "recall_cross_session_memories"
 	// FetchWebPageToolName 网页内容获取工具名。
 	FetchWebPageToolName = "fetch_web_page"
+	// MagiToolName 唯一通用工具名（单工具路由，MCP 风格）。
+	// MAGI 所有请求路径统一只注册这一个工具：实际工具名通过参数 tool_name 指定。
+	// 目的：tools 字段字节级固定 → 前缀缓存最前部永不变化；实际工具列表作为尾部消息注入。
+	// 使用 chatseqtrie 提供的通用默认值（tool_call），与常规 agent 侧保持一致。
+	MagiToolName = chatseqtrie.DefaultWrapperToolName
 )
+
+// BuildMagiToolDef 构建唯一通用工具定义（单工具路由，MCP 风格）。
+// MAGI 所有请求路径统一只注册这一个工具：实际工具名通过参数 tool_name 指定，
+// 实际参数通过 arguments 传递。工具列表（名称/描述/参数 schema）作为尾部消息注入 messages，
+// 保证 tools 字段字节级固定 → 前缀缓存最前部永不变化。
+// 参数 schema 使用 chatseqtrie 通用默认值，与 agent 侧完全一致。
+func BuildMagiToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        MagiToolName,
+			Description: "调用 MAGI 系统实际工具。工具名由 tool_name 指定，参数由 arguments 传递；可用工具及其参数 schema 见消息中的工具列表。",
+			Parameters:  chatseqtrie.DefaultWrapperSchema(),
+		},
+	}
+}
 
 // BuildDominantElectionToolDef 构建主导者选举投票工具定义。
 // 对应 dominantVotePayload 结构，用于替代旧的自由文本 JSON 输出方式。

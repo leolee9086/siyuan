@@ -103,6 +103,7 @@ require (
 	golang.org/x/text v0.40.0
 	golang.org/x/time v0.15.0
 	gopkg.in/yaml.v3 v3.0.1
+	s-forge.local/chatseqtrie v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -114,6 +115,7 @@ require (
 	github.com/bogdanfinn/utls v1.7.7-barnius // indirect
 	github.com/bogdanfinn/websocket v1.5.5-barnius // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
+	go.etcd.io/bbolt v1.3.9 // indirect
 )
 
 require (
@@ -250,6 +252,8 @@ replace github.com/leolee9086/string-metrics-damerau-levenshtein => ../packages/
 replace github.com/siyuan-note/siyuan/packages/websearch => ../packages/websearch
 
 replace github.com/siyuan-note/siyuan/packages/agentqueue => ../packages/agentqueue
+
+replace s-forge.local/chatseqtrie => ../packages/chatseqtrie
 
 replace github.com/siyuan-note/logging => ./logging
 

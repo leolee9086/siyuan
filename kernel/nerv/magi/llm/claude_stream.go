@@ -17,6 +17,10 @@ func (c *claudeClient) SendChatRequest(
 	toolChoice any,
 ) (<-chan types.StreamChunk, error) {
 	reqMsgs := convertToOpenAIMessages(messages)
+	// 单工具路由（MCP 风格）：工具列表尾部化 + tools 字段固定为 magi_tool。
+	// Anthropic 的 system 字段位于输入 token 序列最前部，动态工具列表必须作为 user 消息
+	// 追加到 messages 尾部（applyMagiToolRoutingForClaude），保证前缀缓存最前部稳定。
+	reqMsgs, effectiveTools := applyMagiToolRoutingForClaude(reqMsgs, tools)
 
 	systemPrompt, claudeMsgs, err := convertOpenAIMessagesToClaude(reqMsgs)
 	if err != nil {
@@ -43,14 +47,14 @@ func (c *claudeClient) SendChatRequest(
 		MaxTokens:   maxTokens,
 		Temperature: &tempVar,
 		System:      systemPrompt,
-		Tools:       convertOpenAIToolsToClaude(tools),
+		Tools:       convertOpenAIToolsToClaude(effectiveTools),
 	}
 
 	tc := toolChoice
 	if c.config.OmitToolChoice {
 		tc = nil
 	}
-	claudeToolChoice, err := convertOpenAIToolChoiceToClaude(tc, len(tools) > 0)
+	claudeToolChoice, err := convertOpenAIToolChoiceToClaude(tc, len(effectiveTools) > 0)
 	if err != nil {
 		return nil, err
 	}

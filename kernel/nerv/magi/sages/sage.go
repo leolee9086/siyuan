@@ -345,8 +345,9 @@ func (s *Sage) buildRequestMessages(history []types.ContextMessage) []types.Cont
 	}
 
 	// 计算 <status> 信封内容（疲劳度和唤醒值）。
-	// 注意：status 属于动态内容，必须组装到消息序列尾部（本轮 user 消息），
-	// 不能插入 system 之后，否则会破坏 LLM 前缀缓存（prefix cache）的稳定前缀。
+	// 注意：status 属于动态内容（每次请求重新计算），必须作为独立消息追加到序列**真正末尾**，
+	// 绝不修改任何历史已有消息——否则请求视图（带 status）与历史视图（不带 status）不一致，
+	// 下一轮请求在同一位置前缀断裂，其后全部缓存 MISS。
 	model := s.llmClient.GetModel()
 	fatigueLevel := FatigueLevel(CalculateFatigue(history, s.contextStrategy, model))
 	wakeLevel := WakefulnessLevel(CalculateWakefulness(history, s.contextStrategy, model))
@@ -368,20 +369,16 @@ func (s *Sage) buildRequestMessages(history []types.ContextMessage) []types.Cont
 	}
 	request = append(request, historyTail...)
 
-	// 动态 <status> 组装到尾部 user 消息，保持稳定前缀逐字节不变。
+	// 动态 <status> 作为独立新消息追加到序列真正末尾，保持稳定前缀逐字节不变。
 	return appendStatusEnvelopeToTail(request, statusContent)
 }
 
-// appendStatusEnvelopeToTail 将 <status> 信封追加到请求序列的尾部 user 消息。
-// 动态内容追加在 user 消息末尾，避免破坏 system + wakeup 组成的稳定前缀。
-// 若请求序列中没有 user 消息（如 continuation 轮次），则作为独立 system 消息追加到末尾。
+// appendStatusEnvelopeToTail 将 <status> 信封作为独立 system 消息追加到请求序列的**真正末尾**。
+// 绝不修改/附着任何已有消息（含末尾消息）：status 是动态内容（每次请求重新计算），
+// 若附着到某条已有消息上，该消息在请求快照与历史中的内容不一致，下一轮请求在该位置
+// 前缀断裂，其后全部缓存 MISS。作为独立尾部新消息时，前缀（system + wakeup + 历史）逐字节稳定。
+// status 只存在于本次请求快照，不写回 contextManager 历史（GetMessagesForSession 深拷贝保证）。
 func appendStatusEnvelopeToTail(request []types.ContextMessage, statusContent string) []types.ContextMessage {
-	for i := len(request) - 1; i >= 0; i-- {
-		if request[i].Role == types.RoleUser {
-			request[i].Content += "\n\n" + statusContent
-			return request
-		}
-	}
 	return append(request, types.ContextMessage{Role: types.RoleSystem, Content: statusContent})
 }
 
