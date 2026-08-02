@@ -18,12 +18,11 @@ export interface MagiProjectorTarget {
 /**
  * MAGI Projector 运行时状态。
  *
- * 用途：记录幂等去重与顺序保护数据。
+ * 用途：记录事件幂等去重数据。
  * 使用场景：每次事件处理前进行判定。
  * 关联类型：由 `MagiProjectorTarget` 衍生并在投影周期内共享。
  */
 export interface MagiProjectorRuntimeState {
     processedEventIds: Set<string>;
-    latestSeq: number;
     target: MagiProjectorTarget;
 }

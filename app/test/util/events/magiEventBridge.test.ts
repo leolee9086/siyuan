@@ -101,6 +101,20 @@ describe("MAGI Event Bridge - 事件投影", () => {
         });
         expect(seel.messages.find((message) => message.id === "stream-1")?.content).toBe("chunk");
 
+        emitTestEvent(bus, "SEEL_REPLY_CHUNK", {
+            roundId: "round-1",
+            timestamp: Date.now(),
+            seelName: "MELCHIOR-01",
+            displayName: "MELCHIOR",
+            message: {
+                ...streamMessage,
+                content: "chunk continued",
+                status: "streaming",
+            },
+        });
+        expect(seel.messages.filter((message) => message.id === "stream-1")).toHaveLength(1);
+        expect(seel.messages.find((message) => message.id === "stream-1")?.content).toBe("chunk continued");
+
         emitTestEvent(bus, "SEEL_REPLY_COMPLETED", {
             roundId: "round-1",
             timestamp: Date.now(),
@@ -163,14 +177,15 @@ describe("MAGI Event Bridge - 事件投影", () => {
         stop();
     });
 
-    it("应把投票事件广播到全部贤者卡片并保留通过状态与理由", async () => {
+    it("应把投票折叠为贤者状态快照并保留通过状态与理由", async () => {
         const bus = await createMagiEventBus();
+        const trinity = createWrappedSeel("TRINITY-00", "TRINITY");
         const melchior = createWrappedSeel("MELCHIOR-01", "MELCHIOR");
         const balthazar = createWrappedSeel("BALTHASAR-02", "BALTHASAR");
         const casper = createWrappedSeel("CASPER-03", "CASPER");
         const consensusMessages: MagiMessage[] = [];
         const stop = await bindMagiProjector(bus, {
-            seels: [melchior, balthazar, casper],
+            seels: [trinity, melchior, balthazar, casper],
             consensusMessages,
         });
 
@@ -212,9 +227,11 @@ describe("MAGI Event Bridge - 事件投影", () => {
         });
 
         for (const seel of [melchior, balthazar, casper]) {
-            const voteEvents = seel.messages.filter((message) => message.meta?.eventType === "SEEL_VOTE_UPDATED");
-            expect(voteEvents.length).toBe(3);
+            expect(seel.messages.filter((message) => message.meta?.type === "raw-event")).toHaveLength(0);
+            expect(seel.messages.filter((message) => message.meta?.type === "vote-state")).toHaveLength(1);
         }
+        expect(trinity.messages.filter((message) => message.meta?.eventType === "SEEL_VOTE_UPDATED")).toHaveLength(3);
+        expect(balthazar.messages.filter((message) => message.type === "vote")).toHaveLength(1);
 
         const voteStatusMessage = [...consensusMessages]
             .reverse()
@@ -366,10 +383,11 @@ describe("MAGI Event Bridge - 事件投影", () => {
 
     it("应兼容新的 DOMINANT_SYNTHESIS_COMPLETED 事件名", async () => {
         const bus = await createMagiEventBus();
+        const trinity = createWrappedSeel("TRINITY-00", "TRINITY");
         const melchior = createWrappedSeel("MELCHIOR-01", "MELCHIOR");
         const casper = createWrappedSeel("CASPER-03", "CASPER");
         const consensusMessages: MagiMessage[] = [];
-        const stop = await bindMagiProjector(bus, { seels: [melchior, casper], consensusMessages });
+        const stop = await bindMagiProjector(bus, { seels: [trinity, melchior, casper], consensusMessages });
 
         emitTestEvent(bus, "DOMINANT_SYNTHESIS_COMPLETED", {
             roundId: "round-synthesis-1",
@@ -377,8 +395,171 @@ describe("MAGI Event Bridge - 事件投影", () => {
             content: "由主导者完成统合",
         });
 
-        const projected = melchior.messages.find((message) => message.meta?.eventType === "DOMINANT_SYNTHESIS_COMPLETED");
+        expect(melchior.messages.some((message) => message.meta?.type === "raw-event")).toBe(false);
+        expect(casper.messages.some((message) => message.meta?.type === "raw-event")).toBe(false);
+        const projected = trinity.messages.find((message) => message.meta?.eventType === "DOMINANT_SYNTHESIS_COMPLETED");
         expect(projected?.content).toBe("DOMINANT_SYNTHESIS_COMPLETED");
+
+        stop();
+    });
+
+    it("应将大量工具参数增量折叠为一条真实工具活动", async () => {
+        const bus = await createMagiEventBus();
+        const seel = createWrappedSeel("MELCHIOR-01", "MELCHIOR");
+        const consensusMessages: MagiMessage[] = [];
+        const stop = await bindMagiProjector(bus, { seels: [seel], consensusMessages });
+        const query = "cache-prefix-".repeat(90);
+        const completeArguments = JSON.stringify({
+            tool_name: "forge_repo_search",
+            arguments: { query },
+        });
+
+        for (let index = 1; index <= 800; index += 1) {
+            bus.emitWithMeta("TOOL_CALL_DETECTED", {
+                eventId: `tool-delta-${index}`,
+                seq: index,
+                roundId: "round-tool-stream",
+                timestamp: 1_000 + index,
+                seelName: "MELCHIOR-01",
+                displayName: "MELCHIOR",
+                toolName: "tool_call",
+                toolCallIndex: 0,
+                toolCallId: "tool-call-stream-1",
+                rawArguments: completeArguments.slice(0, index),
+                argumentsComplete: false,
+            });
+        }
+        bus.emitWithMeta("TOOL_CALL_DETECTED", {
+            eventId: "tool-delta-complete",
+            seq: 801,
+            roundId: "round-tool-stream",
+            timestamp: 1_801,
+            seelName: "MELCHIOR-01",
+            displayName: "MELCHIOR",
+            toolName: "tool_call",
+            toolCallIndex: 0,
+            toolCallId: "tool-call-stream-1",
+            rawArguments: completeArguments,
+            argumentsComplete: true,
+            arguments: {
+                tool_name: "forge_repo_search",
+                arguments: { query },
+            },
+        });
+
+        const activities = seel.messages.filter((message) => message.meta?.type === "tool-call");
+        expect(activities).toHaveLength(1);
+        expect(activities[0]?.meta).toMatchObject({
+            toolName: "forge_repo_search",
+            arguments: { query },
+        });
+        expect(activities[0]?.status).toBe("pending");
+
+        stop();
+    });
+
+    it("应在同一工具活动中原地更新执行阶段、结果并隐藏表达控制工具", async () => {
+        const bus = await createMagiEventBus();
+        const seel = createWrappedSeel("CASPER-03", "CASPER");
+        const consensusMessages: MagiMessage[] = [];
+        const stop = await bindMagiProjector(bus, { seels: [seel], consensusMessages });
+        const baseActivity = {
+            roundId: "round-tool-activity",
+            seelName: "CASPER-03",
+            displayName: "CASPER",
+            toolName: "tool_call",
+            toolCallIndex: 2,
+            toolCallId: "tool-call-activity-1",
+            rawArguments: "{\"tool_name\":\"note_keyword_search\",\"arguments\":{\"query\":\"前缀缓存\"}}",
+            arguments: {
+                tool_name: "note_keyword_search",
+                arguments: { query: "前缀缓存" },
+            },
+        };
+
+        emitTestEvent(bus, "SEEL_TOOL_ACTIVITY_UPDATED", {
+            ...baseActivity,
+            timestamp: 2_000,
+            phase: "running",
+        });
+        emitTestEvent(bus, "SEEL_TOOL_ACTIVITY_UPDATED", {
+            ...baseActivity,
+            timestamp: 2_100,
+            phase: "completed",
+            result: "{\"matchedBlockCount\":3}",
+        });
+        emitTestEvent(bus, "SEEL_TOOL_ACTIVITY_UPDATED", {
+            roundId: "round-tool-activity",
+            timestamp: 2_200,
+            seelName: "CASPER-03",
+            displayName: "CASPER",
+            toolName: "tool_call",
+            toolCallIndex: 3,
+            toolCallId: "reply-control-1",
+            rawArguments: "{\"tool_name\":\"wanna_speak_continue\",\"arguments\":{\"content\":\"公开回复\"}}",
+            arguments: {
+                tool_name: "wanna_speak_continue",
+                arguments: { content: "公开回复" },
+            },
+            phase: "completed",
+            result: "{\"ok\":true}",
+        });
+
+        const activities = seel.messages.filter((message) => message.meta?.type === "tool-activity");
+        expect(activities).toHaveLength(1);
+        expect(activities[0]).toMatchObject({
+            status: "success",
+            meta: {
+                toolName: "note_keyword_search",
+                transportToolName: "tool_call",
+                arguments: { query: "前缀缓存" },
+                phase: "completed",
+                result: "{\"matchedBlockCount\":3}",
+            },
+        });
+
+        stop();
+    });
+
+    it("应独立处理并发贤人的逆序序号事件", async () => {
+        const bus = await createMagiEventBus();
+        const melchior = createWrappedSeel("MELCHIOR-01", "MELCHIOR");
+        const balthasar = createWrappedSeel("BALTHASAR-02", "BALTHASAR");
+        const casper = createWrappedSeel("CASPER-03", "CASPER");
+        const consensusMessages: MagiMessage[] = [];
+        const stop = await bindMagiProjector(bus, {
+            seels: [melchior, balthasar, casper],
+            consensusMessages,
+        });
+        const starts = [
+            { seq: 30, seel: melchior, name: "MELCHIOR-01", display: "MELCHIOR" },
+            { seq: 20, seel: balthasar, name: "BALTHASAR-02", display: "BALTHASAR" },
+            { seq: 10, seel: casper, name: "CASPER-03", display: "CASPER" },
+        ];
+
+        for (const start of starts) {
+            bus.emitWithMeta("SEEL_REPLY_STARTED", {
+                eventId: `reverse-seq-${start.seq}`,
+                seq: start.seq,
+                roundId: "round-reverse-seq",
+                timestamp: 3_000,
+                seelName: start.name,
+                displayName: start.display,
+                userInput: "并发测试",
+                streamMessage: {
+                    id: `stream-${start.seq}`,
+                    type: "ai",
+                    content: "",
+                    status: "streaming",
+                    timestamp: 3_000,
+                },
+            });
+        }
+
+        for (const start of starts) {
+            expect(start.seel.loading).toBe(true);
+            expect(start.seel.messages.some((message) => message.id === `stream-${start.seq}`)).toBe(true);
+        }
 
         stop();
     });

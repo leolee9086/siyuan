@@ -246,7 +246,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			msg := &types.Message{
 				ID:        streamMessageID,
 				Type:      types.TypeAI,
-				Content:   response.Content,
+				Content:   buildSeelStreamDisplayContent(reasoningContent, response.Content),
 				Status:    types.StatusSuccess,
 				Timestamp: time.Now().UnixMilli(),
 				Meta:      webSearchMetaFromSage(sage, sessionId),
@@ -369,6 +369,30 @@ func (rc *ResponseCollector) sendSageTurnMessage(
 	return streamCh, nil
 }
 
+func buildSeelStreamDisplayContent(reasoningContent, replyContent string) string {
+	if reasoningContent == "" {
+		return replyContent
+	}
+	return "<think>" + reasoningContent + "</think>" + replyContent
+}
+
+func pushSeelReplyStreamSnapshot(roundID string, sage *sages.Sage, messageID, reasoningContent, replyContent string) {
+	content := buildSeelStreamDisplayContent(reasoningContent, replyContent)
+	if content == "" {
+		return
+	}
+	msg := &types.Message{
+		ID:        messageID,
+		Type:      types.TypeAI,
+		Content:   content,
+		Status:    types.StatusStreaming,
+		Timestamp: time.Now().UnixMilli(),
+	}
+	if err := websocket.PushSeelReplyChunk(websocket.RuntimeMonitorSessionID, roundID, sage.GetName(), sage.GetDisplayName(), msg); err != nil {
+		logging.LogWarnf("推送%s流式回复失败: %v", sage.GetDisplayName(), err)
+	}
+}
+
 func (rc *ResponseCollector) processSageStreamChunks(
 	ctx context.Context,
 	sage *sages.Sage,
@@ -389,6 +413,10 @@ func (rc *ResponseCollector) processSageStreamChunks(
 		isComplete bool,
 		detectedTime int64,
 	) {
+		// 参数增量可能逐字符到达；只在形成完整调用后进入监控事件流，避免一次调用制造数百条原子事件。
+		if !isComplete {
+			return
+		}
 		if err := websocket.PushToolCallDetected(
 			websocket.RuntimeMonitorSessionID, roundId, sage.GetName(), sage.GetDisplayName(),
 			toolCallIndex, toolCallId, toolName, rawArguments, arguments, isComplete, detectedTime,
@@ -445,6 +473,7 @@ func (rc *ResponseCollector) processSageStreamChunks(
 
 			choice := chunk.Choices[0]
 			if len(choice.Delta.ToolCalls) > 0 {
+				previousPublicReply := replyStream.current()
 				turnCollector.Merge(choice.Delta.ToolCalls)
 				for _, delta := range choice.Delta.ToolCalls {
 					call, exists := turnCollector.Get(delta.Index)
@@ -459,23 +488,22 @@ func (rc *ResponseCollector) processSageStreamChunks(
 				shifted := withToolCallIndexOffset(choice.Delta.ToolCalls, indexOffset)
 				utilToolCalls := convertToolCallDeltasForCollector(shifted)
 				processor.MergeToolCalls(utilToolCalls)
+				if publicReply := replyStream.current(); publicReply != previousPublicReply {
+					pushSeelReplyStreamSnapshot(roundId, sage, streamMessageID, reasoningContent.String(), publicReply)
+				}
 			}
 			if choice.Delta.Content != "" {
 				processor.AccumulateContent(choice.Delta.Content)
 				turnContent.WriteString(choice.Delta.Content)
-				msg := &types.Message{
-					ID:        streamMessageID,
-					Type:      types.TypeAI,
-					Content:   processor.GetAccumulated(),
-					Status:    types.StatusStreaming,
-					Timestamp: time.Now().UnixMilli(),
-				}
-				if pushErr := websocket.PushSeelReplyChunk(websocket.RuntimeMonitorSessionID, roundId, sage.GetName(), sage.GetDisplayName(), msg); pushErr != nil {
-					logging.LogWarnf("推送%s流式chunk失败: %v", sage.GetDisplayName(), pushErr)
-				}
+				pushSeelReplyStreamSnapshot(roundId, sage, streamMessageID, reasoningContent.String(), processor.GetAccumulated())
 			}
 			if choice.Delta.ReasoningContent != "" {
 				reasoningContent.WriteString(choice.Delta.ReasoningContent)
+				replyContent := processor.GetAccumulated()
+				if publicReply := replyStream.current(); publicReply != "" {
+					replyContent = publicReply
+				}
+				pushSeelReplyStreamSnapshot(roundId, sage, streamMessageID, reasoningContent.String(), replyContent)
 			}
 		}
 	}
@@ -527,7 +555,7 @@ func checkWannaDowntime(
 	msg := &types.Message{
 		ID:        streamMessageID,
 		Type:      types.TypeSystem,
-		Content:   buildHeartbeatDowntimePreview(sage.GetName(), downtimeNote, isRest),
+		Content:   buildSeelStreamDisplayContent(reasoningContent, buildHeartbeatDowntimePreview(sage.GetName(), downtimeNote, isRest)),
 		Status:    types.StatusSuccess,
 		Timestamp: time.Now().UnixMilli(),
 		Meta: map[string]interface{}{
@@ -558,6 +586,7 @@ func (rc *ResponseCollector) executeTurnToolCallsWithGov(
 		turnToolCalls,
 		toolResultExecutor,
 		buildWannaSpeakToolAck,
+		buildSeelToolActivityObserver(roundId, sage),
 	)
 	if appendResult.LostDominance {
 		return appendResult, &dominantActionRevokedError{
@@ -567,6 +596,30 @@ func (rc *ResponseCollector) executeTurnToolCallsWithGov(
 		}
 	}
 	return appendResult, nil
+}
+
+func buildSeelToolActivityObserver(roundID string, sage *sages.Sage) ToolCallActivityObserver {
+	return func(call types.ToolCall, phase, result, errorMessage string) {
+		toolName := strings.TrimSpace(call.Function.Name)
+		if toolName == config.WannaSpeakToolName ||
+			toolName == config.WannaSpeakStartToolName ||
+			toolName == config.WannaSpeakContinueToolName ||
+			toolName == config.WannaSpeakStopToolName {
+			return
+		}
+		if err := websocket.PushSeelToolActivityUpdated(
+			websocket.RuntimeMonitorSessionID,
+			roundID,
+			sage.GetName(),
+			sage.GetDisplayName(),
+			call,
+			phase,
+			result,
+			errorMessage,
+		); err != nil {
+			logging.LogWarnf("推送%s工具活动失败: %v", sage.GetDisplayName(), err)
+		}
+	}
 }
 
 func (rc *ResponseCollector) buildSageResponse(

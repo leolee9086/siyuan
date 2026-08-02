@@ -15,11 +15,13 @@
     </div>
     <MagiWebContent
       class="stream-content protyle-wysiwyg"
-      :content="normalContent || msg?.content || initializingNeuralLinkText"
-      :meta="msg?.meta"
+      :content="hasThinkContent
+        ? (normalContent || initializingNeuralLinkText)
+        : (normalContent || msg?.content || initializingNeuralLinkText)"
+      v-bind="msg?.meta ? { meta: msg.meta } : {}"
     />
     <span
-      v-if="msg?.status === 'loading'"
+      v-if="msg?.status === 'loading' || msg?.status === 'streaming'"
       class="stream-cursor animate-pulse"
     >█</span>
   </div>

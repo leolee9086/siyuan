@@ -1,180 +1,34 @@
-import type { ConnectionStatus, MagiRuntimeStatus } from "../../composables/useMagi.types";
-import type { MagiSeelPanelMessageView } from "../../entry/magiView.types";
-import type {
-    MagiMonitorFact,
-    MagiMonitorStat,
-    MagiMonitorStreamItem,
-    MagiMonitorTone,
-    MagiMonitorVoteDetail,
-    MagiMonitorVoteSummary,
-} from "./TrinityMonitorPanel.types";
+/** 用途：连接与运行时状态类型。使用范围：中央监控统计。解耦评估：经同目录网关隔离父级路径。 */
+import type { ConnectionStatus } from "./imports";
+/** 用途：MAGI 运行时状态类型。使用范围：状态、事实和焦点摘要。解耦评估：经同目录网关隔离父级路径。 */
+import type { MagiRuntimeStatus } from "./imports";
+/** 用途：监控消息视图。使用范围：统计和最新统合提取。解耦评估：经同目录网关隔离父级路径。 */
+import type { MagiSeelPanelMessageView } from "./imports";
+/** 用途：运行时事实视图。使用范围：中央监控事实列表。解耦评估：同目录稳定类型。 */
+import type { MagiMonitorFact } from "./TrinityMonitorPanel.types";
+/** 用途：摘要统计视图。使用范围：中央监控摘要网格。解耦评估：同目录稳定类型。 */
+import type { MagiMonitorStat } from "./TrinityMonitorPanel.types";
+/** 用途：监控色调类型。使用范围：连接和告警状态。解耦评估：同目录稳定类型。 */
+import type { MagiMonitorTone } from "./TrinityMonitorPanel.types";
+/** 用途：格式化监控时间。使用范围：事实更新时间。解耦评估：共享只读格式规则。 */
+import { formatMonitorTimestamp } from "./TrinityMonitorPanel.shared";
+/** 用途：读取原始事件类型。使用范围：最后事件与告警统计。解耦评估：共享只读协议解析。 */
+import { getRawEventType } from "./TrinityMonitorPanel.shared";
+/** 用途：读取原始事件轮次。使用范围：当前轮次回退。解耦评估：共享只读协议解析。 */
+import { getRawEventRoundId } from "./TrinityMonitorPanel.shared";
+/** 用途：读取原始事件序号。使用范围：摘要序号。解耦评估：共享只读协议解析。 */
+import { getRawEventSeqText } from "./TrinityMonitorPanel.shared";
+/** 用途：识别原始监控消息。使用范围：统计与统合过滤。解耦评估：共享只读协议解析。 */
+import { isRawEventMonitorMessage } from "./TrinityMonitorPanel.shared";
+/** 用途：读取原始事件载荷。使用范围：工具失败告警和色调。解耦评估：共享只读协议解析。 */
+import { readRawEventPayload } from "./TrinityMonitorPanel.shared";
+/** 用途：读取非空字符串。使用范围：工具阶段判断。解耦评估：共享边界收窄规则。 */
+import { readNonEmptyString } from "./TrinityMonitorPanel.shared";
+/** 用途：解析原始事件色调。使用范围：最后事件统计。解耦评估：事件展示规则由 stream 模块拥有。 */
+import { resolveEventTone } from "./TrinityMonitorPanel.stream";
 
-const MAX_MONITOR_STREAM_ITEMS = 180;
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-    return typeof value === "object" && value !== null
-        ? value as Record<string, unknown>
-        : null;
-}
-
-function readNonEmptyString(value: unknown): string | null {
-    if (typeof value !== "string") {
-        return null;
-    }
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : null;
-}
-
-function truncateText(value: string, maxLength: number): string {
-    if (value.length <= maxLength) {
-        return value;
-    }
-    return `${value.slice(0, Math.max(0, maxLength - 1))}…`;
-}
-
-function readRawEventMeta(message: MagiSeelPanelMessageView): Record<string, unknown> {
-    return asRecord(message.meta) ?? {};
-}
-
-function readRawEventPayload(message: MagiSeelPanelMessageView): Record<string, unknown> {
-    const payload = Reflect.get(readRawEventMeta(message), "eventPayload");
-    return asRecord(payload) ?? {};
-}
-
-function getRawEventType(message: MagiSeelPanelMessageView): string {
-    const eventType = Reflect.get(readRawEventMeta(message), "eventType");
-    return readNonEmptyString(eventType) ?? "UNKNOWN_EVENT";
-}
-
-function getRawEventRoundId(message: MagiSeelPanelMessageView): string {
-    const roundId = Reflect.get(readRawEventMeta(message), "roundId");
-    return readNonEmptyString(roundId) ?? "-";
-}
-
-function getRawEventSeqText(message: MagiSeelPanelMessageView): string {
-    const seq = Reflect.get(readRawEventMeta(message), "seq");
-    return typeof seq === "number" ? `#${seq}` : "#-";
-}
-
-function resolveEventSourceLabel(payload: Record<string, unknown>): string {
-    return readNonEmptyString(Reflect.get(payload, "displayName"))
-        ?? readNonEmptyString(Reflect.get(payload, "seelName"))
-        ?? readNonEmptyString(Reflect.get(payload, "initiator"))
-        ?? readNonEmptyString(Reflect.get(payload, "state"))
-        ?? "MAGI CORE";
-}
-
-function formatMonitorEventType(eventType: string): string {
-    if (!eventType) {
-        return "UNKNOWN_EVENT";
-    }
-    return eventType;
-}
-
-function resolveEventTone(
-    eventType: string,
-    payload: Record<string, unknown>,
-): MagiMonitorTone {
-    const normalizedEventType = formatMonitorEventType(eventType);
-    if (normalizedEventType === "ROUND_FAILED" || normalizedEventType === "SEEL_REPLY_FAILED") {
-        return "danger";
-    }
-    if (normalizedEventType === "TOOL_CALL_DETECTED" || normalizedEventType === "DELIBERATION_SIGNAL_RAISED") {
-        return "warn";
-    }
-    if (normalizedEventType === "RUNTIME_STATUS_UPDATED") {
-        const state = readNonEmptyString(Reflect.get(payload, "state"));
-        if (state === "heartbeat" || state === "external") {
-            return "good";
-        }
-        if (state === "sleeping") {
-            return "muted";
-        }
-    }
-    if (
-        normalizedEventType === "DOMINANT_SYNTHESIS_COMPLETED"
-        || normalizedEventType === "CONSENSUS_EMITTED"
-        || normalizedEventType.endsWith("_COMPLETED")
-    ) {
-        return "good";
-    }
-    return "accent";
-}
-
-function buildPayloadSummary(
-    eventType: string,
-    payload: Record<string, unknown>,
-): string {
-    const normalizedEventType = formatMonitorEventType(eventType);
-    switch (normalizedEventType) {
-        case "RUNTIME_STATUS_UPDATED": {
-            const parts = [
-                readNonEmptyString(Reflect.get(payload, "state")),
-                readNonEmptyString(Reflect.get(payload, "dominantSeel")),
-                readNonEmptyString(Reflect.get(payload, "dominantStance")),
-                readNonEmptyString(Reflect.get(payload, "currentTask")),
-                readNonEmptyString(Reflect.get(payload, "reason")),
-            ].filter((part): part is string => !!part);
-            return parts.join(" | ") || "Runtime status updated";
-        }
-        case "LLM_REQUEST_SENT": {
-            const seel = readNonEmptyString(Reflect.get(payload, "displayName"))
-                ?? readNonEmptyString(Reflect.get(payload, "seelName"))
-                ?? "UNKNOWN";
-            const model = readNonEmptyString(Reflect.get(payload, "model")) ?? "unknown-model";
-            const toolCount = Reflect.get(payload, "toolCount");
-            return `${seel} -> ${model}${typeof toolCount === "number" ? ` | tools ${toolCount}` : ""}`;
-        }
-        case "SEEL_REPLY_STARTED":
-            return truncateText(readNonEmptyString(Reflect.get(payload, "userInput")) ?? "Seel reply started", 120);
-        case "SEEL_VOTE_UPDATED": {
-            const progress = Reflect.get(payload, "progress");
-            const decision = readNonEmptyString(Reflect.get(payload, "decision"));
-            const proposedAction = readNonEmptyString(Reflect.get(payload, "proposedAction"));
-            const passed = Reflect.get(payload, "passed");
-            const voteReason = readVoteDecisionReason(payload)
-                ?? readNonEmptyString(Reflect.get(payload, "deliberationReason"));
-            const parts = [
-                typeof progress === "number" ? `progress ${progress}%` : "",
-                proposedAction ? `motion ${truncateText(proposedAction, 42)}` : "",
-                decision ? `decision ${decision}` : "",
-                typeof passed === "boolean" ? (passed ? "通过" : "未通过") : "",
-                voteReason ? truncateText(voteReason, 48) : "",
-            ].filter((part): part is string => !!part);
-            return parts.join(" | ") || "Vote status updated";
-        }
-        case "SEEL_REPLY_COMPLETED":
-        case "DOMINANT_SYNTHESIS_COMPLETED":
-            return truncateText(readNonEmptyString(Reflect.get(payload, "content")) ?? "Reply completed", 120);
-        case "SEEL_REPLY_FAILED":
-        case "ROUND_FAILED":
-            return truncateText(readNonEmptyString(Reflect.get(payload, "error")) ?? "Failure detected", 120);
-        case "TOOL_CALL_DETECTED": {
-            const seel = readNonEmptyString(Reflect.get(payload, "displayName"))
-                ?? readNonEmptyString(Reflect.get(payload, "seelName"))
-                ?? "UNKNOWN";
-            const toolName = readNonEmptyString(Reflect.get(payload, "toolName")) ?? "tool";
-            const complete = Reflect.get(payload, "argumentsComplete") === true ? "complete" : "streaming";
-            return `${seel} | ${toolName} | ${complete}`;
-        }
-        case "CONTEXT_HISTORY_TRIMMED": {
-            const before = Reflect.get(payload, "beforeCount");
-            const after = Reflect.get(payload, "afterCount");
-            const dropped = Reflect.get(payload, "droppedCount");
-            return `context ${before ?? "?"} -> ${after ?? "?"} | dropped ${dropped ?? "?"}`;
-        }
-        default:
-            return truncateText(
-                readNonEmptyString(Reflect.get(payload, "reason"))
-                ?? readNonEmptyString(Reflect.get(payload, "content"))
-                ?? readNonEmptyString(Reflect.get(payload, "error"))
-                ?? "Backend event payload available",
-                120,
-            );
-    }
-}
-
-function getLastRawEvent(messages: readonly MagiSeelPanelMessageView[]): MagiSeelPanelMessageView | null {
+/** 返回最近一条后端原始事件。 */
+function getLastRawEvent(messages: readonly MagiSeelPanelMessageView[]) {
     for (let index = messages.length - 1; index >= 0; index -= 1) {
         const message = messages[index];
         if (message && isRawEventMonitorMessage(message)) {
@@ -184,238 +38,48 @@ function getLastRawEvent(messages: readonly MagiSeelPanelMessageView[]): MagiSee
     return null;
 }
 
-function normalizeSeelIdentity(value: unknown): string {
-    const raw = readNonEmptyString(value);
-    if (!raw) {
-        return "";
+/** 判断原始事件是否应计入监控告警。 */
+function isAlertMessage(message: MagiSeelPanelMessageView) {
+    if (!isRawEventMonitorMessage(message)) {
+        return false;
     }
-    const normalized = raw.toUpperCase();
-    if (normalized.includes("MELCHIOR")) {
-        return "MELCHIOR";
+    const eventType = getRawEventType(message);
+    if (eventType === "ROUND_FAILED" || eventType === "SEEL_REPLY_FAILED") {
+        return true;
     }
-    if (normalized.includes("BALTHASAR") || normalized.includes("BALTHAZAR")) {
-        return "BALTHASAR";
-    }
-    if (normalized.includes("CASPER")) {
-        return "CASPER";
-    }
-    return normalized.replace(/[^A-Z0-9]/g, "");
+    return eventType === "SEEL_TOOL_ACTIVITY_UPDATED" &&
+        readNonEmptyString(Reflect.get(readRawEventPayload(message), "phase")) === "failed";
 }
 
-function resolveVoteDetailName(value: unknown): string {
-    const normalized = normalizeSeelIdentity(value);
-    switch (normalized) {
-        case "MELCHIOR":
-            return "Melchior";
-        case "BALTHASAR":
-            return "Balthazar";
-        case "CASPER":
-            return "Casper";
-        default:
-            return readNonEmptyString(value) ?? "Unknown";
-    }
+/** 统计失败事件；工具失败与轮次失败使用同一告警口径。 */
+function resolveAlertCount(messages: readonly MagiSeelPanelMessageView[]) {
+    return messages.filter(isAlertMessage).length;
 }
 
-function isRawVoteEventMessage(message: MagiSeelPanelMessageView): boolean {
-    return isRawEventMonitorMessage(message) && getRawEventType(message) === "SEEL_VOTE_UPDATED";
+/** @同步豁免: UI构建 - Vue computed 必须同步获得运行态标签。 */
+export function formatRuntimeState(status: MagiRuntimeStatus | null | undefined) {
+    if (status?.state === "heartbeat") {
+        return "HEARTBEAT";
+    }
+    if (status?.state === "external") {
+        return "AWAKE";
+    }
+    return status?.state === "sleeping" ? "SLEEP" : "UNKNOWN";
 }
 
-function readVoteEventToken(message: MagiSeelPanelMessageView): string {
-    const meta = readRawEventMeta(message);
-    const eventId = readNonEmptyString(Reflect.get(meta, "eventId")) ?? message.id;
-    const seq = Reflect.get(meta, "seq");
-    return `${eventId}:${typeof seq === "number" ? seq : "?"}`;
+/** @同步豁免: UI构建 - Vue computed 必须同步获得连接标签。 */
+export function formatConnectionStatus(status: ConnectionStatus) {
+    if (status === "connected") {
+        return "LINK OK";
+    }
+    if (status === "connecting") {
+        return "LINKING";
+    }
+    return status === "error" ? "LINK ERROR" : "OFFLINE";
 }
 
-function readVoteDecisionReason(payload: Record<string, unknown>): string | undefined {
-    return readNonEmptyString(Reflect.get(payload, "decisionReason"))
-        ?? readNonEmptyString(Reflect.get(payload, "reason"));
-}
-
-function computeVotePassed(details: Map<string, MagiMonitorVoteDetail>): boolean | undefined {
-    if (details.size === 0) {
-        return undefined;
-    }
-    let approveCount = 0;
-    let rejectCount = 0;
-    for (const detail of details.values()) {
-        if (detail.decision === "批准") {
-            approveCount += 1;
-        }
-        if (detail.decision === "否决") {
-            rejectCount += 1;
-        }
-    }
-    if (approveCount + rejectCount === 0) {
-        return undefined;
-    }
-    return approveCount >= 2;
-}
-
-export function extractLatestVoteSummary(
-    messages: readonly MagiSeelPanelMessageView[],
-): MagiMonitorVoteSummary | null {
-    let latestVoteEvent: MagiSeelPanelMessageView | null = null;
-    for (let index = messages.length - 1; index >= 0; index -= 1) {
-        const message = messages[index];
-        if (message && isRawVoteEventMessage(message)) {
-            latestVoteEvent = message;
-            break;
-        }
-    }
-    if (!latestVoteEvent) {
-        return null;
-    }
-
-    const roundId = getRawEventRoundId(latestVoteEvent);
-    if (!roundId || roundId === "-") {
-        return null;
-    }
-
-    const details = new Map<string, MagiMonitorVoteDetail>();
-    let progress = 0;
-    let round: number | undefined;
-    let passed: boolean | undefined;
-    let proposedAction = "";
-    let deliberationInitiator = "";
-    let deliberationReason = "";
-
-    for (const message of messages) {
-        if (!message || !isRawVoteEventMessage(message) || getRawEventRoundId(message) !== roundId) {
-            continue;
-        }
-        const payload = readRawEventPayload(message);
-        const payloadProgress = Reflect.get(payload, "progress");
-        if (typeof payloadProgress === "number") {
-            progress = payloadProgress;
-        }
-        const payloadRound = Reflect.get(payload, "round");
-        if (typeof payloadRound === "number") {
-            round = payloadRound;
-        }
-        const payloadPassed = Reflect.get(payload, "passed");
-        if (typeof payloadPassed === "boolean") {
-            passed = payloadPassed;
-        }
-
-        proposedAction = readNonEmptyString(Reflect.get(payload, "proposedAction")) ?? proposedAction;
-        deliberationInitiator = readNonEmptyString(Reflect.get(payload, "deliberationInitiator")) ?? deliberationInitiator;
-        deliberationReason = readNonEmptyString(Reflect.get(payload, "deliberationReason")) ?? deliberationReason;
-
-        const detailList = Reflect.get(payload, "details");
-        if (Array.isArray(detailList)) {
-            for (const item of detailList) {
-                const detail = asRecord(item);
-                const detailName = resolveVoteDetailName(detail ? Reflect.get(detail, "name") : undefined);
-                const normalizedName = normalizeSeelIdentity(detailName);
-                const decision = readNonEmptyString(detail ? Reflect.get(detail, "decision") : undefined);
-                if (!normalizedName || !decision) {
-                    continue;
-                }
-                details.set(normalizedName, {
-                    key: normalizedName,
-                    name: detailName,
-                    decision,
-                    reason: readNonEmptyString(detail ? Reflect.get(detail, "reason") : undefined) ?? "",
-                });
-            }
-        }
-
-        const seelName = readNonEmptyString(Reflect.get(payload, "seelName"))
-            ?? readNonEmptyString(Reflect.get(payload, "displayName"));
-        const decision = readNonEmptyString(Reflect.get(payload, "decision"));
-        if (seelName && decision) {
-            const normalizedName = normalizeSeelIdentity(seelName);
-            if (normalizedName) {
-                details.set(normalizedName, {
-                    key: normalizedName,
-                    name: resolveVoteDetailName(seelName),
-                    decision,
-                    reason: readVoteDecisionReason(payload) ?? "",
-                });
-            }
-        }
-    }
-
-    const computedPassed = passed ?? computeVotePassed(details);
-    const orderedDetails = ["MELCHIOR", "BALTHASAR", "CASPER"]
-        .map((key) => details.get(key))
-        .filter((detail): detail is MagiMonitorVoteDetail => !!detail);
-    const tone: MagiMonitorTone = computedPassed === true
-        ? "good"
-        : computedPassed === false
-            ? "danger"
-            : "warn";
-    const statusLabel = computedPassed === true
-        ? "通过"
-        : computedPassed === false
-            ? "未通过"
-            : progress >= 100
-                ? "审议结束"
-                : "审议中";
-
-    return {
-        token: readVoteEventToken(latestVoteEvent),
-        roundId,
-        ...(typeof round === "number" ? { round } : {}),
-        progress,
-        tone,
-        statusLabel,
-        proposedAction,
-        deliberationInitiator,
-        deliberationReason,
-        updatedAt: formatMonitorTimestamp(latestVoteEvent.timestamp),
-        details: orderedDetails,
-    };
-}
-
-function resolveAlertCount(messages: readonly MagiSeelPanelMessageView[]): number {
-    return messages.filter((message) => {
-        if (!isRawEventMonitorMessage(message)) {
-            return false;
-        }
-        const eventType = getRawEventType(message);
-        return eventType === "ROUND_FAILED" || eventType === "SEEL_REPLY_FAILED";
-    }).length;
-}
-
-export function formatMonitorTimestamp(timestamp: unknown): string {
-    if (typeof timestamp !== "number" || !Number.isFinite(timestamp) || timestamp <= 0) {
-        return "--:--:--";
-    }
-    const date = new Date(timestamp);
-    const h = String(date.getHours()).padStart(2, "0");
-    const m = String(date.getMinutes()).padStart(2, "0");
-    const s = String(date.getSeconds()).padStart(2, "0");
-    return `${h}:${m}:${s}`;
-}
-
-export function formatRuntimeState(status: MagiRuntimeStatus | null | undefined): string {
-    switch (status?.state) {
-        case "heartbeat":
-            return "HEARTBEAT";
-        case "external":
-            return "AWAKE";
-        case "sleeping":
-            return "SLEEP";
-        default:
-            return "UNKNOWN";
-    }
-}
-
-export function formatConnectionStatus(status: ConnectionStatus): string {
-    switch (status) {
-        case "connected":
-            return "LINK OK";
-        case "connecting":
-            return "LINKING";
-        case "error":
-            return "LINK ERROR";
-        default:
-            return "OFFLINE";
-    }
-}
-
+/** @同步豁免: UI构建 - Vue computed 必须同步获得状态色调。 */
+/** @显式返回类型原因: 公开色调函数必须固定为 MagiMonitorTone，防止字符串字面量在分支合并后扩宽。 */
 export function resolveRuntimeTone(
     status: MagiRuntimeStatus | null | undefined,
     connectionStatus: ConnectionStatus,
@@ -426,152 +90,73 @@ export function resolveRuntimeTone(
     if (connectionStatus === "connecting") {
         return "warn";
     }
-    switch (status?.state) {
-        case "heartbeat":
-        case "external":
-            return "good";
-        case "sleeping":
-            return "muted";
-        default:
-            return "accent";
+    if (status?.state === "heartbeat" || status?.state === "external") {
+        return "good";
     }
+    return status?.state === "sleeping" ? "muted" : "accent";
 }
 
-export function isRawEventMonitorMessage(message: MagiSeelPanelMessageView): boolean {
-    const meta = asRecord(message.meta);
-    return message.type === "event" && meta?.type === "raw-event";
-}
-
-export function extractLatestMonitorSynthesis(
-    messages: readonly MagiSeelPanelMessageView[],
-): MagiSeelPanelMessageView | null {
+/** @同步豁免: UI构建 - Vue computed 必须同步取得最新可读统合。 */
+export function extractLatestMonitorSynthesis(messages: readonly MagiSeelPanelMessageView[]) {
     for (let index = messages.length - 1; index >= 0; index -= 1) {
         const message = messages[index];
-        if (!message) {
+        if (!message || isRawEventMonitorMessage(message) || message.type === "user") {
             continue;
         }
-        if (isRawEventMonitorMessage(message)) {
-            continue;
+        if (String(message.content ?? "").trim()) {
+            return message;
         }
-        if (message.type === "user") {
-            continue;
-        }
-        const content = String(message.content ?? "").trim();
-        if (!content) {
-            continue;
-        }
-        return message;
     }
     return null;
 }
 
+/** @同步豁免: UI构建 - 摘要网格必须在当前 computed 周期同步构造。 */
 export function buildMonitorStats(
     messages: readonly MagiSeelPanelMessageView[],
     connectionStatus: ConnectionStatus,
     runtimeStatus: MagiRuntimeStatus | null | undefined,
-): MagiMonitorStat[] {
+) {
     const lastEvent = getLastRawEvent(messages);
-    const lastRawEventType = lastEvent ? getRawEventType(lastEvent) : "";
-    const lastEventType = lastEvent ? formatMonitorEventType(lastRawEventType) : "IDLE";
-    const lastSeqText = lastEvent ? getRawEventSeqText(lastEvent) : "#-";
-    const activeRoundId = runtimeStatus?.currentRoundId
-        ?? (lastEvent ? getRawEventRoundId(lastEvent) : null)
-        ?? "IDLE";
+    const rawType = lastEvent ? getRawEventType(lastEvent) : "";
+    const runtimeTone = resolveRuntimeTone(runtimeStatus, connectionStatus);
     const alertCount = resolveAlertCount(messages);
-
-    return [
-        {
-            label: "STATE",
-            value: formatRuntimeState(runtimeStatus),
-            tone: resolveRuntimeTone(runtimeStatus, connectionStatus),
-        },
-        {
-            label: "LINK",
-            value: formatConnectionStatus(connectionStatus),
-            tone: resolveRuntimeTone(runtimeStatus, connectionStatus),
-        },
-        {
-            label: "ROUND",
-            value: activeRoundId,
-            tone: "accent",
-        },
-        {
-            label: "LAST",
-            value: lastEventType,
-            tone: lastEvent ? resolveEventTone(lastRawEventType, readRawEventPayload(lastEvent)) : "muted",
-        },
-        {
-            label: "SEQ",
-            value: lastSeqText,
-            tone: "accent",
-        },
-        {
-            label: "ALERTS",
-            value: String(alertCount),
-            tone: alertCount > 0 ? "danger" : "muted",
-        },
-    ];
+    const stats: MagiMonitorStat[] = [];
+    stats.push({ label: "STATE", value: formatRuntimeState(runtimeStatus), tone: runtimeTone });
+    stats.push({ label: "LINK", value: formatConnectionStatus(connectionStatus), tone: runtimeTone });
+    stats.push({
+        label: "ROUND",
+        value: runtimeStatus?.currentRoundId ?? (lastEvent ? getRawEventRoundId(lastEvent) : null) ?? "IDLE",
+        tone: "accent",
+    });
+    stats.push({
+        label: "LAST",
+        value: lastEvent ? rawType : "IDLE",
+        tone: lastEvent ? resolveEventTone(rawType, readRawEventPayload(lastEvent)) : "muted",
+    });
+    stats.push({ label: "SEQ", value: lastEvent ? getRawEventSeqText(lastEvent) : "#-", tone: "accent" });
+    stats.push({ label: "ALERTS", value: String(alertCount), tone: alertCount > 0 ? "danger" : "muted" });
+    return stats;
 }
 
-export function buildMonitorFacts(
-    runtimeStatus: MagiRuntimeStatus | null | undefined,
-): MagiMonitorFact[] {
-    return [
-        {
-            label: "TASK",
-            value: runtimeStatus?.currentTask?.trim() || "Awaiting backend task dispatch",
-        },
-        {
-            label: "REASON",
-            value: runtimeStatus?.reason?.trim() || runtimeStatus?.lastSleepSummary?.trim() || "No runtime annotation",
-        },
-        {
-            label: "WAKE SOURCE",
-            value: runtimeStatus?.wakeSource?.trim() || "-",
-        },
-        {
-            label: "DOMINANT",
-            value: runtimeStatus?.dominantStance?.trim()
-                || runtimeStatus?.dominantSeel?.trim()
-                || "-",
-        },
-        {
-            label: "UPDATED",
-            value: formatMonitorTimestamp(
-                runtimeStatus?.dominantUpdatedAt
-                ?? runtimeStatus?.updatedAt
-                ?? runtimeStatus?.lastHeartbeatAt
-                ?? runtimeStatus?.lastWakeAt
-                ?? runtimeStatus?.lastSleepAt,
-            ),
-        },
-    ];
-}
-
-export function buildMonitorStream(
-    messages: readonly MagiSeelPanelMessageView[],
-): MagiMonitorStreamItem[] {
-    const items = messages
-        .filter(isRawEventMonitorMessage)
-        .map<MagiMonitorStreamItem>((message) => {
-            const payload = readRawEventPayload(message);
-            const rawEventType = getRawEventType(message);
-            const eventType = formatMonitorEventType(rawEventType);
-            return {
-                id: message.id,
-                eventType,
-                tone: resolveEventTone(rawEventType, payload),
-                timestampText: formatMonitorTimestamp(message.timestamp),
-                seqText: getRawEventSeqText(message),
-                roundId: getRawEventRoundId(message),
-                sourceLabel: resolveEventSourceLabel(payload),
-                summary: buildPayloadSummary(eventType, payload),
-                payloadText: JSON.stringify(payload ?? {}, null, 2),
-            };
-        });
-
-    if (items.length <= MAX_MONITOR_STREAM_ITEMS) {
-        return items;
-    }
-    return items.slice(items.length - MAX_MONITOR_STREAM_ITEMS);
+/** @同步豁免: UI构建 - 事实列表必须在当前 computed 周期同步构造。 */
+export function buildMonitorFacts(runtimeStatus: MagiRuntimeStatus | null | undefined) {
+    const facts: MagiMonitorFact[] = [];
+    facts.push({ label: "TASK", value: runtimeStatus?.currentTask?.trim() || "Awaiting backend task dispatch" });
+    facts.push({
+        label: "REASON",
+        value: runtimeStatus?.reason?.trim() || runtimeStatus?.lastSleepSummary?.trim() || "No runtime annotation",
+    });
+    facts.push({ label: "WAKE SOURCE", value: runtimeStatus?.wakeSource?.trim() || "-" });
+    facts.push({
+        label: "DOMINANT",
+        value: runtimeStatus?.dominantStance?.trim() || runtimeStatus?.dominantSeel?.trim() || "-",
+    });
+    facts.push({
+        label: "UPDATED",
+        value: formatMonitorTimestamp(
+            runtimeStatus?.dominantUpdatedAt ?? runtimeStatus?.updatedAt ?? runtimeStatus?.lastHeartbeatAt
+            ?? runtimeStatus?.lastWakeAt ?? runtimeStatus?.lastSleepAt,
+        ),
+    });
+    return facts;
 }

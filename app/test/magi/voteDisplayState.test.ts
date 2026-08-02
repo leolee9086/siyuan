@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { MagiSeelPanelMessageView } from "../../src/magi/entry/magiView.types";
 import { resolveSeelVoteBadgeState } from "../../src/magi/components/seel-panel/SeelPanelVoteContent.ctx";
-import { extractLatestVoteSummary } from "../../src/magi/components/trinity-monitor-panel/TrinityMonitorPanel.ctx";
+import { extractLatestVoteSummary } from "../../src/magi/components/trinity-monitor-panel/TrinityMonitorPanel.vote";
 
 function createVoteEventMessage(
     id: string,
@@ -26,17 +26,27 @@ function createVoteEventMessage(
     };
 }
 
+function createVoteStateMessage(payload: Record<string, unknown>): MagiSeelPanelMessageView {
+    return {
+        id: "round-vote-1-vote-state",
+        type: "system",
+        content: "投票状态已更新",
+        status: "success",
+        timestamp: 2_000,
+        meta: {
+            type: "vote-state",
+            eventId: "vote-state-1",
+            seq: 2,
+            roundId: "round-vote-1",
+            ...payload,
+        },
+    };
+}
+
 describe("vote display state", () => {
     it("应为三贤人解析动议 / 肯定 / 否决徽标", () => {
         const messages: MagiSeelPanelMessageView[] = [
-            createVoteEventMessage("vote-start-1", 1_000, 1, {
-                progress: 0,
-                round: 1,
-                proposedAction: "记录当前推进到工作日志",
-                deliberationInitiator: "MELCHIOR-01",
-                deliberationReason: "需要留下可追踪记录",
-            }),
-            createVoteEventMessage("vote-result-1", 2_000, 2, {
+            createVoteStateMessage({
                 progress: 100,
                 passed: true,
                 round: 1,

@@ -147,19 +147,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+/** 用途：Vue 响应式与生命周期调度。使用范围：中央监控 setup。解耦评估：经目录网关集中依赖。 */
+import { computed, nextTick, ref, watch } from "./imports";
+/** 用途：组件属性契约。使用范围：defineProps。解耦评估：同目录稳定类型。 */
 import type { MagiMonitorPanelProps } from "./TrinityMonitorPanel.types";
+/** 用途：运行态与摘要构造。使用范围：中央监控 computed。解耦评估：ctx 只拥有面板聚合职责。 */
 import {
     buildMonitorFacts,
     buildMonitorStats,
-    buildMonitorStream,
-    extractLatestVoteSummary,
     extractLatestMonitorSynthesis,
     formatConnectionStatus,
-    formatMonitorTimestamp,
     formatRuntimeState,
     resolveRuntimeTone,
 } from "./TrinityMonitorPanel.ctx";
+/** 用途：格式化监控时间。使用范围：最新统合时间。解耦评估：共享只读规则。 */
+import { formatMonitorTimestamp } from "./TrinityMonitorPanel.shared";
+/** 用途：构造原始事件流。使用范围：事件列表 computed。解耦评估：stream 独占原始事件展示规则。 */
+import { buildMonitorStream } from "./TrinityMonitorPanel.stream";
+/** 用途：聚合最新投票。使用范围：投票面板 computed。解耦评估：vote 独占轮次聚合规则。 */
+import { extractLatestVoteSummary } from "./TrinityMonitorPanel.vote";
+/** 用途：加载中央监控样式。使用范围：当前组件。解耦评估：样式与模板结构一一对应。 */
 import "./TrinityMonitorPanel.css";
 
 const props = withDefaults(defineProps<MagiMonitorPanelProps>(), {

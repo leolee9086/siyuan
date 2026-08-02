@@ -1,6 +1,7 @@
 package coordinator
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -11,6 +12,76 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 )
+
+func TestStreamedToolCallCollectorEmitsOnlyCompleteCall(t *testing.T) {
+	collector := newStreamedToolCallCollector()
+	emitted := 0
+	collector.SetCallback(func(_ int, _ string, _ string, rawArguments string, arguments map[string]interface{}, complete bool, _ int64) {
+		emitted++
+		if !complete || rawArguments != `{"query":"prefix cache"}` || arguments["query"] != "prefix cache" {
+			t.Fatalf("unexpected complete payload: complete=%v raw=%q arguments=%#v", complete, rawArguments, arguments)
+		}
+	})
+	fragments := []string{`{`, `"query"`, `:`, `"prefix `, `cache"`, `}`}
+	for index, fragment := range fragments {
+		name := ""
+		if index == 0 {
+			name = "note_keyword_search"
+		}
+		collector.Merge([]types.ToolCallDelta{{
+			Index: 0,
+			ID:    "call-stream-1",
+			Function: &types.ToolCallFunctionDelta{
+				Name:      name,
+				Arguments: fragment,
+			},
+		}})
+	}
+	collector.Merge([]types.ToolCallDelta{{
+		Index:    0,
+		Function: &types.ToolCallFunctionDelta{Arguments: " "},
+	}})
+	if emitted != 1 {
+		t.Fatalf("complete tool event count = %d, want 1", emitted)
+	}
+}
+
+func TestAppendTurnToolCallsReportsSemanticActivityLifecycle(t *testing.T) {
+	sage := createMockSage("melchior", "Melchior", "测试", false, 0)
+	call := types.ToolCall{
+		ID:   "activity-call-1",
+		Type: "function",
+		Function: types.ToolCallFunction{
+			Name:      "synthetic_tool",
+			Arguments: `{"input":"value"}`,
+		},
+	}
+	var phases []string
+	var result string
+	appendTurnToolCallsToContextWithExecutorContext(
+		context.Background(),
+		"session-activity",
+		"round-activity",
+		sage,
+		"",
+		"",
+		[]types.ToolCall{call},
+		func(types.ToolCall) (string, bool, error) { return `{"output":"done"}`, true, nil },
+		nil,
+		func(_ types.ToolCall, phase, activityResult, _ string) {
+			phases = append(phases, phase)
+			if activityResult != "" {
+				result = activityResult
+			}
+		},
+	)
+	if strings.Join(phases, ",") != "running,completed" {
+		t.Fatalf("activity phases = %v", phases)
+	}
+	if result != `{"output":"done"}` {
+		t.Fatalf("activity result = %q", result)
+	}
+}
 
 func TestAppendTurnToolCallsToContextWithExecutor_UseExecutorResult(t *testing.T) {
 	originalPersistFn := persistQueryToolResultToNotebook

@@ -52,6 +52,7 @@ func TestShouldLogEventSummary(t *testing.T) {
 		EventRuntimeStatusUpdated,
 		EventLLMRequestSent,
 		EventToolCallDetected,
+		EventSeelToolActivityUpdated,
 		EventContextHistoryTrimmed,
 	}
 	for _, eventType := range quietEvents {

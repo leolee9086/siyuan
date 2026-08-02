@@ -82,6 +82,25 @@ func TestPushSeelReplyFailed(t *testing.T) {
 	}
 }
 
+func TestPushSeelToolActivityUpdated(t *testing.T) {
+	call := types.ToolCall{
+		ID:    "tool-activity-1",
+		Index: 2,
+		Type:  "function",
+		Function: types.ToolCallFunction{
+			Name:      "note_keyword_search",
+			Arguments: `{"query":"缓存"}`,
+		},
+	}
+	err := PushSeelToolActivityUpdated(
+		"test-session", "round-1", "melchior", "Melchior", call,
+		"completed", `{"matchedBlockCount":1}`, "",
+	)
+	if err != nil {
+		t.Errorf("PushSeelToolActivityUpdated() error = %v", err)
+	}
+}
+
 func TestPushVotingStart(t *testing.T) {
 	err := PushVotingStart("test-session", "round-1", "提议的行动方案", 1, "melchior", "Melchior", "需要进一步复核风险")
 	if err != nil {

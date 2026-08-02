@@ -68,6 +68,19 @@ func TestReplyToolStreamProjectorRejectsChangedContent(t *testing.T) {
 	}
 }
 
+func TestReplyToolStreamProjectorAccumulatesWithoutObserver(t *testing.T) {
+	projector := newReplyToolStreamProjector(nil)
+	if err := projector.update(1, "wanna_speak_continue", `{"content":"第一段"}`); err != nil {
+		t.Fatalf("first update failed: %v", err)
+	}
+	if err := projector.update(2, "wanna_speak_continue", `{"content":"第二段"}`); err != nil {
+		t.Fatalf("second update failed: %v", err)
+	}
+	if got, want := projector.current(), "第一段第二段"; got != want {
+		t.Fatalf("current content = %q, want %q", got, want)
+	}
+}
+
 func TestDecodePartialJSONStringFieldRejectsInvalidEscape(t *testing.T) {
 	if _, _, err := decodePartialJSONStringField(`{"content":"bad\x"}`, "content"); err == nil {
 		t.Fatal("invalid JSON escape must return an error")

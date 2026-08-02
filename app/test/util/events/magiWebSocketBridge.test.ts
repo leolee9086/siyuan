@@ -35,6 +35,38 @@ describe("MAGI WebSocket Bridge", () => {
         expect(capturedEventId).toBe("event-1");
     });
 
+    it("应转发包含工具结果的语义活动事件", async () => {
+        const bus = await createMagiEventBus();
+        let capturedResult = "";
+        bus.subscribe("SEEL_TOOL_ACTIVITY_UPDATED", (payload) => {
+            capturedResult = payload.result ?? "";
+        });
+
+        const handled = dispatchMagiWebSocketMessage(bus, {
+            cmd: "magiEvent",
+            data: {
+                eventType: "SEEL_TOOL_ACTIVITY_UPDATED",
+                sessionId: "session-tool",
+                eventId: "event-tool-1",
+                seq: 2,
+                roundId: "round-tool-1",
+                timestamp: Date.now(),
+                seelName: "MELCHIOR-01",
+                displayName: "MELCHIOR",
+                toolName: "note_keyword_search",
+                toolCallIndex: 0,
+                toolCallId: "call-tool-1",
+                rawArguments: "{\"query\":\"缓存\"}",
+                arguments: { query: "缓存" },
+                phase: "completed",
+                result: "{\"matchedBlockCount\":1}",
+            },
+        });
+
+        expect(handled).toBe(true);
+        expect(capturedResult).toBe("{\"matchedBlockCount\":1}");
+    });
+
     it("应转发会话不匹配的消息", async () => {
         const bus = await createMagiEventBus();
         let count = 0;

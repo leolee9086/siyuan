@@ -16,6 +16,7 @@ export type MagiEventName =
     | "CONSENSUS_EMITTED"
     | "ROUND_FAILED"
     | "TOOL_CALL_DETECTED"
+    | "SEEL_TOOL_ACTIVITY_UPDATED"
     | "DELIBERATION_SIGNAL_RAISED"
     | "CONTEXT_HISTORY_TRIMMED"
     | "RUNTIME_STATUS_UPDATED";
@@ -115,6 +116,20 @@ export interface MagiToolCallDetectedEvent extends MagiEventBase {
     arguments?: Record<string, unknown>;
 }
 
+/** 贤者工具活动更新事件；同一调用的执行阶段与结果原地更新。 */
+export interface MagiSeelToolActivityUpdatedEvent extends MagiEventBase {
+    seelName: string;
+    displayName: string;
+    toolName: string;
+    toolCallIndex: number;
+    toolCallId: string;
+    rawArguments: string;
+    arguments?: Record<string, unknown>;
+    phase: "running" | "completed" | "failed";
+    result?: string;
+    error?: string;
+}
+
 /** 审慎决策信号事件。 */
 export interface MagiDeliberationSignalRaisedEvent extends MagiEventBase {
     initiator: string;
@@ -166,6 +181,7 @@ export interface MagiEventPayloadMap {
     CONSENSUS_EMITTED: MagiConsensusEmittedEvent;
     ROUND_FAILED: MagiRoundFailedEvent;
     TOOL_CALL_DETECTED: MagiToolCallDetectedEvent;
+    SEEL_TOOL_ACTIVITY_UPDATED: MagiSeelToolActivityUpdatedEvent;
     DELIBERATION_SIGNAL_RAISED: MagiDeliberationSignalRaisedEvent;
     CONTEXT_HISTORY_TRIMMED: MagiContextHistoryTrimmedEvent;
     RUNTIME_STATUS_UPDATED: MagiRuntimeStatusUpdatedEvent;

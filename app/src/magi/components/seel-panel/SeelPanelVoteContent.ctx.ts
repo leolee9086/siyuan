@@ -61,15 +61,19 @@ function normalizeSeelIdentity(value: unknown): string {
     return normalized.replace(/[^A-Z0-9]/g, "");
 }
 
-function isRawVoteEventMessage(message: MagiSeelPanelMessageView): boolean {
+function isVoteStateMessage(message: MagiSeelPanelMessageView): boolean {
     const meta = isRecord(message.meta) ? message.meta : null;
-    return message.type === "event"
+    const isRawVoteEvent = message.type === "event"
         && meta?.type === "raw-event"
         && meta?.eventType === "SEEL_VOTE_UPDATED";
+    return isRawVoteEvent || meta?.type === "vote-state";
 }
 
 function readVoteEventPayload(message: MagiSeelPanelMessageView): Record<string, unknown> {
     const meta = isRecord(message.meta) ? message.meta : null;
+    if (meta?.type === "vote-state") {
+        return meta;
+    }
     const payload = meta ? Reflect.get(meta, "eventPayload") : undefined;
     return isRecord(payload) ? payload : {};
 }
@@ -153,7 +157,7 @@ function collectLatestVoteRoundState(
     let latestVoteEvent: MagiSeelPanelMessageView | null = null;
     for (let index = messages.length - 1; index >= 0; index -= 1) {
         const message = messages[index];
-        if (message && isRawVoteEventMessage(message)) {
+        if (message && isVoteStateMessage(message)) {
             latestVoteEvent = message;
             break;
         }
@@ -174,7 +178,7 @@ function collectLatestVoteRoundState(
     };
 
     for (const message of messages) {
-        if (!message || !isRawVoteEventMessage(message) || readVoteRoundId(message) !== roundId) {
+        if (!message || !isVoteStateMessage(message) || readVoteRoundId(message) !== roundId) {
             continue;
         }
         applyVoteEventToState(state, readVoteEventPayload(message));
@@ -193,6 +197,29 @@ function buildVoteBadgeTooltip(
         detail?.reason ? `票据理由: ${detail.reason}` : "",
     ].filter((line): line is string => line.length > 0);
     return lines.join("\n");
+}
+
+/** 根据单贤者票据构造肯定或否决徽标。 */
+function buildDecisionBadge(
+    state: SeelVoteRoundState,
+    detail: SeelVoteDetailState,
+) {
+    const approved = detail.decision === "批准";
+    const rejected = detail.decision === "否决";
+    if (!approved && !rejected) {
+        return null;
+    }
+    const badge: SeelVoteBadgeState = {
+        token: state.token,
+        roundId: state.roundId,
+        label: approved ? "肯定" : "否决",
+        tone: approved ? "approve" : "reject",
+        tooltip: buildVoteBadgeTooltip(state, detail),
+        ...(state.proposedAction ? { proposedAction: state.proposedAction } : {}),
+        ...(state.deliberationReason ? { deliberationReason: state.deliberationReason } : {}),
+        ...(detail.reason ? { reason: detail.reason } : {}),
+    };
+    return badge;
 }
 
 export function resolveSeelVoteBadgeState(
@@ -216,8 +243,8 @@ export function resolveSeelVoteBadgeState(
             label: "动议",
             tone: "motion",
             tooltip: buildVoteBadgeTooltip(state),
-            proposedAction: state.proposedAction,
-            deliberationReason: state.deliberationReason,
+            ...(state.proposedAction ? { proposedAction: state.proposedAction } : {}),
+            ...(state.deliberationReason ? { deliberationReason: state.deliberationReason } : {}),
         };
     }
 
@@ -225,34 +252,7 @@ export function resolveSeelVoteBadgeState(
     if (!detail) {
         return null;
     }
-
-    if (detail.decision === "批准") {
-        return {
-            token: state.token,
-            roundId: state.roundId,
-            label: "肯定",
-            tone: "approve",
-            tooltip: buildVoteBadgeTooltip(state, detail),
-            proposedAction: state.proposedAction,
-            deliberationReason: state.deliberationReason,
-            reason: detail.reason,
-        };
-    }
-
-    if (detail.decision === "否决") {
-        return {
-            token: state.token,
-            roundId: state.roundId,
-            label: "否决",
-            tone: "reject",
-            tooltip: buildVoteBadgeTooltip(state, detail),
-            proposedAction: state.proposedAction,
-            deliberationReason: state.deliberationReason,
-            reason: detail.reason,
-        };
-    }
-
-    return null;
+    return buildDecisionBadge(state, detail);
 }
 
 /** 初始化投票内容组件的响应式状态 */

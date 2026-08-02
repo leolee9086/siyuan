@@ -35,9 +35,36 @@ export const validStatusTypes: ReadonlySet<string> = new Set([
     "success",
     "error",
     "loading",
+    "streaming",
     "pending",
     "warning",
 ]);
+
+const STREAM_REPLY_TYPES: ReadonlySet<string> = new Set([
+    "ai",
+    "sse_stream",
+    "melchior",
+    "balthasar",
+    "balthazar",
+    "casper",
+]);
+
+/** 判断回复是否应使用聊天式流内容渲染，包括完成后仍需折叠的思考内容。 */
+export function isStreamingReplyActivity(
+    message: { type?: string; status?: string; content?: string } | undefined,
+): boolean {
+    if (!message) {
+        return false;
+    }
+    if (message.content?.includes("<think>")) {
+        return true;
+    }
+    if (message.type === "sse_stream") {
+        return true;
+    }
+    return STREAM_REPLY_TYPES.has(message.type ?? "") &&
+        (message.status === "loading" || message.status === "streaming");
+}
 
 /** 合法对齐方式集合（消费者直接调用 .has(alignment) 进行验证） */
 export const validAlignments: ReadonlySet<string> = new Set([
@@ -58,9 +85,10 @@ export const statusIconMap: Readonly<Record<string, string>> = {
 
 /** 判断消息是否为流式消息（正在加载中的SSE流） */
 export async function isStreamingMessage(
-    message: { type?: string; status?: string },
+    message: { type?: string; status?: string; content?: string },
 ): Promise<boolean> {
-    return message?.type === "sse_stream" && message?.status === "loading";
+    return isStreamingReplyActivity(message) &&
+        (message.status === "loading" || message.status === "streaming");
 }
 
 /** 检查消息状态是否从loading转换为完成 */
@@ -69,7 +97,8 @@ export async function isStatusTransition(
     oldStatus: string,
     content: string,
 ): Promise<boolean> {
-    return newStatus !== "loading" && oldStatus === "loading" && !!content;
+    const wasStreaming = oldStatus === "loading" || oldStatus === "streaming";
+    return newStatus !== "loading" && newStatus !== "streaming" && wasStreaming && !!content;
 }
 
 /** 根据消息属性生成CSS类名映射 */

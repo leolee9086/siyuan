@@ -17,9 +17,6 @@ type replyToolStreamProjector struct {
 }
 
 func newReplyToolStreamProjector(observer ReplyStreamObserver) *replyToolStreamProjector {
-	if observer == nil {
-		return nil
-	}
 	return &replyToolStreamProjector{
 		observer: observer,
 		segments: map[int]string{},
@@ -61,11 +58,20 @@ func (p *replyToolStreamProjector) update(index int, toolName, rawArguments stri
 	if !strings.HasPrefix(cumulative, p.emitted) {
 		return fmt.Errorf("MAGI public reply stream is not append-only")
 	}
-	if err := p.observer(cumulative); err != nil {
-		return fmt.Errorf("forward MAGI public reply: %w", err)
+	if p.observer != nil {
+		if err := p.observer(cumulative); err != nil {
+			return fmt.Errorf("forward MAGI public reply: %w", err)
+		}
 	}
 	p.emitted = cumulative
 	return nil
+}
+
+func (p *replyToolStreamProjector) current() string {
+	if p == nil {
+		return ""
+	}
+	return p.emitted
 }
 
 // decodePartialJSONStringField decodes the complete prefix currently available

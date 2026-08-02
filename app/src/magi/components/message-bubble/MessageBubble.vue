@@ -6,7 +6,6 @@
       { 'has-actions': $slots.actions },
       { 'interactive': interactive }
     ]"
-    :data-align="align"
   >
     <MessageBubbleHeader
       :show-header="showHeader"
@@ -23,7 +22,7 @@
       </div>
       <MessageBubbleVoteMeta v-if="meta?.weight" :meta="meta" />
       <SseStreamContent
-        v-if="msg?.type === 'sse_stream'"
+        v-if="useStreamContent && msg"
         :think-content="thinkContent"
         :normal-content="normalContent"
         :has-think-content="hasThinkContent"
@@ -82,6 +81,7 @@ const {
     hasThinkContent,
     messagePlainText,
     copySuccess,
+    useStreamContent,
     toggleThink,
     copyMessage,
 } = useMessageBubbleCtx(props, emit);

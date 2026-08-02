@@ -27,6 +27,8 @@ type ToolCallEventCallback func(
 
 type ToolCallResultExecutor func(toolCall types.ToolCall) (result string, handled bool, err error)
 
+type ToolCallActivityObserver func(call types.ToolCall, phase, result, errorMessage string)
+
 type ToolContextAppendResult struct {
 	RequiresGovernedRetry bool
 	LostDominance         bool
@@ -39,6 +41,7 @@ type ToolContextAppendResult struct {
 type streamedToolCallCollector struct {
 	byIndex           map[int]*types.ToolCall
 	firstDetectedTime map[int]int64
+	completed         map[int]bool
 	onToolDetected    ToolCallEventCallback
 }
 
@@ -46,6 +49,7 @@ func newStreamedToolCallCollector() *streamedToolCallCollector {
 	return &streamedToolCallCollector{
 		byIndex:           make(map[int]*types.ToolCall),
 		firstDetectedTime: make(map[int]int64),
+		completed:         make(map[int]bool),
 	}
 }
 
@@ -87,13 +91,17 @@ func (c *streamedToolCallCollector) Merge(deltas []types.ToolCallDelta) {
 			}
 		}
 
-		if c.onToolDetected != nil && argumentsChanged && call.Function.Name != "" {
+		if c.onToolDetected != nil && argumentsChanged && call.Function.Name != "" && !c.completed[delta.Index] {
 			detectedTime := c.firstDetectedTime[delta.Index]
 			var argsMap map[string]interface{}
 			isComplete := false
 			if err := json.Unmarshal([]byte(call.Function.Arguments), &argsMap); err == nil {
 				isComplete = true
 			}
+			if !isComplete {
+				continue
+			}
+			c.completed[delta.Index] = true
 			c.onToolDetected(
 				delta.Index,
 				call.ID,
@@ -171,7 +179,9 @@ func appendTurnToolCallsToContext(
 	toolCalls []types.ToolCall,
 	ackBuilder func(toolName string) string,
 ) {
-	appendTurnToolCallsToContextWithExecutorContext(context.Background(), sessionID, roundID, sage, assistantContent, "", toolCalls, nil, ackBuilder)
+	appendTurnToolCallsToContextWithExecutorContext(
+		context.Background(), sessionID, roundID, sage, assistantContent, "", toolCalls, nil, ackBuilder, nil,
+	)
 }
 
 func appendTurnToolCallsToContextWithExecutor(
@@ -183,7 +193,9 @@ func appendTurnToolCallsToContextWithExecutor(
 	resultExecutor ToolCallResultExecutor,
 	ackBuilder func(toolName string) string,
 ) {
-	appendTurnToolCallsToContextWithExecutorContext(context.Background(), sessionID, roundID, sage, assistantContent, "", toolCalls, resultExecutor, ackBuilder)
+	appendTurnToolCallsToContextWithExecutorContext(
+		context.Background(), sessionID, roundID, sage, assistantContent, "", toolCalls, resultExecutor, ackBuilder, nil,
+	)
 }
 
 func appendTurnToolCallsToContextWithExecutorContext(
@@ -196,6 +208,7 @@ func appendTurnToolCallsToContextWithExecutorContext(
 	toolCalls []types.ToolCall,
 	resultExecutor ToolCallResultExecutor,
 	ackBuilder func(toolName string) string,
+	activityObserver ToolCallActivityObserver,
 ) ToolContextAppendResult {
 	var appendResult ToolContextAppendResult
 	if sage == nil || len(toolCalls) == 0 {
@@ -214,16 +227,21 @@ func appendTurnToolCallsToContextWithExecutorContext(
 	})
 
 	for _, call := range toolCalls {
+		if activityObserver != nil {
+			activityObserver(call, "running", "", "")
+		}
 		toolResult := `{"ok":true}`
 		var toolMeta map[string]interface{}
 		handled := false
+		errorMessage := ""
 		if resultExecutor != nil {
 			if result, executorHandled, execErr := resultExecutor(call); executorHandled {
 				handled = true
 				if execErr != nil {
+					errorMessage = execErr.Error()
 					if payload, marshalErr := json.Marshal(map[string]interface{}{
 						"ok":    false,
-						"error": execErr.Error(),
+						"error": errorMessage,
 					}); marshalErr == nil {
 						toolResult = string(payload)
 					} else {
@@ -246,9 +264,10 @@ func appendTurnToolCallsToContextWithExecutorContext(
 			}
 		}
 		if !handled {
+			errorMessage = fmt.Sprintf("未找到处理工具 %s 的 executor", call.Function.Name)
 			if payload, marshalErr := json.Marshal(map[string]interface{}{
 				"ok":    false,
-				"error": fmt.Sprintf("未找到处理工具 %s 的 executor", call.Function.Name),
+				"error": errorMessage,
 			}); marshalErr == nil {
 				toolResult = string(payload)
 			} else {
@@ -261,6 +280,13 @@ func appendTurnToolCallsToContextWithExecutorContext(
 			ToolID:  call.ID,
 			Meta:    toolMeta,
 		})
+		if activityObserver != nil {
+			phase := "completed"
+			if errorMessage != "" {
+				phase = "failed"
+			}
+			activityObserver(call, phase, toolResult, errorMessage)
+		}
 
 		control := parseGovernedActionToolControl(call.Function.Name, toolResult)
 		if control.RequiresGovernedRetry {

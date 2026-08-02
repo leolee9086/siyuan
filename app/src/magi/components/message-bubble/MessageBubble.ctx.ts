@@ -10,6 +10,7 @@
 import { ref, watch, onMounted, nextTick, computed, type Ref } from "vue";
 import {
     statusIconMap,
+    isStreamingReplyActivity,
     isStreamingMessage,
     isStatusTransition,
 } from "../../utils/messageFormat";
@@ -99,8 +100,7 @@ function setupContentWatchers(
 
     // 仅SSE流式消息内容变化时通知父组件更新光标位置
     watch(() => props.msg?.content, () => {
-        // 只有sse_stream类型的消息在内容变化时才需要通知父组件滚动到最新位置
-        if (props.msg?.type === "sse_stream") {
+        if (isStreamingReplyActivity(props.msg)) {
             emit("cursor-update");
         }
     }, { deep: true });
@@ -151,6 +151,7 @@ export function useMessageBubbleCtx(
     const hasThinkContent = ref(false);
     const thinkContentRef = ref<HTMLElement | null>(null);
     const copySuccess = ref(false);
+    const useStreamContent = computed(() => isStreamingReplyActivity(props.msg));
 
     /** 提取纯文本内容供复制（去除 think 标签） */
     const messagePlainText = computed(() => {
@@ -209,6 +210,7 @@ export function useMessageBubbleCtx(
         thinkContentRef,
         messagePlainText,
         copySuccess,
+        useStreamContent,
         /** 切换思考内容折叠/展开状态，由模板中的点击事件触发 */
         toggleThink: () => {
             isThinkExpanded.value = !isThinkExpanded.value;

@@ -6,9 +6,12 @@
 
 // [TASK] T3.1 迁移基础UI组件 - SeelPanel类型
 
+/** 用途：定义贤人卡片视图。使用范围：SeelPanel 属性。解耦评估：仅依赖稳定视图类型。 */
 import type {
     MagiSeelPanelView,
 } from "../../entry/magiView.types";
+/** 用途：定义活动流单条消息。使用范围：SeelPanel 虚拟列表。解耦评估：仅依赖稳定视图类型。 */
+import type { MagiSeelPanelMessageView } from "../../entry/magiView.types";
 
 /**
  * SeelPanel 组件 Props
@@ -29,6 +32,68 @@ export interface SeelPanelProps {
     frameColor?: string | undefined;
     /** 当前投票事件是否已在父级统一消隐 */
     dismissedVoteBadgeToken?: string | undefined;
+}
+
+/**
+ * SeelPanel 组件事件。
+ *
+ * 用途：约束投票徽标消隐事件。
+ * 使用场景：卡片点击当前投票徽标时通知父级统一消隐。
+ * 关联类型：事件 token 来自 SeelVoteBadgeState。
+ */
+export interface SeelPanelEmits {
+    "dismiss-vote-badges": [token: string];
+}
+
+/**
+ * SeelPanel 事件发送端口。
+ *
+ * 用途：让提取后的上下文逻辑发送投票徽标消隐事件。
+ * 使用场景：useSeelPanelCtx 接收 defineEmits 返回值时使用。
+ * 关联类型：参数与 SeelPanelEmits 保持一致。
+ */
+export interface SeelPanelEmit {
+    (event: "dismiss-vote-badges", token: string): void;
+}
+
+/**
+ * 活动流消息列表项。
+ *
+ * 用途：为虚拟列表附加稳定键并保留完整消息内容。
+ * 使用场景：三贤人卡片渲染回复、工具、投票和错误活动。
+ * 关联类型：message 使用 MagiSeelPanelMessageView。
+ */
+export interface SeelMessageListItem {
+    kind: "message";
+    virtualId: string;
+    message: MagiSeelPanelMessageView;
+}
+
+/**
+ * 活动流加载占位项。
+ *
+ * 用途：在贤人仍等待首个内容时维持线性流末尾的加载反馈。
+ * 使用场景：ai.loading 为 true 时追加到虚拟列表。
+ * 关联类型：与 SeelMessageListItem 组成 SeelVirtualListItem。
+ */
+export interface SeelLoadingListItem {
+    kind: "loading";
+    virtualId: string;
+}
+
+/** 活动流虚拟列表联合项。 */
+export type SeelVirtualListItem = SeelMessageListItem | SeelLoadingListItem;
+
+/**
+ * 虚拟列表公开滚动端口。
+ *
+ * 用途：让 SeelPanel 逻辑只依赖列表所需方法，不耦合具体 Vue 组件实例。
+ * 使用场景：新活动、流式增量和显示状态变化时刷新并滚动到底部。
+ * 关联类型：由 VirtualMasonryGrid 的 defineExpose 实现。
+ */
+export interface SeelMessageListPort {
+    refreshLayout(): Promise<void>;
+    scrollToBottom(force?: boolean): Promise<void>;
 }
 
 /**

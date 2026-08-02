@@ -144,6 +144,23 @@ function isToolCallDetectedPayload(payload: Record<string, unknown>): boolean {
     );
 }
 
+/** 验证可原地更新的语义工具活动。 */
+function isSeelToolActivityUpdatedPayload(payload: Record<string, unknown>): boolean {
+    return (
+        typeof payload.seelName === "string" &&
+        typeof payload.displayName === "string" &&
+        typeof payload.toolName === "string" &&
+        typeof payload.toolCallIndex === "number" &&
+        typeof payload.toolCallId === "string" &&
+        typeof payload.rawArguments === "string" &&
+        (payload.phase === "running" || payload.phase === "completed" || payload.phase === "failed") &&
+        (payload.arguments === undefined ||
+         (typeof payload.arguments === "object" && payload.arguments !== null)) &&
+        (payload.result === undefined || typeof payload.result === "string") &&
+        (payload.error === undefined || typeof payload.error === "string")
+    );
+}
+
 /**
  * 验证 DELIBERATION_SIGNAL_RAISED 事件的特定字段。
  */
@@ -195,6 +212,7 @@ const eventValidators: Record<MagiEventName, (payload: Record<string, unknown>) 
     CONSENSUS_EMITTED: isConsensusEmittedPayload,
     ROUND_FAILED: isRoundFailedPayload,
     TOOL_CALL_DETECTED: isToolCallDetectedPayload,
+    SEEL_TOOL_ACTIVITY_UPDATED: isSeelToolActivityUpdatedPayload,
     DELIBERATION_SIGNAL_RAISED: isDeliberationSignalRaisedPayload,
     CONTEXT_HISTORY_TRIMMED: isContextHistoryTrimmedPayload,
     RUNTIME_STATUS_UPDATED: isRuntimeStatusUpdatedPayload,

@@ -17,6 +17,7 @@
 package websocket
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync/atomic"
@@ -41,6 +42,7 @@ const (
 	EventRoundFailed                = "ROUND_FAILED"
 	EventRoundCancelled             = "ROUND_CANCELLED"
 	EventToolCallDetected           = "TOOL_CALL_DETECTED"
+	EventSeelToolActivityUpdated    = "SEEL_TOOL_ACTIVITY_UPDATED"
 	EventDeliberationSignalRaised   = "DELIBERATION_SIGNAL_RAISED"
 	EventContextHistoryTrimmed      = "CONTEXT_HISTORY_TRIMMED"
 	EventRuntimeStatusUpdated       = "RUNTIME_STATUS_UPDATED"
@@ -372,6 +374,39 @@ func PushToolCallDetected(
 		data["arguments"] = arguments
 	}
 	return globalPusher.Push(sessionId, EventToolCallDetected, data)
+}
+
+// PushSeelToolActivityUpdated 推送可原地更新的语义工具活动，而不是流式参数的原子增量。
+func PushSeelToolActivityUpdated(
+	sessionId, roundId, seelName, displayName string,
+	call types.ToolCall,
+	phase, result, errorMessage string,
+) error {
+	eventId, seq := generateEventID()
+	data := map[string]interface{}{
+		"eventId":       eventId,
+		"seq":           seq,
+		"roundId":       roundId,
+		"timestamp":     time.Now().UnixMilli(),
+		"seelName":      seelName,
+		"displayName":   displayName,
+		"toolCallIndex": call.Index,
+		"toolCallId":    call.ID,
+		"toolName":      call.Function.Name,
+		"rawArguments":  call.Function.Arguments,
+		"phase":         phase,
+	}
+	var arguments map[string]interface{}
+	if err := json.Unmarshal([]byte(call.Function.Arguments), &arguments); err == nil {
+		data["arguments"] = arguments
+	}
+	if result != "" {
+		data["result"] = result
+	}
+	if errorMessage != "" {
+		data["error"] = errorMessage
+	}
+	return globalPusher.Push(sessionId, EventSeelToolActivityUpdated, data)
 }
 
 // PushDeliberationSignalRaised 推送审慎决策信号事件
