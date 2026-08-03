@@ -723,6 +723,7 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/channel-bind", model.CheckAuth, magiIdentityChannelBind)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/channel-unbind", model.CheckAuth, magiIdentityChannelUnbind)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/persona/status", model.CheckAuth, magiPersonaStatus)
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/runtime/monitor/history", magiRuntimeMonitorHistory)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/chat/completions", magiChat)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/main-ui/history", magiMainUIHistory)
 	ginServer.Handle("GET", "/api/s-forge/magi/v1/models", model.CheckAuth, magiListModels)

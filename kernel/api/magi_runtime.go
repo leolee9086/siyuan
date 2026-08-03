@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/coordinator"
@@ -37,6 +39,20 @@ type magiHeartbeatRun struct {
 	done      chan struct{}
 	roundID   string
 	sessionID string
+}
+
+type magiRuntimeMonitorHistoryRequest struct {
+	AfterSeq int64 `json:"afterSeq"`
+}
+
+func requireMagiRuntimeMonitorHistoryAccess(c *gin.Context) *magiSourceAuthError {
+	// Runtime monitor history can contain transient three-sage thinking traces.
+	// It must be guarded by MAGI armor identity, not by broad workspace API auth.
+	sourceCtx, authErr := buildRequestSourceContext(c, "magi-trinity", "", nil)
+	if authErr != nil {
+		return authErr
+	}
+	return authorizeMagiMainUIHistory(sourceCtx)
 }
 
 type magiRuntimeManager struct {
@@ -484,6 +500,25 @@ func (m *magiRuntimeManager) GetStatus() types.RuntimeStatus {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.status
+}
+
+func magiRuntimeMonitorHistory(c *gin.Context) {
+	if authErr := requireMagiRuntimeMonitorHistoryAccess(c); authErr != nil {
+		writeMagiSourceAuthError(c, authErr)
+		return
+	}
+	var req magiRuntimeMonitorHistoryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+			"code":  "magi_runtime_monitor_history_request_invalid",
+		})
+		return
+	}
+	initMagiCron()
+	c.JSON(http.StatusOK, gin.H{
+		"events": websocket.RuntimeMonitorHistorySnapshot(req.AfterSeq),
+	})
 }
 
 func (m *magiRuntimeManager) pushCurrentStatus() {

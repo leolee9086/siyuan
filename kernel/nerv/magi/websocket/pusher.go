@@ -54,6 +54,7 @@ func (p *Pusher) Push(sessionId string, eventType string, data map[string]interf
 	for k, v := range data {
 		payload[k] = v
 	}
+	recordRuntimeMonitorEvent(sessionId, payload)
 
 	event.Data = payload
 	util.PushEvent(event)
