@@ -1103,6 +1103,7 @@ func serveDebug(ginServer *gin.Engine) {
 }
 
 func serveWebSocket(ginServer *gin.Engine) {
+	const magiArmorExpiryTimerKey = "magiArmorExpiryTimer"
 	util.WebSocketServer = melody.New()
 	util.WebSocketServer.Config.MaxMessageSize = 1024 * 1024 * 8
 
@@ -1119,6 +1120,7 @@ func serveWebSocket(ginServer *gin.Engine) {
 	util.WebSocketServer.HandleConnect(func(s *melody.Session) {
 		//logging.LogInfof("ws check auth for [%s]", s.Request.RequestURI)
 		authOk := true
+		magiArmorExpiresAt := time.Time{}
 
 		if "" != model.Conf.AccessAuthCode {
 			session, err := sessionStore.Get(s.Request, "siyuan")
@@ -1154,6 +1156,15 @@ func serveWebSocket(ginServer *gin.Engine) {
 			}
 		}
 
+		if authOk && api.IsMagiRuntimeMonitorWebSocketRequest(s.Request) {
+			var armorErr error
+			magiArmorExpiresAt, armorErr = api.AuthorizeMagiRuntimeMonitorWebSocket(s.Request)
+			if armorErr != nil {
+				authOk = false
+				logging.LogWarnf("rejected MAGI runtime monitor websocket without valid armor identity: %s", armorErr)
+			}
+		}
+
 		if !authOk {
 			// 用于授权页保持连接，避免非常驻内存内核自动退出 https://github.com/siyuan-note/insider/issues/1099
 			authOk = strings.Contains(s.Request.RequestURI, "/ws?app=siyuan") && strings.Contains(s.Request.RequestURI, "&id=auth&type=auth")
@@ -1173,11 +1184,22 @@ func serveWebSocket(ginServer *gin.Engine) {
 		}
 
 		util.AddPushChan(s)
+		if !magiArmorExpiresAt.IsZero() {
+			expiryTimer := time.AfterFunc(time.Until(magiArmorExpiresAt), func() {
+				s.CloseWithMsg([]byte("  MAGI armor expired"))
+			})
+			s.Set(magiArmorExpiryTimerKey, expiryTimer)
+		}
 		//sessionId, _ := s.Get("id")
 		//logging.LogInfof("ws [%s] connected", sessionId)
 	})
 
 	util.WebSocketServer.HandleDisconnect(func(s *melody.Session) {
+		if rawTimer, ok := s.Get(magiArmorExpiryTimerKey); ok {
+			if expiryTimer, timerOK := rawTimer.(*time.Timer); timerOK {
+				expiryTimer.Stop()
+			}
+		}
 		util.RemovePushChan(s)
 		//sessionId, _ := s.Get("id")
 		//logging.LogInfof("ws [%s] disconnected", sessionId)

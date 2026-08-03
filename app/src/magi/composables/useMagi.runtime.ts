@@ -71,9 +71,18 @@ export function createRuntimeProjectionSequenceGuard() {
     };
 }
 
-export async function replayRuntimeMonitorHistory(eventBus: MagiEventBus): Promise<void> {
+export async function replayRuntimeMonitorHistory(
+    eventBus: MagiEventBus,
+    shouldDispatch: () => boolean = () => true,
+): Promise<void> {
     const history = await fetchMagiRuntimeMonitorHistory(0);
+    if (!shouldDispatch()) {
+        return;
+    }
     for (const event of history.events) {
+        if (!shouldDispatch()) {
+            return;
+        }
         dispatchMagiWebSocketMessage(eventBus, { cmd: "magiEvent", data: event });
     }
 }

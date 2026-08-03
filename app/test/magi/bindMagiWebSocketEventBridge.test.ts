@@ -50,6 +50,30 @@ function createRuntimeStatusEventPayload(sessionId: string): string {
 }
 
 describe("bindMagiWebSocketEventBridge", () => {
+    it("should send the armor token as a websocket subprotocol", async () => {
+        vi.stubGlobal("location", {
+            protocol: "http:",
+            host: "example.test",
+        });
+        const eventBus = {
+            emitWithMeta: vi.fn(),
+        };
+        const socket = new FakeWebSocket("ws://example.test");
+        const websocketFactory = vi.fn(() => socket as unknown as WebSocket);
+        const { bindMagiWebSocketEventBridge } = await import("../../src/magi/events/bindMagiWebSocketEventBridge");
+
+        bindMagiWebSocketEventBridge(eventBus as never, {
+            sessionId: "runtime-session",
+            armorToken: "magi_ak_v1_token.signature",
+            websocketFactory,
+        });
+
+        expect(websocketFactory).toHaveBeenCalledWith(
+            "ws://example.test/ws?app=magi&id=runtime-session&type=main",
+            ["magi_ak_v1_token.signature"],
+        );
+    });
+
     it("should mark the bridge open when the socket is already open after creation", async () => {
         vi.stubGlobal("location", {
             protocol: "http:",

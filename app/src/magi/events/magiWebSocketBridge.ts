@@ -30,9 +30,10 @@ interface MagiEventEnvelope {
 
 export interface MagiWebSocketBridgeOptions {
     sessionId: string;
+    armorToken?: string;
     reconnectDelayMs?: number;
     maxReconnectDelayMs?: number;
-    websocketFactory?: (url: string) => WebSocket;
+    websocketFactory?: (url: string, protocols?: string | string[]) => WebSocket;
     onConnecting?: () => void;
     onOpen?: () => void;
     onClose?: () => void;

@@ -42,6 +42,22 @@ func TestMagiRuntimeMonitorHistoryRequiresArmorToken(t *testing.T) {
 	}
 }
 
+func TestMagiRuntimeMonitorHistoryRejectsMissingArmorToken(t *testing.T) {
+	cleanup := setupMagiSourceTestConf(t)
+	defer cleanup()
+
+	context, recorder := newRuntimeMonitorHistoryContext(`{"afterSeq":0}`, "")
+
+	magiRuntimeMonitorHistory(context)
+
+	if recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+	if !strings.Contains(recorder.Body.String(), `"code":"magi_armor_missing"`) {
+		t.Fatalf("unexpected authorization response: %s", recorder.Body.String())
+	}
+}
+
 func TestMagiRuntimeMonitorHistoryAllowsGuardianMainUIArmorToken(t *testing.T) {
 	cleanup := setupMagiSourceTestConf(t)
 	defer cleanup()
@@ -73,5 +89,66 @@ func TestMagiRuntimeMonitorHistoryRejectsAvatarOnlyArmorToken(t *testing.T) {
 	}
 	if !strings.Contains(recorder.Body.String(), `"code":"magi_main_ui_history_forbidden"`) {
 		t.Fatalf("unexpected authorization response: %s", recorder.Body.String())
+	}
+}
+
+func newRuntimeMonitorWebSocketRequest(authProtocol string) *http.Request {
+	request := httptest.NewRequest(
+		http.MethodGet,
+		"https://localhost/ws?app=magi&id="+magiRuntimeMonitorSessionID+"&type=main",
+		nil,
+	)
+	if authProtocol != "" {
+		request.Header.Set("Sec-WebSocket-Protocol", authProtocol)
+	}
+	return request
+}
+
+func TestMagiRuntimeMonitorWebSocketRequiresGuardianArmorToken(t *testing.T) {
+	cleanup := setupMagiSourceTestConf(t)
+	defer cleanup()
+
+	request := newRuntimeMonitorWebSocketRequest("")
+	_, authErr := authorizeMagiRuntimeMonitorWebSocket(request)
+
+	if authErr == nil || authErr.Code != "magi_armor_missing" {
+		t.Fatalf("expected missing armor rejection, got %#v", authErr)
+	}
+}
+
+func TestMagiRuntimeMonitorWebSocketRejectsWorkspaceToken(t *testing.T) {
+	cleanup := setupMagiSourceTestConf(t)
+	defer cleanup()
+
+	request := newRuntimeMonitorWebSocketRequest("workspace-token")
+	_, authErr := authorizeMagiRuntimeMonitorWebSocket(request)
+
+	if authErr == nil || authErr.Code != "magi_armor_missing" {
+		t.Fatalf("expected non-armor protocol rejection, got %#v", authErr)
+	}
+}
+
+func TestMagiRuntimeMonitorWebSocketAllowsGuardianMainUIArmorToken(t *testing.T) {
+	cleanup := setupMagiSourceTestConf(t)
+	defer cleanup()
+
+	token := issueTestArmorToken(t, "websocket-guardian", magiRouteClassGuardian, magiRequestChannelMainUI)
+	request := newRuntimeMonitorWebSocketRequest(token)
+
+	if _, authErr := authorizeMagiRuntimeMonitorWebSocket(request); authErr != nil {
+		t.Fatalf("expected websocket access, got %#v", authErr)
+	}
+}
+
+func TestMagiRuntimeMonitorWebSocketRejectsAvatarOnlyArmorToken(t *testing.T) {
+	cleanup := setupMagiSourceTestConf(t)
+	defer cleanup()
+
+	token := issueTestArmorToken(t, "websocket-avatar", magiRouteClassAvatarOnly, magiRequestChannelMainUI)
+	request := newRuntimeMonitorWebSocketRequest(token)
+	_, authErr := authorizeMagiRuntimeMonitorWebSocket(request)
+
+	if authErr == nil || authErr.Code != "magi_main_ui_history_forbidden" {
+		t.Fatalf("expected Guardian-only rejection, got %#v", authErr)
 	}
 }

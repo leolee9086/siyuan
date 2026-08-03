@@ -1,6 +1,5 @@
 import type { ConnectionStatus, MagiRuntimeStatus, WrappedSeel } from "./useMagi.types";
 import type { MagiPromptSet } from "../core/wise/wise.types";
-import type { MagiEventBus } from "../events/magiEventBus.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
 import { getMagiI18nText } from "../utils/magiI18n";
 import { resolveStartupPromptInjectionsByActiveSeed } from "../prompts/personaRuntimePromptBuilder";
@@ -9,7 +8,6 @@ import { appendConsensusMessage } from "./useMagi.consensus";
 import { initializeWrappedSeels } from "./useMagi.seels";
 import {
     cloneRuntimeStatus,
-    replayRuntimeMonitorHistory,
     resolveConnectionStatusFromPersonaStatus,
     resolvePersonaNameFromStatus,
 } from "./useMagi.runtime";
@@ -56,7 +54,6 @@ export async function reinitializeMAGI(params: {
     websocketConnectionStatus: { value: ConnectionStatus };
     runtimeStatus: { value: MagiRuntimeStatus | null };
     consensusMessages: MagiMessage[];
-    eventBus: MagiEventBus;
     options?: { promptInjections?: MagiPromptSet; preserveConsensusMessages?: boolean };
 }): Promise<void> {
     try {
@@ -73,7 +70,6 @@ export async function reinitializeMAGI(params: {
             promptInjections,
             resolvePersonaNameFromStatus(personaStatus),
         );
-        await replayRuntimeMonitorHistory(params.eventBus);
         params.connectionStatus.value = resolveConnectionStatusFromPersonaStatus(
             params.connectionStatus.value,
             personaStatus,
