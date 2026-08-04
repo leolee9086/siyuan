@@ -42,7 +42,48 @@ type magiHeartbeatRun struct {
 }
 
 type magiRuntimeMonitorHistoryRequest struct {
-	AfterSeq int64 `json:"afterSeq"`
+	AfterSeq  int64 `json:"afterSeq"`
+	BeforeSeq int64 `json:"beforeSeq"`
+	Limit     int   `json:"limit"`
+	MaxBytes  int   `json:"maxBytes"`
+}
+
+const (
+	defaultMagiRuntimeMonitorHistoryLimit    = websocket.RuntimeMonitorHistoryDefaultPageLimit
+	maxMagiRuntimeMonitorHistoryLimit        = websocket.RuntimeMonitorHistoryMaxPageLimit
+	defaultMagiRuntimeMonitorHistoryMaxBytes = websocket.RuntimeMonitorHistoryDefaultPageBytes
+	maxMagiRuntimeMonitorHistoryMaxBytes     = websocket.RuntimeMonitorHistoryMaxPageBytes
+)
+
+func normalizeMagiRuntimeMonitorHistoryRequest(
+	req magiRuntimeMonitorHistoryRequest,
+) (websocket.RuntimeMonitorHistoryQuery, error) {
+	if req.AfterSeq < 0 || req.BeforeSeq < 0 {
+		return websocket.RuntimeMonitorHistoryQuery{}, errors.New("history cursors must not be negative")
+	}
+	if req.AfterSeq > 0 && req.BeforeSeq > 0 {
+		return websocket.RuntimeMonitorHistoryQuery{}, errors.New("afterSeq and beforeSeq are mutually exclusive")
+	}
+	limit := req.Limit
+	if limit <= 0 {
+		limit = defaultMagiRuntimeMonitorHistoryLimit
+	}
+	if limit > maxMagiRuntimeMonitorHistoryLimit {
+		limit = maxMagiRuntimeMonitorHistoryLimit
+	}
+	maxBytes := req.MaxBytes
+	if maxBytes <= 0 {
+		maxBytes = defaultMagiRuntimeMonitorHistoryMaxBytes
+	}
+	if maxBytes > maxMagiRuntimeMonitorHistoryMaxBytes {
+		maxBytes = maxMagiRuntimeMonitorHistoryMaxBytes
+	}
+	return websocket.RuntimeMonitorHistoryQuery{
+		AfterSeq:  req.AfterSeq,
+		BeforeSeq: req.BeforeSeq,
+		Limit:     limit,
+		MaxBytes:  maxBytes,
+	}, nil
 }
 
 func requireMagiRuntimeMonitorHistoryAccess(c *gin.Context) *magiSourceAuthError {
@@ -515,10 +556,16 @@ func magiRuntimeMonitorHistory(c *gin.Context) {
 		})
 		return
 	}
+	query, err := normalizeMagiRuntimeMonitorHistoryRequest(req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+			"code":  "magi_runtime_monitor_history_request_invalid",
+		})
+		return
+	}
 	initMagiCron()
-	c.JSON(http.StatusOK, gin.H{
-		"events": websocket.RuntimeMonitorHistorySnapshot(req.AfterSeq),
-	})
+	c.JSON(http.StatusOK, websocket.RuntimeMonitorHistorySnapshot(query))
 }
 
 func (m *magiRuntimeManager) pushCurrentStatus() {

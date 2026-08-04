@@ -19,7 +19,7 @@ import { listSageSeels } from "./magiProjector.shared";
 /** 用途：合并投票明细身份。使用范围：快照去重。解耦评估：共享别名规则保持一致。 */
 import { normalizeSeelIdentity } from "./magiProjector.shared";
 /** 用途：保留投票原始事件。使用范围：Trinity 监控。解耦评估：共享模块确保不污染贤人卡片。 */
-import { projectRawEventToMonitor } from "./magiProjector.shared";
+import { projectRawEventToMonitor } from "./magiProjector.monitor";
 /** 用途：读取可展示理由。使用范围：投票进度和结论。解耦评估：共享边界读取规则。 */
 import { readNonEmptyString } from "./magiProjector.shared";
 /** 用途：读取上一轮快照元数据。使用范围：明细聚合。解耦评估：共享边界读取规则。 */

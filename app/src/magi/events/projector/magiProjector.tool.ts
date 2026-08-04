@@ -18,7 +18,7 @@ import { buildProjectedMessageId } from "./magiProjector.shared";
 /** 用途：查找目标贤者。使用范围：工具和审慎活动。解耦评估：共享别名规则避免模块漂移。 */
 import { findSeelByName } from "./magiProjector.shared";
 /** 用途：保留完整原始事件。使用范围：每个工具事件。解耦评估：共享模块确保只写 Trinity。 */
-import { projectRawEventToMonitor } from "./magiProjector.shared";
+import { projectRawEventToMonitor } from "./magiProjector.monitor";
 /** 用途：收窄审慎开关。使用范围：工具参数展示。解耦评估：共享边界读取规则。 */
 import { readBoolean } from "./magiProjector.shared";
 /** 用途：读取非空扩展字段。使用范围：工具名和理由。解耦评估：共享边界读取规则。 */
@@ -105,6 +105,7 @@ function buildPendingToolMessage(
         timestamp: event.timestamp,
         meta: {
             type: "tool-call",
+            seq: event.seq,
             roundId: event.roundId,
             toolName: presentation.name,
             transportToolName: event.toolName,
@@ -223,6 +224,7 @@ export function projectSeelToolActivity(
         timestamp: event.timestamp,
         meta: {
             type: "tool-activity",
+            seq: event.seq,
             roundId: event.roundId,
             toolName: presentation.name,
             transportToolName: event.toolName,

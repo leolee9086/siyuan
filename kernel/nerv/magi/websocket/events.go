@@ -78,19 +78,39 @@ func PushRoundStarted(sessionId, roundId, userInput string) error {
 
 // PushLLMRequestSent 推送LLM请求发送事件
 func PushLLMRequestSent(sessionId, roundId, seelName, displayName, model string, messages []types.ContextMessage, toolCount int) error {
+	return globalPusher.Push(sessionId, EventLLMRequestSent, buildLLMRequestSentData(
+		roundId,
+		seelName,
+		displayName,
+		model,
+		messages,
+		toolCount,
+	))
+}
+
+func buildLLMRequestSentData(
+	roundId, seelName, displayName, model string,
+	messages []types.ContextMessage,
+	toolCount int,
+) map[string]interface{} {
 	eventId, seq := generateEventID()
-	data := map[string]interface{}{
-		"eventId":     eventId,
-		"seq":         seq,
-		"roundId":     roundId,
-		"timestamp":   time.Now().UnixMilli(),
-		"seelName":    seelName,
-		"displayName": displayName,
-		"model":       model,
-		"messages":    messages,
-		"toolCount":   toolCount,
+	promptBytes := 0
+	if encoded, err := json.Marshal(messages); err == nil {
+		promptBytes = len(encoded)
 	}
-	return globalPusher.Push(sessionId, EventLLMRequestSent, data)
+	data := map[string]interface{}{
+		"eventId":      eventId,
+		"seq":          seq,
+		"roundId":      roundId,
+		"timestamp":    time.Now().UnixMilli(),
+		"seelName":     seelName,
+		"displayName":  displayName,
+		"model":        model,
+		"messageCount": len(messages),
+		"promptBytes":  promptBytes,
+		"toolCount":    toolCount,
+	}
+	return data
 }
 
 // PushSeelReplyStarted 推送贤者开始响应事件

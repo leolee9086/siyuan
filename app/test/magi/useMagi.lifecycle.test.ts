@@ -145,12 +145,20 @@ describe("useMagi lifecycle", () => {
                 state: "heartbeat",
                 awake: true,
             }],
+            oldestSeq: 7,
+            latestSeq: 7,
+            truncated: true,
+            hasMoreBefore: true,
         });
         const {useMagi} = await import("../../src/magi/composables/useMagi");
 
         const runtime = await useMagi();
 
-        expect(runtimeSpies.fetchRuntimeMonitorHistory).toHaveBeenCalledWith(0);
+        expect(runtimeSpies.fetchRuntimeMonitorHistory).toHaveBeenCalledWith(
+            0,
+            {signal: expect.any(AbortSignal)},
+        );
+        expect(runtimeSpies.fetchRuntimeMonitorHistory).toHaveBeenCalledOnce();
         expect(runtimeSpies.emitWithMeta).toHaveBeenCalledWith(
             "RUNTIME_STATUS_UPDATED",
             expect.objectContaining({

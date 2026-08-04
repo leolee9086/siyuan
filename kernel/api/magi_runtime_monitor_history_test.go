@@ -92,6 +92,34 @@ func TestMagiRuntimeMonitorHistoryRejectsAvatarOnlyArmorToken(t *testing.T) {
 	}
 }
 
+func TestNormalizeMagiRuntimeMonitorHistoryRequestAppliesDefaultsAndHardLimits(t *testing.T) {
+	defaults, err := normalizeMagiRuntimeMonitorHistoryRequest(magiRuntimeMonitorHistoryRequest{})
+	if err != nil {
+		t.Fatalf("normalize default history request failed: %v", err)
+	}
+	if defaults.Limit != defaultMagiRuntimeMonitorHistoryLimit || defaults.MaxBytes != defaultMagiRuntimeMonitorHistoryMaxBytes {
+		t.Fatalf("unexpected default query: %+v", defaults)
+	}
+
+	clamped, err := normalizeMagiRuntimeMonitorHistoryRequest(magiRuntimeMonitorHistoryRequest{
+		Limit:    maxMagiRuntimeMonitorHistoryLimit * 10,
+		MaxBytes: maxMagiRuntimeMonitorHistoryMaxBytes * 10,
+	})
+	if err != nil {
+		t.Fatalf("normalize oversized history request failed: %v", err)
+	}
+	if clamped.Limit != maxMagiRuntimeMonitorHistoryLimit || clamped.MaxBytes != maxMagiRuntimeMonitorHistoryMaxBytes {
+		t.Fatalf("history query escaped server hard limits: %+v", clamped)
+	}
+}
+
+func TestNormalizeMagiRuntimeMonitorHistoryRequestRejectsConflictingCursors(t *testing.T) {
+	_, err := normalizeMagiRuntimeMonitorHistoryRequest(magiRuntimeMonitorHistoryRequest{AfterSeq: 10, BeforeSeq: 20})
+	if err == nil {
+		t.Fatal("expected conflicting history cursors to be rejected")
+	}
+}
+
 func newRuntimeMonitorWebSocketRequest(authProtocol string) *http.Request {
 	request := httptest.NewRequest(
 		http.MethodGet,

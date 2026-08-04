@@ -36,6 +36,7 @@ interface RuntimeMonitorAccessState {
     paused: boolean;
     generation: number;
     activeDisposers: Array<() => void>;
+    replayAbortController: AbortController | null;
     identitySessionChanged: () => void;
 }
 
@@ -64,6 +65,8 @@ function disposeRuntimeMonitorBindings(disposers: Array<() => void>): void {
 }
 
 function stopActiveRuntimeMonitorBindings(state: RuntimeMonitorAccessState): void {
+    state.replayAbortController?.abort();
+    state.replayAbortController = null;
     const disposers = state.activeDisposers;
     state.activeDisposers = [];
     disposeRuntimeMonitorBindings(disposers);
@@ -177,10 +180,20 @@ async function refreshRuntimeMonitorAccess(
         return;
     }
     state.activeDisposers = disposers;
-    await replayRuntimeMonitorHistory(state.params.eventBus, () =>
-        isRuntimeMonitorRefreshCurrent(state, refreshGeneration) &&
-        resolveRuntimeMonitorArmorToken() === armorToken,
-    );
+    const replayAbortController = new AbortController();
+    state.replayAbortController = replayAbortController;
+    try {
+        await replayRuntimeMonitorHistory(
+            state.params.eventBus,
+            () => isRuntimeMonitorRefreshCurrent(state, refreshGeneration) &&
+                resolveRuntimeMonitorArmorToken() === armorToken,
+            replayAbortController.signal,
+        );
+    } finally {
+        if (state.replayAbortController === replayAbortController) {
+            state.replayAbortController = null;
+        }
+    }
 }
 
 function pauseRuntimeMonitorAccess(state: RuntimeMonitorAccessState, shouldClearProjection = true): void {
@@ -222,6 +235,7 @@ export function createMagiRuntimeMonitorAccess(params: RuntimeMonitorAccessParam
         paused: false,
         generation: 0,
         activeDisposers: [],
+        replayAbortController: null,
         identitySessionChanged: () => undefined,
     };
     state.identitySessionChanged = handleIdentitySessionChanged.bind(null, state);

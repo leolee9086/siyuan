@@ -55,13 +55,25 @@ describe("fetchMagiRuntimeMonitorHistory", () => {
         });
         historySpies.fetch.mockResolvedValueOnce({
             ok: true,
-            json: async () => ({ events: [{ eventId: "history-1" }] }),
+            json: async () => ({
+                events: [{ eventId: "history-1" }],
+                oldestSeq: 12,
+                latestSeq: 18,
+                truncated: true,
+                hasMoreBefore: true,
+            }),
         });
         const {fetchMagiRuntimeMonitorHistory} = await import("../../src/magi/service/magiRuntimeMonitorHistory");
 
         const result = await fetchMagiRuntimeMonitorHistory(12);
 
         expect(result.events).toEqual([{ eventId: "history-1" }]);
+        expect(result).toMatchObject({
+            oldestSeq: 12,
+            latestSeq: 18,
+            truncated: true,
+            hasMoreBefore: true,
+        });
         expect(historySpies.fetch).toHaveBeenCalledWith(
             "/api/s-forge/magi/v1/runtime/monitor/history",
             expect.objectContaining({
@@ -71,7 +83,49 @@ describe("fetchMagiRuntimeMonitorHistory", () => {
                     "Content-Type": "application/json",
                     Authorization: "Bearer guardian-token",
                 },
-                body: JSON.stringify({ afterSeq: 12 }),
+                body: JSON.stringify({
+                    afterSeq: 12,
+                    limit: 400,
+                    maxBytes: 2 * 1024 * 1024,
+                }),
+            }),
+        );
+    });
+
+    it("uses an explicit backward cursor and clamps client budgets", async () => {
+        historySpies.getActiveMagiArmorSession.mockReturnValue({
+            armorToken: "guardian-token",
+            expiresAt: Date.now() + 60_000,
+            identityId: "guardian",
+            displayName: "Guardian",
+            routeClass: "guardian",
+            channel: "magi-main-ui",
+            nickname: "guardian",
+        });
+        historySpies.fetch.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({events: []}),
+        });
+        const signal = new AbortController().signal;
+        const {fetchMagiRuntimeMonitorHistory} = await import("../../src/magi/service/magiRuntimeMonitorHistory");
+
+        await fetchMagiRuntimeMonitorHistory(999, {
+            beforeSeq: 50,
+            limit: 100_000,
+            maxBytes: 100_000_000,
+            signal,
+        });
+
+        expect(historySpies.fetch).toHaveBeenCalledWith(
+            "/api/s-forge/magi/v1/runtime/monitor/history",
+            expect.objectContaining({
+                body: JSON.stringify({
+                    afterSeq: 0,
+                    beforeSeq: 50,
+                    limit: 1000,
+                    maxBytes: 4 * 1024 * 1024,
+                }),
+                signal,
             }),
         );
     });

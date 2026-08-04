@@ -5,6 +5,8 @@ import type { MagiPersonaStatus } from "../service/magiPersonaStatus";
 import { dispatchMagiWebSocketMessage } from "../events/dispatchMagiWebSocketMessage";
 import { fetchMagiRuntimeMonitorHistory } from "../service/magiRuntimeMonitorHistory";
 
+const RUNTIME_MONITOR_REPLAY_BATCH_SIZE = 40;
+
 export function cloneRuntimeStatus(status: MagiRuntimeStatus): MagiRuntimeStatus {
     return { ...status };
 }
@@ -74,17 +76,34 @@ export function createRuntimeProjectionSequenceGuard() {
 export async function replayRuntimeMonitorHistory(
     eventBus: MagiEventBus,
     shouldDispatch: () => boolean = () => true,
+    signal?: AbortSignal,
 ): Promise<void> {
-    const history = await fetchMagiRuntimeMonitorHistory(0);
+    const history = await fetchMagiRuntimeMonitorHistory(0, signal ? {signal} : {});
     if (!shouldDispatch()) {
         return;
     }
-    for (const event of history.events) {
+    for (let eventIndex = 0; eventIndex < history.events.length; eventIndex++) {
+        const event = history.events[eventIndex];
+        if (!event) {
+            continue;
+        }
         if (!shouldDispatch()) {
             return;
         }
         dispatchMagiWebSocketMessage(eventBus, { cmd: "magiEvent", data: event });
+        if ((eventIndex + 1) % RUNTIME_MONITOR_REPLAY_BATCH_SIZE === 0 && eventIndex + 1 < history.events.length) {
+            await waitForRuntimeMonitorReplayFrame();
+        }
     }
+}
+
+function waitForRuntimeMonitorReplayFrame(): Promise<void> {
+    if (typeof requestAnimationFrame !== "function") {
+        return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+        requestAnimationFrame(() => resolve());
+    });
 }
 
 export function resolveConnectionStatusFromPersonaStatus(

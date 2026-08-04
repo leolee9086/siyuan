@@ -38,7 +38,8 @@ export const magiEventDefines = {
         seelName: z.string(),
         displayName: z.string(),
         model: z.string(),
-        messages: z.array(z.unknown()),
+        messageCount: z.number().int().nonnegative(),
+        promptBytes: z.number().int().nonnegative(),
         toolCount: z.number().int().nonnegative(),
     },
     SEEL_REPLY_STARTED: {

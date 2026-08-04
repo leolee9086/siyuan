@@ -12,6 +12,8 @@ import type { MagiConsensusEmittedEvent } from "./magiEventBus.types";
 import type { MagiContextHistoryTrimmedEvent } from "./magiEventBus.types";
 /** 用途：事件订阅端口。使用范围：投影器装配。解耦评估：仅用于静态类型。 */
 import type { MagiEventBus } from "./magiEventBus.types";
+/** 用途：事件公共字段。使用范围：把后端序号附加到稳定消息。解耦评估：仅用于静态类型。 */
+import type { MagiEventBase } from "./magiEventBus.types";
 /** 用途：LLM 请求事件。使用范围：原始监控投影。解耦评估：仅用于静态类型。 */
 import type { MagiLLMRequestSentEvent } from "./magiEventBus.types";
 /** 用途：轮次失败事件。使用范围：错误活动投影。解耦评估：仅用于静态类型。 */
@@ -45,7 +47,7 @@ import { findSeelByName } from "./projector/magiProjector.shared";
 /** 用途：枚举三贤人卡片。使用范围：轮次失败收尾。解耦评估：共享模块统一排除 Trinity。 */
 import { listSageSeels } from "./projector/magiProjector.shared";
 /** 用途：写入原始诊断事件。使用范围：全部生命周期处理器。解耦评估：共享模块确保只进入 Trinity。 */
-import { projectRawEventToMonitor } from "./projector/magiProjector.shared";
+import { projectRawEventToMonitor } from "./projector/magiProjector.monitor";
 /** 用途：事件幂等登记。使用范围：全部生命周期处理器。解耦评估：共享状态必须集中维护。 */
 import { shouldProcessEvent } from "./projector/magiProjector.shared";
 /** 用途：稳定排序并原位更新消息。使用范围：回复与错误活动。解耦评估：共享模块统一流式顺序。 */
@@ -60,6 +62,17 @@ import { projectSeelToolActivity } from "./projector/magiProjector.tool";
 import { projectToolCall } from "./projector/magiProjector.tool";
 /** 用途：投票处理器。使用范围：事件订阅装配。解耦评估：投票模块拥有快照聚合规则。 */
 import { projectVoteUpdated } from "./projector/magiProjector.vote";
+
+function attachProjectionSequence(message: MagiMessage, event: MagiEventBase): MagiMessage {
+    return {
+        ...message,
+        meta: {
+            ...message.meta,
+            seq: event.seq,
+            roundId: event.roundId,
+        },
+    };
+}
 
 /** 投影贤者开始回复事件。 */
 function projectSeelReplyStarted(
@@ -83,7 +96,7 @@ function projectSeelReplyStarted(
         timestamp: event.timestamp,
     };
     upsertMessage(seel.messages, userMessage);
-    upsertMessage(seel.messages, event.streamMessage);
+    upsertMessage(seel.messages, attachProjectionSequence(event.streamMessage, event));
 }
 
 /** 投影贤者流式增量事件。 */
@@ -97,7 +110,8 @@ function projectSeelReplyChunk(
     projectRawEventToMonitor(state, "SEEL_REPLY_CHUNK", event);
     const seel = findSeelByName(state.target.seels, event.seelName, event.displayName);
     if (seel) {
-        upsertMessage(seel.messages, preserveReplyThinking(seel.messages, event.message));
+        const message = preserveReplyThinking(seel.messages, event.message);
+        upsertMessage(seel.messages, attachProjectionSequence(message, event));
     }
 }
 
@@ -115,7 +129,8 @@ function projectSeelReplyCompleted(
         return;
     }
     seel.loading = false;
-    upsertMessage(seel.messages, preserveReplyThinking(seel.messages, event.message));
+    const message = preserveReplyThinking(seel.messages, event.message);
+    upsertMessage(seel.messages, attachProjectionSequence(message, event));
 }
 
 /** 投影贤者回复失败事件。 */
@@ -150,7 +165,7 @@ function projectConsensusMessage(
         return;
     }
     projectRawEventToMonitor(state, "CONSENSUS_EMITTED", event);
-    upsertMessage(state.target.consensusMessages, event.message);
+    upsertMessage(state.target.consensusMessages, attachProjectionSequence(event.message, event));
 }
 
 /** 投影轮次开始事件到 Trinity 原始监控流。 */

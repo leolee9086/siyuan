@@ -47,7 +47,8 @@ export interface MagiLLMRequestSentEvent extends MagiEventBase {
     seelName: string;
     displayName: string;
     model: string;
-    messages: unknown[];
+    messageCount: number;
+    promptBytes: number;
     toolCount: number;
 }
 

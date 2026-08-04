@@ -38,7 +38,8 @@ function isLlmRequestSentPayload(payload: Record<string, unknown>): boolean {
         typeof payload.seelName === "string" &&
         typeof payload.displayName === "string" &&
         typeof payload.model === "string" &&
-        Array.isArray(payload.messages) &&
+        typeof payload.messageCount === "number" &&
+        typeof payload.promptBytes === "number" &&
         typeof payload.toolCount === "number"
     );
 }

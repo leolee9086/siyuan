@@ -17,61 +17,116 @@
 package websocket
 
 import (
+	"container/list"
+	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
 	"sync"
 )
 
+const (
+	runtimeMonitorHistoryMaxEvents = 4096
+	runtimeMonitorHistoryMaxBytes  = 16 << 20
+)
+
+type runtimeMonitorHistoryLimits struct {
+	maxEvents int
+	maxBytes  int
+}
+
+type runtimeMonitorHistoryEntry struct {
+	encoded       json.RawMessage
+	encodedSize   int
+	seq           int64
+	compactionKey string
+}
+
 type runtimeMonitorHistoryStore struct {
 	mu                sync.RWMutex
-	events            []map[string]interface{}
-	compactionIndexes map[string]int
+	entries           *list.List
+	compactionEntries map[string]*list.Element
+	limits            runtimeMonitorHistoryLimits
+	totalBytes        int
+	evicted           bool
 }
 
 var runtimeMonitorHistory = newRuntimeMonitorHistoryStore()
 
 func newRuntimeMonitorHistoryStore() *runtimeMonitorHistoryStore {
-	return &runtimeMonitorHistoryStore{compactionIndexes: map[string]int{}}
+	return newRuntimeMonitorHistoryStoreWithLimits(runtimeMonitorHistoryLimits{
+		maxEvents: runtimeMonitorHistoryMaxEvents,
+		maxBytes:  runtimeMonitorHistoryMaxBytes,
+	})
+}
+
+func newRuntimeMonitorHistoryStoreWithLimits(limits runtimeMonitorHistoryLimits) *runtimeMonitorHistoryStore {
+	if limits.maxEvents <= 0 {
+		limits.maxEvents = runtimeMonitorHistoryMaxEvents
+	}
+	if limits.maxBytes <= 0 {
+		limits.maxBytes = runtimeMonitorHistoryMaxBytes
+	}
+	return &runtimeMonitorHistoryStore{
+		entries:           list.New(),
+		compactionEntries: map[string]*list.Element{},
+		limits:            limits,
+	}
 }
 
 func (s *runtimeMonitorHistoryStore) append(payload map[string]interface{}) {
 	if s == nil || len(payload) == 0 {
 		return
 	}
-	cloned := cloneEventPayload(payload)
-	compactionKey := runtimeMonitorCompactionKey(cloned)
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	entry := &runtimeMonitorHistoryEntry{
+		encoded:       append(json.RawMessage(nil), encoded...),
+		encodedSize:   len(encoded),
+		seq:           eventSequence(payload),
+		compactionKey: runtimeMonitorCompactionKey(payload),
+	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if compactionKey != "" {
-		if index, ok := s.compactionIndexes[compactionKey]; ok {
-			s.events[index] = cloned
+	if entry.compactionKey != "" {
+		if element, ok := s.compactionEntries[entry.compactionKey]; ok {
+			previous := element.Value.(*runtimeMonitorHistoryEntry)
+			s.totalBytes -= previous.encodedSize
+			element.Value = entry
+			s.totalBytes += entry.encodedSize
+			s.entries.MoveToBack(element)
+			s.trimLocked()
 			return
 		}
-		s.compactionIndexes[compactionKey] = len(s.events)
 	}
-	s.events = append(s.events, cloned)
+	element := s.entries.PushBack(entry)
+	if entry.compactionKey != "" {
+		s.compactionEntries[entry.compactionKey] = element
+	}
+	s.totalBytes += entry.encodedSize
+	s.trimLocked()
 }
 
-func (s *runtimeMonitorHistoryStore) snapshot(afterSeq int64) []map[string]interface{} {
-	if s == nil {
-		return nil
-	}
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	result := make([]map[string]interface{}, 0, len(s.events))
-	for _, event := range s.events {
-		if eventSequence(event) <= afterSeq {
-			continue
+func (s *runtimeMonitorHistoryStore) trimLocked() {
+	for s.entries.Len() > s.limits.maxEvents || s.totalBytes > s.limits.maxBytes {
+		oldest := s.entries.Front()
+		if oldest == nil {
+			return
 		}
-		result = append(result, cloneEventPayload(event))
+		s.removeElementLocked(oldest)
+		s.evicted = true
 	}
-	sort.SliceStable(result, func(i, j int) bool {
-		return eventSequence(result[i]) < eventSequence(result[j])
-	})
-	return result
+}
+
+func (s *runtimeMonitorHistoryStore) removeElementLocked(element *list.Element) {
+	entry := element.Value.(*runtimeMonitorHistoryEntry)
+	if entry.compactionKey != "" && s.compactionEntries[entry.compactionKey] == element {
+		delete(s.compactionEntries, entry.compactionKey)
+	}
+	s.totalBytes -= entry.encodedSize
+	s.entries.Remove(element)
 }
 
 func (s *runtimeMonitorHistoryStore) resetForTests() {
@@ -80,16 +135,10 @@ func (s *runtimeMonitorHistoryStore) resetForTests() {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.events = nil
-	s.compactionIndexes = map[string]int{}
-}
-
-func cloneEventPayload(payload map[string]interface{}) map[string]interface{} {
-	cloned := make(map[string]interface{}, len(payload))
-	for key, value := range payload {
-		cloned[key] = value
-	}
-	return cloned
+	s.entries = list.New()
+	s.compactionEntries = map[string]*list.Element{}
+	s.totalBytes = 0
+	s.evicted = false
 }
 
 func eventSequence(payload map[string]interface{}) int64 {
@@ -117,27 +166,18 @@ func runtimeMonitorCompactionKey(payload map[string]interface{}) string {
 		toolCallIndex := strings.TrimSpace(fmt.Sprint(payload["toolCallIndex"]))
 		return strings.Join([]string{eventType, roundID, seelName, toolCallID, toolCallIndex}, ":")
 	case EventRuntimeStatusUpdated:
-		return strings.Join([]string{eventType, roundID}, ":")
+		return eventType
 	default:
 		return ""
 	}
 }
 
-// recordRuntimeMonitorEvent keeps only the current process' MAGI monitor stream.
-// These entries are transient UI/debug state for reload replay, not personality
-// memory and not long-term note storage. High-frequency deltas are compacted to
-// their latest semantic state so a reload does not recreate atomic stream noise.
+// recordRuntimeMonitorEvent 只保存当前进程内可丢弃的 MAGI 监控窗口。
 func recordRuntimeMonitorEvent(sessionID string, payload map[string]interface{}) {
 	if sessionID != RuntimeMonitorSessionID {
 		return
 	}
 	runtimeMonitorHistory.append(payload)
-}
-
-// RuntimeMonitorHistorySnapshot returns MAGI monitor events emitted since the
-// current kernel process started and newer than afterSeq.
-func RuntimeMonitorHistorySnapshot(afterSeq int64) []map[string]interface{} {
-	return runtimeMonitorHistory.snapshot(afterSeq)
 }
 
 func resetRuntimeMonitorHistoryForTests() {

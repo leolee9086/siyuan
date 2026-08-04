@@ -62,8 +62,15 @@ function summarizeLlmRequest(payload: Record<string, unknown>) {
         ?? readNonEmptyString(Reflect.get(payload, "seelName"))
         ?? "UNKNOWN";
     const model = readNonEmptyString(Reflect.get(payload, "model")) ?? "unknown-model";
+    const messageCount = Reflect.get(payload, "messageCount");
+    const promptBytes = Reflect.get(payload, "promptBytes");
     const toolCount = Reflect.get(payload, "toolCount");
-    return `${seel} -> ${model}${typeof toolCount === "number" ? ` | tools ${toolCount}` : ""}`;
+    const metrics = [
+        typeof messageCount === "number" ? `messages ${messageCount}` : "",
+        typeof promptBytes === "number" ? `prompt ${promptBytes} B` : "",
+        typeof toolCount === "number" ? `tools ${toolCount}` : "",
+    ].filter((value) => value.length > 0);
+    return `${seel} -> ${model}${metrics.length > 0 ? ` | ${metrics.join(" | ")}` : ""}`;
 }
 
 /** 构造投票更新摘要。 */

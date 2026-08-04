@@ -663,4 +663,93 @@ describe("MAGI Event Bridge - 事件投影", () => {
 
         stop();
     });
+
+    it("应压缩高频原始监控事件并限制原始载荷大小", async () => {
+        const bus = await createMagiEventBus();
+        const trinity = createWrappedSeel("TRINITY-00", "TRINITY");
+        const melchior = createWrappedSeel("MELCHIOR-01", "MELCHIOR");
+        const stop = await bindMagiProjector(bus, {seels: [trinity, melchior], consensusMessages: []});
+        const largeThinking = `<think>${"x".repeat(80_000)}</think>`;
+
+        for (const [seq, content] of [[1, "first"], [2, largeThinking]] as const) {
+            bus.emitWithMeta("SEEL_REPLY_CHUNK", {
+                eventId: `chunk-${seq}`,
+                seq,
+                roundId: "round-compacted",
+                timestamp: seq,
+                seelName: "MELCHIOR-01",
+                displayName: "MELCHIOR",
+                message: {
+                    id: "stream-compacted",
+                    type: "sse_stream",
+                    content,
+                    status: "loading",
+                    timestamp: seq,
+                    ...(seq === 2 ? {meta: {rawDiagnostic: "y".repeat(80_000)}} : {}),
+                },
+            });
+        }
+        for (const seq of [3, 4]) {
+            bus.emitWithMeta("RUNTIME_STATUS_UPDATED", {
+                eventId: `runtime-${seq}`,
+                seq,
+                roundId: "round-compacted",
+                timestamp: seq,
+                state: "heartbeat",
+                awake: true,
+                currentTask: `task-${seq}`,
+            });
+        }
+
+        const rawChunks = trinity.messages.filter((message) => message.meta?.eventType === "SEEL_REPLY_CHUNK");
+        const rawStatuses = trinity.messages.filter((message) => message.meta?.eventType === "RUNTIME_STATUS_UPDATED");
+        const chunkPayload = rawChunks[0]?.meta?.eventPayload;
+
+        expect(rawChunks).toHaveLength(1);
+        expect(rawStatuses).toHaveLength(1);
+        expect(JSON.stringify(chunkPayload).length).toBeLessThan(20_000);
+        expect(chunkPayload).toMatchObject({
+            message: {
+                id: "stream-compacted",
+                type: "sse_stream",
+                status: "loading",
+                timestamp: 2,
+            },
+            monitorPayloadTruncated: true,
+        });
+        expect(Reflect.get(Reflect.get(chunkPayload ?? {}, "message") ?? {}, "meta")).toBeUndefined();
+        expect(melchior.messages.find((message) => message.id === "stream-compacted")?.content).toBe(largeThinking);
+
+        stop();
+    });
+
+    it("历史重放事件不得覆盖更新的实时回复快照", async () => {
+        const bus = await createMagiEventBus();
+        const seel = createWrappedSeel("MELCHIOR-01", "MELCHIOR");
+        const stop = await bindMagiProjector(bus, {seels: [seel], consensusMessages: []});
+
+        for (const event of [
+            {eventId: "live-newer", seq: 20, content: "new live content"},
+            {eventId: "history-older", seq: 10, content: "stale history content"},
+        ]) {
+            bus.emitWithMeta("SEEL_REPLY_CHUNK", {
+                eventId: event.eventId,
+                seq: event.seq,
+                roundId: "round-race",
+                timestamp: event.seq,
+                seelName: "MELCHIOR-01",
+                displayName: "MELCHIOR",
+                message: {
+                    id: "stream-race",
+                    type: "sse_stream",
+                    content: event.content,
+                    status: "loading",
+                    timestamp: event.seq,
+                },
+            });
+        }
+
+        expect(seel.messages.find((message) => message.id === "stream-race")?.content).toBe("new live content");
+        stop();
+    });
 });

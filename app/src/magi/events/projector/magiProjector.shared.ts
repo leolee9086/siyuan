@@ -1,12 +1,10 @@
 /**
  * MAGI 投影共享操作。
  *
- * 用途：提供幂等、排序、贤者查找和 Trinity 原始监控投影。
+ * 用途：提供幂等、排序和贤者查找。
  * 使用范围：reply、vote、tool 与主投影器模块。
  */
 
-/** 用途：原始事件公共字段。使用范围：Trinity 监控投影。解耦评估：通过子目录网关隔离上层事件定义。 */
-import type { MagiEventBase } from "./imports";
 /** 用途：消息存储契约。使用范围：排序更新与监控消息。解耦评估：通过子目录网关隔离视图模型路径。 */
 import type { MagiMessage } from "./imports";
 /** 用途：投影幂等状态。使用范围：全部共享写入操作。解耦评估：通过子目录网关隔离主投影类型。 */
@@ -15,6 +13,8 @@ import type { MagiProjectorRuntimeState } from "./imports";
 import type { MagiProjectorTarget } from "./imports";
 /** 用途：贤者响应式容器。使用范围：查找与三贤人过滤。解耦评估：通过子目录网关隔离 composable 实现。 */
 import type { WrappedSeel } from "./imports";
+
+const MAX_PROJECTED_MESSAGE_COUNT = 2000;
 
 /** 为事件构造稳定消息 ID，避免重复落盘。 */
 /** @同步豁免: 性能考虑 - 事件处理热路径只进行确定性字符串拼接，异步化会破坏同一事件内的原子更新。 */
@@ -49,22 +49,11 @@ export function listSageSeels(seels: WrappedSeel[]) {
     return sages;
 }
 
-/** 返回运行时监控宿主节点（当前仍挂在 TRINITY-00 面板）。 */
-function findMonitorHostSeel(seels: WrappedSeel[]) {
-    return seels.find((seel) => normalizeSeelIdentity(seel.config.name) === "TRINITY") ?? null;
-}
-
-/** 深拷贝事件载荷，确保消息元数据可稳定序列化。 */
-function cloneEventPayloadForMeta(event: MagiEventBase) {
-    try {
-        const cloned = JSON.parse(JSON.stringify(event));
-        if (typeof cloned === "object" && cloned !== null) {
-            return Object.fromEntries(Object.entries(cloned));
-        }
-    } catch (error) {
-        console.warn("[magi-projector] clone event payload failed", error);
+export function trimProjectedMessageCount(messages: MagiMessage[], maximum: number) {
+    const excess = messages.length - maximum;
+    if (excess > 0) {
+        messages.splice(0, excess);
     }
-    return {};
 }
 
 /** 按 ID 更新或插入消息，按 timestamp 与 seq 排序。 */
@@ -73,6 +62,11 @@ export function upsertMessage(messages: MagiMessage[], incoming: MagiMessage) {
     const index = messages.findIndex((message) => message.id === incoming.id);
     // 流式或工具生命周期命中稳定 ID 时原位覆盖，保持用户阅读位置不变。
     if (index >= 0) {
+        const currentSeq = messages[index]?.meta?.seq;
+        const incomingSeq = incoming.meta?.seq;
+        if (typeof currentSeq === "number" && typeof incomingSeq === "number" && incomingSeq < currentSeq) {
+            return;
+        }
         messages.splice(index, 1, cloneMessage(incoming));
         return;
     }
@@ -105,6 +99,7 @@ export function upsertMessage(messages: MagiMessage[], incoming: MagiMessage) {
         right = mid;
     }
     messages.splice(left, 0, cloneMessage(incoming));
+    trimProjectedMessageCount(messages, MAX_PROJECTED_MESSAGE_COUNT);
 }
 
 /** 按内部名称查找贤者实例。 */
@@ -156,36 +151,6 @@ export function findSeelByName(
         const displayKey = normalizeSeelIdentity(seel.config.displayName);
         return candidates.includes(nameKey) || candidates.includes(displayKey);
     }) ?? null;
-}
-
-/** 将原始事件保留到 Trinity 诊断流；贤人卡片只接收语义活动。 */
-/** @同步豁免: 生命周期 - 原始诊断事件与语义活动必须在同一事件总线分发周期内按序落盘。 */
-export function projectRawEventToMonitor(
-    state: MagiProjectorRuntimeState,
-    eventType: string,
-    event: MagiEventBase,
-) {
-    const monitorHost = findMonitorHostSeel(state.target.seels);
-    if (!monitorHost) {
-        return;
-    }
-    upsertMessage(monitorHost.messages, {
-        id: buildProjectedMessageId(event.eventId, `event-${eventType}-MONITOR`),
-        type: "event",
-        content: eventType,
-        status: "success",
-        timestamp: event.timestamp,
-        meta: {
-            type: "raw-event",
-            eventType,
-            eventPayload: cloneEventPayloadForMeta(event),
-            eventId: event.eventId,
-            seq: event.seq,
-            roundId: event.roundId,
-            targetSeel: monitorHost.config.name,
-            monitorScope: "magi-monitor",
-        },
-    });
 }
 
 /** 读取非空字符串，空值返回 undefined。 */

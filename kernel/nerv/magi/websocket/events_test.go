@@ -57,6 +57,24 @@ func TestPushSeelReplyChunk(t *testing.T) {
 	}
 }
 
+func TestBuildLLMRequestSentDataOmitsFullMessages(t *testing.T) {
+	messages := []types.ContextMessage{
+		{Role: "system", Content: "persistent prompt"},
+		{Role: "user", Content: "private current request"},
+	}
+
+	data := buildLLMRequestSentData("round-1", "melchior", "Melchior", "model-1", messages, 3)
+	if _, ok := data["messages"]; ok {
+		t.Fatal("runtime monitor request summary retained full messages")
+	}
+	if got := data["messageCount"]; got != len(messages) {
+		t.Fatalf("unexpected message count: %v", got)
+	}
+	if got, ok := data["promptBytes"].(int); !ok || got <= 0 {
+		t.Fatalf("expected positive prompt byte estimate, got %v", data["promptBytes"])
+	}
+}
+
 func TestPushSeelReplyCompleted(t *testing.T) {
 	msg := &types.Message{
 		ID:        "melchior-123",
