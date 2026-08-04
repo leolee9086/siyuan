@@ -12,7 +12,9 @@ import {reloadFromDisk} from "./imports";
 import {flushThinkingStep} from "./imports";
 /** 用途：收尾流式响应（物化助手条目、完成流式 DOM、重置流式状态）；使用范围：停止生成收尾；解耦评估：响应生命周期集中在本模块，经公开入口调用。 */
 import {appendCurrentAssistantEntry} from "./imports";
+/** 用途：完成当前助手 DOM；使用范围：本地请求停止收尾；解耦评估：DOM 物化规则继续由响应领域唯一维护。 */
 import {finalizeResponseElement} from "./imports";
+/** 用途：清空当前响应临时状态；使用范围：本地请求停止收尾；解耦评估：响应生命周期状态继续由响应领域唯一维护。 */
 import {resetStreamingResponseState} from "./imports";
 /** 用途：根据用户消息重建导航标记；使用范围：会话重载后；解耦评估：导航渲染集中在本模块，经公开入口调用。 */
 import {rebuildNavMarkers} from "./imports";
@@ -22,6 +24,7 @@ import {scrollToBottom} from "./imports";
 import {setStreaming} from "./imports";
 /** 用途：移除流式思考卡片并完成当前思考；使用范围：停止生成与重试收尾；解耦评估：思考卡片状态集中在本模块，经公开入口调用。 */
 import {clearThinking} from "./imports";
+/** 用途：结束活动思考卡；使用范围：重试和停止收尾；解耦评估：思考 DOM 生命周期继续由反馈领域统一维护。 */
 import {finishActiveThinking} from "./imports";
 /** 用途：刷新令牌圆环展示；使用范围：停止生成后；解耦评估：令牌展示是本目录职责，同层直接复用。 */
 import {updateTokenDisplay} from "./imports";
@@ -45,6 +48,26 @@ export function appendRetry(runtime: AgentChatRuntime, attempt: number, maxRetri
 
 /** 停止前端流并等待后端中断检查点恢复。 */
 export async function stopGeneration(runtime: AgentChatRuntime) {
+    const conversationController = runtime.conversationController;
+    const conversationState = conversationController?.state;
+    // 会话级 adapter 通过精确 turnID 中断，长生命周期订阅继续接收 interrupted 和恢复事件。
+    if (conversationState && conversationController && conversationState.adapter.kind === runtime.conversationKind &&
+        conversationState.adapter.capabilities.supportsInterrupt && conversationState.turnID) {
+        runtime.stopBtn.toggleAttribute("disabled", true);
+        runtime.stopBtn.setAttribute("aria-disabled", "true");
+        try {
+            await conversationController.interrupt({
+                expectedTurnID: conversationState.turnID,
+                requestHeaders: runtime.sessionPorts.requestHeaders,
+            });
+        } catch (error) {
+            runtime.stopBtn.toggleAttribute("disabled", false);
+            runtime.stopBtn.setAttribute("aria-disabled", "false");
+            const message = error instanceof Error ? error.message : String(error);
+            runtime.capabilities.showMessage?.(message, 4000);
+        }
+        return;
+    }
     runtime.abortController?.abort();
     runtime.abortController = null;
     flushTokenUpdate(runtime);

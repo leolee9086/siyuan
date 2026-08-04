@@ -18,12 +18,26 @@ var (
 	ErrSessionIDMismatch = errors.New("agentqueue: input session id mismatch")
 	// ErrDuplicateInput 输入 ID 重复（幂等冲突，已存在相同 ID 的输入）。
 	ErrDuplicateInput = errors.New("agentqueue: duplicate input id")
+	// ErrInputIDConflict 表示相同输入 ID 对应的内容摘要不同。
+	ErrInputIDConflict = errors.New("agentqueue: input id conflicts with different content")
 	// ErrDuplicatePrompt 输入文本与队列中 pending 输入重复（prompt 去重命中）。
 	ErrDuplicatePrompt = errors.New("agentqueue: duplicate prompt")
 	// ErrInputNotFound 输入不存在。
 	ErrInputNotFound = errors.New("agentqueue: input not found")
 	// ErrNotPending 输入不在 pending 状态，无法执行该操作。
 	ErrNotPending = errors.New("agentqueue: input is not pending")
+	// ErrQueueVersionConflict 乐观并发版本与服务端当前版本不一致。
+	ErrQueueVersionConflict = errors.New("agentqueue: queue version conflict")
+	// ErrSemanticsMismatch 输入语义与精确领取请求不一致。
+	ErrSemanticsMismatch = errors.New("agentqueue: input semantics mismatch")
+	// ErrExpectedTurnIDRequired steer 输入缺少目标 turn。
+	ErrExpectedTurnIDRequired = errors.New("agentqueue: expected turn id is required")
+	// ErrExpectedTurnIDForbidden queue 输入携带了目标 turn。
+	ErrExpectedTurnIDForbidden = errors.New("agentqueue: expected turn id is forbidden")
+	// ErrUnsupportedPayloadVersion 持久化载荷版本不受支持。
+	ErrUnsupportedPayloadVersion = errors.New("agentqueue: unsupported payload version")
+	// ErrInvalidPayload 持久化 JSON 载荷格式不合法。
+	ErrInvalidPayload = errors.New("agentqueue: invalid payload")
 )
 
 // 默认容量与保留策略常量（避免散落魔法数字，便于统一调整）。
@@ -78,8 +92,9 @@ type SessionInbox struct {
 	// Submit 成功入队后非阻塞发送；多个消息到达时只保留一个待消费信号，
 	// 避免信号堆积。执行器阻塞在 WaitNext() 上实现「闲时零 CPU 挂起」，
 	// 等价于 OS 中进程阻塞等待中断。
-	signal chan struct{}
-	seq    int64
+	signal       chan struct{}
+	seq          int64
+	queueVersion int64
 }
 
 // NewSessionInbox 创建指定容量的会话输入队列（使用默认策略，仅覆盖容量）。
@@ -161,33 +176,51 @@ func (in *SessionInbox) Submit(input *Input) (int64, error) {
 	if input.SessionID != "" && input.SessionID != in.sessionID {
 		return 0, ErrSessionIDMismatch
 	}
+	normalized := cloneInput(input)
+	normalized.SessionID = in.sessionID
+	if normalized.CreatedAt == 0 {
+		normalized.CreatedAt = time.Now().UnixMilli()
+	}
+	if err := validateDelivery(normalized); err != nil {
+		return 0, err
+	}
+	var err error
+	normalized, err = normalizeInput(normalized)
+	if err != nil {
+		return 0, err
+	}
 
 	in.mu.Lock()
 	defer in.mu.Unlock()
+	candidate := in.stateLocked()
+	for _, it := range candidate.items {
+		if normalized.ID == "" || it.input.ID != normalized.ID {
+			continue
+		}
+		if it.input.ContentDigest == normalized.ContentDigest {
+			return it.seq, ErrDuplicateInput
+		}
+		return it.seq, ErrInputIDConflict
+	}
 
 	switch in.settings.DedupeMode {
 	case DedupeNone:
 		// 不做重复检测。
 	case DedupePrompt:
-		for _, it := range in.items {
+		for _, it := range candidate.items {
 			if it.state != StatusPending {
 				continue
 			}
-			if it.input.Content != "" && it.input.Content == input.Content {
+			if it.input.Content != "" && it.input.Content == normalized.Content {
 				return it.seq, ErrDuplicatePrompt
 			}
 		}
-	default: // DedupeMessageID
-		for _, it := range in.items {
-			if it.input.ID != "" && it.input.ID == input.ID {
-				return it.seq, ErrDuplicateInput
-			}
-		}
+	default: // DedupeMessageID 已由上方全局幂等检查覆盖。
 	}
 
 	// 容量只统计 pending 项，避免历史项（injected/cancelled）占满队列。
 	pending := 0
-	for _, it := range in.items {
+	for _, it := range candidate.items {
 		if it.state == StatusPending {
 			pending++
 		}
@@ -195,11 +228,11 @@ func (in *SessionInbox) Submit(input *Input) (int64, error) {
 	if pending >= in.settings.Cap {
 		switch in.settings.DropPolicy {
 		case DropOld, DropSummarize:
-			dropped := in.dropOldestPendingLocked()
+			dropped := dropOldestPending(candidate)
 			if in.settings.DropPolicy == DropSummarize {
-				in.summary.DroppedCount++
+				candidate.summary.DroppedCount++
 				if text := summarizeInputText(dropped); text != "" {
-					in.summary.SummaryLines = append(in.summary.SummaryLines, text)
+					candidate.summary.SummaryLines = append(candidate.summary.SummaryLines, text)
 				}
 			}
 		default: // DropNew
@@ -207,17 +240,15 @@ func (in *SessionInbox) Submit(input *Input) (int64, error) {
 		}
 	}
 
-	in.seq++
-	// 克隆输入后补默认值，绝不修改调用方传入的对象（并发安全边界）。
-	cloned := cloneInput(input)
-	if cloned.CreatedAt == 0 {
-		cloned.CreatedAt = time.Now().UnixMilli()
-	}
-	in.items = append(in.items, &inboxItem{
-		input: cloned,
-		seq:   in.seq,
+	candidate.seq++
+	candidate.items = append(candidate.items, &inboxItem{
+		input: normalized,
+		seq:   candidate.seq,
 		state: StatusPending,
 	})
+	if err := in.commitMutationLocked(candidate); err != nil {
+		return 0, err
+	}
 	// 入队成功后发唤醒信号（持锁内非阻塞发送）：确保「入队成功 → 必有信号」
 	// 的原子性，执行器阻塞在 WaitNext() 上可被及时唤醒。
 	select {
@@ -226,6 +257,18 @@ func (in *SessionInbox) Submit(input *Input) (int64, error) {
 		// 已有未消费信号（合并唤醒），无需重复发送。
 	}
 	return in.seq, nil
+}
+
+func dropOldestPending(state *inboxState) *Input {
+	for i, item := range state.items {
+		if item.state != StatusPending {
+			continue
+		}
+		dropped := item.input
+		state.items = append(state.items[:i], state.items[i+1:]...)
+		return dropped
+	}
+	return nil
 }
 
 // dropOldestPendingLocked 丢弃最旧的 pending 项（须持锁调用），返回被丢弃的输入。
@@ -276,14 +319,21 @@ func summarizeInputText(input *Input) string {
 func (in *SessionInbox) Take(activeTurnID string) (*Input, error) {
 	in.mu.Lock()
 	defer in.mu.Unlock()
-	return in.takeLocked(activeTurnID)
+	candidate := in.stateLocked()
+	input := takeFromItems(candidate.items, activeTurnID, time.Now().UnixMilli())
+	if input == nil {
+		return nil, nil
+	}
+	if err := in.commitMutationLocked(candidate); err != nil {
+		return nil, err
+	}
+	return input, nil
 }
 
-// takeLocked 是 Take 的锁内实现（须持锁调用）。
-func (in *SessionInbox) takeLocked(activeTurnID string) (*Input, error) {
+func takeFromItems(items []*inboxItem, activeTurnID string, now int64) *Input {
 	// 收集当前处于 injecting 状态的 lane，作为串行阻塞集合。
 	blockedLanes := make(map[string]struct{})
-	for _, it := range in.items {
+	for _, it := range items {
 		if it.state == StatusInjecting && it.input.LaneKey != "" {
 			blockedLanes[it.input.LaneKey] = struct{}{}
 		}
@@ -297,7 +347,7 @@ func (in *SessionInbox) takeLocked(activeTurnID string) (*Input, error) {
 	}
 
 	// 第一轮：即时交互语义，带 ExpectedTurnID 匹配。
-	for _, it := range in.items {
+	for _, it := range items {
 		if it.state != StatusPending {
 			continue
 		}
@@ -312,12 +362,12 @@ func (in *SessionInbox) takeLocked(activeTurnID string) (*Input, error) {
 			continue
 		}
 		it.state = StatusInjecting
-		it.injectedAt = time.Now().UnixMilli()
-		return cloneInput(it.input), nil
+		it.injectedAt = now
+		return cloneInput(it.input)
 	}
 
 	// 第二轮：普通语义 FIFO。
-	for _, it := range in.items {
+	for _, it := range items {
 		if it.state != StatusPending {
 			continue
 		}
@@ -328,11 +378,11 @@ func (in *SessionInbox) takeLocked(activeTurnID string) (*Input, error) {
 			continue
 		}
 		it.state = StatusInjecting
-		it.injectedAt = time.Now().UnixMilli()
-		return cloneInput(it.input), nil
+		it.injectedAt = now
+		return cloneInput(it.input)
 	}
 
-	return nil, nil
+	return nil
 }
 
 // TakeBatch 批量取出可投递输入（collect 模式）。
@@ -352,22 +402,30 @@ func (in *SessionInbox) TakeBatch(activeTurnID string, max int) ([]*Input, error
 
 	in.mu.Lock()
 	defer in.mu.Unlock()
+	candidate := in.stateLocked()
+	changed := false
 
 	// 先做一次 stale 恢复（仅当启用 RecoverStaleMs），保证批量取用不遗漏滞留输入。
 	if in.settings.RecoverStaleMs > 0 {
-		in.recoverStaleLocked(time.Now().UnixMilli())
+		if recoverStaleItems(candidate.items, in.settings.RecoverStaleMs, time.Now().UnixMilli()) > 0 {
+			changed = true
+		}
 	}
 
 	taken := make([]*Input, 0, limit)
+	now := time.Now().UnixMilli()
 	for len(taken) < limit {
-		input, err := in.takeLocked(activeTurnID)
-		if err != nil {
-			return taken, err
-		}
+		input := takeFromItems(candidate.items, activeTurnID, now)
 		if input == nil {
 			break
 		}
+		changed = true
 		taken = append(taken, input)
+	}
+	if changed {
+		if err := in.commitMutationLocked(candidate); err != nil {
+			return nil, err
+		}
 	}
 	return taken, nil
 }
@@ -381,17 +439,24 @@ func (in *SessionInbox) RecoverStale(now int64) int {
 	}
 	in.mu.Lock()
 	defer in.mu.Unlock()
-	return in.recoverStaleLocked(now)
-}
-
-// recoverStaleLocked 是 RecoverStale 的锁内实现（须持锁调用）。
-func (in *SessionInbox) recoverStaleLocked(now int64) int {
-	if in.settings.RecoverStaleMs <= 0 {
+	candidate := in.stateLocked()
+	recovered := recoverStaleItems(candidate.items, in.settings.RecoverStaleMs, now)
+	if recovered == 0 {
 		return 0
 	}
-	cutoff := now - in.settings.RecoverStaleMs
+	if err := in.commitMutationLocked(candidate); err != nil {
+		return 0
+	}
+	return recovered
+}
+
+func recoverStaleItems(items []*inboxItem, recoverStaleMs, now int64) int {
+	if recoverStaleMs <= 0 {
+		return 0
+	}
+	cutoff := now - recoverStaleMs
 	recovered := 0
-	for _, it := range in.items {
+	for _, it := range items {
 		if it.state == StatusInjecting && it.injectedAt > 0 && it.injectedAt <= cutoff {
 			it.state = StatusPending
 			it.injectedAt = 0
@@ -421,7 +486,8 @@ func (in *SessionInbox) MarkFailed(id string) error {
 func (in *SessionInbox) markState(id string, fromState InboxStatus, toState InboxStatus) error {
 	in.mu.Lock()
 	defer in.mu.Unlock()
-	for _, it := range in.items {
+	candidate := in.stateLocked()
+	for _, it := range candidate.items {
 		if it.input.ID != id {
 			continue
 		}
@@ -432,31 +498,14 @@ func (in *SessionInbox) markState(id string, fromState InboxStatus, toState Inbo
 		if toState != StatusInjecting {
 			it.injectedAt = 0
 		}
-		return nil
+		return in.commitMutationLocked(candidate)
 	}
 	return ErrInputNotFound
 }
 
 // Snapshot 返回队列全部条目的状态快照（副本，调用方修改不影响内部状态）。
 func (in *SessionInbox) Snapshot() []InboxSnapshot {
-	in.mu.Lock()
-	defer in.mu.Unlock()
-
-	snap := make([]InboxSnapshot, 0, len(in.items))
-	pos := 0
-	for _, it := range in.items {
-		s := InboxSnapshot{
-			Input: cloneInput(it.input),
-			State: it.state,
-			Seq:   it.seq,
-		}
-		if it.state == StatusPending {
-			pos++
-			s.QueuePos = pos
-		}
-		snap = append(snap, s)
-	}
-	return snap
+	return in.SnapshotVersioned().Items
 }
 
 // Prune 清理超过 maxRetained 条的非 pending 历史项（保留最近的），
@@ -467,9 +516,10 @@ func (in *SessionInbox) Prune(maxRetained int) int {
 	}
 	in.mu.Lock()
 	defer in.mu.Unlock()
+	candidate := in.stateLocked()
 
 	nonPending := 0
-	for _, it := range in.items {
+	for _, it := range candidate.items {
 		if it.state != StatusPending {
 			nonPending++
 		}
@@ -478,16 +528,19 @@ func (in *SessionInbox) Prune(maxRetained int) int {
 		return 0
 	}
 	drop := nonPending - maxRetained
-	kept := make([]*inboxItem, 0, len(in.items)-drop)
+	kept := make([]*inboxItem, 0, len(candidate.items)-drop)
 	dropped := 0
-	for _, it := range in.items {
+	for _, it := range candidate.items {
 		if it.state != StatusPending && dropped < drop {
 			dropped++
 			continue
 		}
 		kept = append(kept, it)
 	}
-	in.items = kept
+	candidate.items = kept
+	if err := in.commitMutationLocked(candidate); err != nil {
+		return 0
+	}
 	return dropped
 }
 
@@ -498,6 +551,9 @@ func cloneInput(src *Input) *Input {
 		return nil
 	}
 	dst := *src
+	if src.Payload != nil {
+		dst.Payload = append([]byte(nil), src.Payload...)
+	}
 	if src.Source != nil {
 		s := *src.Source
 		if src.Source.RawAttributes != nil {

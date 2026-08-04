@@ -64,6 +64,12 @@ import {createAgentChatSessionPorts} from "./chat/session/AgentChat.sessionPorts
 import {createAgentChatMutationObserver} from "./chat/ui/feedback/AgentChat.observer.factory";
 /** 用途：创建独立 AgentChat 实例；使用范围：浮窗副本；解耦评估：构造器由调用方显式传入，工厂不反向依赖门面。 */
 import {createAgentChatInstance} from "./AgentChat.instance.factory";
+/** 用途：装配实例级会话执行控制器；使用范围：AgentChat 构造阶段；解耦评估：具体 adapter 已由 sessionPorts 注册。 */
+import {createAgentChatConversationController} from "./chat/runtime/AgentChat.conversationController";
+/** 用途：创建实例级执行 adapter 注册表；使用范围：AgentChat 构造阶段；解耦评估：具体注册集合只在门面组合根声明，并允许调用方注入替代注册表。 */
+import {createAgentConversationAdapterRegistry} from "./runtime/conversation/agentConversation.registry";
+/** 用途：创建 native Agent 执行 adapter；使用范围：默认注册集合；解耦评估：具体传输实现不进入共享 sessionPorts 或业务模块。 */
+import {createNativeAgentConversationAdapter} from "./runtime/conversation/nativeAgentConversation.adapter";
 
 /**
  * AgentChat 保留布局框架要求的模型身份，并公开其可观察运行时状态。
@@ -83,6 +89,11 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> implements Agen
     public composer: AgentChatRuntime["composer"] = null;
     public sendBtn!: HTMLElement;
     public stopBtn!: HTMLElement;
+    public deliveryControl!: HTMLElement;
+    public steerDeliveryBtn!: HTMLButtonElement;
+    public queueDeliveryBtn!: HTMLButtonElement;
+    public queueDock!: HTMLElement;
+    public editingQueueInputID = "";
     public sessionFilesBtn!: HTMLButtonElement;
     public sessionFilesInput!: HTMLInputElement;
     public promptSourceController!: AgentChatRuntime["promptSourceController"];
@@ -198,6 +209,8 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> implements Agen
     public magiConversationLoading = false;
     public magiConversationLoadVersion = 0;
     public magiConversationLoadController: AbortController | null = null;
+    public conversationAdapters: AgentChatRuntime["conversationAdapters"];
+    public conversationController: AgentChatRuntime["conversationController"];
 
     public checkConfigChangedHandler = () => {
         checkConfigChanged(this);
@@ -233,12 +246,16 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> implements Agen
         enableSessionWebSocket?: boolean;
         capabilitiesFactory?: (tab: Tab) => AgentPanelCapabilities;
         sessionPorts?: AgentChatRuntime["sessionPorts"];
+        conversationAdapters?: AgentChatRuntime["conversationAdapters"];
     } = {}) {
         super({app});
         this.parent = tab;
         this.capabilities = options.capabilities ?? {};
         this.capabilitiesFactory = options.capabilitiesFactory;
         this.sessionPorts = options.sessionPorts ?? createAgentChatSessionPorts();
+        this.conversationAdapters = options.conversationAdapters ?? createAgentConversationAdapterRegistry([
+            createNativeAgentConversationAdapter(),
+        ]);
         // 主应用存在且调用方未注入上下文能力时，提供与原 Agent Dock 一致的默认捕获实现。
         if (app && !this.capabilities.captureEditorContext) {
             this.capabilities.captureEditorContext = captureEditorContext;
@@ -246,6 +263,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> implements Agen
         this.conversationKind = options.initialConversation?.kind ?? "native-agent";
         this.initialSessionId = options.initialConversation?.sessionId ?? "";
         this.enableSessionWebSocket = options.enableSessionWebSocket !== false;
+        this.conversationController = createAgentChatConversationController(this);
         this.lute = getAgentLute({
             emojiSite: "/emojis",
             emojis: {}
@@ -361,6 +379,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> implements Agen
             initialConversation: this.getConversation(),
             enableSessionWebSocket: this.enableSessionWebSocket,
             sessionPorts: this.sessionPorts,
+            conversationAdapters: this.conversationAdapters,
         });
         try {
             await copy.ready();

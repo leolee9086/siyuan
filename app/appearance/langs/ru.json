@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "Ожидает",
+    "agentQueueInjecting": "Отправляется",
+    "agentQueueBlocked": "Заблокировано",
+    "agentQueueFailed": "Ошибка",
+    "agentSteer": "Направить",
+    "agentQueue": "Очередь",
     "backlinkShowBottom": "Показывать обратные ссылки внизу документа",
 	"deleteRefConfirm": "Удаляемое или вырезаемое содержимое содержит блоки, на которые есть ссылки. Продолжить?",
 	"addAllAiModels": "Добавить все модели",

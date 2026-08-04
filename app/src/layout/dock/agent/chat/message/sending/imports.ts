@@ -115,3 +115,12 @@ export type {MagiInterfaceIdentity};
 import type {StandardLLMStreamChunk} from "../../../../../../magi/types/llmAdapter.types";
 /** 导出标准模型流式片段类型。 */
 export type {StandardLLMStreamChunk};
+
+/** 用途：约束统一 adapter 输入；使用范围：会话发送命令；解耦评估：纯类型经网关传递，发送编排不依赖具体 adapter 实现。 */
+import type {AgentConversationSubmitInput} from "../../../runtime/conversation/agentConversation.types";
+/** 导出统一提交输入。 */
+export type {AgentConversationSubmitInput};
+/** 用途：约束 adapter 观察器；使用范围：请求内流式目标；解耦评估：观察器只作为协议参数传入，事件投影不反向依赖传输模块。 */
+import type {AgentConversationObserver} from "../../../runtime/conversation/agentConversation.types";
+/** 导出 adapter 观察器协议。 */
+export type {AgentConversationObserver};

@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "En attente",
+    "agentQueueInjecting": "Envoi en cours",
+    "agentQueueBlocked": "Bloqué",
+    "agentQueueFailed": "Échec",
+    "agentSteer": "Guider",
+    "agentQueue": "File d'attente",
     "backlinkShowBottom": "Afficher les backlinks au bas du document",
 	"deleteRefConfirm": "Le contenu à supprimer ou à couper contient des blocs référencés. Voulez-vous continuer ?",
 	"addAllAiModels": "Ajouter tous les modèles",

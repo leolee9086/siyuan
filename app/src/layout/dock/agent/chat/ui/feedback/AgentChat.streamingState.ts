@@ -1,11 +1,11 @@
-/** 用途：约束流式反馈函数读写的公开状态；使用范围：本文件全部导出函数。 */
+/** 用途：约束流式反馈函数读写的公开状态；使用范围：本文件全部导出函数；解耦评估：纯类型协议避免状态函数依赖具体门面。 */
 import type {AgentChatRuntime} from "./imports";
-/** 用途：计算当前目标的发送能力；使用范围：发送按钮状态刷新。 */
+/** 用途：计算当前目标的发送能力；使用范围：发送按钮状态刷新；解耦评估：纯策略函数集中既有宿主可用性判断。 */
 import {resolveTargetPolicy} from "./imports";
 
 /**
  * 判断编辑器中是否存在可发送内容。
- * @同步豁免: 输入事件需要在当前事件回调内立即刷新按钮状态，读取编辑器快照不涉及异步工作。
+ * @同步豁免: 需要绝对同步的DOM访问 - 输入事件必须在当前回调读取 Composer 快照，异步化会读取到后续编辑状态。
  */
 export function hasComposerInput(runtime: AgentChatRuntime) {
     const sendData = runtime.composer?.getSendData();
@@ -14,7 +14,7 @@ export function hasComposerInput(runtime: AgentChatRuntime) {
 
 /**
  * 同步当前会话文件入口的禁用状态。
- * @同步豁免: 文件入口必须与流式和上传状态在同一界面更新周期内保持一致。
+ * @同步豁免: UI构建 - 文件入口必须与流式和上传状态在同一界面更新周期内保持一致。
  */
 export function updateSessionFileActionState(runtime: AgentChatRuntime) {
     runtime.sessionFilesBtn?.setAttribute(
@@ -25,25 +25,30 @@ export function updateSessionFileActionState(runtime: AgentChatRuntime) {
 
 /**
  * 根据目标、模型、输入和流式状态刷新发送控件。
- * @同步豁免: 输入、模型和流式事件均要求按钮与编辑器禁用态在当前 DOM 更新周期内一致。
+ * @同步豁免: UI构建 - 输入、模型和流式事件要求按钮与编辑器禁用态在当前 DOM 更新周期内一致。
  */
 export function updateSendButtonState(runtime: AgentChatRuntime) {
     const targetUnavailable = !resolveTargetPolicy(runtime).sendingAvailable ||
         (runtime.conversationKind === "native-agent" && runtime.modelOptions.length === 0);
-    const disabled = runtime.isStreaming || targetUnavailable || !hasComposerInput(runtime);
+    const adapter = runtime.conversationController?.state.adapter;
+    const adapterOwnsTarget = adapter?.kind === runtime.conversationKind;
+    const acceptsRunningInput = Boolean(adapterOwnsTarget && adapter &&
+        (adapter.capabilities.supportsQueue || adapter.capabilities.supportsSteer));
+    const runningInputUnavailable = runtime.isStreaming && !acceptsRunningInput;
+    const disabled = runningInputUnavailable || targetUnavailable || !hasComposerInput(runtime);
     runtime.sendBtn.toggleAttribute("disabled", disabled);
     // 编辑器宿主完成初始化后才同步禁用样式。
     if (runtime.composerHost) {
         runtime.composerHost.classList.toggle(
             "agent-chat__composer-host--disabled",
-            runtime.isStreaming || targetUnavailable,
+            runningInputUnavailable || targetUnavailable,
         );
     }
 }
 
 /**
  * 将流式锁同步到 AgentChat 已公开的会话交互状态。
- * @同步豁免: SSE 生命周期要求目标与会话动作在当前处理周期内原子切换。
+ * @同步豁免: 生命周期 - SSE 状态变化要求目标与会话动作在当前处理周期内原子切换。
  */
 export function applyAgentPanelInteractionLock(runtime: AgentChatRuntime, locked: boolean) {
     if (locked) {
@@ -57,7 +62,7 @@ export function applyAgentPanelInteractionLock(runtime: AgentChatRuntime, locked
 
 /**
  * 切换流式交互锁并同步相关控件状态。
- * @同步豁免: SSE 生命周期要求所有交互锁在开始或结束事件的当前处理周期内原子切换。
+ * @同步豁免: 生命周期 - SSE 开始或结束事件要求所有交互控件在当前处理周期内原子切换。
  */
 export function setStreaming(runtime: AgentChatRuntime, streaming: boolean) {
     runtime.isStreaming = streaming;
@@ -67,7 +72,16 @@ export function setStreaming(runtime: AgentChatRuntime, streaming: boolean) {
     }
     applyAgentPanelInteractionLock(runtime, streaming);
     updateSessionFileActionState(runtime);
-    runtime.sendBtn.classList.toggle("fn__none", streaming);
+    // 未注册执行 adapter 的目标继续沿用原有 send/stop 互斥显示行为。
+    if (!runtime.conversationController) {
+        runtime.sendBtn.classList.toggle("fn__none", streaming);
+        runtime.stopBtn.classList.toggle("fn__none", !streaming);
+        updateSendButtonState(runtime);
+        return;
+    }
+    runtime.sendBtn.classList.remove("fn__none");
     runtime.stopBtn.classList.toggle("fn__none", !streaming);
+    runtime.stopBtn.toggleAttribute("disabled", !streaming);
+    runtime.stopBtn.setAttribute("aria-disabled", streaming ? "false" : "true");
     updateSendButtonState(runtime);
 }

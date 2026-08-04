@@ -30,6 +30,10 @@ import type {AgentToolCall} from "./message/AgentChat.entries.types";
 import type {SessionEntry} from "./message/AgentChat.entries.types";
 /** 用途：约束思考步骤；使用范围：运行时 currentThinkingSteps 字段类型。 */
 import type {ThinkingStep} from "./message/AgentChat.entries.types";
+/** 用途：约束实例级执行控制器；使用范围：AgentChatRuntime；解耦评估：纯协议不加载 controller 实现。 */
+import type {AgentConversationAdapterRegistry} from "../runtime/conversation/agentConversation.types";
+/** 用途：约束实例级执行控制器命令；使用范围：AgentChatRuntime；解耦评估：纯协议不加载 controller 实现。 */
+import type {AgentConversationController} from "../runtime/conversation/agentConversation.types";
 
 /** 重新导出会话条目相关类型，供职责模块共享。 */
 export type {
@@ -124,6 +128,11 @@ export interface AgentChatRuntime {
     composer: ComposerHandle | null;
     sendBtn: HTMLElement;
     stopBtn: HTMLElement;
+    deliveryControl: HTMLElement;
+    steerDeliveryBtn: HTMLButtonElement;
+    queueDeliveryBtn: HTMLButtonElement;
+    queueDock: HTMLElement;
+    editingQueueInputID: string;
     sessionFilesBtn: HTMLButtonElement;
     sessionFilesInput: HTMLInputElement;
     promptSourceController: AgentPromptSourceDomain;
@@ -213,6 +222,8 @@ export interface AgentChatRuntime {
     magiConversationLoading: boolean;
     magiConversationLoadVersion: number;
     magiConversationLoadController: AbortController | null;
+    conversationAdapters: AgentConversationAdapterRegistry;
+    conversationController: AgentConversationController | null;
     checkConfigChangedHandler: () => void;
     handleMagiIdentitySessionChanged: () => void;
     pendingTokenUpdate: boolean;

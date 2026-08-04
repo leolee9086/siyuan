@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "Tertunda",
+    "agentQueueInjecting": "Mengirim",
+    "agentQueueBlocked": "Diblokir",
+    "agentQueueFailed": "Gagal",
+    "agentSteer": "Arahkan",
+    "agentQueue": "Antrean",
     "backlinkShowBottom": "Tampilkan pranala balik di bagian bawah dokumen",
 	"deleteRefConfirm": "Konten yang akan dihapus atau dipotong berisi blok yang dirujuk. Apakah Anda ingin melanjutkan?",
 	"addAllAiModels": "Tambahkan semua model",

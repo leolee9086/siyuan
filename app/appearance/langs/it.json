@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "In attesa",
+    "agentQueueInjecting": "Invio in corso",
+    "agentQueueBlocked": "Bloccato",
+    "agentQueueFailed": "Non riuscito",
+    "agentSteer": "Guida",
+    "agentQueue": "Coda",
     "backlinkShowBottom": "Mostra i backlink in fondo al documento",
 	"deleteRefConfirm": "Il contenuto da eliminare o tagliare contiene blocchi referenziati. Vuoi continuare?",
 	"addAllAiModels": "Aggiungi tutti i modelli",

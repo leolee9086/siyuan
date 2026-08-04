@@ -20,6 +20,7 @@ export async function prepareAgentChatSessionCreation(runtime: AgentChatRuntime)
     runtime.sessionPorts.presentation.removeMirror(runtime);
     runtime.sessionPorts.turnLifecycle.finishThinking(runtime);
     runtime.sessionPorts.turnLifecycle.flushThinkingStep(runtime);
+    // 只有没有活动轮次且不等待权威恢复时，当前内存状态才允许直接覆盖磁盘会话。
     if (!hadActiveTurn && !runtime.pendingRecoverySessionIDs.has(runtime.sessionId)) {
         await saveSession(runtime);
     }
@@ -53,8 +54,9 @@ const resetAgentChatSessionState = (chat: AgentChatRuntime, sessionID: string) =
 };
 
 /** 将界面切到空白新会话并恢复输入焦点。 */
-export function resetAgentChatSession(runtime: AgentChatRuntime, sessionID: string) {
+export async function resetAgentChatSession(runtime: AgentChatRuntime, sessionID: string) {
     resetAgentChatSessionState(runtime, sessionID);
+    await runtime.conversationController?.activate(runtime.conversationKind, sessionID, {subscribe: false});
     runtime.composer?.clearHistory();
     runtime.tokenDisplayEl?.classList.add("fn__none");
     runtime.messagesContainer.innerHTML = "";

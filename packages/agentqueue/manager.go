@@ -28,6 +28,10 @@ type SubmitResult struct {
 	Immediate bool
 	// Seq 入队序号（Duplicated 时为已存在条目的序号）。
 	Seq int64
+	// QueueVersion 是 admission 完成后的服务端权威版本。
+	QueueVersion int64
+	// ContentDigest 是服务端计算的稳定内容摘要。
+	ContentDigest string
 }
 
 // InboxManager 管理所有 agent 会话的输入队列，是统一消息入口的调度核心。
@@ -227,7 +231,14 @@ func (m *InboxManager) Submit(input *Input) (SubmitResult, error) {
 	// 避免写入调用方传入的对象（并发安全边界）。
 	seq, err := in.Submit(input)
 	if err == ErrDuplicateInput || err == ErrDuplicatePrompt {
-		return SubmitResult{Duplicated: true, Seq: seq, Immediate: input.Semantics.IsImmediate()}, nil
+		snapshot := in.SnapshotVersioned()
+		return SubmitResult{
+			Duplicated:    true,
+			Seq:           seq,
+			QueueVersion:  snapshot.QueueVersion,
+			ContentDigest: digestForSeq(snapshot.Items, seq),
+			Immediate:     input.Semantics.IsImmediate(),
+		}, nil
 	}
 	if err != nil {
 		return SubmitResult{}, err
@@ -235,12 +246,24 @@ func (m *InboxManager) Submit(input *Input) (SubmitResult, error) {
 
 	m.notify(input.SessionID)
 
+	snapshot := in.SnapshotVersioned()
 	return SubmitResult{
-		Accepted:   true,
-		Seq:        seq,
-		ShouldWake: !running,
-		Immediate:  input.Semantics.IsImmediate(),
+		Accepted:      true,
+		Seq:           seq,
+		QueueVersion:  snapshot.QueueVersion,
+		ContentDigest: digestForSeq(snapshot.Items, seq),
+		ShouldWake:    !running,
+		Immediate:     input.Semantics.IsImmediate(),
 	}, nil
+}
+
+func digestForSeq(items []InboxSnapshot, seq int64) string {
+	for _, item := range items {
+		if item.Seq == seq && item.Input != nil {
+			return item.Input.ContentDigest
+		}
+	}
+	return ""
 }
 
 // Take 从指定会话取出下一条可投递输入（见 SessionInbox.Take 规则）。
@@ -281,6 +304,166 @@ func (m *InboxManager) TakeBatch(sessionID, activeTurnID string, max int) ([]*In
 		m.notify(sessionID)
 	}
 	return taken, nil
+}
+
+// ClaimSteerBatch 精确领取当前 turn 的 steer 批次。
+func (m *InboxManager) ClaimSteerBatch(sessionID, activeTurnID string, cutoffSeq int64) ([]*Input, error) {
+	in := m.inbox(sessionID)
+	if in == nil {
+		return []*Input{}, nil
+	}
+	claimed, err := in.ClaimSteerBatch(activeTurnID, cutoffSeq)
+	if err != nil {
+		return nil, err
+	}
+	if len(claimed) > 0 {
+		m.notify(sessionID)
+	}
+	return claimed, nil
+}
+
+// ClaimNextQueued 只领取一条最早的 pending queue。
+func (m *InboxManager) ClaimNextQueued(sessionID string) (*Input, error) {
+	in := m.inbox(sessionID)
+	if in == nil {
+		return nil, nil
+	}
+	claimed, err := in.ClaimNextQueued()
+	if err != nil {
+		return nil, err
+	}
+	if claimed != nil {
+		m.notify(sessionID)
+	}
+	return claimed, nil
+}
+
+// ClaimNextUserMessage 只领取一条最早的 pending user_message。
+func (m *InboxManager) ClaimNextUserMessage(sessionID string) (*Input, error) {
+	in := m.inbox(sessionID)
+	if in == nil {
+		return nil, nil
+	}
+	claimed, err := in.ClaimNextUserMessage()
+	if err != nil {
+		return nil, err
+	}
+	if claimed != nil {
+		m.notify(sessionID)
+	}
+	return claimed, nil
+}
+
+// ClaimByID 按 ID 和语义精确领取一条 pending 输入。
+func (m *InboxManager) ClaimByID(sessionID, inputID string, semantics InputSemantics) (*Input, error) {
+	in := m.inbox(sessionID)
+	if in == nil {
+		return nil, ErrInputNotFound
+	}
+	claimed, err := in.ClaimByID(inputID, semantics)
+	if err != nil {
+		return nil, err
+	}
+	m.notify(sessionID)
+	return claimed, nil
+}
+
+// UpdatePending 以服务端版本保护编辑与 claim 的竞争。
+func (m *InboxManager) UpdatePending(sessionID, inputID string, expectedQueueVersion int64, replacement *Input) (int64, error) {
+	in := m.inbox(sessionID)
+	if in == nil {
+		return 0, ErrInputNotFound
+	}
+	version, err := in.UpdatePending(inputID, expectedQueueVersion, replacement)
+	if err != nil {
+		return version, err
+	}
+	m.notify(sessionID)
+	return version, nil
+}
+
+// UpdatePendingBySemantics 原子校验输入语义、pending 状态和队列版本后再编辑。
+func (m *InboxManager) UpdatePendingBySemantics(sessionID, inputID string, expectedQueueVersion int64, semantics InputSemantics, replacement *Input) (int64, error) {
+	in := m.inbox(sessionID)
+	if in == nil {
+		return 0, ErrInputNotFound
+	}
+	version, err := in.UpdatePendingBySemantics(inputID, expectedQueueVersion, semantics, replacement)
+	if err != nil {
+		return version, err
+	}
+	m.notify(sessionID)
+	return version, nil
+}
+
+// CancelPending 只取消 pending 输入，并以服务端版本保护并发修改。
+func (m *InboxManager) CancelPending(sessionID, inputID string, expectedQueueVersion int64) (int64, error) {
+	in := m.inbox(sessionID)
+	if in == nil {
+		return 0, ErrInputNotFound
+	}
+	version, err := in.CancelPending(inputID, expectedQueueVersion)
+	if err != nil {
+		return version, err
+	}
+	m.notify(sessionID)
+	return version, nil
+}
+
+// CancelPendingBySemantics 原子校验输入语义、pending 状态和队列版本后再取消。
+func (m *InboxManager) CancelPendingBySemantics(sessionID, inputID string, expectedQueueVersion int64, semantics InputSemantics) (int64, error) {
+	in := m.inbox(sessionID)
+	if in == nil {
+		return 0, ErrInputNotFound
+	}
+	version, err := in.CancelPendingBySemantics(inputID, expectedQueueVersion, semantics)
+	if err != nil {
+		return version, err
+	}
+	m.notify(sessionID)
+	return version, nil
+}
+
+func (m *InboxManager) ReleaseClaim(sessionID, inputID string) (int64, error) {
+	in := m.inbox(sessionID)
+	if in == nil {
+		return 0, ErrInputNotFound
+	}
+	version, err := in.ReleaseClaim(inputID)
+	if err == nil {
+		m.notify(sessionID)
+	}
+	return version, err
+}
+
+func (m *InboxManager) PromotePendingQueue(sessionID, inputID string, expectedQueueVersion int64, expectedTurnID string) (*Input, int64, error) {
+	in := m.inbox(sessionID)
+	if in == nil {
+		return nil, 0, ErrInputNotFound
+	}
+	promoted, version, err := in.PromotePendingQueue(inputID, expectedQueueVersion, expectedTurnID)
+	if err == nil {
+		m.notify(sessionID)
+	}
+	return promoted, version, err
+}
+
+func (m *InboxManager) CancelPendingSemantics(sessionID string, semantics InputSemantics) (int, int64, error) {
+	in := m.inbox(sessionID)
+	if in == nil {
+		return 0, 0, nil
+	}
+	cancelled, version, err := in.CancelPendingSemantics(semantics)
+	if err == nil && cancelled > 0 {
+		m.notify(sessionID)
+	}
+	return cancelled, version, err
+}
+
+func (m *InboxManager) inbox(sessionID string) *SessionInbox {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.inboxes[sessionID]
 }
 
 // RecoverStale 将指定会话中超过策略阈值的 injecting 输入重置回 pending
@@ -404,7 +587,11 @@ func (m *InboxManager) MarkFailed(sessionID, id string) error {
 	if in == nil {
 		return ErrInputNotFound
 	}
-	return in.MarkFailed(id)
+	if err := in.MarkFailed(id); err != nil {
+		return err
+	}
+	m.notify(sessionID)
+	return nil
 }
 
 // Snapshot 返回指定会话的队列快照（副本）。
@@ -417,6 +604,18 @@ func (m *InboxManager) Snapshot(sessionID string) []InboxSnapshot {
 		return []InboxSnapshot{}
 	}
 	return in.Snapshot()
+}
+
+// SnapshotVersioned 返回服务端权威队列版本和完整快照。
+func (m *InboxManager) SnapshotVersioned(sessionID string) QueueSnapshot {
+	in := m.inbox(sessionID)
+	if in == nil {
+		return QueueSnapshot{
+			SchemaVersion: CurrentQueueSchemaVersion,
+			Items:         []InboxSnapshot{},
+		}
+	}
+	return in.SnapshotVersioned()
 }
 
 // PendingCount 返回指定会话的待投递输入数。
@@ -433,9 +632,13 @@ func (m *InboxManager) PendingCount(sessionID string) int {
 // RemoveSession 移除会话及其队列（会话删除 / 过期清理时调用）。
 func (m *InboxManager) RemoveSession(sessionID string) {
 	m.mu.Lock()
+	in := m.inboxes[sessionID]
 	delete(m.inboxes, sessionID)
 	delete(m.running, sessionID)
 	m.mu.Unlock()
+	if in != nil {
+		_ = in.DeleteStorage()
+	}
 	m.notify(sessionID)
 }
 

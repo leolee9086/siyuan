@@ -280,6 +280,46 @@ func RecoverableTurnID(sessionID string) (string, error) {
 	return runtime.ActiveTurn.TurnID, nil
 }
 
+// IsTurnCommitted 返回指定 turn 是否已经写入 canonical session。
+func IsTurnCommitted(sessionID, turnID string) (bool, error) {
+	if sessionID == "" || turnID == "" || !isValidSessionID(sessionID) {
+		return false, nil
+	}
+	lock := sessionLock(sessionID)
+	lock.Lock()
+	defer lock.Unlock()
+	return isTurnCommittedLocked(sessionID, turnID)
+}
+
+// RuntimeTurnRecoveryState 是执行器恢复所需的最小 runtime 只读视图。
+type RuntimeTurnRecoveryState struct {
+	TurnID    string
+	State     string
+	Committed bool
+}
+
+func InspectRuntimeTurnRecovery(sessionID string) (*RuntimeTurnRecoveryState, error) {
+	if sessionID == "" || !isValidSessionID(sessionID) {
+		return nil, nil
+	}
+	lock := sessionLock(sessionID)
+	lock.Lock()
+	defer lock.Unlock()
+	runtime, err := loadRuntimeLocked(sessionID)
+	if err != nil || runtime.ActiveTurn == nil {
+		return nil, err
+	}
+	committed, err := isTurnCommittedLocked(sessionID, runtime.ActiveTurn.TurnID)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTurnRecoveryState{
+		TurnID:    runtime.ActiveTurn.TurnID,
+		State:     runtime.ActiveTurn.State,
+		Committed: committed,
+	}, nil
+}
+
 func markRuntimeCommittedLocked(sessionID, turnID string) error {
 	if turnID == "" {
 		return nil
@@ -340,42 +380,63 @@ func applyRuntimeTurnToSessionLocked(session map[string]any, turn *agentRuntimeT
 		}
 	}
 
-	// 当前 turn 的 assistant 内容以 runtime 为权威；前端只补充 thinking/confirm/question 等 UI 条目。
-	// 用权威 assistant 逐个替换前端占位可尽量保留 UI 条目的相对位置；缺少占位时再追加到末尾。
+	// 当前 turn 的 user/assistant 增量以 runtime 为权威；前端只补充 thinking/confirm/question 等 UI 条目。
+	// steer 仍使用既有 SessionEntry user 结构，不引入新的上游会话字段。
 	authoritative := make([]any, 0, len(turn.Delta)+1)
 	for i, message := range turn.Delta {
-		if message.Role != "assistant" {
-			continue
-		}
-		entry := map[string]any{
-			"id":        fmt.Sprintf("runtime_%s_%d", turn.TurnID, i),
-			"type":      "assistant",
-			"timestamp": turn.UpdatedAt,
-		}
-		if message.Content != "" {
-			entry["content"] = message.Content
-		}
-		if len(message.ToolCalls) > 0 {
-			calls := make([]map[string]any, 0, len(message.ToolCalls))
-			for _, call := range message.ToolCalls {
-				result := call.Result
-				if result == "" {
-					if call.State == "pending" {
-						result = toolNotExecutedResult
-					} else {
-						result = toolUnknownResult
-					}
-				}
-				calls = append(calls, map[string]any{
-					"name":      call.Name,
-					"arguments": call.Arguments,
-					"result":    result,
-					"state":     call.State,
-				})
+		switch message.Role {
+		case "user":
+			entryID := message.EntryID
+			if entryID == "" {
+				entryID = fmt.Sprintf("runtime_user_%s_%d", turn.TurnID, i)
 			}
-			entry["toolCalls"] = calls
+			entry := map[string]any{
+				"id":        entryID,
+				"type":      "user",
+				"content":   message.Content,
+				"timestamp": turn.UpdatedAt,
+			}
+			if message.BlockHTML != "" {
+				entry["blockHTML"] = message.BlockHTML
+			}
+			if len(message.References) > 0 {
+				entry["references"] = append([]Reference(nil), message.References...)
+			}
+			if message.EditorContext != nil {
+				entry["editorContext"] = cloneEditorContext(*message.EditorContext)
+			}
+			authoritative = append(authoritative, entry)
+		case "assistant":
+			entry := map[string]any{
+				"id":        fmt.Sprintf("runtime_%s_%d", turn.TurnID, i),
+				"type":      "assistant",
+				"timestamp": turn.UpdatedAt,
+			}
+			if message.Content != "" {
+				entry["content"] = message.Content
+			}
+			if len(message.ToolCalls) > 0 {
+				calls := make([]map[string]any, 0, len(message.ToolCalls))
+				for _, call := range message.ToolCalls {
+					result := call.Result
+					if result == "" {
+						if call.State == "pending" {
+							result = toolNotExecutedResult
+						} else {
+							result = toolUnknownResult
+						}
+					}
+					calls = append(calls, map[string]any{
+						"name":      call.Name,
+						"arguments": call.Arguments,
+						"result":    result,
+						"state":     call.State,
+					})
+				}
+				entry["toolCalls"] = calls
+			}
+			authoritative = append(authoritative, entry)
 		}
-		authoritative = append(authoritative, entry)
 	}
 	if turn.DraftContent != "" {
 		authoritative = append(authoritative, map[string]any{
@@ -393,10 +454,15 @@ func applyRuntimeTurnToSessionLocked(session map[string]any, turn *agentRuntimeT
 		entry, _ := raw.(map[string]any)
 		typeName, _ := entry["type"].(string)
 		switch typeName {
-		case "assistant":
-			if authoritativeIndex < len(authoritative) {
+		case "user", "assistant":
+			for authoritativeIndex < len(authoritative) {
+				authoritativeEntry, _ := authoritative[authoritativeIndex].(map[string]any)
+				authoritativeType, _ := authoritativeEntry["type"].(string)
 				merged = append(merged, authoritative[authoritativeIndex])
 				authoritativeIndex++
+				if authoritativeType == typeName {
+					break
+				}
 			}
 		case "thinking", "confirm", "question", "snapshot", "rollback":
 			merged = append(merged, raw)

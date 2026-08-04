@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "ממתין",
+    "agentQueueInjecting": "נשלח",
+    "agentQueueBlocked": "חסום",
+    "agentQueueFailed": "נכשל",
+    "agentSteer": "הכוונה",
+    "agentQueue": "תור",
     "backlinkShowBottom": "הצגת קישורים אחוריים בתחתית המסמך",
 	"deleteRefConfirm": "התוכן שיימחק או ייגזר מכיל בלוקים שיש אליהם הפניות. האם להמשיך?",
 	"addAllAiModels": "הוסף את כל הדגמים",

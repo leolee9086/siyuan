@@ -7,6 +7,7 @@ import {loadMagiIdentityConversation} from "./AgentChat.magi";
 
 /** 初始化目标对应的首个会话视图。 */
 export async function initSessions(runtime: AgentChatRuntime) {
+    // 既有身份会话拥有独立历史加载流程，不读取 native 会话索引。
     if (runtime.conversationKind === "magi") {
         await loadMagiIdentityConversation(runtime);
         return;
@@ -15,8 +16,10 @@ export async function initSessions(runtime: AgentChatRuntime) {
     const initialSession = runtime.initialSessionId
         ? await runtime.sessionPorts.repository.load(runtime.initialSessionId)
         : null;
+    // 仅恢复目标类型一致的初始会话，避免跨目标加载持久化数据。
     if (initialSession && (initialSession.targetKind ?? "native-agent") === runtime.conversationKind) {
         loadSessionForFloating(runtime, initialSession);
+        await runtime.conversationController?.activate(runtime.conversationKind, initialSession.id);
         return;
     }
     runtime.sessionId = runtime.sessionPorts.repository.newSessionId();
@@ -25,6 +28,7 @@ export async function initSessions(runtime: AgentChatRuntime) {
     runtime.pendingSessionTitle = null;
     runtime.entries = [];
     runtime.promptSourceController.reset();
+    await runtime.conversationController?.activate(runtime.conversationKind, runtime.sessionId, {subscribe: false});
     runtime.sessionPorts.presentation.showWelcome(runtime);
     runtime.sessionPorts.presentation.scrollToBottom(runtime, true);
 }

@@ -966,12 +966,132 @@
 
 .agent-chat__buttons {
   display: flex;
+  align-items: center;
   gap: 8px;
   margin-top: 8px;
   overflow: auto;
 
   &::-webkit-scrollbar {
     display: none;
+  }
+}
+
+.agent-chat__send,
+.agent-chat__stop {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+}
+
+.agent-chat__delivery {
+  display: inline-flex;
+  min-width: 0;
+  height: 28px;
+  border: 1px solid var(--b3-border-color);
+  border-radius: var(--b3-border-radius);
+  overflow: hidden;
+}
+
+.agent-chat__delivery-option {
+  min-width: 0;
+  height: 26px;
+  gap: 4px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--b3-theme-on-surface);
+  white-space: nowrap;
+
+  & + & {
+    border-left: 1px solid var(--b3-border-color);
+  }
+
+  > svg {
+    width: 13px;
+    height: 13px;
+    flex: 0 0 13px;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+  }
+}
+
+.agent-chat__delivery-option--active {
+  background: var(--b3-theme-primary-lightest);
+  color: var(--b3-theme-primary);
+}
+
+.agent-chat__queue-dock {
+  max-height: 168px;
+  margin: 0 16px 8px;
+  overflow: auto;
+  border-block: 1px solid var(--b3-border-color);
+  background: var(--b3-theme-surface);
+}
+
+.agent-chat__queue-item {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 34px;
+  gap: 7px;
+  padding: 3px 6px;
+
+  & + & {
+    border-top: 1px solid var(--b3-border-color);
+  }
+}
+
+.agent-chat__queue-item--editing {
+  background: var(--b3-theme-primary-lightest);
+}
+
+.agent-chat__queue-state {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--b3-theme-on-surface-light);
+}
+
+.agent-chat__queue-item[data-state="injecting"] .agent-chat__queue-state {
+  background: var(--b3-theme-primary);
+}
+
+.agent-chat__queue-item[data-state="blocked"] .agent-chat__queue-state {
+  background: var(--b3-theme-warning);
+}
+
+.agent-chat__queue-item[data-state="failed"] .agent-chat__queue-state {
+  background: var(--b3-theme-error);
+}
+
+.agent-chat__queue-content {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--b3-theme-on-background);
+  font-size: 12px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-chat__queue-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.agent-chat__queue-action {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  padding: 5px;
+
+  > svg {
+    width: 14px;
+    height: 14px;
   }
 }
 

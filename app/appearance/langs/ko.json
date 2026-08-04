@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "대기 중",
+    "agentQueueInjecting": "전송 중",
+    "agentQueueBlocked": "차단됨",
+    "agentQueueFailed": "실패",
+    "agentSteer": "지시",
+    "agentQueue": "대기열",
     "backlinkShowBottom": "문서 하단에 백링크 표시",
 	"deleteRefConfirm": "삭제하거나 잘라낼 내용에 참조된 블록이 있습니다. 계속하시겠습니까?",
 	"addAllAiModels": "모든 모델 추가",

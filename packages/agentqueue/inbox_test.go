@@ -133,16 +133,11 @@ func TestSessionInboxTakeTurnMismatch(t *testing.T) {
 	}
 }
 
-// TestSessionInboxTakeEmptyExpectedTurnID 验证 ExpectedTurnID 为空时任意 turn 可取。
+// TestSessionInboxTakeEmptyExpectedTurnID 验证 steer admission 必须绑定明确 turn。
 func TestSessionInboxTakeEmptyExpectedTurnID(t *testing.T) {
 	in := NewSessionInbox("sess-1", 10)
-	in.Submit(newTestInput("s1", "sess-1", SemanticsSteer)) // ExpectedTurnID 为空
-	got, err := in.Take("turn-any")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got == nil || got.ID != "s1" {
-		t.Fatalf("empty expected turn should match any: got %v", got)
+	if _, err := in.Submit(newTestInput("s1", "sess-1", SemanticsSteer)); err != ErrExpectedTurnIDRequired {
+		t.Fatalf("empty expected turn: got %v, want ErrExpectedTurnIDRequired", err)
 	}
 }
 

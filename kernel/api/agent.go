@@ -44,6 +44,7 @@ const agentOwnerTokenHeader = "X-SiYuan-Agent-Owner-Token"
 
 var resolveAgentUploadNotebook = model.ResolveActiveWorkspaceAIMainNotebook
 var getAgentKernelDeviceIPs = agentKernelDeviceIPs
+var broadcastAgentSessionEvent = util.BroadcastByTypeAndExcludeApp
 
 type agentOwnerAuthorization struct {
 	IdentityID string
@@ -229,8 +230,9 @@ var runningSessions = map[string]*runningSession{}
 
 func isAgentSessionRunning(sessionID string) bool {
 	sessionsMu.Lock()
-	defer sessionsMu.Unlock()
-	return runningSessions[sessionID] != nil
+	legacyRunning := runningSessions[sessionID] != nil
+	sessionsMu.Unlock()
+	return legacyRunning || isAgentExecutorSessionActive(sessionID)
 }
 
 func agentChat(c *gin.Context) {
@@ -256,47 +258,30 @@ func agentChat(c *gin.Context) {
 		return
 	}
 
-	modelID := req.Model
-	var selectedProvider *conf.Provider
-	var selectedModel *conf.Model
-	if modelID != "" {
-		selectedProvider, selectedModel = model.Conf.AI.GetModel(modelID)
-	} else {
-		selectedProvider, selectedModel = model.Conf.AI.GetAgentModel()
+	app := c.GetHeader("X-SiYuan-App-ID")
+	contentRevision := int64(-1)
+	if req.ContentRevision != nil {
+		contentRevision = *req.ContentRevision
 	}
-	if nil == selectedProvider || nil == selectedModel {
+	turnParams, err := buildAgentTurnParams(agentTurnRequestOptions{
+		ModelID: req.Model, UserEntryID: req.UserEntryID, ContentRevision: contentRevision,
+		Language: req.Language, References: req.References, EditorContext: req.EditorContext,
+		PluginActions: req.PluginActions, Regenerate: req.Regenerate, ReasoningEffort: req.ReasoningEffort,
+	}, ownerAuth)
+	if err != nil {
 		ret := gulu.Ret.NewResult()
 		ret.Code = -1
 		ret.Msg = model.Conf.Language(193)
 		c.JSON(http.StatusOK, ret)
 		return
 	}
-	confirmTimeout := time.Duration(model.Conf.AI.Agent.ConfirmTimeout) * time.Second
-	if confirmTimeout <= 0 {
-		confirmTimeout = 120 * time.Second
-	}
-	maxRetries := model.Conf.AI.Agent.MaxRetries
-	if maxRetries < 0 {
-		maxRetries = 0
-	}
-	// Provider 请求超时只限制建立上游流；流建立后由可重置的空闲超时检测连续无输出，
-	// 避免持续正常输出的长回答被固定截止时间中断。
-	requestTimeout := time.Duration(selectedProvider.RequestTimeout) * time.Second
-	if requestTimeout <= 0 {
-		requestTimeout = 30 * time.Second
-	}
-	streamIdleTimeout := time.Duration(model.Conf.AI.Agent.StreamIdleTimeout) * time.Second
-	if streamIdleTimeout <= 0 {
-		streamIdleTimeout = 120 * time.Second
-	}
-
-	app := c.GetHeader("X-SiYuan-App-ID")
-
-	ownerIdentityID := ""
-	ownerExpiresAt := int64(0)
-	if ownerAuth != nil {
-		ownerIdentityID = ownerAuth.IdentityID
-		ownerExpiresAt = ownerAuth.ExpiresAt
+	payload, err := encodeAgentTurnParams(turnParams)
+	if err != nil {
+		ret := gulu.Ret.NewResult()
+		ret.Code = -1
+		ret.Msg = "encode agent turn parameters failed: " + err.Error()
+		c.JSON(http.StatusInternalServerError, ret)
+		return
 	}
 	ctx, cancel := context.WithCancel(c.Request.Context())
 
@@ -311,14 +296,9 @@ func agentChat(c *gin.Context) {
 		c.JSON(http.StatusConflict, ret)
 		return
 	}
-	running := &runningSession{app: app, ownerIdentityID: ownerIdentityID}
+	running := &runningSession{app: app, ownerIdentityID: turnParams.OwnerIdentityID}
 	runningSessions[req.SessionID] = running
 	sessionsMu.Unlock()
-
-	contentRevision := int64(-1)
-	if req.ContentRevision != nil {
-		contentRevision = *req.ContentRevision
-	}
 
 	// 中断模型（外部行为一致）：请求语义从「启动 agent」变为「投递消息到消息源 + 订阅响应」。
 	// 执行器常驻阻塞在 WaitNext 上（闲时零 CPU），消息入队（Submit）触发唤醒（中断），
@@ -349,24 +329,9 @@ func agentChat(c *gin.Context) {
 		SessionID: req.SessionID,
 		Semantics: agentqueue.SemanticsUserMessage,
 		Content:   req.Message,
+		Payload:   payload,
 		Metadata: map[string]any{
-			turnParamsKey: &agentChatTurnParams{
-				ModelID:             req.Model,
-				UserEntryID:         req.UserEntryID,
-				ContentRevision:     contentRevision,
-				Language:            req.Language,
-				References:          req.References,
-				EditorContext:       req.EditorContext,
-				PluginActions:       req.PluginActions,
-				Regenerate:          req.Regenerate,
-				ReasoningEffort:     req.ReasoningEffort,
-				OwnerIdentityID:     ownerIdentityID,
-				OwnerExpiresAt:      ownerExpiresAt,
-				ConfirmTimeoutMs:    confirmTimeout.Milliseconds(),
-				MaxRetries:          maxRetries,
-				RequestTimeoutMs:    requestTimeout.Milliseconds(),
-				StreamIdleTimeoutMs: streamIdleTimeout.Milliseconds(),
-			},
+			turnParamsKey: turnParams,
 		},
 	}
 	if _, err := agentInboxManager.Submit(input); err != nil {
@@ -412,7 +377,7 @@ func agentChat(c *gin.Context) {
 	}
 	var ownerAuthorizationDeadline <-chan time.Time
 	if taskDirectory != nil {
-		remaining := time.Until(time.Unix(ownerExpiresAt, 0))
+		remaining := time.Until(time.Unix(turnParams.OwnerExpiresAt, 0))
 		if remaining <= 0 {
 			writeSSEError(c, "verified device owner authorization expired")
 			return
@@ -1007,8 +972,10 @@ func getSession(c *gin.Context) {
 	if _, _, ok := requireAgentSessionAccess(c, req.ID); !ok {
 		return
 	}
+	executorRunning := isAgentExecutorSessionActive(req.ID)
 	sessionsMu.Lock()
-	_, running := runningSessions[req.ID]
+	_, legacyRunning := runningSessions[req.ID]
+	running := legacyRunning || executorRunning
 	if !running {
 		if err := agent.FinalizeOrphanedTurn(req.ID); err != nil {
 			sessionsMu.Unlock()
@@ -1020,10 +987,16 @@ func getSession(c *gin.Context) {
 		}
 	}
 	session, err := agent.GetSessionState(req.ID, !running)
+	sessionsMu.Unlock()
+	// 执行器可能在首次判定后进入 starting。此时重新读取 canonical 会话，避免把活动
+	// runtime 投影与随后从最新 commit 开始的事件 replay 同时返回给新面板。
+	if err == nil && !running && isAgentExecutorSessionActive(req.ID) {
+		session, err = agent.GetSessionState(req.ID, false)
+		running = err == nil
+	}
 	if err == nil && running {
 		session["agentRunning"] = true
 	}
-	sessionsMu.Unlock()
 	if err != nil {
 		ret := gulu.Ret.NewResult()
 		ret.Code = -1
@@ -1229,6 +1202,9 @@ func saveSession(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, ret)
 		return
 	}
+	if commitTurnID != "" {
+		notifyAgentExecutorTurnCommitted(meta.ID, commitTurnID)
+	}
 	// 从 body 解出 sessionID 用于广播。update 仅触发其他实例刷新会话列表元数据，
 	// 不触发当前视图重绘（重绘由 streamEnd 负责），回避流式中途半截数据的时序问题。
 	broadcastAgentSessionChanged(c.GetHeader("X-SiYuan-App-ID"), meta.ID, "update")
@@ -1256,7 +1232,7 @@ func broadcastAgentSessionChanged(app, sessionID, action string) {
 		return
 	}
 	data := map[string]string{"sessionID": sessionID, "action": action}
-	util.BroadcastByTypeAndExcludeApp(app, "agentChat", "agentSessionChanged", 0, "", data)
+	broadcastAgentSessionEvent(app, "agentChat", "agentSessionChanged", 0, "", data)
 }
 
 // sessionMeta 用于从 saveSession 的 body 中解析出会话 ID，agent 包内也有同名字段，此处独立定义避免循环依赖。
@@ -1352,73 +1328,16 @@ func unbindAgentTaskDirectory(c *gin.Context) {
 }
 
 func writeSSE(c *gin.Context, event agent.AgentEvent) error {
-	switch event.Type {
-	case "turn":
-		return writeSSEEvent(c, "turn", map[string]string{"turnID": event.TurnID})
-	case "content":
-		return writeSSEEvent(c, "content", map[string]string{"token": event.Token})
-	case "thinking":
-		return writeSSEEvent(c, "thinking", map[string]string{"reasoning": event.Reasoning})
-	case "reasoning":
-		return writeSSEEvent(c, "reasoning", map[string]string{"token": event.Token})
-	case "confirm":
-		return writeSSEEvent(c, "confirm", map[string]any{
-			"name":      event.Name,
-			"arguments": event.Arguments,
-			"confirmID": event.ConfirmID,
-			"effects":   event.Effects,
-		})
-	case "tool_call":
-		return writeSSEEvent(c, "tool_call", map[string]any{
-			"name":      event.Name,
-			"arguments": event.Arguments,
-			"callID":    event.CallID,
-		})
-	case "tool_progress":
-		return writeSSEEvent(c, "tool_progress", map[string]interface{}{
-			"name":     event.Name,
-			"callID":   event.CallID,
-			"progress": event.ToolProgress,
-		})
-	case "tool_result":
-		return writeSSEEvent(c, "tool_result", map[string]string{
-			"name":   event.Name,
-			"result": event.Result,
-			"callID": event.CallID,
-		})
-	case "error":
-		return writeSSEEvent(c, "error", map[string]string{"message": event.Error})
-	case "usage":
-		return writeSSEEvent(c, "usage", map[string]any{
-			"promptTokens":     event.PromptTokens,
-			"completionTokens": event.CompletionTokens,
-			"lastPromptTokens": event.LastPromptTokens,
-			"tokenBreakdown":   event.TokenBreakdown,
-			"cachedTokens":     event.CachedTokens,
-			"contextLimit":     event.ContextLimit,
-		})
-	case "done":
-		return writeSSEEvent(c, "done", map[string]string{"turnID": event.TurnID})
-	case "retry":
-		return writeSSEEvent(c, "retry", map[string]any{
-			"attempt":    event.RetryAttempt,
-			"maxRetries": event.RetryMax,
-		})
-	case "question":
-		return writeSSEEvent(c, "question", map[string]any{
-			"questionID": event.QuestionID,
-			"arguments":  event.Arguments,
-		})
-	case "frontend_tool_call":
-		return writeSSEEvent(c, "frontend_tool_call", map[string]any{
-			"callID":    event.CallID,
-			"name":      event.Name,
-			"arguments": event.Arguments,
-		})
-	case "snapshot":
-		return writeSSEEvent(c, "snapshot", map[string]string{"snapshotID": event.SnapshotID})
+	eventType, data := agentEventPayload(event)
+	if eventType == "" {
+		return nil
 	}
-	return nil
+	// 旧 /chat SSE 继续使用原有事件体，不添加 session/eventSeq 等新字段。
+	delete(data, "turnID")
+	if event.Type == "turn" || event.Type == "done" {
+		data["turnID"] = event.TurnID
+	}
+	return writeSSEEvent(c, eventType, data)
 }
 
 func writeSSEEvent(c *gin.Context, eventType string, data any) error {

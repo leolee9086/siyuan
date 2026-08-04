@@ -187,6 +187,18 @@ func TestAgentTaskDirectoryRemoteGuardianManagesExistingDirectories(t *testing.T
 		body, _ := json.Marshal(payload)
 		return callJSON(handler, body, authToken, false, "127.0.0.1:6806")
 	}
+	callEvents := func(authToken string) *httptest.ResponseRecorder {
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest(http.MethodGet, "https://remote.example/api/ai/agent/events?sessionID="+sessionID, nil)
+		request.RemoteAddr = "203.0.113.10:6806"
+		if authToken != "" {
+			request.Header.Set(agentOwnerTokenHeader, authToken)
+		}
+		context, _ := gin.CreateTestContext(recorder)
+		context.Request = request
+		agentEvents(context)
+		return recorder
+	}
 	mainResult := callLocal(bindAgentTaskDirectory, map[string]string{"sessionID": sessionID, "path": mainDir}, token)
 	if mainResult.Code != http.StatusOK || strings.Contains(mainResult.Body.String(), mainDir) {
 		t.Fatalf("local guardian main bind failed or leaked path: status=%d body=%s", mainResult.Code, mainResult.Body.String())
@@ -198,6 +210,20 @@ func TestAgentTaskDirectoryRemoteGuardianManagesExistingDirectories(t *testing.T
 	binding, err := agent.GetTaskDirectoryBinding(sessionID)
 	if err != nil || binding == nil || binding.Main == nil || len(binding.Directories) != 1 {
 		t.Fatalf("local binds not persisted: binding=%+v err=%v", binding, err)
+	}
+	originalBroadcast := broadcastAgentSessionEvent
+	broadcastCalls := 0
+	broadcastAgentSessionEvent = func(_ string, _ string, _ string, _ int, _ string, _ any) {
+		broadcastCalls++
+	}
+	t.Cleanup(func() { broadcastAgentSessionEvent = originalBroadcast })
+	broadcastAgentSessionChanged("external-app", sessionID, "update")
+	if broadcastCalls != 0 {
+		t.Fatalf("bound session entered the global agent WebSocket: calls=%d", broadcastCalls)
+	}
+	broadcastAgentSessionChanged("local-app", ast.NewNodeID(), "update")
+	if broadcastCalls != 1 {
+		t.Fatalf("ordinary session broadcast port was not invoked: calls=%d", broadcastCalls)
 	}
 	remoteBindResult := call(bindAgentTaskDirectory, map[string]string{"sessionID": sessionID, "path": mainDir}, token)
 	if remoteBindResult.Code != http.StatusForbidden || !strings.Contains(remoteBindResult.Body.String(), "same device") {
@@ -232,14 +258,34 @@ func TestAgentTaskDirectoryRemoteGuardianManagesExistingDirectories(t *testing.T
 	if wrongGetResult.Code != http.StatusForbidden {
 		t.Fatalf("cross-owner session read must be rejected: status=%d body=%s", wrongGetResult.Code, wrongGetResult.Body.String())
 	}
+	missingEventsResult := callEvents("")
+	if missingEventsResult.Code != http.StatusForbidden {
+		t.Fatalf("event stream without owner capability must be rejected: status=%d body=%s", missingEventsResult.Code, missingEventsResult.Body.String())
+	}
+	wrongEventsResult := callEvents(wrongToken)
+	if wrongEventsResult.Code != http.StatusForbidden {
+		t.Fatalf("cross-owner event stream must be rejected: status=%d body=%s", wrongEventsResult.Code, wrongEventsResult.Body.String())
+	}
 	model.Conf.AI = &conf.AI{Providers: []*conf.Provider{{
 		Enabled: true,
 		APIKey:  "test-key",
-		Models:  []*conf.Model{{Name: "test-model", Enabled: true}},
+		ID:      "provider-1",
+		Models:  []*conf.Model{{ID: "model-1", Name: "test-model", Enabled: true}},
 	}}}
+	model.Conf.AI.Agent = &conf.Agent{ModelID: "provider-1:model-1"}
 	chatPayload, _ := json.Marshal(map[string]interface{}{"sessionID": sessionID, "message": "protected task"})
 	if result := callJSON(agentChat, chatPayload, wrongToken, true, "203.0.113.10:6806"); result.Code != http.StatusForbidden {
 		t.Fatalf("cross-owner chat must be rejected before model execution: status=%d body=%s", result.Code, result.Body.String())
+	}
+	queuePayload, _ := json.Marshal(map[string]interface{}{
+		"inputID": "protected-queue-1", "sessionID": sessionID, "userEntryID": "protected-entry-1",
+		"message": "protected queued task", "language": "English",
+	})
+	if result := callJSON(agentQueue, queuePayload, wrongToken, true, "203.0.113.10:6806"); result.Code != http.StatusForbidden {
+		t.Fatalf("cross-owner queue must be rejected before admission: status=%d body=%s", result.Code, result.Body.String())
+	}
+	if result := callJSON(agentQueue, queuePayload, token, true, "203.0.113.10:6806"); result.Code != http.StatusAccepted {
+		t.Fatalf("owner queue admission failed: status=%d body=%s", result.Code, result.Body.String())
 	}
 	ownerSaveResult := call(saveSession, map[string]string{"id": sessionID, "title": "remote-updated"}, token)
 	if ownerSaveResult.Code != http.StatusOK {

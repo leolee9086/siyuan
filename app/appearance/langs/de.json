@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "Ausstehend",
+    "agentQueueInjecting": "Wird gesendet",
+    "agentQueueBlocked": "Blockiert",
+    "agentQueueFailed": "Fehlgeschlagen",
+    "agentSteer": "Lenken",
+    "agentQueue": "Warteschlange",
     "backlinkShowBottom": "Backlinks am Dokumentende anzeigen",
 	"deleteRefConfirm": "Der zu löschende oder auszuschneidende Inhalt enthält referenzierte Blöcke. Möchten Sie fortfahren?",
 	"addAllAiModels": "Alle Modelle hinzufügen",

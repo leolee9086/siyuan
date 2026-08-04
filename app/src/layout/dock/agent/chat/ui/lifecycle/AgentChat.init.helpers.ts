@@ -1,27 +1,48 @@
+/** 用途：约束初始化读写状态；使用范围：本文件全部步骤；解耦评估：纯运行时协议避免 helper 依赖具体门面。 */
 import type {AgentChatRuntime} from "./imports";
+/** 用途：挂载富文本 Composer；使用范围：输入区初始化；解耦评估：既有工厂已经是编辑器生命周期边界。 */
 import {mountComposer} from "./imports";
+/** 用途：创建提示词来源控制器；使用范围：DOM 引用绑定；解耦评估：控制器通过能力和仓储端口接收依赖。 */
 import {createAgentPromptSourceController} from "./imports";
+/** 用途：创建会话列表控制器；使用范围：初始化会话面板；解耦评估：回调和仓储均由组合根显式注入。 */
 import {createAgentSessionPanelController} from "./imports";
+/** 用途：格式化关闭热键提示；使用范围：标题栏模板；解耦评估：复用全局键位展示纯函数。 */
 import {updateHotkeyAfterTip} from "./imports";
+/** 用途：转义动态标签；使用范围：面板模板；解耦评估：统一纯函数避免复制 HTML 安全规则。 */
 import {escapeHtml} from "./imports";
+/** 用途：读取界面语言；使用范围：面板模板；解耦评估：现有语言组合根是只读环境端口，逐层注入会扩大构造签名。 */
 import {getAgentChatLanguages} from "./imports";
+/** 用途：查询必需 DOM；使用范围：模板写入后的引用绑定；解耦评估：统一守卫集中缺失节点错误。 */
 import {requireElement} from "./imports";
+/** 用途：读取当前键位配置；使用范围：标题栏最小化提示；解耦评估：只读环境访问集中在现有入口。 */
 import {requireSiyuanConfig} from "./imports";
+/** 用途：删除会话；使用范围：会话面板回调；解耦评估：命令显式接收 runtime 并继续复用现有仓储流程。 */
 import {deleteSession} from "./imports";
-import {
-    applyCapabilityVisibility,
-    applyConversationCapabilityVisibility,
-    updateGuardianAuthButton,
-} from "./AgentChat.shell.methods";
+/** 用途：应用宿主能力可见性；使用范围：动作元素绑定完成后；解耦评估：同生命周期职责直接读取公开 runtime。 */
+import {applyCapabilityVisibility} from "./AgentChat.shell.methods";
+/** 用途：应用目标能力可见性；使用范围：动作元素绑定完成后；解耦评估：同生命周期职责直接读取公开 runtime。 */
+import {applyConversationCapabilityVisibility} from "./AgentChat.shell.methods";
+/** 用途：刷新 Guardian 身份入口；使用范围：动作元素绑定完成后；解耦评估：身份显示职责保留在既有 shell 模块。 */
+import {updateGuardianAuthButton} from "./AgentChat.shell.methods";
+/** 用途：读取目标发送策略；使用范围：提示词控制器；解耦评估：纯策略函数防止目标分支散落。 */
 import {resolveTargetPolicy} from "./imports";
+/** 用途：初始化推理强度选择；使用范围：动作元素绑定；解耦评估：复用既有模型设置职责。 */
 import {initReasoningEffortSelect} from "./imports";
+/** 用途：绑定无 App 宿主拖放；使用范围：Composer 初始化；解耦评估：宿主差异由既有适配器封装。 */
 import {bindComposerDragDrop} from "./imports";
+/** 用途：切换会话；使用范围：会话面板回调；解耦评估：会话状态副作用保留在唯一切换流程。 */
 import {switchSession} from "./imports";
+/** 用途：保证提示词会话持久化；使用范围：提示词控制器；解耦评估：仓储动作由显式 runtime 参数隔离。 */
 import {ensureCurrentSessionPersisted} from "./imports";
+/** 用途：更新导航活动标记；使用范围：消息滚动；解耦评估：复用既有消息导航投影。 */
 import {updateActiveMarker} from "./imports";
+/** 用途：发送 Composer 输入；使用范围：Composer onSend；解耦评估：所有目标统一进入既有发送门面。 */
 import {sendMessage} from "./imports";
+/** 用途：刷新发送按钮；使用范围：Composer onChange；解耦评估：控件状态集中在反馈模块。 */
 import {updateSendButtonState} from "./imports";
+/** 用途：呈现会话文件错误；使用范围：会话面板回调；解耦评估：复用现有用户反馈入口。 */
 import {reportSessionFileError} from "./imports";
+/** 用途：恢复会话滚动位置；使用范围：布局重新可见；解耦评估：滚动副作用集中在既有消息模块。 */
 import {restoreScrollToBottom} from "./imports";
 /** 用途：创建布局尺寸观察器；使用范围：Dock 展开状态跟踪；解耦评估：实例化集中在既有观察器工厂。 */
 import {createAgentChatResizeObserver} from "./imports";
@@ -54,9 +75,14 @@ const buildAgentChatHeaderHTML = () => {
 /** 构建消息区和输入区，字符串同步写入以确保后续查询能立即取得节点。 */
 const buildAgentChatBodyHTML = () => {
     const L = getAgentChatLanguages();
+    const steerValue = Reflect.get(L, "agentSteer");
+    const queueValue = Reflect.get(L, "agentQueue");
+    const steerLabel = typeof steerValue === "string" ? steerValue : "Steer";
+    const queueLabel = typeof queueValue === "string" ? queueValue : "Queue";
     return '<div class="agent-chat__messages-wrap"><div class="agent-chat__messages fn__flex-1"></div>' +
         '<span class="agent-chat__scroll-bottom ariaLabel" data-position="west" aria-label="' + L.scrollToBottom + '">' +
-        '<svg><use xlink:href="#iconArrowDown"></use></svg></span></div><div class="agent-chat__input-area">' +
+        '<svg><use xlink:href="#iconArrowDown"></use></svg></span></div>' +
+        '<div class="agent-chat__queue-dock fn__none" data-type="queue-dock"></div><div class="agent-chat__input-area">' +
         '<div class="agent-chat__prompt-source-row fn__none" data-type="prompt-source-row">' +
         '<div class="agent-chat__prompt-source-controls" role="group" aria-label="系统提示词来源">' +
         '<button type="button" class="agent-chat__prompt-source-btn agent-chat__prompt-source-select b3-button b3-button--cancel" ' +
@@ -70,7 +96,14 @@ const buildAgentChatBodyHTML = () => {
         '<button class="agent-chat__session-files b3-button b3-button--icon b3-button--cancel b3-tooltips b3-tooltips__n" ' +
         'data-type="session-files" aria-label="' + (L.upload || "Upload") + " " + (L.agentCatFile || "file") + '">' +
         '<svg><use xlink:href="#iconUpload"></use></svg></button>' +
-        '<input class="agent-chat__session-files-input fn__none" type="file" multiple><span class="fn__flex-1"></span>' +
+        '<input class="agent-chat__session-files-input fn__none" type="file" multiple>' +
+        '<div class="agent-chat__delivery fn__none" data-type="delivery-control" role="group">' +
+        '<button type="button" class="agent-chat__delivery-option b3-button" data-delivery="steer" aria-label="' +
+        escapeHtml(steerLabel) + '"><svg><use xlink:href="#iconForward"></use></svg><span>' +
+        escapeHtml(steerLabel) + "</span></button>" +
+        '<button type="button" class="agent-chat__delivery-option b3-button" data-delivery="queue" aria-label="' +
+        escapeHtml(queueLabel) + '"><svg><use xlink:href="#iconList"></use></svg><span>' +
+        escapeHtml(queueLabel) + '</span></button></div><span class="fn__flex-1"></span>' +
         '<span class="agent-chat__tokens fn__none b3-button b3-button--icon b3-button--cancel" aria-label="' +
         (L.tokenUsage || "Context Usage") + '"><svg viewBox="0 0 24 24"><circle class="agent-chat__tokens-track" cx="12" cy="12" r="9" stroke-width="3"></circle>' +
         '<circle class="agent-chat__tokens-arc" cx="12" cy="12" r="9" stroke-width="3" stroke-dasharray="0 56.55"></circle></svg></span>' +
@@ -85,19 +118,29 @@ const buildAgentChatBodyHTML = () => {
         '<div class="agent-chat__preview-notice">' + (L.featurePreview || "") + "</div>";
 };
 
-/** 同步建立 AgentChat 根 DOM，供后续初始化步骤绑定引用。 */
+/**
+ * 同步建立 AgentChat 根 DOM，供后续初始化步骤绑定引用。
+ * @同步豁免: UI构建 - 构造阶段的后续引用查询依赖模板已经完整写入，异步化会留下半初始化实例。
+ */
 export function renderAgentChatPanel(panel: HTMLElement) {
     panel.classList.add("fn__flex-column", "file-tree", "sy__agentChat", "dockPanel");
     panel.innerHTML = '<div class="agent-chat fn__flex-column fn__flex-1">' +
         buildAgentChatHeaderHTML() + buildAgentChatBodyHTML() + "</div>";
 }
 
-/** 查询并保存后续流程共享的 DOM 引用，同时初始化提示词控制器。 */
+/**
+ * 查询并保存后续流程共享的 DOM 引用，同时初始化提示词控制器。
+ * @同步豁免: 需要绝对同步的DOM访问 - 事件绑定紧接此步骤执行，所有必需节点必须在同一初始化调用栈内可用。
+ */
 export function bindAgentChatElements(runtime: AgentChatRuntime, panel: HTMLElement) {
     runtime.messagesContainer = requireElement<HTMLElement>(panel, ".agent-chat__messages");
     runtime.composerHost = requireElement<HTMLElement>(panel, ".agent-chat__composer-host");
     runtime.sendBtn = requireElement<HTMLElement>(panel, ".agent-chat__send");
     runtime.stopBtn = requireElement<HTMLElement>(panel, ".agent-chat__stop");
+    runtime.deliveryControl = requireElement<HTMLElement>(panel, "[data-type=\"delivery-control\"]");
+    runtime.steerDeliveryBtn = requireElement<HTMLButtonElement>(panel, "[data-delivery=\"steer\"]");
+    runtime.queueDeliveryBtn = requireElement<HTMLButtonElement>(panel, "[data-delivery=\"queue\"]");
+    runtime.queueDock = requireElement<HTMLElement>(panel, "[data-type=\"queue-dock\"]");
     runtime.sessionFilesBtn = requireElement<HTMLButtonElement>(panel, ".agent-chat__session-files");
     runtime.sessionFilesInput = requireElement<HTMLInputElement>(panel, ".agent-chat__session-files-input");
     runtime.promptSourceController = createAgentPromptSourceController(runtime.capabilities, {
@@ -152,7 +195,10 @@ function bindAgentChatActionElements(runtime: AgentChatRuntime, panel: HTMLEleme
     updateGuardianAuthButton(runtime);
 }
 
-/** 处理一次消息区滚动，将用户位置投影到公开运行时状态。 */
+/**
+ * 处理一次消息区滚动，将用户位置投影到公开运行时状态。
+ * @同步豁免: UI构建 - scroll 回调需要在当前帧读取一致的几何值并立即更新按钮状态，异步读取会跨越布局变化。
+ */
 export function handleAgentChatScroll(runtime: AgentChatRuntime) {
     const {scrollTop, scrollHeight, clientHeight} = runtime.messagesContainer;
     // 面板可见且会话已建立时记录距底部位置，折叠期间的零尺寸不会污染状态。
@@ -176,7 +222,10 @@ export function handleAgentChatScroll(runtime: AgentChatRuntime) {
     updateActiveMarker(runtime);
 }
 
-/** 挂载输入编辑器，并为无完整 App 的宿主补充块引用拖放。 */
+/**
+ * 挂载输入编辑器，并为无完整 App 的宿主补充块引用拖放。
+ * @同步豁免: 生命周期 - Composer 句柄必须在初始化返回前归属当前实例，异步挂载会使随后事件绑定读取空句柄。
+ */
 export function mountAgentChatComposer(runtime: AgentChatRuntime) {
     runtime.composer = mountComposer({
         host: runtime.composerHost,
@@ -191,7 +240,10 @@ export function mountAgentChatComposer(runtime: AgentChatRuntime) {
     }
 }
 
-/** 创建会话面板控制器，保持切换、删除、重命名和错误回调集中。 */
+/**
+ * 创建会话面板控制器，保持切换、删除、重命名和错误回调集中。
+ * @同步豁免: 生命周期 - 会话初始化会立即刷新该控制器，构造阶段必须先建立唯一实例和回调所有权。
+ */
 export function createAgentChatSessionPanel(runtime: AgentChatRuntime) {
     runtime.sessionPanel = createAgentSessionPanelController({
         triggerBtn: runtime.sessionMenuBtn,
@@ -244,7 +296,10 @@ function handleAgentChatLayoutResize(runtime: AgentChatRuntime) {
     }
 }
 
-/** 观察 Dock 展开状态，并在重新可见时恢复会话滚动位置。 */
+/**
+ * 观察 Dock 展开状态，并在重新可见时恢复会话滚动位置。
+ * @同步豁免: 生命周期 - ResizeObserver 的资源所有权必须在初始化调用栈内登记，确保 dispose 始终能成对释放。
+ */
 export function observeAgentChatLayout(runtime: AgentChatRuntime) {
     runtime.layoutResizeObserver = createAgentChatResizeObserver(() => handleAgentChatLayoutResize(runtime));
     runtime.layoutResizeObserver.observe(runtime.messagesContainer);

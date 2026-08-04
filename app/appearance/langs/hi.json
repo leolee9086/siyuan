@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "लंबित",
+    "agentQueueInjecting": "भेजा जा रहा है",
+    "agentQueueBlocked": "अवरुद्ध",
+    "agentQueueFailed": "विफल",
+    "agentSteer": "मार्गदर्शन",
+    "agentQueue": "कतार",
     "backlinkShowBottom": "दस्तावेज़ के नीचे बैकलिंक्स दिखाएँ",
 	"deleteRefConfirm": "हटाई या काटी जाने वाली सामग्री में संदर्भित ब्लॉक हैं। क्या आप जारी रखना चाहते हैं?",
 	"addAllAiModels": "सभी मॉडल जोड़ें",

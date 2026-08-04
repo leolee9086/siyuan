@@ -18,12 +18,47 @@ package api
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/siyuan-note/siyuan/kernel/agent"
+	"github.com/siyuan-note/siyuan/kernel/util"
 	"github.com/siyuan-note/siyuan/packages/agentqueue"
 )
+
+func TestPrepareAgentInboxPersistence(t *testing.T) {
+	dataDir := t.TempDir()
+	inbox := agentqueue.NewSessionInbox("session-persist", 10)
+	if err := prepareAgentInboxPersistence(inbox, dataDir); err != nil {
+		t.Fatal(err)
+	}
+	if !inbox.HasStorage() {
+		t.Fatal("production inbox storage was not attached")
+	}
+	if _, err := inbox.Submit(&agentqueue.Input{
+		ID:        "queue-1",
+		SessionID: "session-persist",
+		Semantics: agentqueue.SemanticsQueue,
+		Content:   "later",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	queuePath := filepath.Join(dataDir, "storage", "ai", "agent", "queues", "session-persist.json")
+	if _, err := os.Stat(queuePath); err != nil {
+		t.Fatalf("queue snapshot was not written: %v", err)
+	}
+
+	restored := agentqueue.NewSessionInbox("session-persist", 10)
+	if err := prepareAgentInboxPersistence(restored, dataDir); err != nil {
+		t.Fatal(err)
+	}
+	snapshot := restored.SnapshotVersioned()
+	if snapshot.QueueVersion != 1 || len(snapshot.Items) != 1 || snapshot.Items[0].Input.ID != "queue-1" {
+		t.Fatalf("queue snapshot was not restored: %+v", snapshot)
+	}
+}
 
 // newTestExecutor 创建带独立 manager 的测试执行器（不污染全局 agentInboxManager）。
 func newTestExecutor(t *testing.T, sessionID string) (*agentSessionExecutor, *agentqueue.InboxManager) {
@@ -157,12 +192,14 @@ func TestAgentExecutorCancelOnRequestCancel(t *testing.T) {
 	}
 }
 
-// TestAgentExecutorMarksFailedWithoutSubscriber 验证：无订阅者（正常流程不可达）
-// 时输入被标记 failed，不启动 turn。
-func TestAgentExecutorMarksFailedWithoutSubscriber(t *testing.T) {
+// TestAgentExecutorKeepsPendingWithoutSubscriber 验证零订阅者时中断被屏蔽：
+// 输入保持 pending，且不启动 turn。
+func TestAgentExecutorKeepsPendingWithoutSubscriber(t *testing.T) {
 	manager := agentqueue.NewInboxManager(10)
 	ex := newAgentSessionExecutor("sess-1", manager)
+	started := make(chan struct{}, 1)
 	ex.runTurnFn = func(ctx context.Context, input *agentqueue.Input) <-chan agent.AgentEvent {
+		started <- struct{}{}
 		ch := make(chan agent.AgentEvent, 1)
 		ch <- agent.AgentEvent{Type: "done"}
 		close(ch)
@@ -177,16 +214,224 @@ func TestAgentExecutorMarksFailedWithoutSubscriber(t *testing.T) {
 		t.Fatalf("submit failed: %v", err)
 	}
 
-	// 执行器异步处理：轮询等待状态收敛。
+	time.Sleep(100 * time.Millisecond)
+	snaps := manager.Snapshot("sess-1")
+	if len(snaps) != 1 || snaps[0].State != agentqueue.StatusPending {
+		t.Fatalf("input should remain pending without a subscriber: %+v", snaps)
+	}
+	select {
+	case <-started:
+		t.Fatal("turn started without a subscriber")
+	default:
+	}
+}
+
+func TestAgentExecutorQueueWaitsForTurnCommit(t *testing.T) {
+	manager := agentqueue.NewInboxManager(10)
+	ex := newAgentSessionExecutor("sess-commit-barrier", manager)
+	started := make(chan string, 2)
+	ex.runTurnFn = func(_ context.Context, input *agentqueue.Input) <-chan agent.AgentEvent {
+		ex.turn.TurnStarted(input.ID)
+		ex.turn.SetPhase(input.ID, agent.AgentTurnProvider)
+		started <- input.ID
+		ch := make(chan agent.AgentEvent, 2)
+		ch <- agent.AgentEvent{Type: "turn", TurnID: input.ID}
+		ch <- agent.AgentEvent{Type: "done", TurnID: input.ID}
+		ex.turn.TurnTerminated(input.ID)
+		close(ch)
+		return ch
+	}
+	go ex.run()
+	t.Cleanup(func() { close(ex.stopCh) })
+
+	ctx1, cancel1 := context.WithCancel(context.Background())
+	firstEvents, err := ex.subscribe(ctx1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"queue-1", "queue-2"} {
+		if _, err = manager.Submit(&agentqueue.Input{
+			ID: id, SessionID: "sess-commit-barrier", Semantics: agentqueue.SemanticsQueue,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	collectUntilClosed(t, firstEvents, 5*time.Second)
+	cancel1()
+	if got := <-started; got != "queue-1" {
+		t.Fatalf("first promoted input: %s", got)
+	}
+
+	ctx2, cancel2 := context.WithCancel(context.Background())
+	secondEvents, err := ex.subscribe(ctx2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cancel2()
+	time.Sleep(100 * time.Millisecond)
+	select {
+	case got := <-started:
+		t.Fatalf("queue advanced before commit: %s", got)
+	default:
+	}
+	snapshot := manager.SnapshotVersioned("sess-commit-barrier")
+	if len(snapshot.Items) != 2 || snapshot.Items[1].State != agentqueue.StatusPending {
+		t.Fatalf("second queue should remain pending before commit: %+v", snapshot)
+	}
+
+	if err = ex.commitTurn("queue-1"); err != nil {
+		t.Fatal(err)
+	}
+	collectUntilClosed(t, secondEvents, 5*time.Second)
+	if got := <-started; got != "queue-2" {
+		t.Fatalf("second promoted input after commit: %s", got)
+	}
+}
+
+func TestAgentExecutorDefersCommittedQueueUntilStreamCleanup(t *testing.T) {
+	manager := agentqueue.NewInboxManager(8)
+	executor := newAgentSessionExecutor("sess-commit-cleanup", manager)
+	started := make(chan string, 2)
+	releaseFirst := make(chan struct{})
+	executor.runTurnFn = func(_ context.Context, input *agentqueue.Input) <-chan agent.AgentEvent {
+		executor.turn.TurnStarted(input.ID)
+		executor.turn.SetPhase(input.ID, agent.AgentTurnAwaitingCommit)
+		started <- input.ID
+		ch := make(chan agent.AgentEvent, 2)
+		go func() {
+			ch <- agent.AgentEvent{Type: "turn", TurnID: input.ID}
+			ch <- agent.AgentEvent{Type: "done", TurnID: input.ID}
+			if input.ID == "queue-1" {
+				<-releaseFirst
+			}
+			executor.turn.TurnTerminated(input.ID)
+			close(ch)
+		}()
+		return ch
+	}
+	go executor.run()
+	t.Cleanup(executor.stop)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	events, unsubscribe := executor.hub.subscribe(ctx, 0)
+	defer unsubscribe()
+
+	for _, id := range []string{"queue-1", "queue-2"} {
+		if _, err := manager.Submit(&agentqueue.Input{ID: id, SessionID: executor.sessionID, Semantics: agentqueue.SemanticsQueue}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	select {
+	case id := <-started:
+		if id != "queue-1" {
+			t.Fatalf("first turn: %s", id)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("first queue did not start")
+	}
+	for {
+		select {
+		case event := <-events:
+			if event.Type == "done" && event.Data["turnID"] == "queue-1" {
+				goto firstDone
+			}
+		case <-time.After(5 * time.Second):
+			t.Fatal("first done event was not forwarded")
+		}
+	}
+
+firstDone:
+	if err := executor.commitTurn("queue-1"); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case id := <-started:
+		t.Fatalf("queue advanced before stream cleanup: %s", id)
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(releaseFirst)
+	select {
+	case id := <-started:
+		if id != "queue-2" {
+			t.Fatalf("second turn: %s", id)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("second queue did not start after stream cleanup")
+	}
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
-		snaps := manager.Snapshot("sess-1")
-		if len(snaps) > 0 && snaps[0].State == agentqueue.StatusFailed {
-			return
+		if state := executor.turn.State(); state.TurnID == "queue-2" && state.AwaitingCommit {
+			break
 		}
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(time.Millisecond)
 	}
-	t.Fatal("input was not marked failed without a subscriber")
+	if err := executor.commitTurn("queue-2"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAgentExecutorSessionEventsCarryTurnAndCommitBoundaries(t *testing.T) {
+	manager := agentqueue.NewInboxManager(10)
+	ex := newAgentSessionExecutor("sess-event-boundaries", manager)
+	ex.runTurnFn = func(_ context.Context, input *agentqueue.Input) <-chan agent.AgentEvent {
+		ex.turn.TurnStarted("turn-1")
+		ex.turn.SetPhase("turn-1", agent.AgentTurnProvider)
+		ch := make(chan agent.AgentEvent, 3)
+		ch <- agent.AgentEvent{Type: "turn", TurnID: "turn-1"}
+		ch <- agent.AgentEvent{Type: "content", Token: input.Content}
+		ch <- agent.AgentEvent{Type: "done", TurnID: "turn-1"}
+		ex.turn.TurnTerminated("turn-1")
+		close(ch)
+		return ch
+	}
+	go ex.run()
+	t.Cleanup(func() { close(ex.stopCh) })
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	events, unsubscribe := ex.hub.subscribe(ctx, 0)
+	defer unsubscribe()
+	if _, err := manager.Submit(&agentqueue.Input{
+		ID: "queue-1", SessionID: "sess-event-boundaries", Semantics: agentqueue.SemanticsQueue, Content: "queued",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	var content agentSessionEvent
+	deadline := time.After(5 * time.Second)
+	for content.Type == "" {
+		select {
+		case event := <-events:
+			if event.Type == "content" {
+				content = event
+			}
+		case <-deadline:
+			t.Fatal("content session event timeout")
+		}
+	}
+	if content.Data["turnID"] != "turn-1" {
+		t.Fatalf("content event turn id: %+v", content)
+	}
+	if err := ex.commitTurn("turn-1"); err != nil {
+		t.Fatal(err)
+	}
+
+	seenCommitted := false
+	seenIdle := false
+	deadline = time.After(5 * time.Second)
+	for !seenCommitted || !seenIdle {
+		select {
+		case event := <-events:
+			switch event.Type {
+			case "turn_committed":
+				seenCommitted = event.Data["turnID"] == "turn-1"
+			case "turn_phase":
+				seenIdle = event.Data["phase"] == string(agent.AgentTurnIdle)
+			}
+		case <-deadline:
+			t.Fatalf("commit boundary events missing: committed=%v idle=%v", seenCommitted, seenIdle)
+		}
+	}
 }
 
 // TestAgentExecutorSequentialTurns 验证：同一会话连续两次请求串行处理，
@@ -280,6 +525,9 @@ func TestAgentExecutorIdleRecycle(t *testing.T) {
 // TestAgentExecutorRecreateAfterRecycle 验证：空闲回收后 getAgentExecutor
 // 懒重建新执行器，新消息正常处理（常驻能力不因回收而丢失）。
 func TestAgentExecutorRecreateAfterRecycle(t *testing.T) {
+	originalDataDir := util.DataDir
+	util.DataDir = t.TempDir()
+	t.Cleanup(func() { util.DataDir = originalDataDir })
 	sessionID := "sess-recreate-test"
 	t.Cleanup(func() { stopAgentExecutor(sessionID) })
 

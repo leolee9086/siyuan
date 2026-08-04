@@ -101,17 +101,21 @@ func TestDedupePrompt(t *testing.T) {
 	}
 }
 
-// TestDedupeNone 验证 DedupeNone：同 ID 重复提交不被拒绝。
+// TestDedupeNone 验证 DedupeNone：不同 ID 的重复文本不做 prompt 去重。
 func TestDedupeNone(t *testing.T) {
 	in := NewSessionInboxWithSettings("sess-1", QueueSettings{
 		Cap:        10,
 		DedupeMode: DedupeNone,
 	})
-	if _, err := in.Submit(newTestInput("a", "sess-1", SemanticsQueue)); err != nil {
+	first := newTestInput("a", "sess-1", SemanticsQueue)
+	first.Content = "repeat"
+	if _, err := in.Submit(first); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := in.Submit(newTestInput("a", "sess-1", SemanticsQueue)); err != nil {
-		t.Fatalf("DedupeNone should accept duplicate id: %v", err)
+	second := newTestInput("b", "sess-1", SemanticsQueue)
+	second.Content = "repeat"
+	if _, err := in.Submit(second); err != nil {
+		t.Fatalf("DedupeNone should accept duplicate prompt with distinct ids: %v", err)
 	}
 }
 

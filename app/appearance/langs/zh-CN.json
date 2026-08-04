@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "等待中",
+    "agentQueueInjecting": "正在投递",
+    "agentQueueBlocked": "已阻塞",
+    "agentQueueFailed": "失败",
+    "agentSteer": "引导",
+    "agentQueue": "排队",
     "backlinkShowBottom": "在文档底部显示反链",
 	"deleteRefConfirm": "待删除或剪切的内容中存在被引用的内容块，是否继续？",
 	"addAllAiModels": "添加全部模型",

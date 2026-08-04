@@ -1,7 +1,13 @@
 package agentqueue
 
 import (
+	"encoding/json"
 	"sync"
+)
+
+const (
+	// CurrentPayloadVersion 是 Input.Payload 的当前稳定 JSON 版本。
+	CurrentPayloadVersion = 1
 )
 
 // InputSemantics 描述一条输入的业务语义，决定其投递方式与调度规则。
@@ -206,6 +212,14 @@ type Input struct {
 	// Content 消息正文（user_message / steer / queue / channel_inbound 使用）。
 	Content string `json:"content,omitempty"`
 
+	// PayloadVersion 标识 Payload 的结构版本。零值在 admission 时升级为当前版本。
+	PayloadVersion int `json:"payloadVersion"`
+	// Payload 是可跨进程恢复的稳定 JSON 载荷。进程内对象应放在 Metadata 中，
+	// 不得依赖 encoding/json 对 interface{} 的隐式类型还原。
+	Payload json.RawMessage `json:"payload,omitempty"`
+	// ContentDigest 是 admission 时由队列计算的内容摘要，用于区分同 ID 重试与冲突。
+	ContentDigest string `json:"contentDigest"`
+
 	// Source 输入来源上下文。
 	Source *SourceContext `json:"source,omitempty"`
 
@@ -228,8 +242,8 @@ type Input struct {
 	// CreatedAt 创建时间（Unix 毫秒）。
 	CreatedAt int64 `json:"createdAt"`
 
-	// Metadata 附加元数据（扩展字段，不参与调度）。
-	Metadata map[string]any `json:"metadata,omitempty"`
+	// Metadata 是进程内附加数据，不参与摘要，也不进入持久化快照。
+	Metadata map[string]any `json:"-"`
 }
 
 // EffectivePriority 返回实际生效的优先级（显式设置优先，否则用语义默认）。

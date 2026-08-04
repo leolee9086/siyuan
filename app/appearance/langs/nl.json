@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "In behandeling",
+    "agentQueueInjecting": "Wordt verzonden",
+    "agentQueueBlocked": "Geblokkeerd",
+    "agentQueueFailed": "Mislukt",
+    "agentSteer": "Bijsturen",
+    "agentQueue": "Wachtrij",
     "backlinkShowBottom": "Terugverwijzingen onderaan het document weergeven",
 	"deleteRefConfirm": "De te verwijderen of te knippen inhoud bevat blokken waarnaar wordt verwezen. Wilt u doorgaan?",
 	"addAllAiModels": "Alle modellen toevoegen",

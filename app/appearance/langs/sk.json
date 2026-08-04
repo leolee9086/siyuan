@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "Čaká",
+    "agentQueueInjecting": "Odosiela sa",
+    "agentQueueBlocked": "Zablokované",
+    "agentQueueFailed": "Zlyhalo",
+    "agentSteer": "Usmerniť",
+    "agentQueue": "Poradie",
     "backlinkShowBottom": "Zobraziť spätné odkazy v spodnej časti dokumentu",
 	"deleteRefConfirm": "Obsah určený na odstránenie alebo vystrihnutie obsahuje bloky, na ktoré vedú odkazy. Chcete pokračovať?",
 	"addAllAiModels": "Pridať všetky modely",

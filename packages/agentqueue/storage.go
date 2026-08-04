@@ -1,6 +1,7 @@
 package agentqueue
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,6 +9,13 @@ import (
 	"path/filepath"
 	"sync"
 )
+
+const (
+	// CurrentQueueSchemaVersion 是持久化队列快照的当前结构版本。
+	CurrentQueueSchemaVersion = 1
+)
+
+var ErrUnsupportedQueueSchema = errors.New("agentqueue: unsupported queue snapshot schema")
 
 // PersistedItem 是队列项的持久化形态（可序列化）。
 // 通过 QueueStorage 保存/加载，用于进程重启后的队列恢复。
@@ -20,6 +28,16 @@ type PersistedItem struct {
 	InjectedAt int64 `json:"injectedAt,omitempty"`
 }
 
+// PersistedQueueSnapshot 是 QueueStorage 的完整持久化单位。
+type PersistedQueueSnapshot struct {
+	SchemaVersion int             `json:"schemaVersion"`
+	QueueVersion  int64           `json:"queueVersion"`
+	NextSeq       int64           `json:"nextSeq"`
+	Items         []PersistedItem `json:"items"`
+
+	legacy bool
+}
+
 // QueueStorage 是会话队列的持久化抽象，可插拔。
 //
 // 包内提供 MemoryStorage（进程内，测试/默认）与 FileStorage（JSON 文件，
@@ -27,9 +45,9 @@ type PersistedItem struct {
 // 该接口将队列状态落盘到 SQLite（对齐 MAGI MessageStore 的存储模型）。
 type QueueStorage interface {
 	// SaveSession 原子保存某会话队列的完整快照（幂等覆盖）。
-	SaveSession(sessionID string, items []PersistedItem) error
+	SaveSession(sessionID string, snapshot PersistedQueueSnapshot) error
 	// LoadSession 加载某会话队列快照；ok=false 表示该会话无持久化记录。
-	LoadSession(sessionID string) (items []PersistedItem, ok bool, err error)
+	LoadSession(sessionID string) (snapshot PersistedQueueSnapshot, ok bool, err error)
 	// DeleteSession 删除某会话的持久化记录（会话删除时调用）。
 	DeleteSession(sessionID string) error
 }
@@ -37,35 +55,31 @@ type QueueStorage interface {
 // MemoryStorage 是进程内存储实现（默认 / 测试用），不提供跨进程持久化。
 type MemoryStorage struct {
 	mu       sync.Mutex
-	sessions map[string][]PersistedItem
+	sessions map[string]PersistedQueueSnapshot
 }
 
 // NewMemoryStorage 创建内存存储。
 func NewMemoryStorage() *MemoryStorage {
-	return &MemoryStorage{sessions: make(map[string][]PersistedItem)}
+	return &MemoryStorage{sessions: make(map[string]PersistedQueueSnapshot)}
 }
 
 // SaveSession 保存会话快照（幂等覆盖）。
-func (s *MemoryStorage) SaveSession(sessionID string, items []PersistedItem) error {
+func (s *MemoryStorage) SaveSession(sessionID string, snapshot PersistedQueueSnapshot) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	cloned := make([]PersistedItem, len(items))
-	copy(cloned, items)
-	s.sessions[sessionID] = cloned
+	s.sessions[sessionID] = clonePersistedSnapshot(snapshot)
 	return nil
 }
 
 // LoadSession 加载会话快照。
-func (s *MemoryStorage) LoadSession(sessionID string) ([]PersistedItem, bool, error) {
+func (s *MemoryStorage) LoadSession(sessionID string) (PersistedQueueSnapshot, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	items, ok := s.sessions[sessionID]
+	snapshot, ok := s.sessions[sessionID]
 	if !ok {
-		return nil, false, nil
+		return PersistedQueueSnapshot{}, false, nil
 	}
-	cloned := make([]PersistedItem, len(items))
-	copy(cloned, items)
-	return cloned, true, nil
+	return clonePersistedSnapshot(snapshot), true, nil
 }
 
 // DeleteSession 删除会话快照。
@@ -87,7 +101,7 @@ func NewFileStorage(dir string) (*FileStorage, error) {
 	if dir == "" {
 		return nil, errors.New("agentqueue: file storage dir is empty")
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, fmt.Errorf("agentqueue: create file storage dir: %w", err)
 	}
 	return &FileStorage{dir: dir}, nil
@@ -98,14 +112,16 @@ func (s *FileStorage) pathFor(sessionID string) string {
 }
 
 // SaveSession 原子写会话快照。
-func (s *FileStorage) SaveSession(sessionID string, items []PersistedItem) error {
+func (s *FileStorage) SaveSession(sessionID string, snapshot PersistedQueueSnapshot) error {
 	path := s.pathFor(sessionID)
 	tmp := path + ".tmp"
-	data, err := json.Marshal(items)
+	snapshot.SchemaVersion = CurrentQueueSchemaVersion
+	snapshot.legacy = false
+	data, err := json.Marshal(snapshot)
 	if err != nil {
 		return fmt.Errorf("agentqueue: marshal session %s: %w", sessionID, err)
 	}
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+	if err := os.WriteFile(tmp, data, 0o600); err != nil {
 		return fmt.Errorf("agentqueue: write temp snapshot %s: %w", sessionID, err)
 	}
 	if err := os.Rename(tmp, path); err != nil {
@@ -116,20 +132,40 @@ func (s *FileStorage) SaveSession(sessionID string, items []PersistedItem) error
 }
 
 // LoadSession 加载会话快照；文件不存在时返回 ok=false。
-func (s *FileStorage) LoadSession(sessionID string) ([]PersistedItem, bool, error) {
+func (s *FileStorage) LoadSession(sessionID string) (PersistedQueueSnapshot, bool, error) {
 	path := s.pathFor(sessionID)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, false, nil
+			return PersistedQueueSnapshot{}, false, nil
 		}
-		return nil, false, fmt.Errorf("agentqueue: read snapshot %s: %w", sessionID, err)
+		return PersistedQueueSnapshot{}, false, fmt.Errorf("agentqueue: read snapshot %s: %w", sessionID, err)
 	}
-	var items []PersistedItem
-	if err := json.Unmarshal(data, &items); err != nil {
-		return nil, false, fmt.Errorf("agentqueue: unmarshal snapshot %s: %w", sessionID, err)
+	trimmed := bytes.TrimSpace(data)
+	if len(trimmed) == 0 {
+		return PersistedQueueSnapshot{}, false, fmt.Errorf("agentqueue: empty snapshot %s", sessionID)
 	}
-	return items, true, nil
+	if trimmed[0] == '[' {
+		var items []PersistedItem
+		if err := json.Unmarshal(trimmed, &items); err != nil {
+			return PersistedQueueSnapshot{}, false, fmt.Errorf("agentqueue: unmarshal legacy snapshot %s: %w", sessionID, err)
+		}
+		var nextSeq int64
+		for _, item := range items {
+			if item.Seq > nextSeq {
+				nextSeq = item.Seq
+			}
+		}
+		return PersistedQueueSnapshot{Items: items, NextSeq: nextSeq, legacy: true}, true, nil
+	}
+	var snapshot PersistedQueueSnapshot
+	if err := json.Unmarshal(trimmed, &snapshot); err != nil {
+		return PersistedQueueSnapshot{}, false, fmt.Errorf("agentqueue: unmarshal snapshot %s: %w", sessionID, err)
+	}
+	if snapshot.SchemaVersion != CurrentQueueSchemaVersion {
+		return PersistedQueueSnapshot{}, false, fmt.Errorf("%w: %d", ErrUnsupportedQueueSchema, snapshot.SchemaVersion)
+	}
+	return snapshot, true, nil
 }
 
 // DeleteSession 删除会话快照文件（不存在时静默成功）。
@@ -149,6 +185,23 @@ func (in *SessionInbox) AttachStorage(storage QueueStorage) {
 	in.storage = storage
 }
 
+// HasStorage 返回该会话是否已经挂载持久化存储。
+func (in *SessionInbox) HasStorage() bool {
+	in.mu.Lock()
+	defer in.mu.Unlock()
+	return in.storage != nil
+}
+
+// DeleteStorage 删除该会话已挂载的持久化快照。
+func (in *SessionInbox) DeleteStorage() error {
+	in.mu.Lock()
+	defer in.mu.Unlock()
+	if in.storage == nil {
+		return nil
+	}
+	return in.storage.DeleteSession(in.sessionID)
+}
+
 // Checkpoint 将当前队列状态（含历史项）持久化到已挂载的存储。
 // 未挂载存储时返回 nil（no-op）。调用方应在关键状态变更（如 turn 边界）后调用。
 func (in *SessionInbox) Checkpoint() error {
@@ -157,16 +210,12 @@ func (in *SessionInbox) Checkpoint() error {
 	if in.storage == nil {
 		return nil
 	}
-	items := make([]PersistedItem, 0, len(in.items))
-	for _, it := range in.items {
-		items = append(items, PersistedItem{
-			Input:      cloneInput(it.input),
-			State:      it.state,
-			Seq:        it.seq,
-			InjectedAt: it.injectedAt,
-		})
-	}
-	return in.storage.SaveSession(in.sessionID, items)
+	return in.storage.SaveSession(in.sessionID, persistedSnapshotFromState(&inboxState{
+		items:        in.items,
+		seq:          in.seq,
+		queueVersion: in.queueVersion,
+		summary:      in.summary,
+	}))
 }
 
 // RestoreFromStorage 从已挂载存储恢复队列状态。
@@ -182,27 +231,44 @@ func (in *SessionInbox) RestoreFromStorage() (bool, error) {
 	if in.storage == nil {
 		return false, nil
 	}
-	items, ok, err := in.storage.LoadSession(in.sessionID)
+	snapshot, ok, err := in.storage.LoadSession(in.sessionID)
 	if err != nil {
 		return false, err
 	}
 	if !ok {
 		return false, nil
 	}
-	restored := make([]*inboxItem, 0, len(items))
-	maxSeq := in.seq
-	for _, p := range items {
+	restored := make([]*inboxItem, 0, len(snapshot.Items))
+	maxSeq := snapshot.NextSeq
+	changed := snapshot.legacy
+	for _, p := range snapshot.Items {
 		if p.Input == nil {
+			changed = true
 			continue
+		}
+		normalized, normalizeErr := normalizeInput(p.Input)
+		if normalizeErr != nil {
+			return false, normalizeErr
+		}
+		if p.Input.ContentDigest != "" && p.Input.ContentDigest != normalized.ContentDigest {
+			return false, fmt.Errorf("%w: content digest mismatch for %s", ErrInvalidPayload, p.Input.ID)
+		}
+		if p.Input.PayloadVersion == 0 || p.Input.ContentDigest == "" {
+			changed = true
 		}
 		state := p.State
 		if state == StatusInjecting {
-			// 崩溃恢复：执行方已消失，滞留输入重置为可重新投递。
-			state = StatusPending
+			// queue 可重试；steer 属于已结束的旧 turn，不跨 turn 重放。
+			if normalized.Semantics == SemanticsSteer {
+				state = StatusFailed
+			} else {
+				state = StatusPending
+			}
 			p.InjectedAt = 0
+			changed = true
 		}
 		restored = append(restored, &inboxItem{
-			input:      cloneInput(p.Input),
+			input:      normalized,
 			seq:        p.Seq,
 			state:      state,
 			injectedAt: p.InjectedAt,
@@ -211,7 +277,37 @@ func (in *SessionInbox) RestoreFromStorage() (bool, error) {
 			maxSeq = p.Seq
 		}
 	}
-	in.items = restored
-	in.seq = maxSeq
+	candidate := &inboxState{
+		items:        restored,
+		seq:          maxSeq,
+		queueVersion: snapshot.QueueVersion,
+	}
+	if changed {
+		candidate.queueVersion++
+		if err := in.storage.SaveSession(in.sessionID, persistedSnapshotFromState(candidate)); err != nil {
+			return false, err
+		}
+	}
+	in.items = candidate.items
+	in.seq = candidate.seq
+	in.queueVersion = candidate.queueVersion
 	return true, nil
+}
+
+func clonePersistedSnapshot(snapshot PersistedQueueSnapshot) PersistedQueueSnapshot {
+	cloned := snapshot
+	cloned.Items = make([]PersistedItem, 0, len(snapshot.Items))
+	for _, item := range snapshot.Items {
+		input := cloneInput(item.Input)
+		if input != nil {
+			input.Metadata = nil
+		}
+		cloned.Items = append(cloned.Items, PersistedItem{
+			Input:      input,
+			State:      item.State,
+			Seq:        item.Seq,
+			InjectedAt: item.InjectedAt,
+		})
+	}
+	return cloned
 }

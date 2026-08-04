@@ -1,32 +1,61 @@
+/** 用途：约束发送流程状态；使用范围：本文件全部函数；解耦评估：纯运行时协议避免 helper 依赖具体门面。 */
 import type {AgentChatRuntime} from "./imports";
+/** 用途：识别会话互斥响应；使用范围：旧请求流错误分派；解耦评估：纯错误守卫经目录网关复用，不需要注入状态。 */
 import {isAgentHTTPConflictError} from "./imports";
+/** 用途：发起既有 Agent SSE 请求；使用范围：未注册执行 adapter 的请求；解耦评估：请求实现经目录网关隔离，helper 只装配参数。 */
 import {fetchAgentSSE} from "./imports";
+/** 用途：约束既有 SSE 帧；使用范围：迟到事件过滤回调；解耦评估：纯类型依赖不会加载传输实现。 */
 import type {ISSEResult} from "./imports";
+/** 用途：过滤会话切换后的迟到事件；使用范围：旧请求流回调；解耦评估：纯身份守卫经网关复用，避免复制比较规则。 */
 import {isActiveAgentPanelRequest} from "./imports";
+/** 用途：读取请求语言配置；使用范围：旧请求流参数；解耦评估：环境读取已集中在既有边界，本 helper 不持有全局配置。 */
 import {requireSiyuanConfig} from "./imports";
+/** 用途：计算目标发送资格；使用范围：Composer 快照守卫；解耦评估：目标差异集中在既有纯策略函数。 */
 import {resolveTargetPolicy} from "./imports";
+/** 用途：读取当前模型；使用范围：旧请求流参数；解耦评估：模型选择规则由既有 UI 模块集中维护。 */
 import {getSelectedModel} from "./imports";
+/** 用途：保存新用户条目；使用范围：请求内流式 adapter；解耦评估：会话持久化继续走唯一仓储入口。 */
 import {saveSession} from "./imports";
+/** 用途：恢复保存失败的会话；使用范围：请求准备错误路径；解耦评估：权威重载继续走唯一会话入口。 */
 import {reloadFromDisk} from "./imports";
-import type {AgentPanelConversation} from "./imports";
+/** 用途：同步流式控件；使用范围：请求内流式 adapter；解耦评估：控件状态由反馈领域集中维护。 */
 import {setStreaming} from "./imports";
+/** 用途：清空上一轮思考态；使用范围：新请求开始；解耦评估：思考状态由反馈领域集中维护。 */
 import {clearThinking} from "./imports";
+/** 用途：投影新用户消息；使用范围：请求内流式 adapter；解耦评估：复用唯一用户条目 DOM 入口。 */
 import {appendUserMessage} from "./imports";
+/** 用途：重建消息导航；使用范围：用户消息追加后；解耦评估：导航索引由既有领域集中维护。 */
 import {rebuildNavMarkers} from "./imports";
+/** 用途：生成首轮标题；使用范围：用户消息建立后；解耦评估：标题副作用由响应收尾领域集中维护。 */
 import {tryGenerateTitle} from "./imports";
+/** 用途：撤销保存失败的用户条目；使用范围：请求准备错误路径；解耦评估：条目和 DOM 回滚由响应错误领域集中维护。 */
 import {rollbackUserEntry} from "./imports";
+/** 用途：约束请求发起时的会话身份；使用范围：欢迎示例迟到事件隔离；解耦评估：纯类型依赖保持 helper 与门面解耦。 */
+import type {AgentPanelConversation} from "./imports";
+/** 用途：投影既有 SSE 帧；使用范围：旧请求流事件回调；解耦评估：消息语义继续由唯一协议处理器维护。 */
 import {handleSSEEvent} from "./imports";
+/** 用途：结算既有请求错误；使用范围：旧请求流失败回调；解耦评估：错误 UI 与回滚由响应领域集中维护。 */
 import {handleConfigError} from "./imports";
+/** 用途：恢复会话互斥冲突；使用范围：旧请求流 409 回调；解耦评估：同目录冲突流程继续作为唯一恢复入口。 */
 import {handleConflictReject} from "./AgentChat.conflict";
+/** 用途：保留既有 MAGI 发送入口；使用范围：未注册本轮 controller 的 MAGI 分支；解耦评估：继续调用原传输边界，不经 native adapter 转发。 */
 import {sendMagiMessage} from "./AgentChat.magiSend";
 
-/** 读取输入与宿主上下文，并拒绝当前不可发送的状态。 */
+/**
+ * 读取输入与宿主上下文，并拒绝当前不可发送的状态。
+ * @同步豁免: 需要绝对同步的DOM访问 - 发送事件必须冻结当前 Composer 内容，异步读取会混入后续编辑。
+ */
 export const collectAgentChatSendData = (chat: AgentChatRuntime) => {
     if (!chat.composer) {
         return null;
     }
     const sendData = chat.composer.getSendData();
-    const unavailable = !sendData.text || chat.isStreaming || !resolveTargetPolicy(chat).sendingAvailable ||
+    const adapter = chat.conversationController?.state.adapter;
+    const adapterOwnsTarget = adapter?.kind === chat.conversationKind;
+    const acceptsRunningInput = adapterOwnsTarget && adapter &&
+        (adapter.capabilities.supportsQueue || adapter.capabilities.supportsSteer);
+    const unavailable = !sendData.text || (chat.isStreaming && !acceptsRunningInput) ||
+        !resolveTargetPolicy(chat).sendingAvailable ||
         chat.promptSourceController.isOperationPending() ||
         (chat.conversationKind === "native-agent" && chat.modelOptions.length === 0);
     if (unavailable) {
@@ -81,7 +110,10 @@ export async function startOutgoingAgentTurn(
     }
 }
 
-/** 创建当前请求的中止信号和会话快照。 */
+/**
+ * 创建当前请求的中止信号和会话快照。
+ * @同步豁免: 生命周期 - AbortController 必须在 adapter 启动前同步归属当前实例，确保 Stop 和 dispose 可立即撤销。
+ */
 export const createAgentChatRequestContext = (chat: AgentChatRuntime) => {
     chat.requestStartTime = Date.now();
     chat.currentThinkingDuration = 0;
@@ -123,7 +155,7 @@ export async function dispatchAgentChatSSE(
             if (!active) {
                 return;
             }
-            // 会话被其他实例占用时进入冲突恢复，不把互斥状态误报为配置错误。
+            // 会话互斥由专用恢复流程处理，不显示为普通配置错误。
             if (isAgentHTTPConflictError(error)) {
                 void handleConflictReject(runtime);
                 return;

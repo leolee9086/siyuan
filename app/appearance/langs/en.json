@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "Pending",
+    "agentQueueInjecting": "Sending",
+    "agentQueueBlocked": "Blocked",
+    "agentQueueFailed": "Failed",
+    "agentSteer": "Steer",
+    "agentQueue": "Queue",
     "backlinkShowBottom": "Show backlinks at the bottom of the document",
 	"deleteRefConfirm": "The content to be deleted or cut contains referenced blocks. Are you sure you want to continue?",
 	"addAllAiModels": "Add all models",

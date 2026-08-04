@@ -528,7 +528,8 @@ func TestManagerWaitNextMergedSignal(t *testing.T) {
 // TestManagerWaitNextConcurrent 验证并发 Submit / WaitNext 无竞态（-race 兜底）
 // 且不丢唤醒：每批 Submit 后等待者都能及时醒来并取空。
 func TestManagerWaitNextConcurrent(t *testing.T) {
-	m := NewInboxManager(100)
+	// 此测试验证唤醒而非背压；容量应覆盖所有并发生产项，避免调度速度影响断言。
+	m := NewInboxManager(1000)
 	m.Submit(newTestInput("init", "sess-1", SemanticsQueue))
 	sig := m.WaitNext("sess-1")
 	select {

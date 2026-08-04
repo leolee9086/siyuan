@@ -1,9 +1,9 @@
 /** 用途：复用原生 Agent 编辑器上下文结构；使用范围：宿主能力聚合的编辑器快照；解耦评估：纯类型依赖。 */
 import type {IEditorContext} from "../request/sse/agentSSE.types";
-/** 用途：约束宿主创建的 Dialog；使用范围：提示词文档选择；解耦评估：经 runtime 网关只依赖公共类型契约。 */
-import type {IDialog} from "./imports";
-/** 用途：约束宿主 Dialog 创建参数；使用范围：提示词文档选择；解耦评估：经 runtime 网关只依赖公共类型契约。 */
-import type {IDialogOptions} from "./imports";
+/** 用途：约束宿主创建的 Dialog；使用范围：提示词文档选择；解耦评估：纯类型依赖不加载 runtime 组合根。 */
+import type {IDialog} from "../../../../dialog/dialog.types";
+/** 用途：约束宿主 Dialog 创建参数；使用范围：提示词文档选择；解耦评估：纯类型依赖不加载 runtime 组合根。 */
+import type {IDialogOptions} from "../../../../dialog/dialog.types";
 
 /** 表示面板可路由的两类会话目标。 */
 export type AgentPanelConversationKind = "native-agent" | "magi";

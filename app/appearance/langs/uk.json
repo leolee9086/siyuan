@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "Очікує",
+    "agentQueueInjecting": "Надсилається",
+    "agentQueueBlocked": "Заблоковано",
+    "agentQueueFailed": "Помилка",
+    "agentSteer": "Спрямувати",
+    "agentQueue": "Черга",
     "backlinkShowBottom": "Показувати зворотні посилання внизу документа",
 	"deleteRefConfirm": "Вміст, який буде видалено або вирізано, містить блоки, на які є посилання. Продовжити?",
 	"addAllAiModels": "Додати всі моделі",

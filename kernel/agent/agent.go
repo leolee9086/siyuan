@@ -345,12 +345,20 @@ type AgentEvent struct {
 	SnapshotID       string
 	ToolProgress     *mcpTools.ToolProgress
 	TurnID           string
+	Phase            AgentTurnPhase
+	InputID          string
+	UserEntryID      string
+	Content          string
+	BlockHTML        string
+	References       []Reference
+	EditorContext    *EditorContext
 	Effects          mcpTools.ToolEffects
 }
 
 type AgentMessage struct {
 	Role          string          `json:"role"`
 	Content       string          `json:"content"`
+	BlockHTML     string          `json:"blockHTML,omitempty"`
 	References    []Reference     `json:"references,omitempty"`
 	EditorContext *EditorContext  `json:"editorContext,omitempty"`
 	ToolCalls     []AgentToolCall `json:"toolCalls,omitempty"`
@@ -394,9 +402,14 @@ func cloneEditorContext(editorCtx EditorContext) *EditorContext {
 }
 
 func newAgentUserMessage(content, entryID string, references []Reference, editorCtx EditorContext) AgentMessage {
+	return newAgentUserMessageWithBlock(content, "", entryID, references, editorCtx)
+}
+
+func newAgentUserMessageWithBlock(content, blockHTML, entryID string, references []Reference, editorCtx EditorContext) AgentMessage {
 	return AgentMessage{
 		Role:          "user",
 		Content:       content,
+		BlockHTML:     blockHTML,
 		References:    append([]Reference(nil), references...),
 		EditorContext: cloneEditorContext(editorCtx),
 		EntryID:       entryID,
@@ -467,8 +480,12 @@ type agentCheckpoint struct {
 	LastCommittedTurnID   string         `json:"lastCommittedTurnID,omitempty"`
 }
 
-func AgentChat(ctx context.Context, client *openai.Client, model string, sessionID string, userEntryID string, contentRevision int64, userMessage string, language string, references []Reference, editorCtx EditorContext, pluginActions []PluginAction, regenerate bool, confirmTimeout time.Duration, maxRetries int, reasoningEffort string, taskDirectory *TaskDirectoryBinding, ownerIdentityID string, ownerAuthorizationExpiresAt int64, requestTimeout, streamIdleTimeout time.Duration) <-chan AgentEvent {
+func AgentChatWithControl(ctx context.Context, client *openai.Client, model string, sessionID string, userEntryID string, contentRevision int64, userMessage string, language string, references []Reference, editorCtx EditorContext, pluginActions []PluginAction, regenerate bool, confirmTimeout time.Duration, maxRetries int, reasoningEffort string, taskDirectory *TaskDirectoryBinding, ownerIdentityID string, ownerAuthorizationExpiresAt int64, requestTimeout, streamIdleTimeout time.Duration, turnControl AgentTurnControl) <-chan AgentEvent {
 	ch := make(chan AgentEvent, 256)
+	emitTurnPhases := turnControl != nil
+	if turnControl == nil {
+		turnControl = noopAgentTurnControl{}
+	}
 
 	go func() {
 		defer close(ch)
@@ -602,9 +619,21 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 			sendCriticalEvent(ctx, ch, AgentEvent{Type: "error", Error: kernelModel.Conf.Language(28)})
 			return
 		}
+		turnControl.TurnStarted(turn.TurnID)
+		defer func() {
+			turnControl.SetPhase(turn.TurnID, AgentTurnAwaitingCommit)
+			turnControl.TurnTerminated(turn.TurnID)
+		}()
 		// turn 是恢复协议的身份锚点，且此时事件通道仍为空。直接写入缓冲区，确保请求刚被取消时
 		// API 的后台排空逻辑仍能记录 turnID 并在最终检查点落盘后通知前端恢复。
 		ch <- AgentEvent{Type: "turn", TurnID: turn.TurnID}
+		setPhase := func(phase AgentTurnPhase) {
+			turnControl.SetPhase(turn.TurnID, phase)
+			if emitTurnPhases {
+				sendEvent(ch, AgentEvent{Type: "turn_phase", TurnID: turn.TurnID, Phase: phase})
+			}
+		}
+		setPhase(AgentTurnStarting)
 		runtimeFinalized := false
 		saveTurn := func(state string) bool {
 			turn.State = state
@@ -640,6 +669,53 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 				saveTurn("interrupted")
 			}
 		}()
+		claimAndInjectSteers := func(final bool) (int, bool) {
+			if final {
+				if emitTurnPhases {
+					sendEvent(ch, AgentEvent{Type: "turn_phase", TurnID: turn.TurnID, Phase: AgentTurnSealing})
+				}
+			} else {
+				setPhase(AgentTurnBoundary)
+			}
+			steers, err := turnControl.ClaimSteers(turn.TurnID, final)
+			if err != nil {
+				logging.LogErrorf("claim agent steer failed: %s", err)
+				saveTurn("interrupted")
+				sendCriticalEvent(ctx, ch, AgentEvent{Type: "error", Error: err.Error(), TurnID: turn.TurnID})
+				return 0, false
+			}
+			if len(steers) == 0 {
+				return 0, true
+			}
+			inputIDs := make([]string, 0, len(steers))
+			for _, steer := range steers {
+				content := kernelModel.Conf.Variables.Resolve(steer.Content)
+				checkpointMsgs = append(checkpointMsgs, newAgentUserMessageWithBlock(content, steer.BlockHTML, steer.UserEntryID, steer.References, steer.EditorContext))
+				messages = append(messages, openai.ChatCompletionMessage{
+					Role:    openai.ChatMessageRoleUser,
+					Content: buildUserMessageContent(content, steer.References, cloneEditorContext(steer.EditorContext)),
+				})
+				inputIDs = append(inputIDs, steer.InputID)
+			}
+			if !saveTurn("running") {
+				turnControl.AcknowledgeSteers(turn.TurnID, inputIDs, false)
+				return 0, false
+			}
+			turnControl.AcknowledgeSteers(turn.TurnID, inputIDs, true)
+			for _, steer := range steers {
+				sendCriticalEvent(ctx, ch, AgentEvent{
+					Type:          "steer_injected",
+					TurnID:        turn.TurnID,
+					InputID:       steer.InputID,
+					UserEntryID:   steer.UserEntryID,
+					Content:       steer.Content,
+					BlockHTML:     steer.BlockHTML,
+					References:    append([]Reference(nil), steer.References...),
+					EditorContext: cloneEditorContext(steer.EditorContext),
+				})
+			}
+			return len(steers), true
+		}
 
 		temperature := kernelModel.Conf.AI.Agent.Temperature
 		if temperature < 0 || 2 < temperature {
@@ -648,11 +724,24 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 		maxCompletionTokens := max(kernelModel.Conf.AI.Agent.MaxCompletionTokens, 0)
 		maxRounds := kernelModel.Conf.AI.Agent.MaxToolCallRounds
 
-		for round := 0; maxRounds <= 0 || round < maxRounds; round++ {
+		for round := 0; ; round++ {
 			select {
 			case <-ctx.Done():
 				return
 			default:
+			}
+			if maxRounds > 0 && round >= maxRounds {
+				injected, ok := claimAndInjectSteers(true)
+				if !ok {
+					return
+				}
+				if injected == 0 {
+					break
+				}
+			} else {
+				if _, ok := claimAndInjectSteers(false); !ok {
+					return
+				}
 			}
 
 			if round == 0 {
@@ -664,6 +753,7 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 			// 单工具路由（包装工具模式）：真实工具列表 → 尾部 <tool_list> 动态区段消息，
 			// tools 字段固定为包装工具（chatseqtrie 默认值 tool_call，与 magi 侧一致）。
 			// 不修改 messages 变量本身——动态区段只存在于本次请求快照，不写入历史。
+			setPhase(AgentTurnProvider)
 			reqMessages, reqTools := applyAgentToolRouting(messages, tools)
 			req := openai.ChatCompletionRequest{
 				Model:               model,
@@ -859,6 +949,7 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 				if !saveTurn("running") {
 					return
 				}
+				setPhase(AgentTurnToolRunning)
 
 				for i, tc := range aggregatedToolCalls {
 					args := parsedArgs[i]
@@ -1164,10 +1255,18 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 				Content:          content,
 				ReasoningContent: reasoningBuilder.String(),
 			})
+			injected, ok := claimAndInjectSteers(true)
+			if !ok {
+				return
+			}
+			if injected > 0 {
+				continue
+			}
 			turn.TokenBreakdown = computeBreakdownIfNeeded(model, messages, tools, lastPromptTokens)
 			if !saveTurn("finished") {
 				return
 			}
+			setPhase(AgentTurnAwaitingCommit)
 
 			sendEvent(ch, AgentEvent{Type: "usage", PromptTokens: totalPrompt, CompletionTokens: totalCompletion, LastPromptTokens: lastPromptTokens, TokenBreakdown: turn.TokenBreakdown, CachedTokens: lastCachedTokens, ContextLimit: contextLimit})
 			sendCriticalEvent(ctx, ch, AgentEvent{Type: "done", TurnID: turn.TurnID})
@@ -1178,6 +1277,7 @@ func AgentChat(ctx context.Context, client *openai.Client, model string, session
 		if !saveTurn("finished") {
 			return
 		}
+		setPhase(AgentTurnAwaitingCommit)
 		sendEvent(ch, AgentEvent{Type: "usage", PromptTokens: totalPrompt, CompletionTokens: totalCompletion, LastPromptTokens: lastPromptTokens, TokenBreakdown: turn.TokenBreakdown, CachedTokens: lastCachedTokens, ContextLimit: contextLimit})
 		sendCriticalEvent(ctx, ch, AgentEvent{Type: "done", TurnID: turn.TurnID})
 	}()
@@ -1740,6 +1840,7 @@ func entriesToAgentMessages(entries []SessionEntry) []AgentMessage {
 			m := AgentMessage{
 				Role:       "user",
 				Content:    e.Content,
+				BlockHTML:  e.BlockHTML,
 				References: append([]Reference(nil), e.References...),
 				EntryID:    e.ID,
 			}
@@ -1856,6 +1957,7 @@ func agentMessagesToEntries(msgs []AgentMessage) []SessionEntry {
 				ID:            id,
 				Type:          "user",
 				Content:       m.Content,
+				BlockHTML:     m.BlockHTML,
 				References:    append([]Reference(nil), m.References...),
 				EditorContext: editorCtx,
 			})

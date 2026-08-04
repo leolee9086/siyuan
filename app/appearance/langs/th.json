@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "รอดำเนินการ",
+    "agentQueueInjecting": "กำลังส่ง",
+    "agentQueueBlocked": "ถูกบล็อก",
+    "agentQueueFailed": "ล้มเหลว",
+    "agentSteer": "ชี้นำ",
+    "agentQueue": "คิว",
     "backlinkShowBottom": "แสดงลิงก์ย้อนกลับที่ด้านล่างของเอกสาร",
 	"deleteRefConfirm": "เนื้อหาที่จะลบหรือตัดมีบล็อกที่ถูกอ้างอิง คุณต้องการดำเนินการต่อหรือไม่?",
 	"addAllAiModels": "เพิ่มโมเดลทั้งหมด",

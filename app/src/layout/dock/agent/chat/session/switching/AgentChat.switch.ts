@@ -118,6 +118,7 @@ export function handleCurrentSessionDeleted(runtime: AgentChatRuntime) {
     runtime.titleElement.textContent = runtime.defaultTitle;
     runtime.sessionPorts.presentation.showWelcome(runtime);
     runtime.sessionPorts.presentation.scrollToBottom(runtime, true);
+    void runtime.conversationController?.activate(runtime.conversationKind, runtime.sessionId, {subscribe: false});
 }
 
 /** 切换到指定持久化会话。 */
@@ -129,6 +130,7 @@ export async function switchSession(runtime: AgentChatRuntime, id: string) {
         return;
     }
     applyAgentChatSession(runtime, session);
+    await runtime.conversationController?.activate(runtime.conversationKind, session.id);
     runtime.messagesContainer.classList.add("agent-chat__messages--switching");
     runtime.messagesContainer.addEventListener("transitionend", () => {
         renderSwitchedAgentChatSession(runtime, session);

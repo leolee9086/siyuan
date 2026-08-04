@@ -71,6 +71,14 @@ export {deleteSession};
 import {initSessions} from "../../session/lifecycle/AgentChat.session";
 /** 导出会话初始化命令。 */
 export {initSessions};
+/** 用途：绑定统一投递和 queue dock；使用范围：AgentChat 初始化；解耦评估：生命周期组合根只调用 UI 绑定入口，不读取队列 DOM 或 adapter 实现。 */
+import {bindAgentConversationControls} from "../queue/AgentChat.queueDock";
+/** 导出会话控制绑定入口。 */
+export {bindAgentConversationControls};
+/** 用途：按当前目标注册状态同步执行控制器；使用范围：目标或恢复会话切换；解耦评估：生命周期门面只调用组合根入口，不读取 adapter 实现。 */
+import {syncAgentChatConversationController} from "../../runtime/AgentChat.conversationController";
+/** 导出执行控制器同步入口。 */
+export {syncAgentChatConversationController};
 /** 用途：加载 MAGI 历史；使用范围：会话目标刷新。 */
 import {loadMagiIdentityConversation} from "../../session/lifecycle/AgentChat.magi";
 /** 导出 MAGI 历史加载命令。 */

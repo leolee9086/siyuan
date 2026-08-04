@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "Oczekuje",
+    "agentQueueInjecting": "Wysyłanie",
+    "agentQueueBlocked": "Zablokowane",
+    "agentQueueFailed": "Niepowodzenie",
+    "agentSteer": "Pokieruj",
+    "agentQueue": "Kolejka",
     "backlinkShowBottom": "Pokaż odniesienia zwrotne na dole dokumentu",
 	"deleteRefConfirm": "Treść przeznaczona do usunięcia lub wycięcia zawiera bloki, do których prowadzą odwołania. Czy chcesz kontynuować?",
 	"addAllAiModels": "Dodaj wszystkie modele",

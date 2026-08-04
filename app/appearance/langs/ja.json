@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "保留中",
+    "agentQueueInjecting": "送信中",
+    "agentQueueBlocked": "ブロック済み",
+    "agentQueueFailed": "失敗",
+    "agentSteer": "誘導",
+    "agentQueue": "キュー",
     "backlinkShowBottom": "文書の下部にバックリンクを表示",
 	"deleteRefConfirm": "削除または切り取る内容には参照されているブロックが含まれています。続行しますか？",
 	"addAllAiModels": "すべてのモデルを追加",

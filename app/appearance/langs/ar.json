@@ -1,4 +1,10 @@
 {
+    "agentQueuePending": "معلّق",
+    "agentQueueInjecting": "جارٍ الإرسال",
+    "agentQueueBlocked": "محظور",
+    "agentQueueFailed": "فشل",
+    "agentSteer": "توجيه",
+    "agentQueue": "قائمة الانتظار",
     "backlinkShowBottom": "إظهار الروابط المرجعية في أسفل المستند",
 	"deleteRefConfirm": "يحتوي المحتوى المراد حذفه أو قصه على كتل مشار إليها. هل تريد المتابعة؟",
 	"addAllAiModels": "إضافة جميع النماذج",

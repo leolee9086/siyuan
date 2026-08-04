@@ -1,0 +1,153 @@
+import {beforeEach, describe, expect, it, vi} from "vitest";
+
+const getSelectedModel = vi.hoisted(() => vi.fn(() => "provider:model"));
+const requireSiyuanConfig = vi.hoisted(() => vi.fn(() => ({appearance: {lang: "English"}})));
+const saveSession = vi.hoisted(() => vi.fn(async () => undefined));
+const handleSSEEvent = vi.hoisted(() => vi.fn());
+const handleConfigError = vi.hoisted(() => vi.fn());
+const setStreaming = vi.hoisted(() => vi.fn());
+const isActiveAgentPanelRequest = vi.hoisted(() => vi.fn(() => true));
+const startOutgoingAgentTurn = vi.hoisted(() => vi.fn(async () => "legacy-entry"));
+const createAgentChatRequestContext = vi.hoisted(() => vi.fn(() => ({
+    conversation: {kind: "native-agent", sessionId: "session-1"},
+    signal: new AbortController().signal,
+})));
+
+vi.mock("../../../../src/layout/dock/agent/chat/message/sending/imports", () => ({
+    getSelectedModel,
+    requireSiyuanConfig,
+    saveSession,
+    handleSSEEvent,
+    handleConfigError,
+    setStreaming,
+    isActiveAgentPanelRequest,
+}));
+vi.mock("../../../../src/layout/dock/agent/chat/message/sending/AgentChat.send.helpers", () => ({
+    startOutgoingAgentTurn,
+    createAgentChatRequestContext,
+}));
+
+import type {AgentChatRuntime} from "../../../../src/layout/dock/agent/chat/AgentChat.runtime.types";
+import type {AgentConversationState} from "../../../../src/layout/dock/agent/runtime/conversation/agentConversation.types";
+import {submitAgentChatConversation} from "../../../../src/layout/dock/agent/chat/message/sending/AgentChat.conversationSend";
+
+function createRequest() {
+    return {
+        text: "new input",
+        blockHTML: "<p>new input</p>",
+        references: [],
+        editorContext: undefined,
+        pluginActions: [],
+    };
+}
+
+function createState(overrides: Partial<AgentConversationState> = {}): AgentConversationState {
+    return {
+        adapter: {
+            kind: "native-agent",
+            capabilities: {
+                supportsSteer: true, supportsQueue: true, supportsInterrupt: true,
+                supportsQueueEdit: true, usesSessionEvents: true,
+            },
+            submit: vi.fn(),
+        },
+        sessionID: "session-1", activation: 1, eventSeq: 0, queueVersion: 7, queueItems: [],
+        turnID: "", phase: "idle", steerable: false, selectedDelivery: "queue",
+        subscriptionController: null, reconnectTimer: 0, submittingInputIDs: new Set(),
+        connected: true, disposed: false,
+        ...overrides,
+    };
+}
+
+function createRuntime(state: AgentConversationState, ids: string[] = ["input-1", "entry-1"]) {
+    const controller = {
+        state,
+        activate: vi.fn(async () => undefined),
+        connect: vi.fn(async () => undefined),
+        refresh: vi.fn(async () => undefined),
+        dispose: vi.fn(),
+        submit: vi.fn(async (input) => ({inputID: input.inputID, queueVersion: 8})),
+        updateQueue: vi.fn(async (mutation) => ({inputID: mutation.input.inputID, queueVersion: 8})),
+        cancelQueue: vi.fn(), promoteQueue: vi.fn(), interrupt: vi.fn(), setDelivery: vi.fn(),
+    };
+    const runtime = {
+        sessionId: "session-1",
+        conversationKind: "native-agent",
+        entries: [{id: "existing", type: "user", content: "already saved"}],
+        selectedReasoningEffort: "high",
+        editingQueueInputID: "",
+        abortController: null,
+        conversationController: controller,
+        sessionPorts: {
+            requestHeaders: vi.fn(() => ({Authorization: "Bearer test"})),
+            repository: {
+                getRevision: vi.fn(() => 7),
+                newSessionId: vi.fn(() => ids.shift() || "generated-id"),
+            },
+        },
+        composer: {clear: vi.fn()},
+        promptSourceController: {closeActions: vi.fn()},
+        capabilities: {showMessage: vi.fn()},
+    } as unknown as AgentChatRuntime;
+    return {runtime, controller};
+}
+
+describe("AgentChat conversation sending", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("admits an idle input as queue without writing the main history", async () => {
+        const {runtime, controller} = createRuntime(createState());
+        const originalEntries = runtime.entries;
+
+        await submitAgentChatConversation(runtime, createRequest());
+
+        expect(controller.submit).toHaveBeenCalledOnce();
+        expect(controller.submit.mock.calls[0]![0]).toMatchObject({
+            inputID: "input-1", userEntryID: "entry-1", delivery: "queue", sessionID: "session-1",
+            message: "new input",
+        });
+        expect(controller.submit.mock.calls[0]![0]).not.toHaveProperty("expectedTurnID");
+        expect(controller.updateQueue).not.toHaveBeenCalled();
+        expect(runtime.entries).toBe(originalEntries);
+        expect(runtime.entries).toHaveLength(1);
+        expect(runtime.composer!.clear).toHaveBeenCalledOnce();
+        expect(runtime.promptSourceController.closeActions).toHaveBeenCalledOnce();
+        expect(saveSession).toHaveBeenCalledOnce();
+    });
+
+    it("selects steer for a steerable running turn and queue when explicitly selected", async () => {
+        const state = createState({turnID: "turn-1", phase: "provider_stream", steerable: true, selectedDelivery: "steer"});
+        const {runtime, controller} = createRuntime(state, ["steer-id", "steer-entry", "queue-id", "queue-entry"]);
+
+        await submitAgentChatConversation(runtime, createRequest());
+        state.selectedDelivery = "queue";
+        await submitAgentChatConversation(runtime, createRequest());
+
+        expect(controller.submit).toHaveBeenCalledTimes(2);
+        expect(controller.submit.mock.calls[0]![0]).toMatchObject({
+            inputID: "steer-id", delivery: "steer", expectedTurnID: "turn-1",
+        });
+        expect(controller.submit.mock.calls[1]![0]).toMatchObject({
+            inputID: "queue-id", delivery: "queue",
+        });
+        expect(controller.submit.mock.calls[1]![0]).not.toHaveProperty("expectedTurnID");
+    });
+
+    it("edits a pending queue item through update while retaining its inputID", async () => {
+        const state = createState({turnID: "turn-1", phase: "provider_stream", steerable: true});
+        const {runtime, controller} = createRuntime(state, ["new-entry"]);
+        runtime.editingQueueInputID = "existing-queue-input";
+
+        await submitAgentChatConversation(runtime, createRequest());
+
+        expect(controller.updateQueue).toHaveBeenCalledOnce();
+        expect(controller.updateQueue.mock.calls[0]![0]).toMatchObject({
+            queueVersion: 7,
+            input: {inputID: "existing-queue-input", delivery: "queue", message: "new input"},
+        });
+        expect(controller.submit).not.toHaveBeenCalled();
+        expect(runtime.editingQueueInputID).toBe("");
+    });
+});
