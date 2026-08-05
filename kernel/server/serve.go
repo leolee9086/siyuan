@@ -1107,11 +1107,7 @@ func serveWebSocket(ginServer *gin.Engine) {
 	util.WebSocketServer = melody.New()
 	util.WebSocketServer.Config.MaxMessageSize = 1024 * 1024 * 8
 
-	ginServer.GET("/ws", func(c *gin.Context) {
-		if err := util.WebSocketServer.HandleRequest(c.Writer, c.Request); err != nil {
-			logging.LogErrorf("handle command failed: %s", err)
-		}
-	})
+	ginServer.GET("/ws", handleWebSocketRequest)
 
 	util.WebSocketServer.HandlePong(func(session *melody.Session) {
 		//logging.LogInfof("pong")

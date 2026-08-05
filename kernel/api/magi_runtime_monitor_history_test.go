@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	magiwebsocket "github.com/siyuan-note/siyuan/kernel/nerv/magi/websocket"
 )
 
 func newRuntimeMonitorHistoryContext(body string, authHeader string) (*gin.Context, *httptest.ResponseRecorder) {
@@ -130,6 +131,28 @@ func newRuntimeMonitorWebSocketRequest(authProtocol string) *http.Request {
 		request.Header.Set("Sec-WebSocket-Protocol", authProtocol)
 	}
 	return request
+}
+
+func TestMagiRuntimeMonitorWebSocketNegotiatesPublicProtocol(t *testing.T) {
+	request := newRuntimeMonitorWebSocketRequest(strings.Join([]string{
+		magiwebsocket.RuntimeMonitorSubprotocol,
+		"magi_ak_v1_payload.signature",
+	}, ", "))
+
+	if got := negotiateMagiRuntimeMonitorWebSocketProtocol(request); got != magiwebsocket.RuntimeMonitorSubprotocol {
+		t.Fatalf("negotiated protocol = %q, want %q", got, magiwebsocket.RuntimeMonitorSubprotocol)
+	}
+	if got := resolveMagiArmorTokenFromWebSocketRequest(request); got != "magi_ak_v1_payload.signature" {
+		t.Fatalf("resolved armor = %q, want offered armor token", got)
+	}
+}
+
+func TestMagiRuntimeMonitorWebSocketRequiresPublicProtocolForNegotiation(t *testing.T) {
+	request := newRuntimeMonitorWebSocketRequest("magi_ak_v1_payload.signature")
+
+	if got := negotiateMagiRuntimeMonitorWebSocketProtocol(request); got != "" {
+		t.Fatalf("negotiated protocol = %q, want empty without public protocol", got)
+	}
 }
 
 func TestMagiRuntimeMonitorWebSocketRequiresGuardianArmorToken(t *testing.T) {

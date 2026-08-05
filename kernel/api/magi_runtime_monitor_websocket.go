@@ -47,6 +47,19 @@ func resolveMagiArmorTokenFromWebSocketRequest(request *http.Request) string {
 	return ""
 }
 
+func negotiateMagiRuntimeMonitorWebSocketProtocol(request *http.Request) string {
+	if !isMagiRuntimeMonitorWebSocketRequest(request) {
+		return ""
+	}
+	for _, protocol := range strings.Split(request.Header.Get("Sec-WebSocket-Protocol"), ",") {
+		candidate := strings.TrimSpace(protocol)
+		if candidate == magiwebsocket.RuntimeMonitorSubprotocol {
+			return candidate
+		}
+	}
+	return ""
+}
+
 func authorizeMagiRuntimeMonitorWebSocket(request *http.Request) (*magiArmorClaimsV1, *magiSourceAuthError) {
 	claims, authErr := verifyMagiArmorToken(resolveMagiArmorTokenFromWebSocketRequest(request))
 	if authErr != nil {
@@ -68,6 +81,11 @@ func authorizeMagiRuntimeMonitorWebSocket(request *http.Request) (*magiArmorClai
 // IsMagiRuntimeMonitorWebSocketRequest 标识会暴露三贤人实时思考及本次启动历史的监控连接。
 func IsMagiRuntimeMonitorWebSocketRequest(request *http.Request) bool {
 	return isMagiRuntimeMonitorWebSocketRequest(request)
+}
+
+// NegotiateMagiRuntimeMonitorWebSocketProtocol 选择 runtime monitor 的公开协议，armor 仍由独立鉴权路径处理。
+func NegotiateMagiRuntimeMonitorWebSocketProtocol(request *http.Request) string {
+	return negotiateMagiRuntimeMonitorWebSocketProtocol(request)
 }
 
 // AuthorizeMagiRuntimeMonitorWebSocket 校验监控连接的 armor 身份，并返回服务端强制断开的到期时间。

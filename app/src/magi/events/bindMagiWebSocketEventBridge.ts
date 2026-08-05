@@ -8,6 +8,8 @@ import {
 } from "./magiWebSocketBridge";
 import { dispatchMagiWebSocketMessage } from "./dispatchMagiWebSocketMessage";
 
+const MAGI_RUNTIME_MONITOR_WEBSOCKET_PROTOCOL = "magi-runtime-monitor-v1";
+
 interface MagiWebSocketBridgeRuntime {
     eventBus: MagiEventBus;
     options: MagiWebSocketBridgeOptions;
@@ -78,7 +80,10 @@ function connectWebSocket(runtime: MagiWebSocketBridgeRuntime): void {
     runtime.options.onConnecting?.();
     const websocketURL = buildMagiWebSocketURL(runtime.sessionId);
     const nextSocket = runtime.armorToken
-        ? runtime.createWebSocket(websocketURL, [runtime.armorToken])
+        ? runtime.createWebSocket(websocketURL, [
+            MAGI_RUNTIME_MONITOR_WEBSOCKET_PROTOCOL,
+            runtime.armorToken,
+        ])
         : runtime.createWebSocket(websocketURL);
     runtime.ws = nextSocket;
     nextSocket.onopen = () => markBridgeOpen(runtime, nextSocket);

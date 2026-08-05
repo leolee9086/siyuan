@@ -70,7 +70,7 @@ describe("bindMagiWebSocketEventBridge", () => {
 
         expect(websocketFactory).toHaveBeenCalledWith(
             "ws://example.test/ws?app=magi&id=runtime-session&type=main",
-            ["magi_ak_v1_token.signature"],
+            ["magi-runtime-monitor-v1", "magi_ak_v1_token.signature"],
         );
     });
 
