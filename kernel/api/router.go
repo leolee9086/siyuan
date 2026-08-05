@@ -583,6 +583,7 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/ai/retryFailedEmbedding", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, retryFailedEmbedding)
 	ginServer.Handle("POST", "/api/ai/agent/chat", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, agentChat)
 	ginServer.Handle("POST", "/api/ai/agent/steer", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, agentSteer)
+	ginServer.Handle("POST", "/api/ai/agent/turn", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, agentTurn)
 	ginServer.Handle("POST", "/api/ai/agent/queue", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, agentQueue)
 	ginServer.Handle("GET", "/api/ai/agent/queue", model.CheckAuth, model.CheckAdminRole, getAgentQueue)
 	ginServer.Handle("POST", "/api/ai/agent/queue/update", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, updateAgentQueue)

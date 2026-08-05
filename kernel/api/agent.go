@@ -26,7 +26,6 @@ import (
 	"net"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/88250/gulu"
@@ -156,25 +155,60 @@ func agentKernelDeviceIPs() []net.IP {
 	return ret
 }
 
-func requireAgentSessionAccess(c *gin.Context, sessionID string) (*agentOwnerAuthorization, *agent.TaskDirectoryBinding, bool) {
+type agentSessionAccessFailure struct {
+	StatusCode int
+	Reason     string
+	Message    string
+	SourceAuth *magiSourceAuthError
+}
+
+func inspectAgentSessionAccess(c *gin.Context, sessionID string) (*agentOwnerAuthorization, *agent.TaskDirectoryBinding, *agentSessionAccessFailure) {
 	binding, err := agent.GetTaskDirectoryBinding(sessionID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": -1, "msg": "failed to inspect agent session"})
-		return nil, nil, false
+		return nil, nil, &agentSessionAccessFailure{
+			StatusCode: http.StatusInternalServerError,
+			Reason:     "session_access_inspection_failed",
+			Message:    "failed to inspect agent session",
+		}
 	}
 	ownerAuth, authErr := optionalAgentOwnerAuthorization(c)
 	if authErr != nil {
-		writeMagiSourceAuthError(c, authErr)
-		return nil, binding, false
+		statusCode := authErr.StatusCode
+		if statusCode == 0 {
+			statusCode = http.StatusUnauthorized
+		}
+		return nil, binding, &agentSessionAccessFailure{
+			StatusCode: statusCode,
+			Reason:     authErr.Code,
+			Message:    authErr.Message,
+			SourceAuth: authErr,
+		}
 	}
 	if binding == nil {
-		return ownerAuth, nil, true
+		return ownerAuth, nil, nil
 	}
 	if ownerAuth == nil || !subtleConstantTimeStringEqual(binding.OwnerIdentityID, ownerAuth.IdentityID) {
-		c.JSON(http.StatusForbidden, gin.H{"code": -1, "msg": "verified device owner access is required"})
-		return nil, binding, false
+		return nil, binding, &agentSessionAccessFailure{
+			StatusCode: http.StatusForbidden,
+			Reason:     "owner_access_required",
+			Message:    "verified device owner access is required",
+		}
 	}
-	return ownerAuth, binding, true
+	return ownerAuth, binding, nil
+
+}
+
+func requireAgentSessionAccess(c *gin.Context, sessionID string) (*agentOwnerAuthorization, *agent.TaskDirectoryBinding, bool) {
+	ownerAuth, binding, failure := inspectAgentSessionAccess(c, sessionID)
+	if failure == nil {
+		return ownerAuth, binding, true
+	}
+	if failure.SourceAuth != nil {
+		writeMagiSourceAuthError(c, failure.SourceAuth)
+	} else {
+		c.JSON(failure.StatusCode, gin.H{"code": -1, "msg": failure.Message})
+	}
+	return nil, binding, false
 }
 
 func subtleConstantTimeStringEqual(left, right string) bool {
@@ -185,19 +219,20 @@ func subtleConstantTimeStringEqual(left, right string) bool {
 }
 
 func requireRunningAgentAccess(c *gin.Context, sessionID string) bool {
-	ownerAuth, binding, ok := requireAgentSessionAccess(c, sessionID)
-	if !ok {
+	ownerAuth, binding, failure := inspectAgentSessionAccess(c, sessionID)
+	if failure != nil {
+		writeAgentInteractionFailure(c, failure.StatusCode, failure.Reason, "error", failure.Message)
 		return false
 	}
-	sessionsMu.Lock()
-	running := runningSessions[sessionID]
-	sessionsMu.Unlock()
-	if running == nil {
-		c.JSON(http.StatusConflict, gin.H{"code": -1, "msg": "agent session is not running"})
+	activity := readAgentExecutorActivity(sessionID)
+	if !activity.Active {
+		writeAgentInteractionFailure(c, http.StatusConflict, "session_not_running", "expired",
+			"agent session is not running")
 		return false
 	}
-	if binding != nil && (ownerAuth == nil || !subtleConstantTimeStringEqual(running.ownerIdentityID, ownerAuth.IdentityID)) {
-		c.JSON(http.StatusForbidden, gin.H{"code": -1, "msg": "verified device owner access is required"})
+	if binding != nil && (ownerAuth == nil || !subtleConstantTimeStringEqual(activity.OwnerIdentityID, ownerAuth.IdentityID)) {
+		writeAgentInteractionFailure(c, http.StatusForbidden, "owner_access_required", "error",
+			"verified device owner access is required")
 		return false
 	}
 	return true
@@ -217,22 +252,8 @@ type agentChatReq struct {
 	ReasoningEffort string               `json:"reasoningEffort,omitempty"`
 }
 
-type runningSession struct {
-	app             string
-	turnID          string
-	committed       bool
-	terminal        bool
-	ownerIdentityID string
-}
-
-var sessionsMu sync.Mutex
-var runningSessions = map[string]*runningSession{}
-
 func isAgentSessionRunning(sessionID string) bool {
-	sessionsMu.Lock()
-	legacyRunning := runningSessions[sessionID] != nil
-	sessionsMu.Unlock()
-	return legacyRunning || isAgentExecutorSessionActive(sessionID)
+	return isAgentExecutorSessionActive(sessionID)
 }
 
 func agentChat(c *gin.Context) {
@@ -284,46 +305,6 @@ func agentChat(c *gin.Context) {
 		return
 	}
 	ctx, cancel := context.WithCancel(c.Request.Context())
-
-	// 实例级互斥：先占用会话，再启动 Agent，避免竞争失败时短暂执行工具或发起模型请求。
-	sessionsMu.Lock()
-	if _, ok := runningSessions[req.SessionID]; ok {
-		sessionsMu.Unlock()
-		cancel()
-		ret := gulu.Ret.NewResult()
-		ret.Code = -1
-		ret.Msg = "session is busy in another instance"
-		c.JSON(http.StatusConflict, ret)
-		return
-	}
-	running := &runningSession{app: app, ownerIdentityID: turnParams.OwnerIdentityID}
-	runningSessions[req.SessionID] = running
-	sessionsMu.Unlock()
-
-	// 中断模型（外部行为一致）：请求语义从「启动 agent」变为「投递消息到消息源 + 订阅响应」。
-	// 执行器常驻阻塞在 WaitNext 上（闲时零 CPU），消息入队（Submit）触发唤醒（中断），
-	// 执行器 Take 后启动 AgentChat（turn 执行体）并把事件转发到订阅 channel；
-	// 本 handler 只负责从订阅 channel 读事件写 SSE——事件类型与 runningSessions
-	// 语义（409 互斥、streamStart/streamEnd）与改造前完全一致。
-	executor := getAgentExecutor(req.SessionID)
-	subCh, subErr := executor.subscribe(ctx)
-	if subErr != nil {
-		// 单流限制（当前由 runningSessions 409 互斥保证不可达，防御路径）：
-		// 释放占位并返回冲突，不破坏已存在的响应流。
-		sessionsMu.Lock()
-		if runningSessions[req.SessionID] == running {
-			delete(runningSessions, req.SessionID)
-		}
-		sessionsMu.Unlock()
-		cancel()
-		ret := gulu.Ret.NewResult()
-		ret.Code = -1
-		ret.Msg = subErr.Error()
-		c.JSON(http.StatusConflict, ret)
-		return
-	}
-	defer executor.unsubscribe()
-
 	input := &agentqueue.Input{
 		ID:        ast.NewNodeID(),
 		SessionID: req.SessionID,
@@ -334,20 +315,23 @@ func agentChat(c *gin.Context) {
 			turnParamsKey: turnParams,
 		},
 	}
-	if _, err := agentInboxManager.Submit(input); err != nil {
-		// 入队失败（如队列已满）：释放占位并返回冲突，保持与「无法启动」一致的失败语义。
-		sessionsMu.Lock()
-		if runningSessions[req.SessionID] == running {
-			delete(runningSessions, req.SessionID)
-		}
-		sessionsMu.Unlock()
+	executor := getAgentExecutor(req.SessionID)
+	sub, _, admissionErr := executor.admitLegacyTurn(ctx, agentLegacySubscriptionMetadata{
+		App: app, OwnerIdentityID: turnParams.OwnerIdentityID,
+	}, input)
+	if admissionErr != nil {
 		cancel()
 		ret := gulu.Ret.NewResult()
 		ret.Code = -1
-		ret.Msg = "session queue rejected the message: " + err.Error()
+		if errors.Is(admissionErr, ErrAgentSessionBusy) {
+			ret.Msg = "session is busy in another instance"
+		} else {
+			ret.Msg = "session queue rejected the message: " + admissionErr.Error()
+		}
 		c.JSON(http.StatusConflict, ret)
 		return
 	}
+	subCh := sub.ch
 	defer cancel()
 	streamClosed := false
 	defer func() {
@@ -355,10 +339,9 @@ func agentChat(c *gin.Context) {
 			return
 		}
 		go func() {
-			for event := range subCh {
-				recordRunningEvent(req.SessionID, running, event)
+			for range subCh {
 			}
-			finishRunningSession(req.SessionID, running)
+			executor.unsubscribe(sub)
 		}()
 	}()
 
@@ -385,18 +368,17 @@ func agentChat(c *gin.Context) {
 		ownerAuthorizationDeadline = time.After(remaining)
 	}
 
-	// 通知其他实例：该会话的流已开始，镜像端可显示"对话进行中"占位。
-	broadcastAgentSessionChanged(app, req.SessionID, "streamStart")
+	// 通知其他实例：该会话的流已开始，镜像端可显示“对话进行中”占位。
+	executor.startLegacyStream(sub)
 
 	for {
 		select {
 		case event, ok := <-subCh:
 			if !ok {
 				streamClosed = true
-				finishRunningSession(req.SessionID, running)
+				executor.unsubscribe(sub)
 				return
 			}
-			recordRunningEvent(req.SessionID, running, event)
 			if err := writeSSE(c, event); err != nil {
 				return
 			}
@@ -426,44 +408,6 @@ func newAgentSessionDeadline(timeoutSeconds int) (*time.Timer, <-chan time.Time)
 	return timer, timer.C
 }
 
-func recordRunningEvent(sessionID string, running *runningSession, event agent.AgentEvent) {
-	sessionsMu.Lock()
-	defer sessionsMu.Unlock()
-	if runningSessions[sessionID] != running {
-		return
-	}
-	if event.Type == "turn" {
-		running.turnID = event.TurnID
-	}
-	if event.Type == "done" || event.Type == "error" {
-		running.terminal = true
-	}
-}
-
-func finishRunningSession(sessionID string, running *runningSession) {
-	sessionsMu.Lock()
-	current := runningSessions[sessionID]
-	if current != running {
-		sessionsMu.Unlock()
-		return
-	}
-	uncommitted := running.turnID != "" && !running.committed
-	delete(runningSessions, sessionID)
-	sessionsMu.Unlock()
-	broadcastAgentSessionChanged(running.app, sessionID, "streamEnd")
-	if uncommitted {
-		binding, err := agent.GetTaskDirectoryBinding(sessionID)
-		if err != nil {
-			logging.LogErrorf("inspect agent session before broadcast failed: %s", err)
-		} else if binding == nil {
-			util.BroadcastByType("agentChat", "agentSessionChanged", 0, "", map[string]string{
-				"sessionID": sessionID,
-				"action":    "update",
-			})
-		}
-	}
-}
-
 type agentConfirmReq struct {
 	SessionID string `json:"sessionID"`
 	ConfirmID string `json:"confirmID"`
@@ -471,26 +415,36 @@ type agentConfirmReq struct {
 	Always    bool   `json:"always"`
 }
 
+func writeAgentInteractionFailure(c *gin.Context, statusCode int, reason, status, message string) {
+	ret := gulu.Ret.NewResult()
+	ret.Code = -1
+	ret.Msg = message
+	ret.Data = gin.H{"reason": reason, "status": status}
+	c.JSON(statusCode, ret)
+}
+
+func writeAgentInteractionAccepted(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	ret.Data = gin.H{"reason": "accepted", "status": "accepted"}
+	c.JSON(http.StatusOK, ret)
+}
+
 func agentChatConfirm(c *gin.Context) {
 	req := &agentConfirmReq{}
 	if err := c.ShouldBindJSON(req); err != nil {
-		ret := gulu.Ret.NewResult()
-		ret.Code = -1
-		ret.Msg = "invalid request: " + err.Error()
-		c.JSON(http.StatusOK, ret)
+		writeAgentInteractionFailure(c, http.StatusBadRequest, "invalid_request", "error",
+			"invalid request: "+err.Error())
 		return
 	}
 	if !requireRunningAgentAccess(c, req.SessionID) {
 		return
 	}
-	ret := gulu.Ret.NewResult()
 	if !agent.ConfirmSession(req.SessionID, req.ConfirmID, req.Approved, req.Always) {
-		ret.Code = -1
-		ret.Msg = "agent confirmation expired"
-		c.JSON(http.StatusConflict, ret)
+		writeAgentInteractionFailure(c, http.StatusConflict, "interaction_expired", "expired",
+			"agent confirmation expired")
 		return
 	}
-	c.JSON(http.StatusOK, ret)
+	writeAgentInteractionAccepted(c)
 }
 
 type agentQuestionReq struct {
@@ -502,23 +456,19 @@ type agentQuestionReq struct {
 func agentChatQuestion(c *gin.Context) {
 	req := &agentQuestionReq{}
 	if err := c.ShouldBindJSON(req); err != nil {
-		ret := gulu.Ret.NewResult()
-		ret.Code = -1
-		ret.Msg = "invalid request: " + err.Error()
-		c.JSON(http.StatusOK, ret)
+		writeAgentInteractionFailure(c, http.StatusBadRequest, "invalid_request", "error",
+			"invalid request: "+err.Error())
 		return
 	}
 	if !requireRunningAgentAccess(c, req.SessionID) {
 		return
 	}
-	ret := gulu.Ret.NewResult()
 	if !agent.AnswerQuestion(req.SessionID, req.QuestionID, req.Answers) {
-		ret.Code = -1
-		ret.Msg = "agent question expired"
-		c.JSON(http.StatusConflict, ret)
+		writeAgentInteractionFailure(c, http.StatusConflict, "interaction_expired", "expired",
+			"agent question expired")
 		return
 	}
-	c.JSON(http.StatusOK, ret)
+	writeAgentInteractionAccepted(c)
 }
 
 type agentFrontendResultReq struct {
@@ -531,23 +481,19 @@ type agentFrontendResultReq struct {
 func agentChatFrontendResult(c *gin.Context) {
 	req := &agentFrontendResultReq{}
 	if err := c.ShouldBindJSON(req); err != nil {
-		ret := gulu.Ret.NewResult()
-		ret.Code = -1
-		ret.Msg = "invalid request: " + err.Error()
-		c.JSON(http.StatusOK, ret)
+		writeAgentInteractionFailure(c, http.StatusBadRequest, "invalid_request", "error",
+			"invalid request: "+err.Error())
 		return
 	}
 	if !requireRunningAgentAccess(c, req.SessionID) {
 		return
 	}
-	ret := gulu.Ret.NewResult()
 	if !agent.FrontendToolResult(req.SessionID, req.CallID, req.Result, req.IsError) {
-		ret.Code = -1
-		ret.Msg = "agent frontend tool call expired"
-		c.JSON(http.StatusConflict, ret)
+		writeAgentInteractionFailure(c, http.StatusConflict, "interaction_expired", "expired",
+			"agent frontend tool call expired")
 		return
 	}
-	c.JSON(http.StatusOK, ret)
+	writeAgentInteractionAccepted(c)
 }
 
 type agentTitleReq struct {
@@ -972,13 +918,13 @@ func getSession(c *gin.Context) {
 	if _, _, ok := requireAgentSessionAccess(c, req.ID); !ok {
 		return
 	}
-	executorRunning := isAgentExecutorSessionActive(req.ID)
-	sessionsMu.Lock()
-	_, legacyRunning := runningSessions[req.ID]
-	running := legacyRunning || executorRunning
+	admission := agentSessionAdmissionLock(req.ID)
+	admission.Lock()
+	executor := lookupAgentExecutor(req.ID)
+	running := executor != nil && executor.activity().Active
 	if !running {
 		if err := agent.FinalizeOrphanedTurn(req.ID); err != nil {
-			sessionsMu.Unlock()
+			admission.Unlock()
 			ret := gulu.Ret.NewResult()
 			ret.Code = -1
 			ret.Msg = err.Error()
@@ -987,7 +933,7 @@ func getSession(c *gin.Context) {
 		}
 	}
 	session, err := agent.GetSessionState(req.ID, !running)
-	sessionsMu.Unlock()
+	admission.Unlock()
 	// 执行器可能在首次判定后进入 starting。此时重新读取 canonical 会话，避免把活动
 	// runtime 投影与随后从最新 commit 开始的事件 replay 同时返回给新面板。
 	if err == nil && !running && isAgentExecutorSessionActive(req.ID) {
@@ -1028,10 +974,17 @@ func removeSession(c *gin.Context) {
 	if !ok {
 		return
 	}
-	sessionsMu.Lock()
-	_, running := runningSessions[req.ID]
-	if running {
-		sessionsMu.Unlock()
+	if isAgentSessionRunning(req.ID) {
+		ret := gulu.Ret.NewResult()
+		ret.Code = -1
+		ret.Msg = "session is running"
+		c.JSON(http.StatusConflict, ret)
+		return
+	}
+	admission := agentSessionAdmissionLock(req.ID)
+	admission.Lock()
+	defer admission.Unlock()
+	if executor := lookupAgentExecutor(req.ID); executor != nil && executor.activity().Active {
 		ret := gulu.Ret.NewResult()
 		ret.Code = -1
 		ret.Msg = "session is running"
@@ -1039,7 +992,6 @@ func removeSession(c *gin.Context) {
 		return
 	}
 	err := agent.DeleteSession(req.ID)
-	sessionsMu.Unlock()
 	if err != nil {
 		ret := gulu.Ret.NewResult()
 		ret.Code = -1
@@ -1077,10 +1029,15 @@ func saveSession(c *gin.Context) {
 	if _, _, ok := requireAgentSessionAccess(c, meta.ID); !ok {
 		return
 	}
-	sessionsMu.Lock()
-	running := runningSessions[meta.ID]
-	if running != nil && running.app != c.GetHeader("X-SiYuan-App-ID") {
-		sessionsMu.Unlock()
+	admission := agentSessionAdmissionLock(meta.ID)
+	admission.Lock()
+	defer admission.Unlock()
+	executor := lookupAgentExecutor(meta.ID)
+	activity := agentExecutorActivity{}
+	if executor != nil {
+		activity = executor.activity()
+	}
+	if activity.LegacyActive && activity.LegacyApp != c.GetHeader("X-SiYuan-App-ID") {
 		ret := gulu.Ret.NewResult()
 		ret.Code = -1
 		ret.Msg = "session is running in another instance"
@@ -1091,31 +1048,22 @@ func saveSession(c *gin.Context) {
 	if commitTurnID == "" {
 		commitTurnID = meta.RecoveryTurnID
 	}
-	if running != nil && commitTurnID == "" && c.GetHeader("X-SiYuan-Agent-Checkpoint") != "2" && running.terminal && running.turnID != "" {
-		var payload map[string]any
-		if err := gulu.JSON.UnmarshalJSON(body, &payload); err != nil {
-			sessionsMu.Unlock()
-			ret := gulu.Ret.NewResult()
-			ret.Code = -1
-			ret.Msg = err.Error()
-			c.JSON(http.StatusBadRequest, ret)
-			return
-		}
-		payload["commitTurnID"] = running.turnID
-		body, err = gulu.JSON.MarshalJSON(payload)
+	if activity.LegacyActive && commitTurnID == "" && c.GetHeader("X-SiYuan-Agent-Checkpoint") != "2" &&
+		activity.LegacyTerminal && activity.LegacyTurnID != "" {
+		body, err = setAgentCommitTurnID(body, activity.LegacyTurnID)
 		if err != nil {
-			sessionsMu.Unlock()
 			ret := gulu.Ret.NewResult()
 			ret.Code = -1
 			ret.Msg = err.Error()
 			c.JSON(http.StatusInternalServerError, ret)
 			return
 		}
-		commitTurnID = running.turnID
+		commitTurnID = activity.LegacyTurnID
 	}
-	if running == nil {
-		if runtimeErr := agent.FinalizeOrphanedTurn(meta.ID); runtimeErr != nil {
-			sessionsMu.Unlock()
+	executorActive := activity.Active
+	if !executorActive {
+		runtimeErr := agent.FinalizeOrphanedTurn(meta.ID)
+		if runtimeErr != nil {
 			ret := gulu.Ret.NewResult()
 			ret.Code = -1
 			ret.Msg = runtimeErr.Error()
@@ -1124,10 +1072,9 @@ func saveSession(c *gin.Context) {
 		}
 		// 旧前端没有 commitTurnID。流已真正结束后，从终止检查点补出提交标识；SaveSession 仍会
 		// 用 runtime 重建权威内容，因此不会信任旧前端可能不完整的流式快照。
-		if commitTurnID == "" && c.GetHeader("X-SiYuan-Agent-Checkpoint") != "2" {
+		if !executorActive && commitTurnID == "" && c.GetHeader("X-SiYuan-Agent-Checkpoint") != "2" {
 			recoverableTurnID, runtimeErr := agent.RecoverableTurnID(meta.ID)
 			if runtimeErr != nil {
-				sessionsMu.Unlock()
 				ret := gulu.Ret.NewResult()
 				ret.Code = -1
 				ret.Msg = runtimeErr.Error()
@@ -1135,19 +1082,8 @@ func saveSession(c *gin.Context) {
 				return
 			}
 			if recoverableTurnID != "" {
-				var payload map[string]any
-				if err := gulu.JSON.UnmarshalJSON(body, &payload); err != nil {
-					sessionsMu.Unlock()
-					ret := gulu.Ret.NewResult()
-					ret.Code = -1
-					ret.Msg = err.Error()
-					c.JSON(http.StatusBadRequest, ret)
-					return
-				}
-				payload["commitTurnID"] = recoverableTurnID
-				body, err = gulu.JSON.MarshalJSON(payload)
+				body, err = setAgentCommitTurnID(body, recoverableTurnID)
 				if err != nil {
-					sessionsMu.Unlock()
 					ret := gulu.Ret.NewResult()
 					ret.Code = -1
 					ret.Msg = err.Error()
@@ -1160,10 +1096,9 @@ func saveSession(c *gin.Context) {
 	}
 	// 已占用会话但尚未收到本轮 turn 事件，通常表示 Agent 初始化失败。此时若磁盘上仍有旧的
 	// 未提交 turn，不能让无 commitTurnID 的普通保存绕过恢复协议并覆盖它。
-	if commitTurnID == "" && (running == nil || running.turnID == "") {
+	if commitTurnID == "" && !executorActive {
 		uncommitted, runtimeErr := agent.HasUncommittedTurn(meta.ID)
 		if runtimeErr != nil {
-			sessionsMu.Unlock()
 			ret := gulu.Ret.NewResult()
 			ret.Code = -1
 			ret.Msg = runtimeErr.Error()
@@ -1171,7 +1106,6 @@ func saveSession(c *gin.Context) {
 			return
 		}
 		if uncommitted {
-			sessionsMu.Unlock()
 			ret := gulu.Ret.NewResult()
 			ret.Code = -1
 			ret.Msg = "session has an uncommitted turn"
@@ -1184,12 +1118,6 @@ func saveSession(c *gin.Context) {
 	if commitTurnID == "" {
 		canonicalSession = nil
 	}
-	if err == nil && running != nil {
-		if commitTurnID != "" && commitTurnID == running.turnID {
-			running.committed = true
-		}
-	}
-	sessionsMu.Unlock()
 	if err != nil {
 		ret := gulu.Ret.NewResult()
 		ret.Code = -1
@@ -1202,8 +1130,11 @@ func saveSession(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, ret)
 		return
 	}
-	if commitTurnID != "" {
-		notifyAgentExecutorTurnCommitted(meta.ID, commitTurnID)
+	if commitTurnID != "" && executor != nil {
+		executor.markLegacyCommitted(commitTurnID)
+		if commitErr := executor.commitTurn(commitTurnID); commitErr != nil {
+			logging.LogErrorf("commit agent executor turn failed (session %s turn %s): %s", meta.ID, commitTurnID, commitErr)
+		}
 	}
 	// 从 body 解出 sessionID 用于广播。update 仅触发其他实例刷新会话列表元数据，
 	// 不触发当前视图重绘（重绘由 streamEnd 负责），回避流式中途半截数据的时序问题。
@@ -1215,6 +1146,15 @@ func saveSession(c *gin.Context) {
 	}
 	ret.Data = data
 	c.JSON(http.StatusOK, ret)
+}
+
+func setAgentCommitTurnID(body []byte, turnID string) ([]byte, error) {
+	var payload map[string]any
+	if err := gulu.JSON.UnmarshalJSON(body, &payload); err != nil {
+		return nil, err
+	}
+	payload["commitTurnID"] = turnID
+	return gulu.JSON.MarshalJSON(payload)
 }
 
 // broadcastAgentSessionChanged 只广播普通会话。外部目录会话的 ID、活动状态和时序

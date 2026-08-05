@@ -229,14 +229,13 @@ func (m *InboxManager) Submit(input *Input) (SubmitResult, error) {
 	// 注意：不在此处修改 input 的 Priority / CreatedAt——
 	// 默认值补齐由 SessionInbox.Submit 在内部克隆对象上完成，
 	// 避免写入调用方传入的对象（并发安全边界）。
-	seq, err := in.Submit(input)
+	admission, err := in.submitVersioned(input)
 	if err == ErrDuplicateInput || err == ErrDuplicatePrompt {
-		snapshot := in.SnapshotVersioned()
 		return SubmitResult{
 			Duplicated:    true,
-			Seq:           seq,
-			QueueVersion:  snapshot.QueueVersion,
-			ContentDigest: digestForSeq(snapshot.Items, seq),
+			Seq:           admission.seq,
+			QueueVersion:  admission.queueVersion,
+			ContentDigest: admission.contentDigest,
 			Immediate:     input.Semantics.IsImmediate(),
 		}, nil
 	}
@@ -244,26 +243,16 @@ func (m *InboxManager) Submit(input *Input) (SubmitResult, error) {
 		return SubmitResult{}, err
 	}
 
-	m.notify(input.SessionID)
-
-	snapshot := in.SnapshotVersioned()
-	return SubmitResult{
+	result := SubmitResult{
 		Accepted:      true,
-		Seq:           seq,
-		QueueVersion:  snapshot.QueueVersion,
-		ContentDigest: digestForSeq(snapshot.Items, seq),
+		Seq:           admission.seq,
+		QueueVersion:  admission.queueVersion,
+		ContentDigest: admission.contentDigest,
 		ShouldWake:    !running,
 		Immediate:     input.Semantics.IsImmediate(),
-	}, nil
-}
-
-func digestForSeq(items []InboxSnapshot, seq int64) string {
-	for _, item := range items {
-		if item.Seq == seq && item.Input != nil {
-			return item.Input.ContentDigest
-		}
 	}
-	return ""
+	m.notify(input.SessionID)
+	return result, nil
 }
 
 // Take 从指定会话取出下一条可投递输入（见 SessionInbox.Take 规则）。

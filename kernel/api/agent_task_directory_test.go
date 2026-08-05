@@ -322,9 +322,14 @@ func TestAgentTaskDirectoryRemoteGuardianManagesExistingDirectories(t *testing.T
 	if insecureRecorder.Code != http.StatusForbidden || !strings.Contains(insecureRecorder.Body.String(), "HTTPS") {
 		t.Fatalf("remote HTTP owner token must be rejected: status=%d body=%s", insecureRecorder.Code, insecureRecorder.Body.String())
 	}
-	sessionsMu.Lock()
-	runningSessions[sessionID] = &runningSession{ownerIdentityID: "remote-owner"}
-	sessionsMu.Unlock()
+	executor := getAgentExecutor(sessionID)
+	executor.admissionMu.Lock()
+	executor.turn.TurnStarted("protected-control-turn")
+	executor.turn.SetPhase("protected-control-turn", agent.AgentTurnToolRunning)
+	executor.mu.Lock()
+	executor.activeOwnerID = "remote-owner"
+	executor.mu.Unlock()
+	executor.admissionMu.Unlock()
 	controlPayload := func(payload map[string]interface{}) []byte {
 		body, _ := json.Marshal(payload)
 		return body
@@ -350,9 +355,10 @@ func TestAgentTaskDirectoryRemoteGuardianManagesExistingDirectories(t *testing.T
 	if result := callJSON(agentChatFrontendResult, frontendPayload, wrongToken, true, "203.0.113.10:6806"); result.Code != http.StatusForbidden {
 		t.Fatalf("cross-owner frontend result must be rejected: status=%d body=%s", result.Code, result.Body.String())
 	}
-	sessionsMu.Lock()
-	delete(runningSessions, sessionID)
-	sessionsMu.Unlock()
+	if _, err = executor.turn.Commit("protected-control-turn"); err != nil {
+		t.Fatal(err)
+	}
+	executor.clearActiveInput("")
 	mainRemovalResult := call(unbindAgentTaskDirectory, map[string]string{"sessionID": sessionID, "directoryID": "main"}, token)
 	if mainRemovalResult.Code != http.StatusBadRequest {
 		t.Fatalf("main directory removal must require removing additional grants first: status=%d body=%s", mainRemovalResult.Code, mainRemovalResult.Body.String())

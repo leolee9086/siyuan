@@ -68,6 +68,36 @@ type agentInterruptReq struct {
 	PreserveQueue  *bool  `json:"preserveQueue,omitempty"`
 }
 
+func agentTurn(c *gin.Context) {
+	req := &agentQueuedInputReq{}
+	if !bindAgentControlJSON(c, req) {
+		return
+	}
+	ownerAuth, _, ok := requireAgentControlSessionAccess(c, req.SessionID)
+	if !ok {
+		return
+	}
+	input, params, err := buildAgentSessionEventInput(*req, ownerAuth, agentqueue.SemanticsUserMessage)
+	if err != nil {
+		writeAgentControlError(c, err, 0)
+		return
+	}
+	executor, ok := requireAgentControlExecutor(c, req.SessionID)
+	if !ok {
+		return
+	}
+	input.Metadata = map[string]any{turnParamsKey: params}
+	result, err := executor.admitUserTurn(input)
+	if err != nil {
+		writeAgentControlError(c, err, executor.manager.SnapshotVersioned(req.SessionID).QueueVersion)
+		return
+	}
+	writeAgentControlSuccess(c, http.StatusAccepted, gin.H{
+		"inputID": input.ID, "userEntryID": params.UserEntryID, "admittedSeq": result.Seq,
+		"queueVersion": result.QueueVersion, "duplicated": result.Duplicated,
+	})
+}
+
 func agentSteer(c *gin.Context) {
 	req := &agentSteerReq{}
 	if !bindAgentControlJSON(c, req) {
@@ -309,8 +339,12 @@ func agentEvents(c *gin.Context) {
 }
 
 func buildQueuedAgentInput(req agentQueuedInputReq, ownerAuth *agentOwnerAuthorization) (*agentqueue.Input, *agentChatTurnParams, error) {
+	return buildAgentSessionEventInput(req, ownerAuth, agentqueue.SemanticsQueue)
+}
+
+func buildAgentSessionEventInput(req agentQueuedInputReq, ownerAuth *agentOwnerAuthorization, semantics agentqueue.InputSemantics) (*agentqueue.Input, *agentChatTurnParams, error) {
 	if req.Message == "" && req.BlockHTML == "" {
-		return nil, nil, errors.New("queued message is empty")
+		return nil, nil, errors.New("agent message is empty")
 	}
 	if req.InputID == "" {
 		req.InputID = ast.NewNodeID()
@@ -330,12 +364,13 @@ func buildQueuedAgentInput(req agentQueuedInputReq, ownerAuth *agentOwnerAuthori
 	if err != nil {
 		return nil, nil, err
 	}
+	params.AppendUserEntry = true
 	payload, err := encodeAgentTurnParams(params)
 	if err != nil {
 		return nil, nil, err
 	}
 	return &agentqueue.Input{
-		ID: req.InputID, SessionID: req.SessionID, Semantics: agentqueue.SemanticsQueue,
+		ID: req.InputID, SessionID: req.SessionID, Semantics: semantics,
 		Content: req.Message, Payload: payload,
 	}, params, nil
 }
@@ -421,6 +456,8 @@ func writeAgentControlError(c *gin.Context, err error, queueVersion int64) {
 		status, reason = http.StatusConflict, "model_unavailable"
 	case errors.Is(err, ErrAgentNoActiveTurn):
 		status, reason = http.StatusConflict, "no_active_turn"
+	case errors.Is(err, ErrAgentTurnAlreadyActive):
+		status, reason = http.StatusConflict, "turn_active"
 	case errors.Is(err, ErrAgentTurnMismatch):
 		status, reason = http.StatusConflict, "turn_mismatch"
 	case errors.Is(err, ErrAgentTurnNotSteerable):

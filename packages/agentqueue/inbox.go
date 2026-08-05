@@ -61,6 +61,14 @@ type inboxItem struct {
 	injectedAt int64
 }
 
+// inboxSubmitResult 是一次 Submit 在线性化点产生的稳定结果。
+// 它只在包内流转，避免 manager 在通知消费者后重新读取已经漂移的队列快照。
+type inboxSubmitResult struct {
+	seq           int64
+	queueVersion  int64
+	contentDigest string
+}
+
 // InboxSnapshot 是队列中一条输入的状态快照，供 UI / 事件推送使用。
 type InboxSnapshot struct {
 	Input    *Input      `json:"input"`
@@ -170,11 +178,17 @@ func (in *SessionInbox) PendingCount() int {
 //     DropNew → ErrQueueFull；DropOld → 丢弃最旧 pending 项并接纳新输入；
 //     DropSummarize → 丢弃最旧 pending 项、记录摘要并接纳新输入。
 func (in *SessionInbox) Submit(input *Input) (int64, error) {
+	result, err := in.submitVersioned(input)
+	return result.seq, err
+}
+
+// submitVersioned 返回本次 mutation 自身的版本，而不是调用方稍后读取到的快照版本。
+func (in *SessionInbox) submitVersioned(input *Input) (inboxSubmitResult, error) {
 	if input == nil {
-		return 0, ErrNilInput
+		return inboxSubmitResult{}, ErrNilInput
 	}
 	if input.SessionID != "" && input.SessionID != in.sessionID {
-		return 0, ErrSessionIDMismatch
+		return inboxSubmitResult{}, ErrSessionIDMismatch
 	}
 	normalized := cloneInput(input)
 	normalized.SessionID = in.sessionID
@@ -182,12 +196,12 @@ func (in *SessionInbox) Submit(input *Input) (int64, error) {
 		normalized.CreatedAt = time.Now().UnixMilli()
 	}
 	if err := validateDelivery(normalized); err != nil {
-		return 0, err
+		return inboxSubmitResult{}, err
 	}
 	var err error
 	normalized, err = normalizeInput(normalized)
 	if err != nil {
-		return 0, err
+		return inboxSubmitResult{}, err
 	}
 
 	in.mu.Lock()
@@ -198,9 +212,11 @@ func (in *SessionInbox) Submit(input *Input) (int64, error) {
 			continue
 		}
 		if it.input.ContentDigest == normalized.ContentDigest {
-			return it.seq, ErrDuplicateInput
+			return inboxSubmitResult{
+				seq: it.seq, queueVersion: in.queueVersion, contentDigest: it.input.ContentDigest,
+			}, ErrDuplicateInput
 		}
-		return it.seq, ErrInputIDConflict
+		return inboxSubmitResult{seq: it.seq, queueVersion: in.queueVersion}, ErrInputIDConflict
 	}
 
 	switch in.settings.DedupeMode {
@@ -212,7 +228,9 @@ func (in *SessionInbox) Submit(input *Input) (int64, error) {
 				continue
 			}
 			if it.input.Content != "" && it.input.Content == normalized.Content {
-				return it.seq, ErrDuplicatePrompt
+				return inboxSubmitResult{
+					seq: it.seq, queueVersion: in.queueVersion, contentDigest: it.input.ContentDigest,
+				}, ErrDuplicatePrompt
 			}
 		}
 	default: // DedupeMessageID 已由上方全局幂等检查覆盖。
@@ -236,7 +254,7 @@ func (in *SessionInbox) Submit(input *Input) (int64, error) {
 				}
 			}
 		default: // DropNew
-			return 0, ErrQueueFull
+			return inboxSubmitResult{queueVersion: in.queueVersion}, ErrQueueFull
 		}
 	}
 
@@ -247,7 +265,7 @@ func (in *SessionInbox) Submit(input *Input) (int64, error) {
 		state: StatusPending,
 	})
 	if err := in.commitMutationLocked(candidate); err != nil {
-		return 0, err
+		return inboxSubmitResult{queueVersion: in.queueVersion}, err
 	}
 	// 入队成功后发唤醒信号（持锁内非阻塞发送）：确保「入队成功 → 必有信号」
 	// 的原子性，执行器阻塞在 WaitNext() 上可被及时唤醒。
@@ -256,7 +274,9 @@ func (in *SessionInbox) Submit(input *Input) (int64, error) {
 	default:
 		// 已有未消费信号（合并唤醒），无需重复发送。
 	}
-	return in.seq, nil
+	return inboxSubmitResult{
+		seq: in.seq, queueVersion: in.queueVersion, contentDigest: normalized.ContentDigest,
+	}, nil
 }
 
 func dropOldestPending(state *inboxState) *Input {

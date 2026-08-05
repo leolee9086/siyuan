@@ -47,7 +47,12 @@ async function submitNativeInput(
     _observer: AgentConversationObserver,
     signal: AbortSignal,
 ) {
-    const path = input.delivery === "steer" ? "/api/ai/agent/steer" : "/api/ai/agent/queue";
+    const admissionPaths = {
+        turn: "/api/ai/agent/turn",
+        steer: "/api/ai/agent/steer",
+        queue: "/api/ai/agent/queue",
+    } as const;
+    const path = admissionPaths[input.delivery];
     const body = input.delivery === "steer" ? {
         inputID: input.inputID,
         sessionID: input.sessionID,

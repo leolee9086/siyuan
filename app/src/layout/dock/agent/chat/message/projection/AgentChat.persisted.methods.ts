@@ -1,30 +1,41 @@
-/** 用途：约束确认卡片的效果快照。使用范围：持久化确认条目渲染时读取效果描述；仅依赖类型，不加载 SSE 实现。解耦评估：效果渲染已由 renderConfirmEffects 收敛，此处仅透传类型。 */
+/** 用途：约束确认卡片效果；使用范围：持久化确认条目；解耦评估：经目录网关复用 SSE 类型，不加载实现。 */
 import type {IToolEffects} from "./imports";
-/** 用途：复用通用消息渲染器。使用范围：助手正文后处理、问题卡片与待办清单渲染。解耦评估：渲染函数均以数据为参数返回 HTML，可替换实现而不影响调用方。 */
+/** 用途：执行消息后处理；使用范围：助手正文渲染；解耦评估：复用唯一渲染后处理入口避免复制 DOM 规则。 */
 import {postRender} from "./imports";
+/** 用途：渲染问题卡片；使用范围：持久化问题条目；解耦评估：复用唯一问题卡结构保持实时和重建一致。 */
 import {renderQuestionCardHTML} from "./imports";
+/** 用途：渲染待办结果；使用范围：todo_write 持久化条目；解耦评估：复用消息渲染器避免复制清单协议。 */
 import {renderTodoList} from "./imports";
-/** 用途：渲染通用工具调用结果卡片。使用范围：非 todo_write / web_search 的持久化工具调用。解耦评估：仅传入名称、参数与结果字符串，与会话状态无耦合。 */
+/** 用途：渲染通用工具结果；使用范围：普通持久化工具调用；解耦评估：纯数据渲染器不读取会话状态。 */
 import {renderToolCallResult} from "./imports";
-/** 用途：复用网页搜索渲染能力。使用范围：收集可信引用、规范化 URL、渲染搜索结果并隔离未验证链接。解耦评估：收集与渲染函数均以数据为参数，可独立替换实现。 */
+/** 用途：收集网页搜索引用；使用范围：搜索结果投影；解耦评估：纯解析器集中维护引用协议。 */
 import {collectWebSearchReferences} from "./imports";
+/** 用途：规范化网页地址；使用范围：可信引用索引；解耦评估：纯 URL 规则集中维护。 */
 import {normalizeWebURL} from "./imports";
+/** 用途：隔离未验证链接；使用范围：助手正文后处理；解耦评估：安全策略由网页搜索领域统一实现。 */
 import {protectUnverifiedWebLinks} from "./imports";
+/** 用途：渲染网页搜索结果；使用范围：搜索工具卡片；解耦评估：复用唯一搜索结果渲染器。 */
 import {renderWebSearchResult} from "./imports";
+/** 用途：解析已映射引用；使用范围：助手 Markdown；解耦评估：引用替换规则由网页搜索领域统一维护。 */
 import {resolveMappedWebReferences} from "./imports";
-/** 用途：转义不可信 HTML 片段。使用范围：将工具参数与结果安全插入 DOM 前转义。解耦评估：纯工具函数，无状态依赖。 */
+/** 用途：转义不可信 HTML；使用范围：工具参数与正文回退；解耦评估：纯函数是统一 HTML 安全边界。 */
 import {escapeHtml} from "./imports";
-/** 用途：约束持久化助手消息与工具调用列表的输入结构。使用范围：会话投影还原持久化条目时使用；仅依赖类型，不加载实现。 */
-import type {PersistedAssistantInput, PersistedToolCallsInput} from "./AgentChat.persisted.types";
-/** 用途：约束运行时状态与工具调用条目。使用范围：投影渲染读取运行时容器与能力。仅依赖类型，不加载实现。 */
+/** 用途：约束持久化助手输入；使用范围：助手条目重建；解耦评估：独立类型文件固定投影边界。 */
+import type {PersistedAssistantInput} from "./AgentChat.persisted.types";
+/** 用途：约束持久化工具输入；使用范围：工具条目重建；解耦评估：独立类型文件固定投影边界。 */
+import type {PersistedToolCallsInput} from "./AgentChat.persisted.types";
+/** 用途：约束聊天运行时；使用范围：全部持久化投影；解耦评估：经目录网关隔离具体 AgentChat 门面。 */
 import type {AgentChatRuntime} from "./imports";
+/** 用途：约束工具调用条目；使用范围：工具卡片重建；解耦评估：经目录网关复用消息领域类型。 */
 import type {AgentToolCall} from "./imports";
-/** 用途：渲染确认操作的效果描述。使用范围：持久化确认卡片的效果部分。解耦评估：效果渲染收敛于此函数，调用方仅传数据。 */
+/** 用途：渲染确认效果；使用范围：持久化确认卡片；解耦评估：调用方仅传效果数据，不复制展示规则。 */
 import {renderConfirmEffects} from "./imports";
-/** 用途：将工具名映射为本地化类别。使用范围：确认卡片描述文案。解耦评估：纯映射函数，无状态依赖。 */
+/** 用途：映射工具类别；使用范围：确认卡片描述；解耦评估：纯展示映射由反馈领域集中维护。 */
 import {toolCategory} from "./imports";
-/** 用途：为消息卡片附加复制按钮。使用范围：助手消息渲染完成后。解耦评估：按钮行为由运行时注入，调用方只传入元素与配置。 */
+/** 用途：附加复制按钮；使用范围：助手消息渲染；解耦评估：按钮行为通过运行时能力注入。 */
 import {addCopyButton} from "./imports";
+/** 用途：映射交互终态文案；使用范围：持久化确认和问题卡片；解耦评估：统一映射避免重建路径自行推断状态。 */
+import {resolveInteractionStatusLabel} from "./imports";
 
 /** 将可选工具调用标识写入持久化工具卡片。 */
 function applyToolCallID(element: HTMLElement, toolCallID?: string) {
@@ -145,21 +156,6 @@ export function appendPersistedToolCalls(runtime: AgentChatRuntime, input: Persi
     }
 }
 
-/** 把持久化确认状态映射为本地化只读标签。 */
-function resolveConfirmStatusLabel(status?: string) {
-    const languages = window.siyuan.languages;
-    if (status === "approved") {
-        return languages.agentConfirmApprove || "Approved";
-    }
-    if (status === "rejected") {
-        return languages.agentConfirmReject || "Rejected";
-    }
-    if (status === "always") {
-        return languages.agentConfirmAlways || "Session Allow";
-    }
-    return languages.agentConfirmPending || "Pending";
-}
-
 /** 追加已持久化的确认卡片。 @同步豁免: UI构建 */
 export function appendPersistedConfirm(runtime: AgentChatRuntime, entry: {
     id?: string;
@@ -175,9 +171,10 @@ export function appendPersistedConfirm(runtime: AgentChatRuntime, entry: {
     if (entry.id) {
         element.setAttribute("data-message-id", entry.id);
     }
+    element.setAttribute("data-confirm-id", entry.confirmID);
     const description = (languages.agentConfirmDesc || "Agent: {category} operation")
         .replace("{category}", escapeHtml(toolCategory(entry.name)));
-    const statusLabel = resolveConfirmStatusLabel(entry.status);
+    const statusLabel = resolveInteractionStatusLabel("confirm", entry.status);
     element.innerHTML = '<div class="agent-chat__confirm-card">' +
         '<div class="agent-chat__confirm-header"><svg class="agent-chat__confirm-icon"><use xlink:href="#iconInfo"></use></svg> ' +
         description + "</div>" + renderConfirmEffects(entry.effects) +
@@ -195,19 +192,17 @@ export function appendPersistedQuestion(runtime: AgentChatRuntime, entry: {
     status?: string;
     answers?: string[];
 }) {
-    const languages = window.siyuan.languages;
     const element = document.createElement("div");
     element.className = "agent-chat__msg agent-chat__msg--question agent-chat__msg--confirmed";
     if (entry.id) {
         element.setAttribute("data-message-id", entry.id);
     }
+    element.setAttribute("data-question-id", entry.questionID);
     element.innerHTML = renderQuestionCardHTML(entry.questions, entry.questionID);
     const submit = element.querySelector<HTMLElement>(".agent-chat__question-submit");
     if (submit) {
-        const submitted = entry.status === "submitted";
         submit.innerHTML = '<span class="agent-chat__confirm-done">' +
-            (submitted ? languages.agentQuestionSubmitted || "Submitted" : languages.agentQuestionPending || "Awaiting answer") +
-            "</span>";
+            resolveInteractionStatusLabel("question", entry.status) + "</span>";
     }
     for (const input of element.querySelectorAll<HTMLInputElement>("input")) {
         input.disabled = true;

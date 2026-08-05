@@ -18,6 +18,13 @@ export interface ConfirmRequest {
     confirmEntryID: string;
 }
 
+/** 描述 Kernel 或结构化 API 失败对确认卡片给出的明确终态。 */
+export interface ConfirmResolution {
+    confirmID: string;
+    status: import("../../../request/sse/agentSSE.types").AgentInteractionResolutionStatus;
+    message?: string;
+}
+
 /** 描述 SSE 确认事件创建卡片时携带的原始工具数据。 */
 export interface AppendConfirmInput {
     name: string;
@@ -28,6 +35,7 @@ export interface AppendConfirmInput {
 
 /** 描述前端工具结果回传的数据。 */
 export interface FrontendToolResultInput {
+    sessionID: string;
     callID: string;
     result: string;
     isError: boolean;

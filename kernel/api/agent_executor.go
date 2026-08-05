@@ -55,9 +55,7 @@ const agentExecutorIdleTimeout = 10 * time.Minute
 
 const agentEventDisconnectGrace = 30 * time.Second
 
-// ErrAgentSessionBusy 表示同一会话已有活动订阅（单流限制）。
-// 当前由 runningSessions 409 互斥保证不可达；此处为防御性约束，
-// 也是未来 Phase 1 放开 409（运行中入队）时的单流边界信号。
+// ErrAgentSessionBusy 表示同一会话已有活动 turn 或旧 /chat 传输租约。
 var ErrAgentSessionBusy = errors.New("agent session already has an active subscription")
 var errAgentModelUnavailable = errors.New("agent model is unavailable")
 
@@ -83,6 +81,8 @@ type agentChatTurnParams struct {
 	PluginActions   []agent.PluginAction `json:"pluginActions,omitempty"`
 	Regenerate      bool                 `json:"regenerate,omitempty"`
 	ReasoningEffort string               `json:"reasoningEffort,omitempty"`
+	// AppendUserEntry 标记由 session-event admission 创建、尚未写入 canonical session 的用户输入。
+	AppendUserEntry bool `json:"appendUserEntry,omitempty"`
 
 	// OwnerIdentityID / OwnerExpiresAt 来自请求鉴权（optionalAgentOwnerAuthorization），
 	// 用于外部目录会话的授权边界透传。
@@ -184,13 +184,26 @@ func decodeAgentTurnParams(input *agentqueue.Input) (*agentChatTurnParams, error
 	return params, nil
 }
 
-// agentEventSubscription 是一次请求（一个 SSE 连接）的响应订阅。
-// 执行器把 AgentChat 产生的事件转发到 ch；handler 从 ch 读取并 writeSSE。
+// agentLegacySubscription 是旧 /chat 的一次 SSE 传输租约。
+// turn 是否活动仍只由 executor/controller 决定；这里仅保存旧端点的传输和通知元数据。
 type agentLegacySubscription struct {
 	// ctx 是请求上下文（handler 传入）。前端断开 / 请求取消时，
 	// AgentChat 通过该 ctx 感知并保存 interrupted 状态。
 	ctx context.Context
 	ch  chan agent.AgentEvent
+
+	app             string
+	ownerIdentityID string
+	turnID          string
+	terminal        bool
+	committed       bool
+	streamStarted   bool
+	finishOnce      sync.Once
+}
+
+type agentLegacySubscriptionMetadata struct {
+	App             string
+	OwnerIdentityID string
 }
 
 // agentSessionExecutor 是单个 agent 会话的常驻执行器（中断模型核心）。
@@ -206,9 +219,8 @@ type agentLegacySubscription struct {
 // 常驻 goroutine 数量随会话数无限增长；每批消息处理结束后清理 inbox
 // 历史项（Prune），防止高频会话 items 无限累积。
 //
-// 外部行为与改造前完全一致：HTTP 端点、SSE 事件类型、runningSessions
-// 语义（409 互斥、streamStart/streamEnd）均不变；变的只是内部驱动模型
-// （请求驱动 → 中断驱动）。
+// 外部行为与旧 /chat 一致：HTTP 端点、SSE 事件类型、409 互斥和
+// streamStart/streamEnd 均保留；运行事实源统一为本执行器与 turn controller。
 type agentSessionExecutor struct {
 	sessionID string
 	manager   *agentqueue.InboxManager
@@ -216,10 +228,9 @@ type agentSessionExecutor struct {
 	turn      *agentTurnController
 	hub       *agentSessionEventHub
 
-	stopCh         chan struct{}
-	stopOnce       sync.Once
-	commitCh       chan struct{}
-	queueChangedCh chan struct{}
+	stopCh   chan struct{}
+	stopOnce sync.Once
+	commitCh chan struct{}
 
 	// idleTimeout 空闲自动回收阈值（<=0 使用默认 agentExecutorIdleTimeout）。
 	// 测试可注入小值以加速回收路径验证。
@@ -231,9 +242,13 @@ type agentSessionExecutor struct {
 	doneCh chan struct{}
 
 	mu              sync.Mutex
+	admissionMu     *sync.Mutex
 	commitMu        sync.Mutex
 	committedTurnID string
-	sub             *agentLegacySubscription // 旧 /chat 的单次响应订阅
+	sub             *agentLegacySubscription // 当前正在接收 turn 事件的旧 /chat 订阅
+	legacyLease     *agentLegacySubscription // 旧 /chat handler 尚未结束的传输租约
+	activeInputID   string
+	activeOwnerID   string
 	turnCtx         context.Context
 	turnCancel      context.CancelFunc
 	disconnectTimer *time.Timer
@@ -243,33 +258,89 @@ type agentSessionExecutor struct {
 
 	// runTurnFn 可注入的 turn 执行函数（测试用）；nil 时使用默认实现 runAgentChat。
 	runTurnFn func(ctx context.Context, input *agentqueue.Input) <-chan agent.AgentEvent
+	// queueUnsubscribe 释放当前执行器在 InboxManager 上的实例级状态订阅。
+	queueUnsubscribe func()
+}
+
+type agentExecutorActivity struct {
+	Active          bool
+	InputID         string
+	TurnID          string
+	Phase           agent.AgentTurnPhase
+	Steerable       bool
+	AwaitingCommit  bool
+	StreamActive    bool
+	OwnerIdentityID string
+	LegacyActive    bool
+	LegacyApp       string
+	LegacyTurnID    string
+	LegacyTerminal  bool
 }
 
 var (
 	agentExecutorsMu sync.Mutex
 	agentExecutors   = map[string]*agentSessionExecutor{}
+	agentAdmissionMu sync.Map
 
 	// agentInboxManager 是所有 agent 会话的统一消息入口（全局单例）。
 	agentInboxManager = agentqueue.NewInboxManager(agentqueue.DefaultCapacity)
 )
 
+func agentSessionAdmissionLock(sessionID string) *sync.Mutex {
+	lock, _ := agentAdmissionMu.LoadOrStore(sessionID, &sync.Mutex{})
+	return lock.(*sync.Mutex)
+}
+
 // isAgentExecutorSessionActive 只检查已经存在的执行器，不为读取状态创建新实例。
 // turnCancel 覆盖 turnID 建立前的 starting 窗口，turn.State 覆盖流关闭后的提交屏障。
 func isAgentExecutorSessionActive(sessionID string) bool {
+	return readAgentExecutorActivity(sessionID).Active
+}
+
+func readAgentExecutorActivity(sessionID string) agentExecutorActivity {
 	agentExecutorsMu.Lock()
 	executor := agentExecutors[sessionID]
 	agentExecutorsMu.Unlock()
 	if executor == nil {
-		return false
+		return agentExecutorActivity{}
 	}
-	executor.mu.Lock()
-	streamActive := executor.turnCancel != nil
-	executor.mu.Unlock()
-	return streamActive || executor.turn.State().TurnID != ""
+	return executor.activity()
+}
+
+func (e *agentSessionExecutor) activity() agentExecutorActivity {
+	state := e.turn.State()
+	e.mu.Lock()
+	activity := agentExecutorActivity{
+		InputID: e.activeInputID, TurnID: state.TurnID, Phase: state.Phase,
+		Steerable: state.Steerable, AwaitingCommit: state.AwaitingCommit,
+		StreamActive: e.turnCancel != nil, OwnerIdentityID: e.activeOwnerID,
+	}
+	if e.legacyLease != nil {
+		activity.LegacyActive = true
+		activity.LegacyApp = e.legacyLease.app
+		activity.LegacyTurnID = e.legacyLease.turnID
+		activity.LegacyTerminal = e.legacyLease.terminal
+		if activity.OwnerIdentityID == "" {
+			activity.OwnerIdentityID = e.legacyLease.ownerIdentityID
+		}
+	}
+	e.mu.Unlock()
+	activity.Active = activity.InputID != "" || activity.StreamActive || activity.TurnID != ""
+	return activity
+}
+
+func lookupAgentExecutor(sessionID string) *agentSessionExecutor {
+	agentExecutorsMu.Lock()
+	executor := agentExecutors[sessionID]
+	agentExecutorsMu.Unlock()
+	return executor
 }
 
 // getAgentExecutor 返回指定会话的执行器，不存在时懒创建并启动常驻 goroutine。
 func getAgentExecutor(sessionID string) *agentSessionExecutor {
+	admission := agentSessionAdmissionLock(sessionID)
+	admission.Lock()
+	defer admission.Unlock()
 	agentExecutorsMu.Lock()
 	defer agentExecutorsMu.Unlock()
 	if ex, ok := agentExecutors[sessionID]; ok {
@@ -339,6 +410,8 @@ func (e *agentSessionExecutor) stop() {
 		e.mu.Lock()
 		cancel := e.turnCancel
 		e.turnCancel = nil
+		e.activeInputID = ""
+		e.activeOwnerID = ""
 		if e.disconnectTimer != nil {
 			e.disconnectTimer.Stop()
 			e.disconnectTimer = nil
@@ -360,9 +433,9 @@ func newAgentSessionExecutor(sessionID string, manager *agentqueue.InboxManager)
 	executor := &agentSessionExecutor{
 		sessionID:       sessionID,
 		manager:         manager,
+		admissionMu:     agentSessionAdmissionLock(sessionID),
 		stopCh:          make(chan struct{}),
 		commitCh:        make(chan struct{}, 1),
-		queueChangedCh:  make(chan struct{}, 1),
 		idleTimeout:     agentExecutorIdleTimeout,
 		disconnectGrace: agentEventDisconnectGrace,
 		maxRetained:     agentqueue.DefaultMaxRetained,
@@ -372,6 +445,11 @@ func newAgentSessionExecutor(sessionID string, manager *agentqueue.InboxManager)
 	}
 	executor.turn = newAgentTurnController(sessionID, manager)
 	executor.hub.setSubscriberCountChanged(executor.onEventSubscriberCountChanged)
+	executor.queueUnsubscribe = manager.Subscribe(func(changedSessionID string) {
+		if changedSessionID == executor.sessionID {
+			executor.publishQueueState()
+		}
+	})
 	return executor
 }
 
@@ -388,6 +466,7 @@ func (e *agentSessionExecutor) run() {
 	timer := time.NewTimer(idle)
 	defer timer.Stop()
 	defer close(e.doneCh)
+	defer e.queueUnsubscribe()
 
 	for {
 		select {
@@ -412,8 +491,6 @@ func (e *agentSessionExecutor) run() {
 				}
 			}
 			timer.Reset(idle)
-		case <-e.queueChangedCh:
-			e.publishQueueState()
 		case <-timer.C:
 			if e.selfStop() {
 				return
@@ -422,21 +499,6 @@ func (e *agentSessionExecutor) run() {
 			timer.Reset(idle)
 		}
 	}
-}
-
-func init() {
-	agentInboxManager.Subscribe(func(sessionID string) {
-		agentExecutorsMu.Lock()
-		executor := agentExecutors[sessionID]
-		agentExecutorsMu.Unlock()
-		if executor == nil {
-			return
-		}
-		select {
-		case executor.queueChangedCh <- struct{}{}:
-		default:
-		}
-	})
 }
 
 // selfStop 空闲回收：将执行器移出注册表并退出 goroutine。
@@ -456,7 +518,7 @@ func (e *agentSessionExecutor) selfStop() bool {
 	if e.manager.PendingCount(e.sessionID) > 0 {
 		return false
 	}
-	if e.turn.State().TurnID != "" || e.hub.subscriberCount() > 0 {
+	if e.activity().Active || e.hub.subscriberCount() > 0 {
 		return false
 	}
 	delete(agentExecutors, e.sessionID)
@@ -485,28 +547,76 @@ func (e *agentSessionExecutor) safeDrain() {
 // 会把 steer 当作普通消息兜底消费的通用 Take。
 func (e *agentSessionExecutor) drain() {
 	for {
+		e.admissionMu.Lock()
 		if state := e.turn.State(); state.TurnID != "" {
+			e.admissionMu.Unlock()
 			return
 		}
 		e.mu.Lock()
 		if e.sub == nil && e.hub.subscriberCount() == 0 {
 			e.mu.Unlock()
+			e.admissionMu.Unlock()
 			return
 		}
+		e.mu.Unlock()
 		input, err := e.manager.ClaimNextUserMessage(e.sessionID)
 		if err == nil && input == nil {
 			input, err = e.manager.ClaimNextQueued(e.sessionID)
 		}
-		e.mu.Unlock()
 		if err != nil {
+			e.admissionMu.Unlock()
 			logging.LogErrorf("agent executor claim failed (session %s): %s", e.sessionID, err)
 			return
 		}
 		if input == nil {
+			e.admissionMu.Unlock()
 			return
 		}
+		e.mu.Lock()
+		e.activeInputID = input.ID
+		if params, decodeErr := decodeAgentTurnParams(input); decodeErr == nil {
+			e.activeOwnerID = params.OwnerIdentityID
+		} else {
+			e.activeOwnerID = ""
+		}
+		e.mu.Unlock()
+		e.admissionMu.Unlock()
 		e.runTurn(input)
 	}
+}
+
+func (e *agentSessionExecutor) admitUserTurn(input *agentqueue.Input) (agentqueue.SubmitResult, error) {
+	if input == nil {
+		return agentqueue.SubmitResult{}, agentqueue.ErrNilInput
+	}
+	e.admissionMu.Lock()
+	defer e.admissionMu.Unlock()
+	activity := e.activity()
+	if activity.Active && activity.InputID != input.ID {
+		return agentqueue.SubmitResult{}, ErrAgentTurnAlreadyActive
+	}
+	result, err := e.manager.Submit(input)
+	if err != nil {
+		return agentqueue.SubmitResult{}, err
+	}
+	if result.Accepted || pendingAgentInput(e.manager.SnapshotVersioned(e.sessionID), input.ID) {
+		e.mu.Lock()
+		e.activeInputID = input.ID
+		if params, decodeErr := decodeAgentTurnParams(input); decodeErr == nil {
+			e.activeOwnerID = params.OwnerIdentityID
+		}
+		e.mu.Unlock()
+	}
+	return result, nil
+}
+
+func pendingAgentInput(snapshot agentqueue.QueueSnapshot, inputID string) bool {
+	for _, item := range snapshot.Items {
+		if item.Input != nil && item.Input.ID == inputID {
+			return item.State == agentqueue.StatusPending || item.State == agentqueue.StatusInjecting
+		}
+	}
+	return false
 }
 
 func (e *agentSessionExecutor) commitTurn(turnID string) error {
@@ -561,6 +671,7 @@ func (e *agentSessionExecutor) releaseCommittedTurnLocked(turnID string) error {
 	if !committed {
 		return nil
 	}
+	e.clearActiveInput("")
 	e.committedTurnID = ""
 	e.hub.publish("turn_committed", map[string]any{
 		"turnID": turnID, "queueVersion": e.manager.SnapshotVersioned(e.sessionID).QueueVersion,
@@ -751,46 +862,75 @@ func (e *agentSessionExecutor) signalDrain() {
 	}
 }
 
-func notifyAgentExecutorTurnCommitted(sessionID, turnID string) {
-	if turnID == "" {
-		return
+func (e *agentSessionExecutor) clearActiveInput(inputID string) {
+	e.mu.Lock()
+	if inputID == "" || e.activeInputID == inputID {
+		e.activeInputID = ""
+		e.activeOwnerID = ""
 	}
-	agentExecutorsMu.Lock()
-	executor := agentExecutors[sessionID]
-	agentExecutorsMu.Unlock()
-	if executor == nil {
-		return
-	}
-	if err := executor.commitTurn(turnID); err != nil {
-		logging.LogErrorf("commit agent executor turn failed (session %s turn %s): %s", sessionID, turnID, err)
-	}
+	e.mu.Unlock()
 }
 
-// subscribe 注册当前请求的响应订阅并返回事件 channel（handler 的 SSE 循环读取）。
-// handler 必须先 subscribe 再 Submit，保证执行器启动 turn 时订阅已就绪。
-//
-// 同一会话已存在活动订阅时返回 ErrAgentSessionBusy（单流限制）——不关闭旧
-// channel：关闭仍可能被 runTurn 写入的 channel 会触发 panic，且 Phase 1
-// 放开 409（运行中入队）后该路径将可到达，需在此明确拒绝而非破坏旧流。
-func (e *agentSessionExecutor) subscribe(ctx context.Context) (<-chan agent.AgentEvent, error) {
+// subscribe 注册旧 /chat 的传输租约。调用方必须在结束读取后调用 unsubscribe，
+// 且不得关闭 ch；事件生产方在 turn 清理完成后负责关闭。
+func (e *agentSessionExecutor) subscribe(ctx context.Context, metadata agentLegacySubscriptionMetadata) (*agentLegacySubscription, error) {
 	e.mu.Lock()
 	if e.initErr != nil {
 		e.mu.Unlock()
 		return nil, e.initErr
 	}
-	if e.sub != nil {
+	if e.sub != nil || e.legacyLease != nil {
 		e.mu.Unlock()
 		return nil, ErrAgentSessionBusy
 	}
-	e.sub = &agentLegacySubscription{
-		ctx: ctx,
-		ch:  make(chan agent.AgentEvent, agentEventBufferSize),
+	sub := &agentLegacySubscription{
+		ctx: ctx, ch: make(chan agent.AgentEvent, agentEventBufferSize),
+		app: metadata.App, ownerIdentityID: metadata.OwnerIdentityID,
 	}
-	ch := e.sub.ch
+	e.sub = sub
+	e.legacyLease = sub
 	e.mu.Unlock()
 	// 订阅可能建立在一次已被无订阅执行器消费的唤醒之后，显式唤醒可确保保留输入继续执行。
 	e.signalDrain()
-	return ch, nil
+	return sub, nil
+}
+
+// admitLegacyTurn 将旧 /chat 的租约建立与 user turn admission 放在同一临界区，
+// 防止另一个 turn、普通保存或 orphan recovery 插入两者之间。
+func (e *agentSessionExecutor) admitLegacyTurn(ctx context.Context, metadata agentLegacySubscriptionMetadata,
+	input *agentqueue.Input) (*agentLegacySubscription, agentqueue.SubmitResult, error) {
+	if input == nil {
+		return nil, agentqueue.SubmitResult{}, agentqueue.ErrNilInput
+	}
+	e.admissionMu.Lock()
+	defer e.admissionMu.Unlock()
+	if e.initErr != nil {
+		return nil, agentqueue.SubmitResult{}, e.initErr
+	}
+	if e.activity().Active {
+		return nil, agentqueue.SubmitResult{}, ErrAgentSessionBusy
+	}
+	sub, err := e.subscribe(ctx, metadata)
+	if err != nil {
+		return nil, agentqueue.SubmitResult{}, err
+	}
+	result, err := e.manager.Submit(input)
+	if err != nil {
+		e.mu.Lock()
+		if e.sub == sub {
+			e.sub = nil
+		}
+		if e.legacyLease == sub {
+			e.legacyLease = nil
+		}
+		e.mu.Unlock()
+		return nil, agentqueue.SubmitResult{}, err
+	}
+	e.mu.Lock()
+	e.activeInputID = input.ID
+	e.activeOwnerID = metadata.OwnerIdentityID
+	e.mu.Unlock()
+	return sub, result, nil
 }
 
 func (e *agentSessionExecutor) subscribeEvents(ctx context.Context, after int64) (<-chan agentSessionEvent, func(), error) {
@@ -863,11 +1003,87 @@ func (e *agentSessionExecutor) publishQueueState() {
 	e.hub.publish("queue_state", map[string]any{"queue": e.manager.SnapshotVersioned(e.sessionID)})
 }
 
-// unsubscribe 解除当前订阅（handler 的 defer 调用）。
-func (e *agentSessionExecutor) unsubscribe() {
+// unsubscribe 结束指定旧 /chat 租约，并且只执行一次兼容广播。
+func (e *agentSessionExecutor) unsubscribe(sub *agentLegacySubscription) {
+	if sub == nil {
+		return
+	}
+	sub.finishOnce.Do(func() {
+		e.admissionMu.Lock()
+		e.mu.Lock()
+		if e.sub == sub {
+			e.sub = nil
+		}
+		if e.legacyLease == sub {
+			e.legacyLease = nil
+		}
+		app := sub.app
+		turnID := sub.turnID
+		uncommitted := turnID != "" && !sub.committed
+		streamStarted := sub.streamStarted
+		e.mu.Unlock()
+		e.admissionMu.Unlock()
+
+		if streamStarted {
+			broadcastAgentSessionChanged(app, e.sessionID, "streamEnd")
+		}
+		if uncommitted {
+			binding, err := agent.GetTaskDirectoryBinding(e.sessionID)
+			if err != nil {
+				logging.LogErrorf("inspect agent session before broadcast failed: %s", err)
+			} else if binding == nil {
+				util.BroadcastByType("agentChat", "agentSessionChanged", 0, "", map[string]string{
+					"sessionID": e.sessionID,
+					"action":    "update",
+				})
+			}
+		}
+		e.signalDrain()
+	})
+}
+
+func (e *agentSessionExecutor) startLegacyStream(sub *agentLegacySubscription) {
+	if sub == nil {
+		return
+	}
+	e.mu.Lock()
+	started := e.legacyLease == sub && !sub.streamStarted
+	if started {
+		sub.streamStarted = true
+	}
+	app := sub.app
+	e.mu.Unlock()
+	if started {
+		broadcastAgentSessionChanged(app, e.sessionID, "streamStart")
+	}
+}
+
+func (e *agentSessionExecutor) recordLegacyEvent(sub *agentLegacySubscription, event agent.AgentEvent) {
+	if sub == nil {
+		return
+	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	e.sub = nil
+	if e.legacyLease != sub {
+		return
+	}
+	if event.Type == "turn" && event.TurnID != "" {
+		sub.turnID = event.TurnID
+	}
+	if event.Type == "done" || event.Type == "error" {
+		sub.terminal = true
+	}
+}
+
+func (e *agentSessionExecutor) markLegacyCommitted(turnID string) {
+	if turnID == "" {
+		return
+	}
+	e.mu.Lock()
+	if e.legacyLease != nil && e.legacyLease.turnID == turnID {
+		e.legacyLease.committed = true
+	}
+	e.mu.Unlock()
 }
 
 // turnRunner 是单条输入的 turn 执行函数（按语义分发）。
@@ -877,7 +1093,7 @@ type turnRunner func(e *agentSessionExecutor, ctx context.Context, input *agentq
 // turnRunners 按输入语义分发 turn 执行函数。
 var turnRunners = map[agentqueue.InputSemantics]turnRunner{
 	agentqueue.SemanticsUserMessage: (*agentSessionExecutor).runAgentChat,
-	agentqueue.SemanticsQueue:       (*agentSessionExecutor).runQueuedAgentChat,
+	agentqueue.SemanticsQueue:       (*agentSessionExecutor).runAgentChat,
 }
 
 // runTurn 执行一次 turn：按语义选择执行函数，并把事件转发到订阅 channel。
@@ -889,6 +1105,7 @@ func (e *agentSessionExecutor) runTurn(input *agentqueue.Input) {
 		if _, err := e.manager.ReleaseClaim(e.sessionID, input.ID); err != nil {
 			logging.LogErrorf("release unstarted agent input failed (session %s input %s): %s", e.sessionID, input.ID, err)
 		}
+		e.clearActiveInput(input.ID)
 		return
 	}
 	baseCtx := context.Background()
@@ -957,6 +1174,7 @@ func (e *agentSessionExecutor) forwardEvents(sub *agentLegacySubscription, input
 					anchorBound = true
 				}
 			}
+			e.recordLegacyEvent(sub, ev)
 			e.hub.publishAgentEvent(ev)
 			if sub != nil {
 				select {
@@ -988,6 +1206,7 @@ func (e *agentSessionExecutor) failTurnBeforeStart(sub *agentLegacySubscription,
 		}
 	}
 	event := agent.AgentEvent{Type: "error", Error: err.Error()}
+	e.recordLegacyEvent(sub, event)
 	e.hub.publishAgentEvent(event)
 	if sub != nil {
 		sub.ch <- event
@@ -1020,6 +1239,7 @@ func (e *agentSessionExecutor) drainCancelledTurnEvents(events <-chan agent.Agen
 
 // finishTurn 关闭订阅 channel（通知 SSE 循环流结束）并清理当前订阅。
 func (e *agentSessionExecutor) finishTurn(sub *agentLegacySubscription) {
+	state := e.turn.State()
 	e.mu.Lock()
 	if sub != nil && e.sub == sub {
 		e.sub = nil
@@ -1027,6 +1247,10 @@ func (e *agentSessionExecutor) finishTurn(sub *agentLegacySubscription) {
 	cancel := e.turnCancel
 	e.turnCtx = nil
 	e.turnCancel = nil
+	if state.TurnID == "" {
+		e.activeInputID = ""
+		e.activeOwnerID = ""
+	}
 	e.mu.Unlock()
 	if cancel != nil {
 		cancel()
@@ -1074,6 +1298,11 @@ func (e *agentSessionExecutor) runAgentChat(ctx context.Context, input *agentque
 		close(ch)
 		return ch
 	}
+	if params.AppendUserEntry {
+		if err = e.prepareAdmittedUserEntry(input, params); err != nil {
+			return e.failClaimedInput(input, err)
+		}
+	}
 
 	var provider *conf.Provider
 	var m *conf.Model
@@ -1099,24 +1328,20 @@ func (e *agentSessionExecutor) runAgentChat(ctx context.Context, input *agentque
 		time.Duration(params.RequestTimeoutMs)*time.Millisecond, time.Duration(params.StreamIdleTimeoutMs)*time.Millisecond, e.turn)
 }
 
-func (e *agentSessionExecutor) runQueuedAgentChat(ctx context.Context, input *agentqueue.Input) <-chan agent.AgentEvent {
-	params, err := decodeAgentTurnParams(input)
-	if err != nil {
-		return e.failClaimedInput(input, err)
-	}
+func (e *agentSessionExecutor) prepareAdmittedUserEntry(input *agentqueue.Input, params *agentChatTurnParams) error {
 	if params.UserEntryID == "" {
-		return e.failClaimedInput(input, errors.New("queued agent user entry id is missing"))
+		return errors.New("admitted agent user entry id is missing")
 	}
 	binding, err := agent.GetTaskDirectoryBinding(e.sessionID)
 	if err != nil {
-		return e.failClaimedInput(input, err)
+		return err
 	}
 	if binding != nil {
 		if params.OwnerExpiresAt <= time.Now().Unix() {
-			return e.failClaimedInput(input, errors.New("verified device owner authorization expired"))
+			return errors.New("verified device owner authorization expired")
 		}
 		if !subtleConstantTimeStringEqual(binding.OwnerIdentityID, params.OwnerIdentityID) {
-			return e.failClaimedInput(input, errors.New("verified device owner access is required"))
+			return errors.New("verified device owner access is required")
 		}
 	}
 	var editorContext *agent.EditorContext
@@ -1136,20 +1361,20 @@ func (e *agentSessionExecutor) runQueuedAgentChat(ctx context.Context, input *ag
 			Timestamp:     input.CreatedAt,
 		})
 		if err != nil {
-			return e.failClaimedInput(input, err)
+			return err
 		}
 	}
 	e.hub.publish("input_promoted", map[string]any{
 		"inputID": input.ID, "userEntryID": params.UserEntryID, "content": input.Content,
 		"blockHTML": params.BlockHTML, "references": params.References, "editorContext": params.EditorContext,
-		"queueVersion": e.manager.SnapshotVersioned(e.sessionID).QueueVersion,
+		"queueVersion": e.manager.SnapshotVersioned(e.sessionID).QueueVersion, "contentRevision": revision,
 	})
 	params.ContentRevision = revision
 	if input.Metadata == nil {
 		input.Metadata = map[string]any{}
 	}
 	input.Metadata[turnParamsKey] = params
-	return e.runAgentChat(ctx, input)
+	return nil
 }
 
 func hasAgentEditorContext(editorContext agent.EditorContext) bool {

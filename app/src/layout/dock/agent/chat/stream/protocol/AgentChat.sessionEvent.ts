@@ -12,6 +12,8 @@ import {finishAssistantSegment} from "./imports";
 import {setStreaming} from "./imports";
 /** 用途：重建消息导航；使用范围：用户事件投影；解耦评估：导航索引由既有单一入口维护。 */
 import {rebuildNavMarkers} from "./imports";
+/** 用途：同步输入晋升产生的会话修订；使用范围：后续 checkpoint 保存；解耦评估：复用仓储修订水位避免事件层维护第二份版本。 */
+import {observeAgentSessionRevision} from "./imports";
 /** 用途：复用既有 provider 事件处理器；使用范围：消息、工具和完成事件；解耦评估：session stream 只做协议转换，不复制业务处理。 */
 import {handleSSEEvent} from "./AgentChat.sse.methods";
 /** 用途：读取数值字段；使用范围：usage/retry 投影；解耦评估：JSON 边界校验集中在独立 guard。 */
@@ -20,6 +22,10 @@ import {readSessionEventNumber} from "./AgentChat.sessionEvent.guard";
 import {readSessionEventRecord} from "./AgentChat.sessionEvent.guard";
 /** 用途：读取字符串字段；使用范围：全部 provider 与输入事件；解耦评估：JSON 边界校验集中在独立 guard。 */
 import {readSessionEventString} from "./AgentChat.sessionEvent.guard";
+/** 用途：读取字符串数组字段；使用范围：question_resolved 答案；解耦评估：JSON 数组校验集中在 guard，投影层不复制逐项检查。 */
+import {readSessionEventStringArray} from "./AgentChat.sessionEvent.guard";
+/** 用途：读取受支持的交互终态；使用范围：resolved 事件；解耦评估：协议状态收窄集中在 guard，投影层只构造判别联合。 */
+import {readSessionEventInteractionStatus} from "./AgentChat.sessionEvent.guard";
 /** 用途：读取用户块引用；使用范围：input_promoted/steer_injected 用户条目；解耦评估：JSON 校验集中在 guard，投影层不做类型断言。 */
 import {readSessionEventReferences} from "./AgentChat.sessionEvent.guard";
 /** 用途：读取编辑器上下文；使用范围：input_promoted/steer_injected 用户条目；解耦评估：JSON 校验集中在 guard，投影层不做类型断言。 */
@@ -77,12 +83,24 @@ function projectToolEvent(event: AgentConversationSessionEvent) {
         const effects = readSessionEventToolEffects(event);
         return {type: "confirm", name, arguments: args, confirmID, ...(effects ? {effects} : {})} satisfies ISSEResult;
     }
+    const status = readSessionEventInteractionStatus(event);
+    const message = readSessionEventString(event, "message") || "";
+    if (event.type === "confirm_resolved" && confirmID !== null && callID !== null && status !== null) {
+        return {type: "confirm_resolved", confirmID, callID, status, message} satisfies ISSEResult;
+    }
     const questionID = readSessionEventString(event, "questionID");
     if (event.type === "question" && args && questionID !== null) {
         return {type: "question", questionID, arguments: args} satisfies ISSEResult;
     }
+    if (event.type === "question_resolved" && questionID !== null && callID !== null && status !== null) {
+        return {type: "question_resolved", questionID, callID, status, message,
+            answers: readSessionEventStringArray(event.answers) || []} satisfies ISSEResult;
+    }
     if (event.type === "frontend_tool_call" && name !== null && callID !== null && args) {
         return {type: "frontend_tool_call", name, callID, arguments: args} satisfies ISSEResult;
+    }
+    if (event.type === "frontend_tool_resolved" && callID !== null && status !== null) {
+        return {type: "frontend_tool_resolved", callID, status, message} satisfies ISSEResult;
     }
     return null;
 }
@@ -140,6 +158,15 @@ function appendConversationUserEntry(runtime: AgentChatRuntime, event: AgentConv
     rebuildNavMarkers(runtime);
 }
 
+/** 将输入晋升事件携带的 canonical 修订同步到当前仓储状态。 */
+function observePromotedRevision(runtime: AgentChatRuntime, event: AgentConversationSessionEvent) {
+    const contentRevision = readSessionEventNumber(event, "contentRevision");
+    if (contentRevision === null) {
+        return;
+    }
+    observeAgentSessionRevision(runtime.sessionPorts.repository.revisionState, runtime.sessionId, contentRevision);
+}
+
 /** 按 eventSeq 顺序处理输入晋升、steer 分段和 provider 事件。 */
 export async function handleAgentConversationSessionEvent(
     runtime: AgentChatRuntime,
@@ -147,6 +174,7 @@ export async function handleAgentConversationSessionEvent(
 ) {
     // queued 输入只有收到晋升事件后才进入主历史，并开启对应 turn 的流式界面。
     if (event.type === "input_promoted") {
+        observePromotedRevision(runtime, event);
         appendConversationUserEntry(runtime, event);
         setStreaming(runtime, true);
         return;

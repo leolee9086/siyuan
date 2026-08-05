@@ -102,7 +102,7 @@ func TestAgentExecutorFinalizesCommittedInputAfterAnchorDeleteCrash(t *testing.T
 		t.Fatal(err)
 	}
 	turnID := ""
-	for event := range original.runQueuedAgentChat(context.Background(), input) {
+	for event := range original.runAgentChat(context.Background(), input) {
 		if event.Type == "turn" {
 			turnID = event.TurnID
 			if err = original.bindInputTurn(input.ID, turnID); err != nil {

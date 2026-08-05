@@ -61,8 +61,8 @@ describe("Agent conversation control requests", () => {
     it("preserves structured conflict metadata for controller resynchronization", async () => {
         vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
             code: -1,
-            msg: "queue version conflict",
-            data: {reason: "queue_version_conflict", queueVersion: 9},
+            msg: "agent confirmation expired",
+            data: {reason: "interaction_expired", status: "expired", queueVersion: 9},
         }), {status: 409})));
 
         await expect(requestAgentConversationControl({
@@ -70,8 +70,9 @@ describe("Agent conversation control requests", () => {
             body: {inputID: "input-1"},
             requestHeaders: () => ({}),
         })).rejects.toMatchObject({
-            message: "queue version conflict",
-            reason: "queue_version_conflict",
+            message: "agent confirmation expired",
+            reason: "interaction_expired",
+            resolutionStatus: "expired",
             queueVersion: 9,
             status: 409,
         });

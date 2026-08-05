@@ -43,6 +43,33 @@ func TestManagerSubmitDuplicate(t *testing.T) {
 	}
 }
 
+// TestManagerSubmitReturnsItsOwnMutationVersion 验证同步消费者不能让 admission 响应误报后续 mutation 的版本。
+func TestManagerSubmitReturnsItsOwnMutationVersion(t *testing.T) {
+	m := NewInboxManager(10)
+	claimed := false
+	m.Subscribe(func(sessionID string) {
+		if claimed {
+			return
+		}
+		claimed = true
+		if _, err := m.ClaimNextQueued(sessionID); err != nil {
+			t.Errorf("claim queued input: %v", err)
+		}
+	})
+
+	result, err := m.Submit(newTestInput("linearized", "sess-linearized", SemanticsQueue))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.QueueVersion != 1 {
+		t.Fatalf("admission version: got %d, want mutation version 1", result.QueueVersion)
+	}
+	snapshot := m.SnapshotVersioned("sess-linearized")
+	if snapshot.QueueVersion != 2 || len(snapshot.Items) != 1 || snapshot.Items[0].State != StatusInjecting {
+		t.Fatalf("consumer mutation did not advance independently: %+v", snapshot)
+	}
+}
+
 // TestManagerSubmitValidation 验证非法输入被拒绝。
 func TestManagerSubmitValidation(t *testing.T) {
 	m := NewInboxManager(10)

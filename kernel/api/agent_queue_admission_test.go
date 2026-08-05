@@ -57,9 +57,6 @@ func setupAgentControlAPITest(t *testing.T) string {
 
 	t.Cleanup(func() {
 		stopAgentExecutor(sessionID)
-		sessionsMu.Lock()
-		delete(runningSessions, sessionID)
-		sessionsMu.Unlock()
 		util.DataDir = originalDataDir
 		model.Conf = originalConf
 	})

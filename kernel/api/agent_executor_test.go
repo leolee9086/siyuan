@@ -106,11 +106,12 @@ func TestAgentExecutorForwardsTurnEvents(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	subCh, err := ex.subscribe(ctx)
+	sub, err := ex.subscribe(ctx, agentLegacySubscriptionMetadata{})
 	if err != nil {
 		t.Fatalf("subscribe failed: %v", err)
 	}
-	defer ex.unsubscribe()
+	subCh := sub.ch
+	defer ex.unsubscribe(sub)
 
 	input := &agentqueue.Input{
 		ID:        "in-1",
@@ -158,11 +159,12 @@ func TestAgentExecutorCancelOnRequestCancel(t *testing.T) {
 	t.Cleanup(func() { close(ex.stopCh) })
 
 	ctx, cancel := context.WithCancel(context.Background())
-	subCh, err := ex.subscribe(ctx)
+	sub, err := ex.subscribe(ctx, agentLegacySubscriptionMetadata{})
 	if err != nil {
 		t.Fatalf("subscribe failed: %v", err)
 	}
-	defer ex.unsubscribe()
+	subCh := sub.ch
+	defer ex.unsubscribe(sub)
 
 	if _, err := manager.Submit(&agentqueue.Input{
 		ID: "in-1", SessionID: "sess-1", Semantics: agentqueue.SemanticsUserMessage,
@@ -245,10 +247,11 @@ func TestAgentExecutorQueueWaitsForTurnCommit(t *testing.T) {
 	t.Cleanup(func() { close(ex.stopCh) })
 
 	ctx1, cancel1 := context.WithCancel(context.Background())
-	firstEvents, err := ex.subscribe(ctx1)
+	firstSub, err := ex.subscribe(ctx1, agentLegacySubscriptionMetadata{})
 	if err != nil {
 		t.Fatal(err)
 	}
+	firstEvents := firstSub.ch
 	for _, id := range []string{"queue-1", "queue-2"} {
 		if _, err = manager.Submit(&agentqueue.Input{
 			ID: id, SessionID: "sess-commit-barrier", Semantics: agentqueue.SemanticsQueue,
@@ -257,16 +260,19 @@ func TestAgentExecutorQueueWaitsForTurnCommit(t *testing.T) {
 		}
 	}
 	collectUntilClosed(t, firstEvents, 5*time.Second)
+	ex.unsubscribe(firstSub)
 	cancel1()
 	if got := <-started; got != "queue-1" {
 		t.Fatalf("first promoted input: %s", got)
 	}
 
 	ctx2, cancel2 := context.WithCancel(context.Background())
-	secondEvents, err := ex.subscribe(ctx2)
+	secondSub, err := ex.subscribe(ctx2, agentLegacySubscriptionMetadata{})
 	if err != nil {
 		t.Fatal(err)
 	}
+	secondEvents := secondSub.ch
+	defer ex.unsubscribe(secondSub)
 	defer cancel2()
 	time.Sleep(100 * time.Millisecond)
 	select {
@@ -453,10 +459,11 @@ func TestAgentExecutorSequentialTurns(t *testing.T) {
 
 	for i := 1; i <= 2; i++ {
 		ctx, cancel := context.WithCancel(context.Background())
-		subCh, err := ex.subscribe(ctx)
+		sub, err := ex.subscribe(ctx, agentLegacySubscriptionMetadata{})
 		if err != nil {
 			t.Fatalf("subscribe %d failed: %v", i, err)
 		}
+		subCh := sub.ch
 		if _, err := manager.Submit(&agentqueue.Input{
 			ID:        "in-" + string(rune('0'+i)),
 			SessionID: "sess-1",
@@ -469,7 +476,7 @@ func TestAgentExecutorSequentialTurns(t *testing.T) {
 		if len(events) != 2 || events[0].TurnID != events[1].TurnID {
 			t.Fatalf("turn %d events mismatch: %+v", i, events)
 		}
-		ex.unsubscribe()
+		ex.unsubscribe(sub)
 		cancel()
 	}
 }
@@ -564,10 +571,11 @@ func TestAgentExecutorRecreateAfterRecycle(t *testing.T) {
 
 	// 第二代正常处理消息（经全局 manager 入队）。
 	ctx, cancel := context.WithCancel(context.Background())
-	subCh, err := ex2.subscribe(ctx)
+	sub, err := ex2.subscribe(ctx, agentLegacySubscriptionMetadata{})
 	if err != nil {
 		t.Fatalf("subscribe failed: %v", err)
 	}
+	subCh := sub.ch
 	if _, err := agentInboxManager.Submit(&agentqueue.Input{
 		ID: "in-2", SessionID: sessionID, Semantics: agentqueue.SemanticsUserMessage,
 	}); err != nil {
@@ -577,7 +585,7 @@ func TestAgentExecutorRecreateAfterRecycle(t *testing.T) {
 	if len(events) != 2 || events[0].TurnID != "in-2" {
 		t.Fatalf("recreated executor events mismatch: %+v", events)
 	}
-	ex2.unsubscribe()
+	ex2.unsubscribe(sub)
 	cancel()
 }
 
@@ -599,17 +607,18 @@ func TestAgentExecutorPruneHistory(t *testing.T) {
 	// 连续 3 个 turn，每个独立订阅（单流限制）。
 	for i := 1; i <= 3; i++ {
 		ctx, cancel := context.WithCancel(context.Background())
-		subCh, err := ex.subscribe(ctx)
+		sub, err := ex.subscribe(ctx, agentLegacySubscriptionMetadata{})
 		if err != nil {
 			t.Fatalf("subscribe %d failed: %v", i, err)
 		}
+		subCh := sub.ch
 		if _, err := manager.Submit(&agentqueue.Input{
 			ID: "in-" + string(rune('0'+i)), SessionID: sessionID, Semantics: agentqueue.SemanticsUserMessage,
 		}); err != nil {
 			t.Fatalf("submit %d failed: %v", i, err)
 		}
 		collectUntilClosed(t, subCh, 5*time.Second)
-		ex.unsubscribe()
+		ex.unsubscribe(sub)
 		cancel()
 	}
 
@@ -631,18 +640,21 @@ func TestAgentExecutorSubscribeBusy(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	subCh1, err := ex.subscribe(ctx)
+	sub1, err := ex.subscribe(ctx, agentLegacySubscriptionMetadata{})
 	if err != nil {
 		t.Fatalf("first subscribe failed: %v", err)
 	}
-	if _, err := ex.subscribe(ctx); err != ErrAgentSessionBusy {
+	if _, err := ex.subscribe(ctx, agentLegacySubscriptionMetadata{}); err != ErrAgentSessionBusy {
 		t.Fatalf("second subscribe: got %v, want ErrAgentSessionBusy", err)
 	}
-	ex.unsubscribe()
-	subCh2, err := ex.subscribe(ctx)
+	ex.unsubscribe(sub1)
+	sub2, err := ex.subscribe(ctx, agentLegacySubscriptionMetadata{})
 	if err != nil {
 		t.Fatalf("subscribe after unsubscribe failed: %v", err)
 	}
+	defer ex.unsubscribe(sub2)
+	subCh1 := sub1.ch
+	subCh2 := sub2.ch
 	if subCh1 == subCh2 {
 		t.Fatal("unsubscribe should detach the old subscription")
 	}
@@ -753,14 +765,15 @@ func TestAgentExecutorRecreatePreservesInbox(t *testing.T) {
 
 	// 订阅 + 等待：应处理到保留的消息（in-keep），证明未被覆盖丢失。
 	ctx, cancel := context.WithCancel(context.Background())
-	subCh, err := ex2.subscribe(ctx)
+	sub, err := ex2.subscribe(ctx, agentLegacySubscriptionMetadata{})
 	if err != nil {
 		t.Fatalf("subscribe failed: %v", err)
 	}
+	subCh := sub.ch
 	events := collectUntilClosed(t, subCh, 5*time.Second)
 	if len(events) != 2 || events[0].TurnID != "in-keep" {
 		t.Fatalf("preserved message was not processed: %+v", events)
 	}
-	ex2.unsubscribe()
+	ex2.unsubscribe(sub)
 	cancel()
 }

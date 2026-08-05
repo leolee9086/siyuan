@@ -19,6 +19,19 @@ export function getAgentSessionRevision(state: AgentSessionRevisionState, id: st
     return state.revisions.get(id) ?? 0;
 }
 
+/** 合并 Kernel 事件携带的 canonical 修订，避免后续提交使用晋升前的旧版本。 */
+/** @同步豁免: 生命周期 - 会话事件与后续保存之间必须同步提升同一组合根的修订水位。 */
+export function observeAgentSessionRevision(state: AgentSessionRevisionState, id: string, revision: number) {
+    if (!Number.isSafeInteger(revision) || revision < 0) {
+        return;
+    }
+    const current = state.revisions.get(id) ?? 0;
+    // 只接受单调递增的 canonical 修订，乱序重放事件不得把后续保存降回旧版本。
+    if (revision > current) {
+        state.revisions.set(id, revision);
+    }
+}
+
 /** 等待指定会话的排队保存完成。 */
 export async function waitForAgentSessionSave(state: AgentSessionRevisionState, id: string) {
     const pending = state.pendingSaves.get(id);

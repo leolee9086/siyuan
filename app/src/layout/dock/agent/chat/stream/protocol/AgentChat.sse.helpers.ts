@@ -1,10 +1,11 @@
-/** 用途：约束 SSE 事件载荷；使用范围：SSE 分派与类型窄化。 */
+/** 用途：约束 SSE 事件载荷；使用范围：SSE 分派与类型窄化；解耦评估：经目录网关复用唯一判别联合。 */
 import type {ISSEResult} from "./imports";
-/** 用途：生成快照条目标识；使用范围：快照事件处理。解耦评估：运行时仅需 ID 生成器，可通过工具函数注入替代硬耦合。 */
-/** 用途：约束流式会话状态；使用范围：全部 SSE 事件处理器。 */
+/** 用途：约束流式会话状态；使用范围：全部 SSE 事件处理器；解耦评估：运行时协议经目录网关隔离具体 AgentChat 门面。 */
 import type {AgentChatRuntime} from "./imports";
 /** 用途：追加问题卡片；使用范围：问题事件分派。解耦评估：命令函数保持导入即可，事件内容由参数传递，无额外硬耦合。 */
 import {appendQuestion} from "./imports";
+/** 用途：结算问题卡片；使用范围：question_resolved 事件；解耦评估：复用问题领域唯一终态命令，事件层不直接改 DOM。 */
+import {resolveQuestion} from "./imports";
 /** 用途：恢复权威会话；使用范围：事件处理器异常恢复。解耦评估：需访问会话仓储，保持模块导入，边界清晰。 */
 import {reloadFromDisk} from "./imports";
 /** 用途：恢复中断轮次；使用范围：事件处理器异常恢复。解耦评估：需访问会话仓储，保持模块导入，边界清晰。 */
@@ -13,6 +14,8 @@ import {recoverInterruptedTurn} from "./imports";
 import {appendUsage} from "./imports";
 /** 用途：追加确认卡片；使用范围：确认事件分派。解耦评估：命令函数保持导入即可，事件内容由参数传递，无额外硬耦合。 */
 import {appendConfirm} from "./imports";
+/** 用途：结算确认卡片；使用范围：confirm_resolved 事件；解耦评估：复用确认领域唯一终态命令，事件层不直接改 DOM。 */
+import {resolveConfirm} from "./imports";
 /** 用途：追加运行中工具徽标；使用范围：工具开始事件。解耦评估：命令函数保持导入即可，事件内容由参数传递，无额外硬耦合。 */
 import {appendRunningToolBadge} from "./imports";
 /** 用途：查找当前工具调用；使用范围：工具结果事件。解耦评估：需查询工具状态，保持模块导入，边界清晰。 */
@@ -136,6 +139,15 @@ function dispatchToolSSEEvent(runtime: AgentChatRuntime, event: ISSEResult) {
         });
         return true;
     }
+    // confirm_resolved 只按协议终态关闭对应确认卡，不从后续工具文本反推决定。
+    if (event.type === "confirm_resolved") {
+        resolveConfirm(runtime, {
+            confirmID: event.confirmID,
+            status: event.status,
+            ...(event.message ? {message: event.message} : {}),
+        });
+        return true;
+    }
     // 条件 event.type === "tool_result" 成立时才执行此分支，避免影响其它会话或响应阶段。
     if (event.type === "tool_result") {
         handleToolResult(runtime, event);
@@ -144,6 +156,20 @@ function dispatchToolSSEEvent(runtime: AgentChatRuntime, event: ISSEResult) {
     // 条件 event.type === "question" 成立时才执行此分支，避免影响其它会话或响应阶段。
     if (event.type === "question") {
         appendQuestion(runtime, event.questionID, event.arguments);
+        return true;
+    }
+    // question_resolved 同时投影服务端状态与答案，确保持久化卡片可准确重建。
+    if (event.type === "question_resolved") {
+        resolveQuestion(runtime, {
+            questionID: event.questionID,
+            status: event.status,
+            answers: event.answers,
+            ...(event.message ? {message: event.message} : {}),
+        });
+        return true;
+    }
+    // 前端工具没有独立交互卡；tool_result 负责可见结算，此事件只阻止未知事件降级。
+    if (event.type === "frontend_tool_resolved") {
         return true;
     }
     return false;

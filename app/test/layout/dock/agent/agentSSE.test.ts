@@ -32,6 +32,39 @@ describe("Agent SSE protocol parsing", () => {
             arguments: {path: "README.md"},
             effects: {localWrite: true, dataEgress: false},
         });
+
+        expect(parseAgentSSEEvent("confirm_resolved", JSON.stringify({
+            confirmID: "confirm-1",
+            callID: "call-1",
+            status: "expired",
+            message: "agent confirmation expired",
+        }))).toEqual({
+            type: "confirm_resolved",
+            confirmID: "confirm-1",
+            callID: "call-1",
+            status: "expired",
+            message: "agent confirmation expired",
+        });
+
+        expect(parseAgentSSEEvent("question_resolved", JSON.stringify({
+            questionID: "question-1",
+            callID: "call-2",
+            status: "submitted",
+            answers: ["yes"],
+        }))).toEqual({
+            type: "question_resolved",
+            questionID: "question-1",
+            callID: "call-2",
+            status: "submitted",
+            message: "",
+            answers: ["yes"],
+        });
+
+        expect(parseAgentSSEEvent("confirm_resolved", JSON.stringify({
+            confirmID: "confirm-future",
+            callID: "call-future",
+            status: "future_status",
+        }))).toMatchObject({status: "error"});
     });
 
     it("rejects malformed payloads instead of dropping the frame", () => {

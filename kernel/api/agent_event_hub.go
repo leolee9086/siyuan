@@ -276,7 +276,11 @@ func init() {
 	})
 	registerAgentEventProjector("confirm", func(event agent.AgentEvent) map[string]any {
 		return map[string]any{"name": event.Name, "arguments": event.Arguments, "confirmID": event.ConfirmID,
-			"effects": event.Effects, "turnID": event.TurnID}
+			"callID": event.CallID, "effects": event.Effects, "turnID": event.TurnID}
+	})
+	registerAgentEventProjector("confirm_resolved", func(event agent.AgentEvent) map[string]any {
+		return map[string]any{"name": event.Name, "confirmID": event.ConfirmID, "callID": event.CallID,
+			"status": event.Status, "message": event.Message, "turnID": event.TurnID}
 	})
 	registerAgentEventProjector("tool_call", func(event agent.AgentEvent) map[string]any {
 		return map[string]any{"name": event.Name, "arguments": event.Arguments, "callID": event.CallID, "turnID": event.TurnID}
@@ -304,10 +308,19 @@ func init() {
 		return map[string]any{"attempt": event.RetryAttempt, "maxRetries": event.RetryMax, "turnID": event.TurnID}
 	})
 	registerAgentEventProjector("question", func(event agent.AgentEvent) map[string]any {
-		return map[string]any{"questionID": event.QuestionID, "arguments": event.Arguments, "turnID": event.TurnID}
+		return map[string]any{"questionID": event.QuestionID, "callID": event.CallID,
+			"arguments": event.Arguments, "turnID": event.TurnID}
+	})
+	registerAgentEventProjector("question_resolved", func(event agent.AgentEvent) map[string]any {
+		return map[string]any{"questionID": event.QuestionID, "callID": event.CallID, "status": event.Status,
+			"message": event.Message, "answers": event.Answers, "turnID": event.TurnID}
 	})
 	registerAgentEventProjector("frontend_tool_call", func(event agent.AgentEvent) map[string]any {
 		return map[string]any{"callID": event.CallID, "name": event.Name, "arguments": event.Arguments, "turnID": event.TurnID}
+	})
+	registerAgentEventProjector("frontend_tool_resolved", func(event agent.AgentEvent) map[string]any {
+		return map[string]any{"callID": event.CallID, "status": event.Status,
+			"message": event.Message, "turnID": event.TurnID}
 	})
 	registerAgentEventProjector("snapshot", func(event agent.AgentEvent) map[string]any {
 		return map[string]any{"snapshotID": event.SnapshotID, "turnID": event.TurnID}

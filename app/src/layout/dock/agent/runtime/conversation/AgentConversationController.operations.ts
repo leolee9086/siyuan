@@ -39,7 +39,7 @@ export async function submitAgentConversation(
     observer: AgentConversationObserver,
     signal: AbortSignal,
 ) {
-    const optimistic = runtime.state.adapter.capabilities.usesSessionEvents;
+    const optimistic = runtime.state.adapter.capabilities.usesSessionEvents && input.delivery !== "turn";
     if (optimistic) {
         runtime.state.queueItems.push(createOptimisticQueueItem(input));
         runtime.hooks.onStateChange(runtime.state);

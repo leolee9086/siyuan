@@ -5,12 +5,14 @@ const finishAssistantSegment = vi.hoisted(() => vi.fn());
 const setStreaming = vi.hoisted(() => vi.fn());
 const rebuildNavMarkers = vi.hoisted(() => vi.fn());
 const handleSSEEvent = vi.hoisted(() => vi.fn(async () => undefined));
+const observeAgentSessionRevision = vi.hoisted(() => vi.fn());
 
 vi.mock("../../../../src/layout/dock/agent/chat/stream/protocol/imports", () => ({
     appendUserMessage,
     finishAssistantSegment,
     setStreaming,
-    rebuildNavMarkers,
+	rebuildNavMarkers,
+	observeAgentSessionRevision,
 }));
 vi.mock("../../../../src/layout/dock/agent/chat/stream/protocol/AgentChat.sse.methods", () => ({
     handleSSEEvent,
@@ -24,7 +26,9 @@ function createRuntime() {
     return {
         entries: [],
         messagesContainer: document.createElement("div"),
-        composer: {pushHistory: vi.fn()},
+		composer: {pushHistory: vi.fn()},
+		sessionId: "session-1",
+		sessionPorts: {repository: {revisionState: {revisions: new Map(), runtimeRevisions: new Map(), pendingSaves: new Map()}}},
     } as unknown as AgentChatRuntime;
 }
 
@@ -45,7 +49,8 @@ describe("AgentChat session event projection", () => {
             content: "queued message",
             blockHTML: "<p>queued message</p>",
             references: [{id: "block-1", title: "Block"}],
-            editorContext: {activeDocID: "doc-1", selectedBlockIDs: ["block-1"]},
+			editorContext: {activeDocID: "doc-1", selectedBlockIDs: ["block-1"]},
+			contentRevision: 4,
         });
 
         expect(runtime.entries).toHaveLength(0);
@@ -67,7 +72,10 @@ describe("AgentChat session event projection", () => {
         });
         expect(runtime.composer?.pushHistory).toHaveBeenCalledOnce();
         expect(finishAssistantSegment).not.toHaveBeenCalled();
-        expect(setStreaming).toHaveBeenCalledWith(runtime, true);
+		expect(setStreaming).toHaveBeenCalledWith(runtime, true);
+		expect(observeAgentSessionRevision).toHaveBeenCalledWith(
+			runtime.sessionPorts.repository.revisionState, "session-1", 4,
+		);
     });
 
     it("finishes the current assistant segment before inserting a steer user entry", async () => {
@@ -85,5 +93,39 @@ describe("AgentChat session event projection", () => {
             .toBeLessThan(appendUserMessage.mock.invocationCallOrder[0]!);
         expect(handleSSEEvent).toHaveBeenCalledWith(runtime, {type: "content", token: "next segment"});
         expect(runtime.entries[0]).toMatchObject({id: "steer-entry", type: "user", content: "focus here"});
+    });
+
+    it("projects explicit interaction resolutions without inferring tool result text", async () => {
+        const runtime = createRuntime();
+
+        await handleAgentConversationSessionEvent(runtime, event("confirm_resolved", {
+            confirmID: "confirm-1",
+            callID: "call-1",
+            status: "rejected",
+            message: "User rejected this operation",
+        }));
+        await handleAgentConversationSessionEvent(runtime, event("question_resolved", {
+            questionID: "question-1",
+            callID: "call-2",
+            status: "submitted",
+            message: "Question answered",
+            answers: ["yes"],
+        }));
+
+        expect(handleSSEEvent).toHaveBeenNthCalledWith(1, runtime, {
+            type: "confirm_resolved",
+            confirmID: "confirm-1",
+            callID: "call-1",
+            status: "rejected",
+            message: "User rejected this operation",
+        });
+        expect(handleSSEEvent).toHaveBeenNthCalledWith(2, runtime, {
+            type: "question_resolved",
+            questionID: "question-1",
+            callID: "call-2",
+            status: "submitted",
+            message: "Question answered",
+            answers: ["yes"],
+        });
     });
 });

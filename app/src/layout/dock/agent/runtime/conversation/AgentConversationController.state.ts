@@ -28,7 +28,7 @@ export function createOptimisticQueueItem(input: AgentConversationSubmitInput) {
         input: {
             id: input.inputID,
             sessionId: input.sessionID,
-            semantics: input.delivery === "steer" ? "steer" : "queue",
+            semantics: input.delivery,
             content: input.message,
             ...(input.expectedTurnID ? {expectedTurnId: input.expectedTurnID} : {}),
             createdAt: Date.now(),
@@ -51,13 +51,13 @@ export function applyAgentConversationAdmission(
     // admission 的较高版本可以推进本地游标，但不会构造缺失的权威项。
     if (typeof admission.queueVersion === "number" && admission.queueVersion > runtime.state.queueVersion) {
         runtime.state.queueVersion = admission.queueVersion;
-	}
-	const item = runtime.state.queueItems.find((candidate) => candidate.input.id === admission.inputID);
-	// SSE 已替换的权威项没有 optimistic 标记，迟到 admission 只能结算仍在等待确认的本地占位项。
-	if (!item?.optimistic) {
-		runtime.hooks.onStateChange(runtime.state);
-		return;
-	}
+    }
+    const item = runtime.state.queueItems.find((candidate) => candidate.input.id === admission.inputID);
+    // SSE 已替换的权威项没有 optimistic 标记，迟到 admission 只能结算仍在等待确认的本地占位项。
+    if (!item?.optimistic) {
+        runtime.hooks.onStateChange(runtime.state);
+        return;
+    }
     // 服务端返回稳定序号时替换乐观占位序号。
     if (typeof admission.admittedSeq === "number") {
         item.seq = admission.admittedSeq;

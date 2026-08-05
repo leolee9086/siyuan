@@ -12,10 +12,12 @@ function createControlError(response: Response, envelope: AgentConversationContr
     const data = envelope.data && typeof envelope.data === "object" ? envelope.data : {};
     const reason = "reason" in data && typeof data.reason === "string" ? data.reason : "request_failed";
     const queueVersion = "queueVersion" in data && typeof data.queueVersion === "number" ? data.queueVersion : 0;
+    const resolutionStatus = "status" in data && typeof data.status === "string" ? data.status : undefined;
     return createAgentConversationControlError(envelope.msg || `Agent control request failed: ${response.status}`, {
         reason,
         queueVersion,
         status: response.status,
+        ...(resolutionStatus ? {resolutionStatus} : {}),
     });
 }
 

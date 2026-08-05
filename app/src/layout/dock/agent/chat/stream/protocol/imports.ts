@@ -15,6 +15,10 @@ export type {AgentConversationSessionEvent};
 import {appendQuestion} from "../../interaction/question/AgentChat.question.methods";
 /** 导出问题追加命令。 */
 export {appendQuestion};
+/** 用途：结算问题卡片；使用范围：question_resolved 事件；解耦评估：复用问题领域唯一终态命令，避免协议层复制 DOM 状态机。 */
+import {resolveQuestion} from "../../interaction/question/AgentChat.question.resolution";
+/** 导出问题终态命令。 */
+export {resolveQuestion};
 /** 用途：追加令牌用量；使用范围：用量事件；解耦评估：指标状态由现有命令集中维护，事件层只转交已校验载荷。 */
 import {appendUsage} from "../../interaction/metrics/AgentChat.metrics.methods";
 /** 导出用量追加命令。 */
@@ -23,6 +27,10 @@ export {appendUsage};
 import {appendConfirm} from "../../interaction/confirm/AgentChat.confirm.methods";
 /** 导出确认追加命令。 */
 export {appendConfirm};
+/** 用途：结算确认卡片；使用范围：confirm_resolved 事件；解耦评估：复用确认领域唯一终态命令，避免协议层复制 DOM 状态机。 */
+import {resolveConfirm} from "../../interaction/confirm/AgentChat.confirm.methods";
+/** 导出确认终态命令。 */
+export {resolveConfirm};
 /** 用途：执行前端工具；使用范围：前端工具事件；解耦评估：工具注册和回传由现有命令统一处理，事件发射会增加无序中间层。 */
 import {handleFrontendToolCall} from "../../interaction/confirm/AgentChat.confirm.methods";
 /** 导出前端工具处理命令。 */
@@ -44,6 +52,11 @@ export {reloadFromDisk};
 import {recoverInterruptedTurn} from "../../session/persistence/AgentChat.recoverTurn";
 /** 导出中断轮次恢复命令。 */
 export {recoverInterruptedTurn};
+
+/** 用途：观察输入晋升后的 canonical 修订；使用范围：session-event 保存屏障；解耦评估：复用仓储修订水位避免协议层持有第二事实源。 */
+import {observeAgentSessionRevision} from "../../../session/AgentSession.revisions";
+/** 导出会话修订观察命令。 */
+export {observeAgentSessionRevision};
 
 /** 用途：追加运行中工具徽标；使用范围：工具开始事件；解耦评估：工具调用身份和 DOM 映射由工具状态模块唯一持有。 */
 import {appendRunningToolBadge} from "../../interaction/tools/AgentChat.toolState";

@@ -6,6 +6,10 @@ export interface IToolEffects {
     externalCost?: boolean;
 }
 
+/** Kernel 为等待用户或浏览器结果的交互发出的稳定终态。 */
+export type AgentInteractionResolutionStatus =
+    "approved" | "always" | "rejected" | "submitted" | "completed" | "expired" | "cancelled" | "error";
+
 /** Agent SSE 协议中的全部已知事件；聊天流只能消费该判别联合。 */
 export type ISSEResult = {
     type: "turn";
@@ -27,6 +31,12 @@ export type ISSEResult = {
     arguments: Record<string, unknown>;
     confirmID: string;
     effects?: IToolEffects;
+} | {
+    type: "confirm_resolved";
+    confirmID: string;
+    callID: string;
+    status: AgentInteractionResolutionStatus;
+    message: string;
 } | {
     type: "tool_result";
     name: string;
@@ -74,6 +84,13 @@ export type ISSEResult = {
     questionID: string;
     arguments: Record<string, unknown>;
 } | {
+    type: "question_resolved";
+    questionID: string;
+    callID: string;
+    status: AgentInteractionResolutionStatus;
+    message: string;
+    answers: string[];
+} | {
     type: "reasoning";
     token: string;
 } | {
@@ -84,6 +101,11 @@ export type ISSEResult = {
     callID: string;
     name: string;
     arguments: Record<string, unknown>;
+} | {
+    type: "frontend_tool_resolved";
+    callID: string;
+    status: AgentInteractionResolutionStatus;
+    message: string;
 };
 
 /** 当前编辑器可提供给 Agent 的文档、块选择和可见范围快照。 */

@@ -51,7 +51,7 @@ function resolveConversationDelivery(runtime: AgentChatRuntime) {
     const state = requireConversationController(runtime).state;
     const active = Boolean(state.turnID) && state.phase !== "idle" && state.phase !== "awaiting_commit";
     if (!active || !state.adapter.capabilities.usesSessionEvents) {
-        return state.adapter.capabilities.usesSessionEvents ? "queue" : "turn";
+        return "turn";
     }
     if (state.selectedDelivery === "steer" && state.steerable && state.adapter.capabilities.supportsSteer) {
         return "steer";
@@ -127,8 +127,9 @@ function createConversationObserver(
 }
 
 /** 确保持久化 native 会话已有对应的长生命周期订阅。 */
-async function ensureSessionEventSubscription(runtime: AgentChatRuntime, persistSession = true) {
-    if (persistSession) {
+async function ensureSessionEventSubscription(runtime: AgentChatRuntime) {
+    // session-event admission 只在新会话尚无 canonical 修订时执行一次初始化保存。
+    if (runtime.sessionPorts.repository.getRevision(runtime.sessionId) < 1) {
         await saveSession(runtime, undefined, true);
     }
     const controller = requireConversationController(runtime);
@@ -155,7 +156,7 @@ function createSessionEventIdentity(
     const identity = {
         inputID,
         userEntryID,
-        ...((editingInputID || options.regenerate) ? {delivery: "queue" as const} : {}),
+        ...(editingInputID ? {delivery: "queue" as const} : {}),
         ...(options.regenerate ? {regenerate: true} : {}),
     };
     return {editingInputID, identity};
@@ -167,7 +168,7 @@ async function submitSessionEventInput(
     request: NonNullable<ReturnType<typeof collectAgentChatSendData>>,
     options: Readonly<{userEntryID?: string; regenerate?: boolean}> = {},
 ) {
-    await ensureSessionEventSubscription(runtime, !options.regenerate);
+    await ensureSessionEventSubscription(runtime);
     const conversationController = requireConversationController(runtime);
     const controller = new AbortController();
     runtime.abortController = controller;

@@ -12,8 +12,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** 收窄编辑器上下文中的字符串数组，未知元素会被整体忽略。 */
-function readStringArray(candidate: unknown) {
+/** 收窄会话事件中的字符串数组，未知元素会被整体忽略。 @同步豁免: 类型守卫 */
+export function readSessionEventStringArray(candidate: unknown) {
     if (!Array.isArray(candidate)) {
         return undefined;
     }
@@ -25,6 +25,21 @@ function readStringArray(candidate: unknown) {
         values.push(item);
     }
     return values;
+}
+
+/** 读取受支持的交互终态，未知扩展状态按 error 前向兼容。 @同步豁免: 类型守卫 */
+export function readSessionEventInteractionStatus(
+    event: AgentConversationSessionEvent,
+): Extract<ISSEResult, {type: "confirm_resolved"}>["status"] | null {
+    const value = event.status;
+    if (typeof value !== "string") {
+        return null;
+    }
+    if (value === "approved" || value === "always" || value === "rejected" || value === "submitted" ||
+        value === "completed" || value === "expired" || value === "cancelled" || value === "error") {
+        return value;
+    }
+    return "error";
 }
 
 /** 读取字符串字段。 @同步豁免: 类型守卫 */
@@ -73,8 +88,8 @@ export function readSessionEventEditorContext(event: AgentConversationSessionEve
     if (!value) {
         return undefined;
     }
-    const selectedBlockIDs = readStringArray(value.selectedBlockIDs);
-    const visibleBlockIDs = readStringArray(value.visibleBlockIDs);
+    const selectedBlockIDs = readSessionEventStringArray(value.selectedBlockIDs);
+    const visibleBlockIDs = readSessionEventStringArray(value.visibleBlockIDs);
     return {
         ...(typeof value.activeDocID === "string" ? {activeDocID: value.activeDocID} : {}),
         ...(typeof value.activeDocTitle === "string" ? {activeDocTitle: value.activeDocTitle} : {}),

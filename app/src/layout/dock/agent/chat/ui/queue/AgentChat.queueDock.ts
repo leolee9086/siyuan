@@ -17,7 +17,8 @@ function readQueueLanguage(key: string, fallback: string) {
 
 /** 终态 queue 项保留在内核审计快照中，但不占用活动 dock。 */
 function isVisibleQueueItem(item: AgentConversationQueueItem) {
-    return item.optimistic || (item.state !== "cancelled" && item.state !== "injected" && item.state !== "completed");
+    return item.input.semantics === "queue" && (item.optimistic ||
+        (item.state !== "cancelled" && item.state !== "injected" && item.state !== "completed"));
 }
 
 /** 按状态为 queue 项选择用户可观察标签。 */

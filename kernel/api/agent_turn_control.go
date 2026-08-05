@@ -16,9 +16,10 @@ import (
 )
 
 var (
-	ErrAgentNoActiveTurn     = errors.New("agent session has no active turn")
-	ErrAgentTurnMismatch     = errors.New("agent turn does not match expected turn")
-	ErrAgentTurnNotSteerable = errors.New("agent turn is not steerable")
+	ErrAgentNoActiveTurn      = errors.New("agent session has no active turn")
+	ErrAgentTurnAlreadyActive = errors.New("agent session already has an active turn")
+	ErrAgentTurnMismatch      = errors.New("agent turn does not match expected turn")
+	ErrAgentTurnNotSteerable  = errors.New("agent turn is not steerable")
 )
 
 type agentSteerPayload struct {

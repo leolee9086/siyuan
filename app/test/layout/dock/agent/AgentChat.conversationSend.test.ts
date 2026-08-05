@@ -59,7 +59,7 @@ function createState(overrides: Partial<AgentConversationState> = {}): AgentConv
     };
 }
 
-function createRuntime(state: AgentConversationState, ids: string[] = ["input-1", "entry-1"]) {
+function createRuntime(state: AgentConversationState, ids: string[] = ["input-1", "entry-1"], revision = 7) {
     const controller = {
         state,
         activate: vi.fn(async () => undefined),
@@ -81,7 +81,7 @@ function createRuntime(state: AgentConversationState, ids: string[] = ["input-1"
         sessionPorts: {
             requestHeaders: vi.fn(() => ({Authorization: "Bearer test"})),
             repository: {
-                getRevision: vi.fn(() => 7),
+				getRevision: vi.fn(() => revision),
                 newSessionId: vi.fn(() => ids.shift() || "generated-id"),
             },
         },
@@ -97,7 +97,7 @@ describe("AgentChat conversation sending", () => {
         vi.clearAllMocks();
     });
 
-    it("admits an idle input as queue without writing the main history", async () => {
+	it("admits an idle input as a direct turn without rewriting an existing session", async () => {
         const {runtime, controller} = createRuntime(createState());
         const originalEntries = runtime.entries;
 
@@ -105,7 +105,7 @@ describe("AgentChat conversation sending", () => {
 
         expect(controller.submit).toHaveBeenCalledOnce();
         expect(controller.submit.mock.calls[0]![0]).toMatchObject({
-            inputID: "input-1", userEntryID: "entry-1", delivery: "queue", sessionID: "session-1",
+			inputID: "input-1", userEntryID: "entry-1", delivery: "turn", sessionID: "session-1",
             message: "new input",
         });
         expect(controller.submit.mock.calls[0]![0]).not.toHaveProperty("expectedTurnID");
@@ -114,8 +114,17 @@ describe("AgentChat conversation sending", () => {
         expect(runtime.entries).toHaveLength(1);
         expect(runtime.composer!.clear).toHaveBeenCalledOnce();
         expect(runtime.promptSourceController.closeActions).toHaveBeenCalledOnce();
-        expect(saveSession).toHaveBeenCalledOnce();
-    });
+		expect(saveSession).not.toHaveBeenCalled();
+	});
+
+	it("persists a new session once before its first direct turn admission", async () => {
+		const {runtime, controller} = createRuntime(createState(), ["input-1", "entry-1"], 0);
+
+		await submitAgentChatConversation(runtime, createRequest());
+
+		expect(saveSession).toHaveBeenCalledOnce();
+		expect(controller.submit.mock.calls[0]![0]).toMatchObject({delivery: "turn"});
+	});
 
     it("selects steer for a steerable running turn and queue when explicitly selected", async () => {
         const state = createState({turnID: "turn-1", phase: "provider_stream", steerable: true, selectedDelivery: "steer"});
@@ -132,7 +141,8 @@ describe("AgentChat conversation sending", () => {
         expect(controller.submit.mock.calls[1]![0]).toMatchObject({
             inputID: "queue-id", delivery: "queue",
         });
-        expect(controller.submit.mock.calls[1]![0]).not.toHaveProperty("expectedTurnID");
+		expect(controller.submit.mock.calls[1]![0]).not.toHaveProperty("expectedTurnID");
+		expect(saveSession).not.toHaveBeenCalled();
     });
 
     it("edits a pending queue item through update while retaining its inputID", async () => {

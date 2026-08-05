@@ -144,7 +144,7 @@ describe("AgentChat queue dock", () => {
         expect(runtime.capabilities.showMessage).toHaveBeenCalledWith("queue version conflict", 4000);
     });
 
-    it("drops terminal items, clears missing edit identity and removes controls for an unregistered target", () => {
+	it("drops terminal items, clears missing edit identity and removes controls for an unregistered target", () => {
         const state = createState();
         state.queueItems[0]!.state = "injected";
         const {runtime} = createHarness(state);
@@ -162,5 +162,16 @@ describe("AgentChat queue dock", () => {
         expect(runtime.deliveryControl.classList.contains("fn__none")).toBe(true);
         expect(runtime.queueDock.classList.contains("fn__none")).toBe(true);
         expect(runtime.queueDock.innerHTML).toBe("");
-    });
+	});
+
+	it("never exposes direct user turns in the queue dock", () => {
+		const state = createState();
+		state.queueItems[0]!.input.semantics = "user_message";
+		const {runtime} = createHarness(state);
+
+		renderAgentConversationControls(runtime, state);
+
+		expect(runtime.queueDock.classList.contains("fn__none")).toBe(true);
+		expect(runtime.queueDock.innerHTML).toBe("");
+	});
 });

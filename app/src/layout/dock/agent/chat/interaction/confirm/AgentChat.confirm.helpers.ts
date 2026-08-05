@@ -1,11 +1,13 @@
 /** 用途：约束确认按钮失败反馈所需的聊天能力；使用范围：提交回调。 */
 import type {AgentChatRuntime} from "./imports";
-/** 用途：转义确认卡片动态文本；使用范围：DOM 字符串构建。 */
+/** 用途：转义确认卡片动态文本；使用范围：DOM 字符串构建；解耦评估：纯转义边界无需通过参数逐层传递。 */
 import {escapeHtml} from "./imports";
 /** 用途：约束确认卡片展示输入；使用范围：DOM 创建。 */
 import type {ConfirmCardInput} from "./AgentChat.confirm.types";
 /** 用途：约束确认请求回调；使用范围：按钮提交。 */
 import type {ConfirmRequest} from "./AgentChat.confirm.types";
+/** 用途：约束确认提交结算；使用范围：按钮请求状态机。 */
+import type {AgentInteractionRequestResult} from "./imports";
 
 /** 创建确认卡片 DOM。 @同步豁免: UI构建 */
 export function createConfirmCard(input: ConfirmCardInput) {
@@ -42,33 +44,30 @@ function renderSessionAllowButton(name: string) {
 /** 提交确认并让按钮状态严格跟随请求结果。 */
 async function submitConfirm(
     runtime: AgentChatRuntime,
-    submission: ConfirmRequest & {el: HTMLElement; doneText: string},
-    submit: (request: ConfirmRequest) => Promise<boolean>,
+    submission: ConfirmRequest & {el: HTMLElement},
+    submit: (request: ConfirmRequest) => Promise<AgentInteractionRequestResult>,
 ) {
     const buttons = Array.from(submission.el.querySelectorAll<HTMLButtonElement>("button"));
     for (const button of buttons) {
         button.disabled = true;
     }
-    const accepted = await submit(submission);
-    if (!accepted) {
+    const result = await submit(submission);
+    // 仅传输异常没有服务端终态，此时恢复原卡片操作以便用户重试同一请求。
+    if (result.state === "retryable") {
         for (const button of buttons) {
             button.disabled = false;
         }
-        runtime.capabilities.showMessage?.(window.siyuan.languages._kernel[28], 3000);
+        runtime.capabilities.showMessage?.(result.message, 3000);
         return;
     }
-    submission.el.classList.add("agent-chat__msg--confirmed");
-    const actions = submission.el.querySelector(".agent-chat__confirm-actions");
-    if (actions) {
-        actions.innerHTML = '<span class="agent-chat__confirm-done">' + submission.doneText + "</span>";
-    }
+    // accepted 等待 confirm_resolved 事件；resolved 已由请求层按服务端结构化状态结算。
 }
 
 /** 绑定一个存在的确认按钮。 */
 function bindConfirmButton(
     runtime: AgentChatRuntime,
-    binding: ConfirmRequest & {el: HTMLElement; doneText: string; selector: string},
-    submit: (request: ConfirmRequest) => Promise<boolean>,
+    binding: ConfirmRequest & {el: HTMLElement; selector: string},
+    submit: (request: ConfirmRequest) => Promise<AgentInteractionRequestResult>,
 ) {
     const button = binding.el.querySelector(binding.selector);
     if (!button) {
@@ -84,13 +83,12 @@ function bindConfirmButton(
 export function bindConfirmCardActions(
     runtime: AgentChatRuntime,
     input: {el: HTMLElement; confirmID: string; sessionID: string; confirmEntryID: string},
-    submit: (request: ConfirmRequest) => Promise<boolean>,
+    submit: (request: ConfirmRequest) => Promise<AgentInteractionRequestResult>,
 ) {
-    const languages = window.siyuan.languages;
     bindConfirmButton(runtime, {...input, selector: ".agent-chat__confirm-approve", approved: true,
-        always: false, doneText: languages.agentConfirmApprove || "Approved"}, submit);
+        always: false}, submit);
     bindConfirmButton(runtime, {...input, selector: ".agent-chat__confirm-reject", approved: false,
-        always: false, doneText: languages.agentConfirmReject || "Rejected"}, submit);
+        always: false}, submit);
     bindConfirmButton(runtime, {...input, selector: ".agent-chat__confirm-always", approved: true,
-        always: true, doneText: languages.agentConfirmAlways || "Session Allow"}, submit);
+        always: true}, submit);
 }

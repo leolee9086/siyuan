@@ -118,10 +118,46 @@ func TestAgentSteerAPITurnMatchingAndSealing(t *testing.T) {
 
 func TestLegacyAgentChatKeepsBusyConflictContract(t *testing.T) {
 	sessionID := setupAgentControlAPITest(t)
-	sessionsMu.Lock()
-	runningSessions[sessionID] = &runningSession{app: "other-app"}
-	sessionsMu.Unlock()
+	providerStarted := make(chan struct{})
+	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			t.Error("provider response does not support flushing")
+			return
+		}
+		close(providerStarted)
+		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"running\"}}]}\n\n"))
+		flusher.Flush()
+		<-request.Context().Done()
+	}))
+	defer provider.Close()
+	model.Conf.AI.Providers[0].BaseURL = provider.URL + "/v1"
+
 	payload := map[string]any{"sessionID": sessionID, "message": "hello", "language": "English"}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	requestContext, cancel := context.WithCancel(context.Background())
+	firstRecorder := httptest.NewRecorder()
+	firstRequest := httptest.NewRequest(http.MethodPost, "/api/ai/agent/chat", bytes.NewReader(body)).WithContext(requestContext)
+	firstRequest.RemoteAddr = "127.0.0.1:6806"
+	firstRequest.Header.Set("Content-Type", "application/json")
+	firstContext, _ := gin.CreateTestContext(firstRecorder)
+	firstContext.Request = firstRequest
+	firstDone := make(chan struct{})
+	go func() {
+		agentChat(firstContext)
+		close(firstDone)
+	}()
+	select {
+	case <-providerStarted:
+	case <-time.After(5 * time.Second):
+		cancel()
+		t.Fatal("first legacy chat did not start its provider stream")
+	}
+
 	recorder, _ := callAgentControlAPI(t, agentChat, http.MethodPost, "/api/ai/agent/chat", payload)
 	if recorder.Code != http.StatusConflict {
 		t.Fatalf("legacy busy contract: status=%d body=%s", recorder.Code, recorder.Body.String())
@@ -129,6 +165,13 @@ func TestLegacyAgentChatKeepsBusyConflictContract(t *testing.T) {
 	if recorder.Header().Get("Content-Type") == "text/event-stream" {
 		t.Fatalf("busy legacy chat must not start an SSE response: %s", recorder.Body.String())
 	}
+	cancel()
+	select {
+	case <-firstDone:
+	case <-time.After(5 * time.Second):
+		t.Fatal("first legacy chat did not stop after cancellation")
+	}
+	waitForAgentExecutorStreamStopped(t, getAgentExecutor(sessionID))
 }
 
 func TestAgentControlErrorMapsMissingInputPrecisely(t *testing.T) {

@@ -290,6 +290,14 @@ func sendCriticalEvent(ctx context.Context, ch chan<- AgentEvent, ev AgentEvent)
 	}
 }
 
+// 交互终态不能随 turn 上下文取消而丢失，事件转发器需要在排空生产通道前完成最终投影。
+func sendInteractionResolved(ch chan<- AgentEvent, ev AgentEvent) {
+	select {
+	case ch <- ev:
+	case <-time.After(5 * time.Second):
+	}
+}
+
 func wrapToolOutput(result string) string {
 	return "[tool_output]\n" + result + "\n[/tool_output]"
 }
@@ -353,6 +361,9 @@ type AgentEvent struct {
 	References       []Reference
 	EditorContext    *EditorContext
 	Effects          mcpTools.ToolEffects
+	Status           string
+	Message          string
+	Answers          []string
 }
 
 type AgentMessage struct {
@@ -1007,7 +1018,8 @@ func AgentChatWithControl(ctx context.Context, client *openai.Client, model stri
 							effects, _ = tool.EffectsFor(action)
 						}
 						sendCriticalEvent(ctx, ch, AgentEvent{
-							Type: "confirm", Name: tc.Function.Name, Arguments: args, ConfirmID: confirmID, Effects: effects,
+							Type: "confirm", Name: tc.Function.Name, Arguments: args, ConfirmID: confirmID,
+							CallID: tc.ID, Effects: effects,
 						})
 						var rejectionMsg string
 						var result confirmResult
@@ -1025,6 +1037,10 @@ func AgentChatWithControl(ctx context.Context, client *openai.Client, model stri
 							}
 
 							cancelMsg := "Operation cancelled"
+							sendInteractionResolved(ch, AgentEvent{
+								Type: "confirm_resolved", Name: tc.Function.Name, ConfirmID: confirmID,
+								CallID: tc.ID, Status: "cancelled", Message: cancelMsg,
+							})
 							checkpointMsgs[assistantIdx].ToolCalls[i].Result = cancelMsg
 							checkpointMsgs[assistantIdx].ToolCalls[i].State = "skipped"
 							messages = append(messages, openai.ChatCompletionMessage{
@@ -1055,7 +1071,28 @@ func AgentChatWithControl(ctx context.Context, client *openai.Client, model stri
 							}
 							timedOut = true
 							rejectionMsg = "Confirmation timed out, operation skipped automatically"
+							sendInteractionResolved(ch, AgentEvent{
+								Type: "confirm_resolved", Name: tc.Function.Name, ConfirmID: confirmID,
+								CallID: tc.ID, Status: "expired", Message: rejectionMsg,
+							})
 							sendCriticalEvent(ctx, ch, AgentEvent{Type: "tool_result", Name: tc.Function.Name, CallID: tc.ID, Result: rejectionMsg})
+						}
+
+						if !timedOut {
+							status := "rejected"
+							message := "User rejected this operation"
+							if result.approved {
+								status = "approved"
+								message = "Operation approved"
+								if result.always && !freshConfirmationRequired {
+									status = "always"
+									message = "Operation approved for this session"
+								}
+							}
+							sendInteractionResolved(ch, AgentEvent{
+								Type: "confirm_resolved", Name: tc.Function.Name, ConfirmID: confirmID,
+								CallID: tc.ID, Status: status, Message: message,
+							})
 						}
 
 						if timedOut || !result.approved {
@@ -1145,7 +1182,7 @@ func AgentChatWithControl(ctx context.Context, client *openai.Client, model stri
 					isErr := false
 					executionUnknown := false
 					if tc.Function.Name == "question" {
-						resultStr = handleQuestion(ctx, sessionID, tc.Function.Arguments, ch, 5*time.Minute)
+						resultStr = handleQuestion(ctx, sessionID, tc.ID, tc.Function.Arguments, ch, 5*time.Minute)
 					} else if tc.Function.Name == "frontend" {
 						resultStr, executionUnknown = handleFrontendTool(ctx, sessionID, tc, ch, confirmTimeout)
 						isErr = executionUnknown
@@ -1437,7 +1474,7 @@ func needsLocalSnapshot(toolName, action string) bool {
 	}
 }
 
-func handleQuestion(ctx context.Context, sessionID, argsJSON string, ch chan<- AgentEvent, timeout time.Duration) string {
+func handleQuestion(ctx context.Context, sessionID, callID, argsJSON string, ch chan<- AgentEvent, timeout time.Duration) string {
 	args := parseToolArgs(argsJSON)
 	questionID := ast.NewNodeID()
 	ch2 := make(chan QuestionAnswer, 1)
@@ -1448,21 +1485,32 @@ func handleQuestion(ctx context.Context, sessionID, argsJSON string, ch chan<- A
 	sendCriticalEvent(ctx, ch, AgentEvent{
 		Type:       "question",
 		QuestionID: questionID,
+		CallID:     callID,
 		Arguments:  args,
 	})
 	var answer QuestionAnswer
+	status := "submitted"
+	message := "Question answered"
 	select {
 	case answer = <-ch2:
 	case <-ctx.Done():
 		if acceptedAnswer, accepted := finishQuestionWait(sessionID, questionID, ch2); accepted {
 			answer = acceptedAnswer
 		} else {
+			status = "cancelled"
+			message = "Question cancelled"
+			sendInteractionResolved(ch, AgentEvent{Type: "question_resolved", QuestionID: questionID,
+				CallID: callID, Status: status, Message: message})
 			return "Question cancelled."
 		}
 	case <-time.After(timeout):
 		if acceptedAnswer, accepted := finishQuestionWait(sessionID, questionID, ch2); accepted {
 			answer = acceptedAnswer
 		} else {
+			status = "expired"
+			message = "No answer received (timed out)"
+			sendInteractionResolved(ch, AgentEvent{Type: "question_resolved", QuestionID: questionID,
+				CallID: callID, Status: status, Message: message})
 			return "No answer received (timed out)."
 		}
 	}
@@ -1470,6 +1518,8 @@ func handleQuestion(ctx context.Context, sessionID, argsJSON string, ch chan<- A
 	questionChannelsMu.Lock()
 	delete(questionChannels, sessionID+"\x00"+questionID)
 	questionChannelsMu.Unlock()
+	sendInteractionResolved(ch, AgentEvent{Type: "question_resolved", QuestionID: questionID,
+		CallID: callID, Status: status, Message: message, Answers: append([]string(nil), answer.Answers...)})
 
 	if len(answer.Answers) == 0 {
 		return "User provided no answer."
@@ -1540,12 +1590,16 @@ func handleFrontendTool(ctx context.Context, sessionID string, tc openai.ToolCal
 		if acceptedResult, accepted := finishFrontendWait(sessionID, callID, ch2); accepted {
 			fr = acceptedResult
 		} else {
+			sendInteractionResolved(ch, AgentEvent{Type: "frontend_tool_resolved", CallID: callID,
+				Status: "cancelled", Message: "Frontend action was interrupted"})
 			return "Frontend action was interrupted; execution result is unknown and must not be retried automatically.", true
 		}
 	case <-time.After(timeout):
 		if acceptedResult, accepted := finishFrontendWait(sessionID, callID, ch2); accepted {
 			fr = acceptedResult
 		} else {
+			sendInteractionResolved(ch, AgentEvent{Type: "frontend_tool_resolved", CallID: callID,
+				Status: "expired", Message: "Frontend action timed out"})
 			return "Frontend action timed out; execution result is unknown and must not be retried automatically.", true
 		}
 	}
@@ -1555,8 +1609,12 @@ func handleFrontendTool(ctx context.Context, sessionID string, tc openai.ToolCal
 	frontendCallChannelsMu.Unlock()
 
 	if fr.isError {
+		sendInteractionResolved(ch, AgentEvent{Type: "frontend_tool_resolved", CallID: callID,
+			Status: "error", Message: fr.result})
 		return "Frontend action failed: " + fr.result, false
 	}
+	sendInteractionResolved(ch, AgentEvent{Type: "frontend_tool_resolved", CallID: callID,
+		Status: "completed", Message: fr.result})
 	return fr.result, false
 }
 

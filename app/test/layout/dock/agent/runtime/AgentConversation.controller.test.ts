@@ -102,6 +102,24 @@ describe("Agent conversation controller", () => {
         harness.controller.dispose();
     });
 
+    it("does not represent a direct idle turn as an optimistic queue item", async () => {
+        let resolveAdmission: ((value: AgentConversationAdmission) => void) | undefined;
+        const admission = new Promise<AgentConversationAdmission>((resolve) => {
+            resolveAdmission = resolve;
+        });
+        const harness = createHarness({submit: vi.fn(() => admission)});
+        await harness.controller.activate("native-agent", "session-1");
+        const input = {...submitInput("turn-1"), delivery: "turn" as const};
+        const pending = harness.controller.submit(
+            input, {onEvent: vi.fn(), onError: vi.fn()}, new AbortController().signal,
+        );
+
+        expect(harness.controller.state.queueItems).toEqual([]);
+        resolveAdmission?.({inputID: "turn-1", admittedSeq: 1, queueVersion: 1});
+        await pending;
+        harness.controller.dispose();
+    });
+
     it("accepts newer snapshots and events while discarding lower versions and duplicate sequences", async () => {
         const harness = createHarness({
             submit: vi.fn(async (input) => ({inputID: input.inputID, admittedSeq: 3, queueVersion: 3})),

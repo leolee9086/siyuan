@@ -4,6 +4,19 @@ import {createAgentSSEProtocolError} from "./agentSSE.error.factory";
 import type {ISSEResult} from "./agentSSE.types";
 /** 用途：约束确认事件的影响字段；使用范围：confirm 载荷解析；解耦评估：同一 SSE 领域的数据契约直接依赖。 */
 import type {IToolEffects} from "./agentSSE.types";
+/** 用途：约束交互终态；使用范围：resolved 事件构建。 */
+import type {AgentInteractionResolutionStatus} from "./agentSSE.types";
+
+/** 将协议字符串保留为交互终态类型；未知状态由终态处理器按 error 展示。 */
+function readInteractionStatus(data: Record<string, unknown>): AgentInteractionResolutionStatus {
+    const status = data.status;
+    // 只有协议声明的终态可以进入判别联合，未知扩展值按 error 前向兼容。
+    if (status === "approved" || status === "always" || status === "rejected" || status === "submitted" ||
+        status === "completed" || status === "expired" || status === "cancelled" || status === "error") {
+        return status;
+    }
+    return "error";
+}
 
 /** @显式返回类型原因 各事件构建器共同组成 ISSEResult 判别联合，固定边界可阻止字符串字面量在组合时被拓宽。 */
 function buildAgentTextEvent(event: string, data: Record<string, unknown>): ISSEResult | null {
@@ -53,6 +66,20 @@ function buildAgentToolEvent(event: string, data: Record<string, unknown>): ISSE
             arguments: (data.arguments || {}) as Record<string, unknown>,
         };
     }
+    // tool_result 事件以 callID 结算对应的工具卡片。
+    if (event === "tool_result") {
+        return {
+            type: "tool_result",
+            name: data.name as string,
+            callID: (data.callID as string) || "",
+            result: data.result as string,
+        };
+    }
+    return null;
+}
+
+/** @显式返回类型原因 交互事件必须保持 ISSEResult 的终态字段，供卡片状态机按 type 收窄。 */
+function buildAgentInteractionEvent(event: string, data: Record<string, unknown>): ISSEResult | null {
     // confirm 事件冻结待用户批准的工具参数及其影响范围。
     if (event === "confirm") {
         return {
@@ -65,13 +92,14 @@ function buildAgentToolEvent(event: string, data: Record<string, unknown>): ISSE
                 : {}),
         };
     }
-    // tool_result 事件以 callID 结算对应的工具卡片。
-    if (event === "tool_result") {
+    // confirm_resolved 携带 Kernel 给出的明确终态，卡片层无需等待工具结果文本。
+    if (event === "confirm_resolved") {
         return {
-            type: "tool_result",
-            name: data.name as string,
+            type: "confirm_resolved",
+            confirmID: data.confirmID as string,
             callID: (data.callID as string) || "",
-            result: data.result as string,
+            status: readInteractionStatus(data),
+            message: (data.message as string) || "",
         };
     }
     // frontend_tool_call 事件交由当前宿主提供的插件动作执行器处理。
@@ -81,6 +109,15 @@ function buildAgentToolEvent(event: string, data: Record<string, unknown>): ISSE
             callID: data.callID as string,
             name: data.name as string,
             arguments: (data.arguments || {}) as Record<string, unknown>,
+        };
+    }
+    // frontend_tool_resolved 只结算调用生命周期，不创建额外可见工具卡片。
+    if (event === "frontend_tool_resolved") {
+        return {
+            type: "frontend_tool_resolved",
+            callID: data.callID as string,
+            status: readInteractionStatus(data),
+            message: (data.message as string) || "",
         };
     }
     return null;
@@ -141,6 +178,18 @@ function buildAgentStateEvent(event: string, data: Record<string, unknown>): ISS
             arguments: (data.arguments || {}) as Record<string, unknown>,
         };
     }
+    if (event === "question_resolved") {
+        return {
+            type: "question_resolved",
+            questionID: data.questionID as string,
+            callID: (data.callID as string) || "",
+            status: readInteractionStatus(data),
+            message: (data.message as string) || "",
+            answers: Array.isArray(data.answers)
+                ? data.answers.filter((answer): answer is string => typeof answer === "string")
+                : [],
+        };
+    }
     return null;
 }
 
@@ -150,7 +199,8 @@ function buildAgentSSEEvent(event: string, data: Record<string, unknown>): ISSER
     if (event === "tool_progress") {
         return buildAgentToolProgress(data);
     }
-    return buildAgentTextEvent(event, data) || buildAgentToolEvent(event, data) || buildAgentStateEvent(event, data);
+    return buildAgentTextEvent(event, data) || buildAgentToolEvent(event, data) ||
+        buildAgentInteractionEvent(event, data) || buildAgentStateEvent(event, data);
 }
 
 /**

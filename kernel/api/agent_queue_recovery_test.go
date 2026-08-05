@@ -174,7 +174,7 @@ func TestAgentExecutorReconcilesRuntimeSourceBeforeAdvancingQueue(t *testing.T) 
 	if err = original.beginInputAnchor(first.ID); err != nil {
 		t.Fatal(err)
 	}
-	firstEvents := original.runQueuedAgentChat(context.Background(), first)
+	firstEvents := original.runAgentChat(context.Background(), first)
 	firstTurnID := ""
 	for event := range firstEvents {
 		if event.Type == "turn" {

@@ -10,6 +10,7 @@ export interface AgentConversationControlErrorOptions {
     reason: string;
     queueVersion: number;
     status: number;
+    resolutionStatus?: string;
 }
 
 /** 结构化控制错误在原生 Error 上附加可恢复的协议元数据。 */

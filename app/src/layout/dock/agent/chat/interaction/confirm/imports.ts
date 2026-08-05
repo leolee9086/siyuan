@@ -34,39 +34,40 @@ import {escapeHtml} from "../../../../../../util/DOM/escape";
 /** 导出 HTML 转义函数。 */
 export {escapeHtml};
 
-/**
- * 用途：收窄确认 API 和插件调用结果。
- * 使用范围：确认提交和前端工具结果处理。
- * 解耦评估：守卫是纯数据边界，集中复用可防止解析规则漂移。
- */
-import {readAPIResult} from "../AgentChat.api.guard";
-import {readPluginActionOutcome} from "./AgentChat.confirm.guard";
-/** 导出 API 结果读取函数。 */
-export {readAPIResult};
-/** 导出插件结果读取函数。 */
-export {readPluginActionOutcome};
+/** 用途：通过现有控制请求设施提交交互结果；使用范围：确认和前端工具回传；解耦评估：共享请求边界避免复制 HTTP 协议。 */
+import {requestAgentInteraction} from "../AgentChat.interactionRequest";
+/** 导出交互请求函数。 */
+export {requestAgentInteraction};
+/** 用途：把协议终态映射为卡片标签；使用范围：确认卡片结算；解耦评估：统一映射防止各卡片自行推断状态。 */
+import {resolveInteractionStatusLabel} from "../AgentChat.interactionStatus";
+/** 导出交互终态标签函数。 */
+export {resolveInteractionStatusLabel};
+/** 用途：约束交互请求结果；使用范围：确认按钮回调；解耦评估：共享判别联合保持按钮状态机与请求层一致。 */
+import type {AgentInteractionRequestResult} from "../AgentChat.interactionRequest.types";
+/** 导出交互请求结果类型。 */
+export type {AgentInteractionRequestResult};
 
-/** 用途：结束活动思考卡片；使用范围：确认卡片插入前。 */
+/** 用途：结束活动思考卡片；使用范围：确认卡片插入前；解耦评估：复用反馈领域命令避免复制状态变更。 */
 import {finishActiveThinking} from "../../ui/feedback/AgentChat.thinkingState";
 /** 导出思考完成函数。 */
 export {finishActiveThinking};
-/** 用途：提交当前思考步骤；使用范围：确认卡片插入前。 */
+/** 用途：提交当前思考步骤；使用范围：确认卡片插入前；解耦评估：复用流式领域入口保持事件顺序。 */
 import {flushThinkingStep} from "../../stream/thinking/AgentChat.thinkingStep";
 /** 导出思考步骤提交函数。 */
 export {flushThinkingStep};
-/** 用途：将确认卡片插入助手占位前；使用范围：确认 UI 创建。 */
+/** 用途：将确认卡片插入助手占位前；使用范围：确认 UI 创建；解耦评估：复用消息布局命令避免复制 DOM 放置规则。 */
 import {insertBeforeAI} from "../../ui/feedback/AgentChat.messagePlacement";
 /** 导出消息插入函数。 */
 export {insertBeforeAI};
-/** 用途：确认卡片插入后维持消息贴底；使用范围：确认 UI 创建。 */
+/** 用途：确认卡片插入后维持消息贴底；使用范围：确认 UI 创建；解耦评估：复用滚动领域入口避免持有滚动策略。 */
 import {scrollToBottom} from "../../ui/feedback/AgentChat.scrolling";
 /** 导出消息贴底函数。 */
 export {scrollToBottom};
-/** 用途：生成工具类别文案；使用范围：确认卡片标题。 */
+/** 用途：生成工具类别文案；使用范围：确认卡片标题；解耦评估：复用反馈领域的展示规则。 */
 import {toolCategory} from "../../ui/feedback/AgentChat.presentation";
 /** 导出工具类别格式函数。 */
 export {toolCategory};
-/** 用途：渲染工具副作用；使用范围：确认卡片展示。 */
+/** 用途：渲染工具副作用；使用范围：确认卡片展示；解耦评估：复用反馈领域的影响展示规则。 */
 import {renderConfirmEffects} from "../../ui/feedback/AgentChat.presentation";
 /** 导出确认效果渲染函数。 */
 export {renderConfirmEffects};

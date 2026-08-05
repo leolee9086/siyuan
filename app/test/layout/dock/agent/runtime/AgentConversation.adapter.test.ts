@@ -41,7 +41,7 @@ describe("native Agent conversation adapter", () => {
         subscribeEvents.mockResolvedValue(undefined);
     });
 
-    it("uses distinct steer and queue admissions without leaking chat history", async () => {
+	it("uses distinct turn, steer and queue admissions without leaking chat history", async () => {
         const adapter = createNativeAgentConversationAdapter();
         const observer = {onEvent: vi.fn(), onError: vi.fn()};
         const controller = new AbortController();
@@ -82,7 +82,27 @@ describe("native Agent conversation adapter", () => {
             requestHeaders,
             signal: controller.signal,
         });
-        expect(requestControl.mock.calls[1]![0].body).not.toHaveProperty("history");
+		expect(requestControl.mock.calls[1]![0].body).not.toHaveProperty("history");
+
+		await adapter.submit(createInput("turn"), observer, controller.signal);
+		expect(requestControl).toHaveBeenNthCalledWith(3, {
+			path: "/api/ai/agent/turn",
+			body: {
+				inputID: "input-1",
+				sessionID: "session-1",
+				userEntryID: "entry-1",
+				message: "guide the active turn",
+				blockHTML: "<p>guide</p>",
+				language: "English",
+				references: [{id: "block-1", title: "Block"}],
+				editorContext: {activeDocID: "doc-1"},
+				pluginActions: [{name: "plugin-action", description: "Action"}],
+				model: "provider:model",
+				reasoningEffort: "high",
+			},
+			requestHeaders,
+			signal: controller.signal,
+		});
     });
 
     it("forwards queue mutations, turn control and event subscription", async () => {
