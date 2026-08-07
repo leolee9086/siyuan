@@ -74,13 +74,22 @@ describe("FileBrowserGalleryTab", () => {
         document.body.append(host);
         app = createApp(FileBrowserGalleryTab, {
             app: {openAsset, openTab},
-            file: {rootID: root.id, path: "data/assets/icons", name: "icons"},
+            // 目录页签不应继承另一个目录留下的关键词和扩展名筛选。
+            file: {
+                rootID: root.id, path: "data/assets/icons", name: "icons",
+                query: {keyword: "dev", exts: [".bmp"], orderBy: "updated"},
+            },
         });
         app.mount(host);
 
         await vi.waitFor(() => expect(search).toHaveBeenCalledWith(expect.objectContaining({
             rootIDs: ["workspace"], pathPrefix: "data/assets/icons", orderBy: "updated",
         })));
+        const initialRequest = search.mock.calls[0]?.[0];
+        expect(initialRequest).not.toHaveProperty("keyword");
+        expect(initialRequest).not.toHaveProperty("exts");
+        expect(host?.querySelector<HTMLInputElement>("input[aria-label='关键词']")?.value).toBe("");
+        expect(host?.querySelector<HTMLSelectElement>("select[aria-label='扩展名筛选']")?.selectedOptions.length).toBe(0);
         await vi.waitFor(() => expect(host?.textContent).toContain("hero.png"));
         expect(host?.querySelector(".virtual-masonry-grid-wrapper")).toBeTruthy();
         expect(host?.textContent).toContain("sub");

@@ -91,7 +91,7 @@
 
 <script setup lang="ts">
 /** 用途：查询表单、结果投影和根标签显示；使用范围：文件 Dock 搜索区域。 */
-import {computed, ref} from "vue";
+import {computed, ref, watch} from "vue";
 import {FILE_BROWSER_GALLERY_DEFAULT_EXTENSIONS} from "./FileBrowser.gallery.constants";
 import type {FileBrowserRoot} from "./FileBrowser.types";
 import type {
@@ -132,6 +132,43 @@ const maxS = ref("");
 const minL = ref("");
 const maxL = ref("");
 const orderBy = ref<NonNullable<FileBrowserSearchRequest["orderBy"]>>(initialRequest.orderBy ?? "updated");
+
+function colorToHex(value: [number, number, number] | undefined) {
+    if (!value) {
+        return "#ffffff";
+    }
+    return `#${value.map(channel => Math.max(0, Math.min(255, Math.round(channel)))
+        .toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** 从当前页签初始查询恢复表单；目录范围变化时必须清除上一目录的本地筛选。 */
+function resetFormFromProps() {
+    const request = props.initialRequest ?? {};
+    keyword.value = request.keyword ?? "";
+    allRoots.value = request.allRoots ?? false;
+    selectedRootIDs.value = request.rootIDs ? [...request.rootIDs] :
+        (props.scope ? [props.scope.rootID] : []);
+    tagsText.value = (request.tags ?? []).join(", ");
+    selectedExtensions.value = [...(request.exts ?? [])];
+    matchAllTags.value = request.matchAllTags ?? false;
+    colorEnabled.value = Boolean(request.palette);
+    color.value = colorToHex(request.palette?.color);
+    tolerance.value = request.palette?.tolerance === undefined ? "30" : String(request.palette.tolerance);
+    minRatio.value = request.palette?.minRatio === undefined ? "" : String(request.palette.minRatio);
+    minH.value = request.palette?.minH === undefined ? "" : String(request.palette.minH);
+    maxH.value = request.palette?.maxH === undefined ? "" : String(request.palette.maxH);
+    minS.value = request.palette?.minS === undefined ? "" : String(request.palette.minS);
+    maxS.value = request.palette?.maxS === undefined ? "" : String(request.palette.maxS);
+    minL.value = request.palette?.minL === undefined ? "" : String(request.palette.minL);
+    maxL.value = request.palette?.maxL === undefined ? "" : String(request.palette.maxL);
+    orderBy.value = request.orderBy ?? "updated";
+}
+
+watch(
+    [() => props.scope?.rootID, () => props.scope?.path, () => props.initialRequest],
+    resetFormFromProps,
+    {deep: true},
+);
 
 const extensions = computed(() => {
     const values = new Set<string>(FILE_BROWSER_GALLERY_DEFAULT_EXTENSIONS);
@@ -243,6 +280,8 @@ function clear() {
     selectedExtensions.value = [];
     matchAllTags.value = false;
     colorEnabled.value = false;
+    color.value = "#ffffff";
+    tolerance.value = "30";
     minRatio.value = "";
     minH.value = "";
     maxH.value = "";

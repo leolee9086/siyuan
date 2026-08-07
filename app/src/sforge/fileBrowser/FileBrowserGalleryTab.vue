@@ -36,7 +36,7 @@
             @toggle-subfolder="toggleSubfolder" @refresh="refreshScope" />
 
         <FileBrowserSearchPanel :roots="roots" :loading="loading" :error="error" :scope="scope"
-            :available-extensions="availableExtensions" :initial-request="file.query"
+            :available-extensions="availableExtensions" :initial-request="initialSearchRequest"
             @search="runSearch" @clear="clearSearch" />
 
         <main class="sforge-file-gallery__content">
@@ -116,6 +116,8 @@ const search = useFileBrowserSearch(fileBrowserQueryRepository);
 const {result, loading, error} = search;
 const openEntry = createFileBrowserEntryOpener(props.app, fileBrowserRepository);
 const isAllRoots = computed(() => Boolean(props.file.query?.allRoots));
+// 目录页签只携带地址；查询数据属于标签/全根结果页签，不能把旧的目录筛选带入新范围。
+const initialSearchRequest = computed(() => isAllRoots.value ? props.file.query : undefined);
 const scopeRoot = computed(() => roots.value.find(root => root.id === props.file.rootID));
 const scope = computed(() => ({rootID: props.file.rootID, path: scopePath.value}));
 const hasQuery = computed(() => result.value.totalCount > 0 || loading.value || Boolean(error.value));
@@ -172,8 +174,9 @@ function runSearch(request: FileBrowserSearchRequest) {
 }
 
 function runScopedSearch(includeInitialQuery = true) {
-    const request: FileBrowserSearchRequest = includeInitialQuery && props.file.query ?
-        {...props.file.query, orderBy: props.file.query.orderBy ?? "updated"} : {orderBy: "updated"};
+    const query = initialSearchRequest.value;
+    const request: FileBrowserSearchRequest = includeInitialQuery && query ?
+        {...query, orderBy: query.orderBy ?? "updated"} : {orderBy: "updated"};
     runSearch(request);
 }
 
