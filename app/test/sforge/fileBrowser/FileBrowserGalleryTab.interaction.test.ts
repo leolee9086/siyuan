@@ -38,7 +38,7 @@ afterEach(() => {
 describe("FileBrowserGalleryTab", () => {
     it("loads a scoped result into the real masonry tab and shares selection/opening", async () => {
         vi.spyOn(fileBrowserRepository, "listRoots").mockResolvedValue([root]);
-zhi        vi.spyOn(fileBrowserRepository, "listDirectory").mockResolvedValue({
+        vi.spyOn(fileBrowserRepository, "listDirectory").mockResolvedValue({
             root,
             path: "data/assets/icons",
             entries: [
