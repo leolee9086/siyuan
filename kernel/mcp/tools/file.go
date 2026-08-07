@@ -17,12 +17,16 @@
 package tools
 
 import (
+	"context"
+	"errors"
 	"fmt"
-	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/siyuan-note/siyuan/kernel/fswalk"
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/util"
 
@@ -88,7 +92,7 @@ func fileHandler(args map[string]any) (CallToolResult, error) {
 func resolvePath(rel string) (string, error) {
 	rel = filepath.Clean(strings.ReplaceAll(rel, "/", string(os.PathSeparator)))
 	abs := filepath.Join(util.WorkspaceDir, rel)
-	if !gulu.File.IsSubPath(util.WorkspaceDir, abs) {
+	if filepath.Clean(abs) != filepath.Clean(util.WorkspaceDir) && !gulu.File.IsSubPath(util.WorkspaceDir, abs) {
 		return "", fmt.Errorf("path escapes workspace: %s", rel)
 	}
 	// 拒绝加密笔记本目录：MCP 文件工具不能读写加密 box 下的文件（防止密文泄漏或明文破坏加密格式）
@@ -108,6 +112,27 @@ func resolvePath(rel string) (string, error) {
 	return abs, nil
 }
 
+// workspaceWalkerPath 把物理路径授权限制在适配层，文件工作流只接收根相对入口。
+func workspaceWalkerPath(ctx context.Context, raw string) (*fswalk.Walker, string, error) {
+	walker, err := fswalk.New(util.WorkspaceDir)
+	if err != nil {
+		return nil, "", err
+	}
+	relative, err := workspaceWalkerRelative(ctx, walker, raw)
+	if err != nil {
+		return nil, "", err
+	}
+	return walker, relative, nil
+}
+
+func workspaceWalkerRelative(ctx context.Context, walker *fswalk.Walker, raw string) (string, error) {
+	absolute, err := resolvePath(raw)
+	if err != nil {
+		return "", err
+	}
+	return walker.RelativePath(ctx, absolute)
+}
+
 // rejectEncryptedPath 检查路径是否属于加密笔记本（含 symlink 绕过），返回 boxID 和是否为加密 box。
 func rejectEncryptedPath(absPath string) (boxID string, encrypted bool) {
 	boxID = model.EncryptedRawPathBoxID(absPath)
@@ -119,11 +144,11 @@ func fileList(args map[string]any) (CallToolResult, error) {
 	if p == "" {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "path is required"}}, IsError: true}, nil
 	}
-	dir, err := resolvePath(p)
+	walker, relative, err := workspaceWalkerPath(context.Background(), p)
 	if err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: err.Error()}}, IsError: true}, nil
 	}
-	entries, err := os.ReadDir(dir)
+	entries, err := walker.ReadDirectory(context.Background(), relative, true)
 	if err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "read dir failed: " + err.Error()}}, IsError: true}, nil
 	}
@@ -137,12 +162,11 @@ func fileList(args map[string]any) (CallToolResult, error) {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("Directory: %s (%d entries)\n\n", p, total))
 	for _, e := range entries {
-		info, _ := e.Info()
 		size := ""
-		if info != nil {
-			size = fmt.Sprintf("%d", info.Size())
+		if !e.IsDir {
+			size = fmt.Sprintf("%d", e.Size)
 		}
-		sb.WriteString(fmt.Sprintf("- %s [%s] %s\n", e.Name(), typeLabel(e.IsDir()), size))
+		sb.WriteString(fmt.Sprintf("- %s [%s] %s\n", e.Name, typeLabel(e.IsDir), size))
 	}
 
 	if max > 0 && max < total {
@@ -174,61 +198,40 @@ func fileRead(args map[string]any) (CallToolResult, error) {
 	if p == "" {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "path is required"}}, IsError: true}, nil
 	}
-	abs, err := resolvePath(p)
+	walker, relative, err := workspaceWalkerPath(context.Background(), p)
 	if err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: err.Error()}}, IsError: true}, nil
 	}
-	data, err := os.ReadFile(abs)
-	if err != nil {
-		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "read file failed: " + err.Error()}}, IsError: true}, nil
-	}
-
 	offset := int(getFloat64Arg(args, "offset"))
 	limit := int(getFloat64Arg(args, "limit"))
-
-	if offset == 0 && limit == 0 {
+	if _, limitProvided := args["limit"]; !limitProvided && offset == 0 {
 		limit = 200
 	}
-
-	lines := strings.Split(string(data), "\n")
-	total := len(lines)
-
-	if offset < 0 {
-		offset = max(total+offset, 0)
-	} else {
-		offset--
-		if offset < 0 {
-			offset = 0
+	rangeResult, err := walker.ReadLineRange(context.Background(), relative, fswalk.LineRangeQuery{
+		StartLine: offset, MaxLines: limit,
+	})
+	if err != nil {
+		if errors.Is(err, fswalk.ErrTextLineOutOfRange) {
+			return CallToolResult{Content: []ContentItem{{Type: "text", Text: fmt.Sprintf(
+				"(file has %d lines, offset out of range)", rangeResult.TotalLines)}}, IsError: true}, nil
 		}
+		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "read file failed: " + err.Error()}}, IsError: true}, nil
 	}
-
-	end := total
-	if limit > 0 {
-		end = min(offset+limit, total)
-	}
-
-	if offset >= total {
-		return CallToolResult{Content: []ContentItem{{Type: "text", Text: fmt.Sprintf("(file has %d lines, offset out of range)", total)}}, IsError: true}, nil
-	}
-
-	result := strings.Join(lines[offset:end], "\n")
-	return CallToolResult{Content: []ContentItem{{Type: "text", Text: result}}}, nil
+	return CallToolResult{Content: []ContentItem{{Type: "text", Text: rangeResult.Text}}}, nil
 }
 
 func fileWrite(args map[string]any) (CallToolResult, error) {
 	p, _ := args["path"].(string)
-	dataStr, _ := args["data"].(string)
-	if p == "" || dataStr == "" {
+	dataValue, dataProvided := args["data"]
+	dataStr, dataIsString := dataValue.(string)
+	if p == "" || !dataProvided || !dataIsString {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "path and data are required"}}, IsError: true}, nil
 	}
-	abs, err := resolvePath(p)
+	walker, relative, err := workspaceWalkerPath(context.Background(), p)
 	if err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: err.Error()}}, IsError: true}, nil
 	}
-	if err := os.MkdirAll(filepath.Dir(abs), 0755); err != nil {
-		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "mkdir failed: " + err.Error()}}, IsError: true}, nil
-	}
-	if err := os.WriteFile(abs, []byte(dataStr), 0644); err != nil {
+	if err := walker.WriteFileContent(context.Background(), relative, []byte(dataStr)); err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "write file failed: " + err.Error()}}, IsError: true}, nil
 	}
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: "file written: " + p}}}, nil
@@ -239,19 +242,11 @@ func fileDelete(args map[string]any) (CallToolResult, error) {
 	if p == "" {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "path is required"}}, IsError: true}, nil
 	}
-	abs, err := resolvePath(p)
+	walker, relative, err := workspaceWalkerPath(context.Background(), p)
 	if err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: err.Error()}}, IsError: true}, nil
 	}
-	info, err := os.Stat(abs)
-	if err != nil {
-		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "stat failed: " + err.Error()}}, IsError: true}, nil
-	}
-	if info.IsDir() {
-		err = os.RemoveAll(abs)
-	} else {
-		err = os.Remove(abs)
-	}
+	_, err = walker.RemoveTree(context.Background(), relative)
 	if err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "delete failed: " + err.Error()}}, IsError: true}, nil
 	}
@@ -264,18 +259,15 @@ func fileRename(args map[string]any) (CallToolResult, error) {
 	if old == "" || newP == "" {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "old and new are required"}}, IsError: true}, nil
 	}
-	oldAbs, err := resolvePath(old)
+	walker, oldRelative, err := workspaceWalkerPath(context.Background(), old)
 	if err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: err.Error()}}, IsError: true}, nil
 	}
-	newAbs, err := resolvePath(newP)
+	newRelative, err := workspaceWalkerRelative(context.Background(), walker, newP)
 	if err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: err.Error()}}, IsError: true}, nil
 	}
-	if err := os.MkdirAll(filepath.Dir(newAbs), 0755); err != nil {
-		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "mkdir failed: " + err.Error()}}, IsError: true}, nil
-	}
-	if err := os.Rename(oldAbs, newAbs); err != nil {
+	if err := walker.Move(context.Background(), oldRelative, walker, newRelative); err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "rename failed: " + err.Error()}}, IsError: true}, nil
 	}
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: fmt.Sprintf("renamed: %s -> %s", old, newP)}}}, nil
@@ -287,62 +279,22 @@ func fileCopy(args map[string]any) (CallToolResult, error) {
 	if src == "" || dst == "" {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "src and dst are required"}}, IsError: true}, nil
 	}
-	srcAbs, err := resolvePath(src)
-	if err != nil {
-		return CallToolResult{Content: []ContentItem{{Type: "text", Text: err.Error()}}, IsError: true}, nil
-	}
-	dstAbs, err := resolvePath(dst)
-	if err != nil {
-		return CallToolResult{Content: []ContentItem{{Type: "text", Text: err.Error()}}, IsError: true}, nil
-	}
-	if err := copyPath(srcAbs, dstAbs); err != nil {
+	if err := copyWorkspacePath(context.Background(), src, dst); err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "copy failed: " + err.Error()}}, IsError: true}, nil
 	}
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: fmt.Sprintf("copied: %s -> %s", src, dst)}}}, nil
 }
 
-func copyPath(src, dst string) error {
-	srcInfo, err := os.Stat(src)
+func copyWorkspacePath(ctx context.Context, source, destination string) error {
+	walker, sourceRelative, err := workspaceWalkerPath(ctx, source)
 	if err != nil {
 		return err
 	}
-	if srcInfo.IsDir() {
-		return copyDir(src, dst)
-	}
-	return copyFile(src, dst)
-}
-
-func copyDir(src, dst string) error {
-	if err := os.MkdirAll(dst, 0755); err != nil {
-		return err
-	}
-	entries, err := os.ReadDir(src)
+	destinationRelative, err := workspaceWalkerRelative(ctx, walker, destination)
 	if err != nil {
 		return err
 	}
-	for _, e := range entries {
-		if err := copyPath(filepath.Join(src, e.Name()), filepath.Join(dst, e.Name())); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func copyFile(src, dst string) error {
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		return err
-	}
-	srcF, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer srcF.Close()
-	dstF, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer dstF.Close()
-	_, err = io.Copy(dstF, srcF)
+	_, err = walker.CopyTree(ctx, sourceRelative, walker, destinationRelative, fswalk.CopyTreeQuery{})
 	return err
 }
 
@@ -370,26 +322,25 @@ func fileGrep(args map[string]any) (CallToolResult, error) {
 	}
 
 	include, _ := args["include"].(string)
-	ctx := int(getFloat64Arg(args, "context"))
+	contextLines := int(getFloat64Arg(args, "context"))
 	max := resolveLimit(args, 200)
-
-	results, err := gulu.File.Grep(abs, include, pattern, ctx, max)
+	results, err := gulu.File.Grep(abs, include, pattern, contextLines, max)
 	if err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "grep failed: " + err.Error()}}, IsError: true}, nil
 	}
 
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("Found %d lines:\n\n", len(results)))
-	for _, r := range results {
-		rel, relErr := filepath.Rel(util.WorkspaceDir, r.File)
+	for _, result := range results {
+		relative, relErr := filepath.Rel(util.WorkspaceDir, result.File)
 		if relErr != nil {
-			rel = r.File
+			relative = result.File
 		}
 		sep := ":"
-		if r.Context {
+		if result.Context {
 			sep = "-:"
 		}
-		sb.WriteString(fmt.Sprintf("%s:%d%s %s\n", rel, r.Line, sep, r.Text))
+		sb.WriteString(fmt.Sprintf("%s:%d%s %s\n", relative, result.Line, sep, result.Text))
 	}
 
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: sb.String()}}}, nil
@@ -401,44 +352,39 @@ func fileFind(args map[string]any) (CallToolResult, error) {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "path is required"}}, IsError: true}, nil
 	}
 
-	abs, err := resolvePath(p)
+	walker, relative, err := workspaceWalkerPath(context.Background(), p)
 	if err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: err.Error()}}, IsError: true}, nil
 	}
 
 	include, _ := args["include"].(string)
 	max := resolveLimit(args, 200)
+	if isWorkspaceFindPrunedDirectory(filepath.Base(filepath.FromSlash(relative))) {
+		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "Found 0 files:\n\n"}}}, nil
+	}
 
 	var results []string
 	total := 0
-	err = filepath.WalkDir(abs, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return nil
-		}
-		if d.IsDir() {
-			name := d.Name()
-			if name == ".git" || name == ".svn" || name == ".hg" || strings.HasPrefix(name, ".") {
-				return filepath.SkipDir
+	_, err = walker.Walk(context.Background(), relative, fswalk.WalkOptions{SortEntries: true}, func(entry fswalk.Metadata) error {
+		if entry.IsDir {
+			if isWorkspaceFindPrunedDirectory(entry.Name) {
+				return fs.SkipDir
 			}
 			return nil
 		}
-		if !d.Type().IsRegular() {
+		if !entry.IsRegular || entry.IsSymlink || entry.Restricted {
 			return nil
 		}
-		if include != "" && !matchGlob(d.Name(), include) {
+		if include != "" && !matchGlob(entry.Name, include) {
 			return nil
 		}
 
 		total++
 		if max <= 0 || len(results) < max {
-			rel, relErr := filepath.Rel(util.WorkspaceDir, path)
-			if relErr != nil {
-				rel = path
-			}
-			results = append(results, rel)
+			results = append(results, filepath.FromSlash(entry.Path))
 		}
 		if max > 0 && total >= max {
-			return filepath.SkipAll
+			return fs.SkipAll
 		}
 		return nil
 	})
@@ -461,6 +407,10 @@ func fileFind(args map[string]any) (CallToolResult, error) {
 	}
 
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: sb.String()}}}, nil
+}
+
+func isWorkspaceFindPrunedDirectory(name string) bool {
+	return name == ".git" || name == ".svn" || name == ".hg" || strings.HasPrefix(name, ".")
 }
 
 func matchGlob(filename, pattern string) bool {
@@ -502,18 +452,17 @@ func fileStat(args map[string]any) (CallToolResult, error) {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "path is required"}}, IsError: true}, nil
 	}
 
-	abs, err := resolvePath(p)
+	walker, relative, err := workspaceWalkerPath(context.Background(), p)
 	if err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: err.Error()}}, IsError: true}, nil
 	}
-
-	info, err := os.Stat(abs)
+	entry, err := walker.Inspect(context.Background(), relative)
 	if err != nil {
 		return CallToolResult{Content: []ContentItem{{Type: "text", Text: "stat failed: " + err.Error()}}, IsError: true}, nil
 	}
 
 	return CallToolResult{Content: []ContentItem{{Type: "text", Text: fmt.Sprintf(
 		"Path: %s\nSize: %d\nIsDir: %v\nModTime: %s",
-		p, info.Size(), info.IsDir(), info.ModTime().Format("2006-01-02 15:04:05"),
+		p, entry.Size, entry.IsDir, time.Unix(entry.Updated, 0).Format("2006-01-02 15:04:05"),
 	)}}}, nil
 }

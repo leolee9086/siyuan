@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,8 +14,8 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"unicode/utf8"
 
+	"github.com/siyuan-note/siyuan/kernel/fswalk"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
@@ -214,46 +213,51 @@ func forgeListHandler(args map[string]interface{}) (CallToolResult, error) {
 	if err != nil {
 		return forgeError(err.Error())
 	}
-	target, rel, err := resolveForgeDevRepoTarget(root, stringArg(args, "path", "."))
+	_, rel, err := resolveForgeDevRepoTarget(root, stringArg(args, "path", "."))
 	if err != nil {
 		return forgeError(err.Error())
 	}
-	info, err := os.Stat(target)
-	if err != nil || !info.IsDir() {
+	walker, err := fswalk.New(root)
+	if err != nil {
+		return forgeError(fmt.Sprintf("目录根不可用: %v", err))
+	}
+	rootEntry, err := walker.Inspect(context.Background(), rel)
+	if err != nil || !rootEntry.IsDir {
 		return forgeError(fmt.Sprintf("目标目录不可读: %s", rel))
 	}
 	limit := boundedInt(args, "limit", forgeRepoDefaultListLimit, forgeRepoMaxListLimit)
 	typeFilter := strings.ToLower(stringArg(args, "type", ""))
 	namePattern := stringArg(args, "namePattern", "")
-	entries, err := os.ReadDir(target)
+	entries, err := walker.ReadDirectory(context.Background(), rel, true)
 	if err != nil {
 		return forgeError(fmt.Sprintf("列出目录失败: %v", err))
 	}
-	filtered := make([]os.DirEntry, 0, len(entries))
+	filtered := make([]fswalk.Metadata, 0, len(entries))
 	for _, entry := range entries {
-		if entry.Name() == ".git" {
+		if entry.Name == ".git" {
 			continue
 		}
-		if typeFilter == "file" && entry.IsDir() || typeFilter == "dir" && !entry.IsDir() {
+		isDir := entry.IsDir && !entry.IsSymlink
+		if typeFilter == "file" && isDir || typeFilter == "dir" && !isDir {
 			continue
 		}
 		if namePattern != "" {
-			matched, matchErr := filepath.Match(namePattern, entry.Name())
+			matched, matchErr := filepath.Match(namePattern, entry.Name)
 			if matchErr != nil || !matched {
 				continue
 			}
 		}
 		filtered = append(filtered, entry)
 	}
-	sort.Slice(filtered, func(i, j int) bool { return strings.ToLower(filtered[i].Name()) < strings.ToLower(filtered[j].Name()) })
+	sort.Slice(filtered, func(i, j int) bool { return strings.ToLower(filtered[i].Name) < strings.ToLower(filtered[j].Name) })
 	result := map[string]interface{}{"rootHint": filepath.Base(root), "path": rel, "totalEntries": len(filtered), "truncated": len(filtered) > limit, "entries": []map[string]string{}}
 	items := result["entries"].([]map[string]string)
 	for _, entry := range filtered[:minInt(len(filtered), limit)] {
 		entryType := "file"
-		if entry.IsDir() {
+		if entry.IsDir && !entry.IsSymlink {
 			entryType = "dir"
 		}
-		items = append(items, map[string]string{"name": entry.Name(), "type": entryType})
+		items = append(items, map[string]string{"name": entry.Name, "type": entryType})
 	}
 	result["entries"] = items
 	return forgeResult(result, nil)
@@ -268,19 +272,19 @@ func forgeReadHandler(args map[string]interface{}) (CallToolResult, error) {
 	if pathArg == "" {
 		return forgeError("path 不能为空")
 	}
-	target, rel, err := resolveForgeDevRepoTarget(root, pathArg)
+	_, rel, err := resolveForgeDevRepoTarget(root, pathArg)
 	if err != nil {
 		return forgeError(err.Error())
 	}
-	info, err := os.Stat(target)
-	if err != nil || info.IsDir() {
-		return forgeError(fmt.Sprintf("目标不是文本文件: %s", rel))
+	walker, err := fswalk.New(root)
+	if err != nil {
+		return forgeError(fmt.Sprintf("读取根目录不可用: %v", err))
 	}
-	data, err := readForgeTextFile(target)
+	document, err := walker.ReadTextFile(context.Background(), rel, forgeRepoMaxTextBytes)
 	if err != nil {
 		return forgeError(err.Error())
 	}
-	lines := strings.Split(normalizeForgeText(string(data)), "\n")
+	lines := strings.Split(document.Text, "\n")
 	start := boundedInt(args, "start", 1, 0)
 	limit := boundedInt(args, "limit", forgeRepoDefaultReadLimit, forgeRepoMaxReadLimit)
 	if start < 1 {
@@ -309,7 +313,7 @@ func forgeSearchHandler(args map[string]interface{}) (CallToolResult, error) {
 	if pattern == "" {
 		return forgeError("pattern 不能为空")
 	}
-	target, rel, err := resolveForgeDevRepoTarget(root, stringArg(args, "path", "."))
+	_, rel, err := resolveForgeDevRepoTarget(root, stringArg(args, "path", "."))
 	if err != nil {
 		return forgeError(err.Error())
 	}
@@ -340,75 +344,44 @@ func forgeSearchHandler(args map[string]interface{}) (CallToolResult, error) {
 			return strings.Contains(line, needle)
 		}
 	}
-	matches := make([]map[string]interface{}, 0, limit)
-	scanned := 0
-	appendFile := func(filePath string) error {
-		if filePattern != "" {
-			matched, matchErr := filepath.Match(filePattern, filepath.Base(filePath))
-			if matchErr != nil || !matched {
-				return nil
-			}
-		}
-		data, readErr := readForgeTextFile(filePath)
-		if readErr != nil {
-			return nil
-		}
-		scanned++
-		for lineNo, line := range strings.Split(normalizeForgeText(string(data)), "\n") {
-			if !matcher(line) {
-				continue
-			}
-			relPath, relErr := filepath.Rel(root, filePath)
-			if relErr != nil {
-				relPath = filePath
-			} else {
-				relPath = filepath.ToSlash(relPath)
-			}
-			matches = append(matches, map[string]interface{}{"path": relPath, "line": lineNo + 1, "content": truncateForgeLine(line)})
-			if len(matches) >= limit {
-				return errForgeSearchLimit
-			}
-		}
-		return nil
-	}
-	info, err := os.Stat(target)
+	walker, err := fswalk.New(root)
 	if err != nil {
-		return forgeError(fmt.Sprintf("搜索目标不存在: %s", rel))
+		return forgeError(fmt.Sprintf("搜索根目录不可用: %v", err))
 	}
-	if info.IsDir() {
-		err = filepath.WalkDir(target, func(path string, entry fs.DirEntry, walkErr error) error {
-			if walkErr != nil {
-				return nil
+	search, err := walker.SearchText(context.Background(), rel, fswalk.TextSearchQuery{
+		Walk:         fswalk.WalkOptions{SortEntries: true},
+		MaxFileBytes: forgeRepoMaxTextBytes,
+		MaxMatches:   limit,
+		PruneDirectory: func(entry fswalk.Metadata) bool {
+			return isBlockedForgePath(entry.Path)
+		},
+		SelectFile: func(entry fswalk.Metadata) bool {
+			if isBlockedForgePath(entry.Path) {
+				return false
 			}
-			relPath, relErr := filepath.Rel(root, path)
-			if relErr != nil {
-				return nil
+			if filePattern == "" {
+				return true
 			}
-			relPath = filepath.ToSlash(relPath)
-			if path != target && isBlockedForgePath(relPath) {
-				if entry.IsDir() {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-			if entry.Type()&os.ModeSymlink != 0 {
-				return nil
-			}
-			if entry.IsDir() {
-				return nil
-			}
-			return appendFile(path)
-		})
-	} else {
-		err = appendFile(target)
-	}
-	if err != nil && !errors.Is(err, errForgeSearchLimit) {
+			matched, matchErr := filepath.Match(filePattern, entry.Name)
+			return matchErr == nil && matched
+		},
+		MatchLine: func(line fswalk.TextLine) bool { return matcher(line.Text) },
+	})
+	if err != nil {
 		return forgeError(fmt.Sprintf("搜索失败: %v", err))
 	}
-	return forgeResult(map[string]interface{}{"rootHint": filepath.Base(root), "path": rel, "pattern": pattern, "scannedFiles": scanned, "matchCount": len(matches), "hasMore": errors.Is(err, errForgeSearchLimit), "matches": matches}, nil)
+	matches := make([]map[string]interface{}, 0, len(search.Matches))
+	for _, match := range search.Matches {
+		matches = append(matches, map[string]interface{}{
+			"path": match.Path, "line": match.Number, "content": truncateForgeLine(match.Text),
+		})
+	}
+	return forgeResult(map[string]interface{}{
+		"rootHint": filepath.Base(root), "path": rel, "pattern": pattern,
+		"scannedFiles": search.ScannedFileCount, "matchCount": len(matches),
+		"hasMore": search.MatchLimitReached, "matches": matches,
+	}, nil)
 }
-
-var errForgeSearchLimit = errors.New("forge search limit reached")
 
 func forgeWriteHandler(args map[string]interface{}) (CallToolResult, error) {
 	root, err := repositoryToolRoot(args)
@@ -422,17 +395,18 @@ func forgeWriteHandler(args map[string]interface{}) (CallToolResult, error) {
 	if err := requireProtectedForgeApproval(args, root, target); err != nil {
 		return forgeError(err.Error())
 	}
-	if info, statErr := os.Stat(target); statErr == nil && info.IsDir() {
-		return forgeError("目标路径是目录，不能写入")
-	}
-	if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
-		return forgeError(fmt.Sprintf("创建父目录失败: %v", err))
-	}
 	content, ok := args["content"].(string)
 	if !ok {
 		return forgeError("content 必须是字符串")
 	}
-	if err := os.WriteFile(target, []byte(content), 0644); err != nil {
+	walker, err := fswalk.New(root)
+	if err != nil {
+		return forgeError(fmt.Sprintf("写入根目录不可用: %v", err))
+	}
+	if err := walker.WriteTextFile(context.Background(), rel, content, forgeRepoMaxTextBytes); err != nil {
+		if errors.Is(err, fswalk.ErrNotRegularFile) {
+			return forgeError("目标路径是目录，不能写入")
+		}
 		return forgeError(fmt.Sprintf("写入文件失败: %v", err))
 	}
 	return forgeResult(map[string]interface{}{"ok": true, "state": "written", "path": rel}, nil)
@@ -450,20 +424,17 @@ func forgeDeleteHandler(args map[string]interface{}) (CallToolResult, error) {
 	if err := requireProtectedForgeApproval(args, root, target); err != nil {
 		return forgeError(err.Error())
 	}
-	info, err := os.Stat(target)
+	walker, err := fswalk.New(root)
 	if err != nil {
-		return forgeError(fmt.Sprintf("目标不存在: %s", rel))
+		return forgeError(fmt.Sprintf("删除根目录不可用: %v", err))
 	}
-	if info.IsDir() {
-		entries, readErr := os.ReadDir(target)
-		if readErr != nil {
-			return forgeError(fmt.Sprintf("读取目录失败: %v", readErr))
-		}
-		if len(entries) != 0 {
+	if err := walker.RemoveEmpty(context.Background(), rel); err != nil {
+		if errors.Is(err, fswalk.ErrDirectoryNotEmpty) {
 			return forgeError("为避免递归删除，目录必须为空")
 		}
-	}
-	if err := os.Remove(target); err != nil {
+		if errors.Is(err, fswalk.ErrStartUnavailable) {
+			return forgeError(fmt.Sprintf("目标不存在: %s", rel))
+		}
 		return forgeError(fmt.Sprintf("删除失败: %v", err))
 	}
 	return forgeResult(map[string]interface{}{"ok": true, "state": "deleted", "path": rel}, nil)
@@ -474,15 +445,11 @@ func forgeEditHandler(args map[string]interface{}) (CallToolResult, error) {
 	if err != nil {
 		return forgeError(err.Error())
 	}
-	target, rel, err := resolveForgeDevRepoTarget(root, stringArg(args, "path", ""))
+	_, rel, err := resolveForgeDevRepoTarget(root, stringArg(args, "path", ""))
 	if err != nil {
 		return forgeError(err.Error())
 	}
-	if err := requireProtectedForgeApproval(args, root, target); err != nil {
-		return forgeError(err.Error())
-	}
-	data, err := readForgeTextFile(target)
-	if err != nil {
+	if err := requireProtectedForgeRelativeApproval(args, root, rel); err != nil {
 		return forgeError(err.Error())
 	}
 	oldString, ok := args["old_string"].(string)
@@ -493,18 +460,40 @@ func forgeEditHandler(args map[string]interface{}) (CallToolResult, error) {
 	if !ok {
 		return forgeError("new_string 必须是字符串")
 	}
-	content := normalizeForgeText(string(data))
+	walker, err := fswalk.New(root)
+	if err != nil {
+		return forgeError(fmt.Sprintf("编辑根目录不可用: %v", err))
+	}
 	oldString = normalizeForgeText(oldString)
-	count := strings.Count(content, oldString)
-	if count == 0 {
-		return forgeError("未找到 old_string")
+	plan, planned, err := walker.PlanTextTransform(context.Background(), rel, fswalk.TextTransformQuery{
+		MaxFileBytes: forgeRepoMaxTextBytes,
+		Transform: func(document fswalk.TextDocument) (fswalk.TextTransformation, error) {
+			count := strings.Count(document.Text, oldString)
+			if count == 0 {
+				return fswalk.TextTransformation{}, errors.New("未找到 old_string")
+			}
+			if count != 1 {
+				return fswalk.TextTransformation{}, fmt.Errorf("old_string 命中 %d 次，必须恰好命中一次", count)
+			}
+			return fswalk.TextTransformation{
+				Text: strings.Replace(document.Text, oldString, newString, 1), Changed: true,
+			}, nil
+		},
+	})
+	if err != nil {
+		return forgeError(fmt.Sprintf("编辑文件失败: %v", err))
 	}
-	if count != 1 {
-		return forgeError(fmt.Sprintf("old_string 命中 %d 次，必须恰好命中一次", count))
+	if planned.ErrorCount > 0 {
+		return forgeError(planned.Errors[0].Error())
 	}
-	newContent := strings.Replace(content, oldString, newString, 1)
-	if err := writeForgeBackupAndFile(target, []byte(data), []byte(newContent)); err != nil {
+	applied, err := walker.ApplyTextTransform(context.Background(), plan, fswalk.TextApplyPolicy{
+		Backup: true, StopOnError: true,
+	})
+	if err != nil {
 		return forgeError(err.Error())
+	}
+	if applied.ErrorCount > 0 {
+		return forgeError(applied.Errors[0].Error())
 	}
 	return forgeResult(map[string]interface{}{"ok": true, "state": "edited", "path": rel}, nil)
 }
@@ -520,82 +509,78 @@ func forgeBatchReplaceHandler(args map[string]interface{}) (CallToolResult, erro
 	if pattern == "" || oldString == "" || !newStringOK {
 		return forgeError("pattern、old_string、new_string 均为必填项")
 	}
-	target, _, err := resolveForgeDevRepoTarget(root, stringArg(args, "path", "."))
+	_, relative, err := resolveForgeDevRepoTarget(root, stringArg(args, "path", "."))
 	if err != nil {
 		return forgeError(err.Error())
 	}
 	preview := boolArg(args, "preview", false)
 	filePattern := stringArg(args, "filePattern", "")
-	files := make([]string, 0)
-	err = filepath.WalkDir(target, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return nil
+	walker, err := fswalk.New(root)
+	if err != nil {
+		return forgeError(fmt.Sprintf("批量替换根目录不可用: %v", err))
+	}
+	oldNormalized := normalizeForgeText(oldString)
+	transformer := func(document fswalk.TextDocument) (fswalk.TextTransformation, error) {
+		count := strings.Count(document.Text, oldNormalized)
+		if count == 0 {
+			return fswalk.TextTransformation{}, nil
 		}
-		relPath, relErr := filepath.Rel(root, path)
-		if relErr != nil {
-			return nil
+		if count != 1 {
+			return fswalk.TextTransformation{}, fmt.Errorf("%s 中 old_string 命中 %d 次，批量替换要求每个文件恰好命中一次", document.Path, count)
 		}
-		relPath = filepath.ToSlash(relPath)
-		if path != target && isBlockedForgePath(relPath) {
-			if entry.IsDir() {
-				return filepath.SkipDir
+		return fswalk.TextTransformation{
+			Text: strings.Replace(document.Text, oldNormalized, newString, 1), Changed: true,
+		}, nil
+	}
+	plan, planned, err := walker.PlanTextTransform(context.Background(), relative, fswalk.TextTransformQuery{
+		Walk:         fswalk.WalkOptions{SortEntries: true},
+		MaxFileBytes: forgeRepoMaxTextBytes,
+		PruneDirectory: func(entry fswalk.Metadata) bool {
+			return isBlockedForgePath(entry.Path)
+		},
+		SelectFile: func(entry fswalk.Metadata) bool {
+			if isBlockedForgePath(entry.Path) {
+				return false
 			}
-			return nil
-		}
-		if entry.Type()&os.ModeSymlink != 0 {
-			return nil
-		}
-		if entry.IsDir() {
-			return nil
-		}
-		matched, matchErr := matchForgePattern(pattern, relPath, entry.Name())
-		if matchErr != nil || !matched {
-			return nil
-		}
-		if filePattern != "" {
-			matched, matchErr = filepath.Match(filePattern, entry.Name())
+			matched, matchErr := matchForgePattern(pattern, entry.Path, entry.Name)
 			if matchErr != nil || !matched {
-				return nil
+				return false
 			}
-		}
-		data, readErr := readForgeTextFile(path)
-		if readErr != nil || !strings.Contains(normalizeForgeText(string(data)), normalizeForgeText(oldString)) {
-			return nil
-		}
-		files = append(files, path)
-		return nil
+			if filePattern == "" {
+				return true
+			}
+			matched, matchErr = filepath.Match(filePattern, entry.Name)
+			return matchErr == nil && matched
+		},
+		Transform: transformer,
 	})
 	if err != nil {
 		return forgeError(fmt.Sprintf("匹配文件失败: %v", err))
 	}
+	if planned.ErrorCount > 0 {
+		return forgeError(planned.Errors[0].Error())
+	}
+	matched := make([]string, 0, len(planned.Candidates))
+	for _, candidate := range planned.Candidates {
+		matched = append(matched, candidate.Path)
+	}
 	if !preview {
-		if err := requireProtectedForgeApproval(args, root, files...); err != nil {
+		if err := requireProtectedForgeRelativeApproval(args, root, matched...); err != nil {
 			return forgeError(err.Error())
 		}
 	}
-	changed := make([]string, 0, len(files))
+	changed := []string{}
 	if !preview {
-		for _, path := range files {
-			data, readErr := readForgeTextFile(path)
-			if readErr != nil {
-				return forgeError(readErr.Error())
-			}
-			content := normalizeForgeText(string(data))
-			old := normalizeForgeText(oldString)
-			count := strings.Count(content, old)
-			if count != 1 {
-				return forgeError(fmt.Sprintf("%s 中 old_string 命中 %d 次，批量替换要求每个文件恰好命中一次", filepath.ToSlash(path), count))
-			}
-			newContent := strings.Replace(content, old, newString, 1)
-			if writeErr := writeForgeBackupAndFile(path, data, []byte(newContent)); writeErr != nil {
-				return forgeError(writeErr.Error())
-			}
-			changed = append(changed, relativeForgePath(root, path))
+		applied, applyErr := walker.ApplyTextTransform(context.Background(), plan, fswalk.TextApplyPolicy{
+			Backup: true, StopOnError: true,
+		})
+		if applyErr != nil {
+			return forgeError(applyErr.Error())
 		}
-	}
-	matched := make([]string, 0, len(files))
-	for _, path := range files {
-		matched = append(matched, relativeForgePath(root, path))
+		if applied.ErrorCount > 0 {
+			return forgeError(applied.Errors[0].Error())
+		}
+		changed = applied.Changed
 	}
 	return forgeResult(map[string]interface{}{"ok": true, "state": map[bool]string{true: "preview", false: "batch_replaced"}[preview], "matchedFiles": matched, "changedFiles": changed}, nil)
 }
@@ -827,37 +812,6 @@ func validateForgeGitPath(root, rawPath string) error {
 	}
 	if rel == "." {
 		return errors.New("Git path 不能是源码仓库根目录")
-	}
-	return nil
-}
-
-func readForgeTextFile(path string) ([]byte, error) {
-	info, err := os.Stat(path)
-	if err != nil {
-		return nil, fmt.Errorf("读取文件失败: %w", err)
-	}
-	if info.IsDir() {
-		return nil, errors.New("目标是目录，不是文本文件")
-	}
-	if info.Size() > forgeRepoMaxTextBytes {
-		return nil, fmt.Errorf("文件过大（超过 %d bytes）", forgeRepoMaxTextBytes)
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("读取文件失败: %w", err)
-	}
-	if bytes.Contains(data, []byte{0}) || !utf8.Valid(data) {
-		return nil, errors.New("仅支持 UTF-8 文本文件")
-	}
-	return data, nil
-}
-
-func writeForgeBackupAndFile(path string, oldContent, newContent []byte) error {
-	if err := os.WriteFile(path+".bak", oldContent, 0644); err != nil {
-		return fmt.Errorf("创建备份文件失败: %w", err)
-	}
-	if err := os.WriteFile(path, newContent, 0644); err != nil {
-		return fmt.Errorf("写入文件失败: %w", err)
 	}
 	return nil
 }

@@ -1,0 +1,127 @@
+.sforge-file-browser {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    color: var(--b3-theme-on-background);
+    background: var(--b3-theme-background);
+}
+
+.sforge-file-browser__header {
+    flex: none;
+    border-bottom: 1px solid var(--b3-border-color);
+}
+
+.sforge-file-browser__header .block__logo {
+    min-width: 0;
+}
+
+.sforge-file-browser__header .block__icon {
+    flex: none;
+}
+
+.sforge-file-browser__toolbar,
+.sforge-file-browser__footer {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.sforge-file-browser__toolbar {
+    min-height: 36px;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--b3-border-color);
+}
+
+.sforge-file-browser__toolbar .b3-select {
+    flex: 0 1 132px;
+    min-width: 0;
+    height: 28px;
+}
+
+.sforge-file-browser__toolbar .block__icon {
+    flex: none;
+    width: 28px;
+    height: 28px;
+}
+
+.sforge-file-browser__root-count {
+    overflow: hidden;
+    margin-left: auto;
+    color: var(--b3-theme-on-surface);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sforge-file-browser__content {
+    display: flex;
+    flex: 1;
+    overflow: auto;
+    min-height: 0;
+}
+
+.sforge-file-tree {
+    width: 100%;
+    padding: 3px 0 10px;
+}
+
+.sforge-file-browser__state {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    min-height: 130px;
+    padding: 20px;
+    color: var(--b3-theme-on-surface);
+    flex-direction: column;
+    gap: 9px;
+    text-align: center;
+}
+
+.sforge-file-browser__state svg {
+    width: 24px;
+    height: 24px;
+    fill: currentcolor;
+}
+
+.sforge-file-browser__state--error,
+.sforge-file-browser__error {
+    color: var(--b3-theme-error);
+}
+
+.sforge-file-browser__footer {
+    justify-content: space-between;
+    min-height: 34px;
+    padding: 4px 8px;
+    border-top: 1px solid var(--b3-border-color);
+    color: var(--b3-theme-on-surface);
+    font-size: 11px;
+}
+
+.sforge-file-browser__selection {
+    overflow: hidden;
+    min-width: 0;
+    font-family: var(--b3-font-family-code);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sforge-file-browser__selection-count {
+    flex: none;
+    white-space: nowrap;
+}
+
+.sforge-file-browser__error {
+    flex: none;
+    overflow: hidden;
+    margin: 0;
+    padding: 5px 8px;
+    border-top: 1px solid var(--b3-border-color);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

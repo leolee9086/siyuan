@@ -17,15 +17,19 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/88250/gulu"
+	"github.com/siyuan-note/siyuan/kernel/fswalk"
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/util"
 
@@ -40,7 +44,7 @@ var fileCmd = &cobra.Command{
 func absPath(rel string) (string, error) {
 	rel = filepath.Clean(strings.ReplaceAll(rel, "/", string(os.PathSeparator)))
 	abs := filepath.Join(util.WorkspaceDir, rel)
-	if !gulu.File.IsSubPath(util.WorkspaceDir, abs) {
+	if filepath.Clean(abs) != filepath.Clean(util.WorkspaceDir) && !gulu.File.IsSubPath(util.WorkspaceDir, abs) {
 		return "", fmt.Errorf("path escapes workspace: %s", rel)
 	}
 	if boxID := model.EncryptedRawPathBoxID(abs); boxID != "" {
@@ -49,30 +53,51 @@ func absPath(rel string) (string, error) {
 	return abs, nil
 }
 
+func workspaceWalkerPath(ctx context.Context, raw string) (*fswalk.Walker, string, error) {
+	walker, err := fswalk.New(util.WorkspaceDir)
+	if err != nil {
+		return nil, "", err
+	}
+	absolute, err := absPath(raw)
+	if err != nil {
+		return nil, "", err
+	}
+	relative, err := walker.RelativePath(ctx, absolute)
+	if err != nil {
+		return nil, "", err
+	}
+	return walker, relative, nil
+}
+
+func workspaceWalkerRelative(ctx context.Context, walker *fswalk.Walker, raw string) (string, error) {
+	absolute, err := absPath(raw)
+	if err != nil {
+		return "", err
+	}
+	return walker.RelativePath(ctx, absolute)
+}
+
 var fileListCmd = &cobra.Command{
 	Use:   "list <path>",
 	Short: "List directory contents",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		dir, err := absPath(args[0])
+		walker, relative, err := workspaceWalkerPath(cmd.Context(), args[0])
 		if err != nil {
 			return err
 		}
-		entries, err := os.ReadDir(dir)
+		entries, err := walker.ReadDirectory(cmd.Context(), relative, true)
 		if err != nil {
 			return err
 		}
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 		fmt.Fprintln(w, "NAME\tSIZE\tISDIR\tMODTIME")
 		for _, e := range entries {
-			info, err := e.Info()
 			size := ""
 			modTime := ""
-			if err == nil {
-				size = fmt.Sprintf("%d", info.Size())
-				modTime = info.ModTime().Format("2006-01-02 15:04")
-			}
-			fmt.Fprintf(w, "%s\t%s\t%v\t%s\n", e.Name(), size, e.IsDir(), modTime)
+			size = fmt.Sprintf("%d", e.Size)
+			modTime = time.Unix(e.Updated, 0).Format("2006-01-02 15:04")
+			fmt.Fprintf(w, "%s\t%s\t%v\t%s\n", e.Name, size, e.IsDir, modTime)
 		}
 		w.Flush()
 		fmt.Printf("\n%d entry(s)\n", len(entries))
@@ -85,15 +110,15 @@ var fileReadCmd = &cobra.Command{
 	Short: "Read file content",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		p, err := absPath(args[0])
+		walker, relative, err := workspaceWalkerPath(cmd.Context(), args[0])
 		if err != nil {
 			return err
 		}
-		data, err := os.ReadFile(p)
+		document, err := walker.ReadLineRange(cmd.Context(), relative, fswalk.LineRangeQuery{StartLine: 1})
 		if err != nil {
 			return err
 		}
-		fmt.Print(string(data))
+		fmt.Print(document.Text)
 		return nil
 	},
 }
@@ -103,7 +128,7 @@ var fileWriteCmd = &cobra.Command{
 	Short: "Write file content (stdin or --file)",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		p, err := absPath(args[0])
+		walker, relative, err := workspaceWalkerPath(cmd.Context(), args[0])
 		if err != nil {
 			return err
 		}
@@ -114,24 +139,43 @@ var fileWriteCmd = &cobra.Command{
 		}
 
 		src, _ := cmd.Flags().GetString("file")
-		var data []byte
 		if src != "" {
-			data, err = os.ReadFile(src)
+			if err = writeWorkspaceFileFromSource(cmd.Context(), walker, relative, src); err != nil {
+				return err
+			}
 		} else {
-			data, err = io.ReadAll(os.Stdin)
-		}
-		if err != nil {
-			return err
-		}
-		if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
-			return err
-		}
-		if err := os.WriteFile(p, data, 0644); err != nil {
-			return err
+			data, readErr := io.ReadAll(os.Stdin)
+			if readErr != nil {
+				return readErr
+			}
+			if err = walker.WriteFileContent(cmd.Context(), relative, data); err != nil {
+				return err
+			}
 		}
 		fmt.Println("ok")
 		return nil
 	},
+}
+
+func writeWorkspaceFileFromSource(ctx context.Context, destination *fswalk.Walker,
+	destinationRelative, source string) error {
+	absolute, err := filepath.Abs(source)
+	if err != nil {
+		return err
+	}
+	sourceWalker, err := fswalk.New(filepath.Dir(absolute))
+	if err != nil {
+		return err
+	}
+	sourceRelative, err := sourceWalker.RelativePath(ctx, absolute)
+	if err != nil {
+		return err
+	}
+	content, err := sourceWalker.ReadLineRange(ctx, sourceRelative, fswalk.LineRangeQuery{StartLine: 1})
+	if err != nil {
+		return err
+	}
+	return destination.WriteFileContent(ctx, destinationRelative, []byte(content.Text))
 }
 
 var fileDeleteCmd = &cobra.Command{
@@ -139,7 +183,7 @@ var fileDeleteCmd = &cobra.Command{
 	Short: "Delete file or directory",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		p, err := absPath(args[0])
+		walker, relative, err := workspaceWalkerPath(cmd.Context(), args[0])
 		if err != nil {
 			return err
 		}
@@ -149,15 +193,7 @@ var fileDeleteCmd = &cobra.Command{
 			return nil
 		}
 
-		info, err := os.Stat(p)
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			err = os.RemoveAll(p)
-		} else {
-			err = os.Remove(p)
-		}
+		_, err = walker.RemoveTree(cmd.Context(), relative)
 		if err != nil {
 			return err
 		}
@@ -171,11 +207,11 @@ var fileRenameCmd = &cobra.Command{
 	Short: "Rename or move file",
 	Args:  cobra.MinimumNArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		old, err := absPath(args[0])
+		walker, oldRelative, err := workspaceWalkerPath(cmd.Context(), args[0])
 		if err != nil {
 			return err
 		}
-		newP, err := absPath(args[1])
+		newRelative, err := workspaceWalkerRelative(cmd.Context(), walker, args[1])
 		if err != nil {
 			return err
 		}
@@ -185,10 +221,7 @@ var fileRenameCmd = &cobra.Command{
 			return nil
 		}
 
-		if err := os.MkdirAll(filepath.Dir(newP), 0755); err != nil {
-			return err
-		}
-		if err := os.Rename(old, newP); err != nil {
+		if err := walker.Move(cmd.Context(), oldRelative, walker, newRelative); err != nil {
 			return err
 		}
 		fmt.Println("ok")
@@ -201,21 +234,12 @@ var fileCopyCmd = &cobra.Command{
 	Short: "Copy file or directory",
 	Args:  cobra.MinimumNArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		src, err := absPath(args[0])
-		if err != nil {
-			return err
-		}
-		dst, err := absPath(args[1])
-		if err != nil {
-			return err
-		}
-
 		if dryRun {
 			fmt.Printf("[dry-run] Would copy: %s -> %s\n", args[0], args[1])
 			return nil
 		}
 
-		if err := copyPath(src, dst); err != nil {
+		if err := copyWorkspacePath(context.Background(), args[0], args[1]); err != nil {
 			return err
 		}
 		fmt.Println("ok")
@@ -223,50 +247,16 @@ var fileCopyCmd = &cobra.Command{
 	},
 }
 
-func copyPath(src, dst string) error {
-	srcInfo, err := os.Stat(src)
+func copyWorkspacePath(ctx context.Context, source, destination string) error {
+	walker, sourceRelative, err := workspaceWalkerPath(ctx, source)
 	if err != nil {
 		return err
 	}
-	if srcInfo.IsDir() {
-		return copyDir(src, dst)
-	}
-	return copyFile(src, dst)
-}
-
-func copyDir(src, dst string) error {
-	if err := os.MkdirAll(dst, 0755); err != nil {
-		return err
-	}
-	entries, err := os.ReadDir(src)
+	destinationRelative, err := workspaceWalkerRelative(ctx, walker, destination)
 	if err != nil {
 		return err
 	}
-	for _, e := range entries {
-		srcPath := filepath.Join(src, e.Name())
-		dstPath := filepath.Join(dst, e.Name())
-		if err := copyPath(srcPath, dstPath); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func copyFile(src, dst string) error {
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		return err
-	}
-	srcF, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer srcF.Close()
-	dstF, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer dstF.Close()
-	_, err = io.Copy(dstF, srcF)
+	_, err = walker.CopyTree(ctx, sourceRelative, walker, destinationRelative, fswalk.CopyTreeQuery{})
 	return err
 }
 
@@ -282,17 +272,17 @@ var fileGrepCmd = &cobra.Command{
 		if relPath == "" {
 			return fmt.Errorf("--path is required")
 		}
-		abs, err := absPath(relPath)
+		absolute, err := absPath(relPath)
 		if err != nil {
 			return err
 		}
 		include, _ := cmd.Flags().GetString("include")
-		ctx, _ := cmd.Flags().GetInt("context")
+		contextLines, _ := cmd.Flags().GetInt("context")
 		max, _ := cmd.Flags().GetInt("limit")
 		if max <= 0 {
 			max = 200
 		}
-		results, err := gulu.File.Grep(abs, include, pattern, ctx, max)
+		results, err := gulu.File.Grep(absolute, include, pattern, contextLines, max)
 		if err != nil {
 			return err
 		}
@@ -302,16 +292,16 @@ var fileGrepCmd = &cobra.Command{
 			fmt.Println(string(data))
 		default:
 			fmt.Printf("Found %d lines:\n\n", len(results))
-			for _, r := range results {
-				rel, relErr := filepath.Rel(util.WorkspaceDir, r.File)
+			for _, result := range results {
+				relative, relErr := filepath.Rel(util.WorkspaceDir, result.File)
 				if relErr != nil {
-					rel = r.File
+					relative = result.File
 				}
 				sep := ":"
-				if r.Context {
+				if result.Context {
 					sep = "-:"
 				}
-				fmt.Printf("%s:%d%s %s\n", rel, r.Line, sep, r.Text)
+				fmt.Printf("%s:%d%s %s\n", relative, result.Line, sep, result.Text)
 			}
 		}
 		return nil
@@ -323,7 +313,7 @@ var fileFindCmd = &cobra.Command{
 	Short: "Find files under a path",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		abs, err := absPath(args[0])
+		walker, relative, err := workspaceWalkerPath(cmd.Context(), args[0])
 		if err != nil {
 			return err
 		}
@@ -334,36 +324,30 @@ var fileFindCmd = &cobra.Command{
 		}
 		var results []string
 		total := 0
-		err = filepath.WalkDir(abs, func(path string, d os.DirEntry, err error) error {
-			if err != nil {
-				return nil
-			}
-			if d.IsDir() {
-				name := d.Name()
-				if name == ".git" || name == ".svn" || name == ".hg" || strings.HasPrefix(name, ".") {
-					return filepath.SkipDir
+		if !isWorkspaceFindPrunedDirectory(filepath.Base(filepath.FromSlash(relative))) {
+			_, err = walker.Walk(cmd.Context(), relative, fswalk.WalkOptions{SortEntries: true}, func(entry fswalk.Metadata) error {
+				if entry.IsDir {
+					if isWorkspaceFindPrunedDirectory(entry.Name) {
+						return fs.SkipDir
+					}
+					return nil
+				}
+				if !entry.IsRegular || entry.IsSymlink || entry.Restricted {
+					return nil
+				}
+				if include != "" && !matchGlob(entry.Name, include) {
+					return nil
+				}
+				total++
+				if len(results) < max {
+					results = append(results, filepath.FromSlash(entry.Path))
+				}
+				if total >= max {
+					return fs.SkipAll
 				}
 				return nil
-			}
-			if !d.Type().IsRegular() {
-				return nil
-			}
-			if include != "" && !matchGlob(d.Name(), include) {
-				return nil
-			}
-			total++
-			if len(results) < max {
-				rel, relErr := filepath.Rel(util.WorkspaceDir, path)
-				if relErr != nil {
-					rel = path
-				}
-				results = append(results, rel)
-			}
-			if total >= max {
-				return filepath.SkipAll
-			}
-			return nil
-		})
+			})
+		}
 		if err != nil {
 			return err
 		}
@@ -390,11 +374,11 @@ var fileStatCmd = &cobra.Command{
 	Short: "Show file or directory info",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		abs, err := absPath(args[0])
+		walker, relative, err := workspaceWalkerPath(cmd.Context(), args[0])
 		if err != nil {
 			return err
 		}
-		info, err := os.Stat(abs)
+		entry, err := walker.Inspect(cmd.Context(), relative)
 		if err != nil {
 			return err
 		}
@@ -402,16 +386,16 @@ var fileStatCmd = &cobra.Command{
 		case "json":
 			data, _ := json.MarshalIndent(map[string]any{
 				"path":    args[0],
-				"size":    info.Size(),
-				"isDir":   info.IsDir(),
-				"modTime": info.ModTime().Format("2006-01-02 15:04:05"),
+				"size":    entry.Size,
+				"isDir":   entry.IsDir,
+				"modTime": time.Unix(entry.Updated, 0).Format("2006-01-02 15:04:05"),
 			}, "", "  ")
 			fmt.Println(string(data))
 		default:
 			fmt.Printf("Path:    %s\n", args[0])
-			fmt.Printf("Size:    %d\n", info.Size())
-			fmt.Printf("IsDir:   %v\n", info.IsDir())
-			fmt.Printf("ModTime: %s\n", info.ModTime().Format("2006-01-02 15:04:05"))
+			fmt.Printf("Size:    %d\n", entry.Size)
+			fmt.Printf("IsDir:   %v\n", entry.IsDir)
+			fmt.Printf("ModTime: %s\n", time.Unix(entry.Updated, 0).Format("2006-01-02 15:04:05"))
 		}
 		return nil
 	},
@@ -424,6 +408,10 @@ func matchGlob(filename, pattern string) bool {
 		}
 	}
 	return false
+}
+
+func isWorkspaceFindPrunedDirectory(name string) bool {
+	return name == ".git" || name == ".svn" || name == ".hg" || strings.HasPrefix(name, ".")
 }
 
 func expandGlobBrace(pattern string) []string {

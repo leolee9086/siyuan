@@ -23,7 +23,7 @@ export interface AgentChatDomain<
     getSessionId(): string;
     readonly layoutSerialization: {readonly instance: "AgentChat"; readonly sessionId: string};
     restoreSessionById(sessionId: string): Promise<void>;
-    createFloatingCopy(tab: TParent): Promise<AgentChatDomain<TApplication, TParent>>;
+    createFloatingCopy(tab: TParent, options?: {blankSession?: boolean}): Promise<AgentChatDomain<TApplication, TParent>>;
     dispose(): void;
     destroy(): void;
     insertBlockMentions(mentions: Array<{id: string; label: string}>): void;

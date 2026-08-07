@@ -34,7 +34,7 @@ const imageHeight = ref(0);
 const imageError = ref(false);
 
 const isImage = computed(() => isAssetImage(props.item.path));
-const thumbnailUrl = computed(() => getAssetThumbnailUrl(props.item.path));
+const thumbnailUrl = computed(() => props.item.thumbnailUrl ?? getAssetThumbnailUrl(props.item.path));
 const iconHref = computed(() => getAssetIconHref(props.item.path));
 
 /** 图片加载完成 */

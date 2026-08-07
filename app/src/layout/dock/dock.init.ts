@@ -16,7 +16,14 @@ import { isWnd, isTDock } from "./dock.guard";
 import { hasValidDockType } from "./dock.visibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { forgeI18n } from "../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
-import { 检查并注册Dock项, 恢复缺失面板, 修复定时任务图标 } from "./dock.data";
+import {
+    检查并注册Dock项,
+    恢复声明的内建面板,
+    恢复缺失面板,
+    修复定时任务图标,
+} from "./dock.data";
+/** 用途：恢复文件浏览领域声明的内建 Dock；使用范围：旧布局自愈。 */
+import {FILE_BROWSER_DOCK_DEFINITIONS} from "../../sforge/fileBrowser/FileBrowser.docks";
 
 /**
  * 初始化活动元素
@@ -136,12 +143,16 @@ export function insertSourceElement(
     previousType?: string
 ): void {
     sourceElement.setAttribute("data-index", index.toString());
-    const prev = previousType ? dock.elements[index].parentElement.querySelector(`[data-type="${previousType}"]`) : null;
+    const target = dock.elements[index];
+    if (!target) {
+        return;
+    }
+    const prev = previousType ? target.parentElement?.querySelector(`[data-type="${previousType}"]`) : null;
     if (prev) {
         prev.after(sourceElement);
         return;
     }
-    dock.elements[index].insertAdjacentElement("afterbegin", sourceElement);
+    target.insertAdjacentElement("afterbegin", sourceElement);
 }
 
 /**
@@ -220,6 +231,8 @@ export function initDockData(
     恢复缺失面板(data[1], seenGlobalTypes, "forwardlink", "iconLink", forgeI18n.forwardlinks || "正向链接", position);
     const embeddingTitle = forgeI18n.embedding;
     恢复缺失面板(data[1], seenGlobalTypes, "embedding_dock", "iconDatabase", typeof embeddingTitle === "string" ? embeddingTitle : "Embeddings", position);
+    /** 文件浏览和属性面板由领域声明决定位置，避免默认布局与恢复链各自维护。 */
+    恢复声明的内建面板(data, seenGlobalTypes, position, FILE_BROWSER_DOCK_DEFINITIONS);
     /** 颜色工具遵循 TEColors 的 LeftBottom 位置，缺失时由内建 Dock 自愈恢复。 */
     if (position === "Left") {
         恢复缺失面板(data[1], seenGlobalTypes, "sforge-colors", "iconImage", "颜色工具", position);
@@ -241,7 +254,7 @@ export function initDockData(
      * 生效场景：配置数据经过处理后仍不包含预定义的有效类型时。
      */
     if (!hasValidDockType(data, TYPES)) {
-        dock.elements[0].parentElement.classList.add("fn__none");
+        dock.elements[0]?.parentElement?.classList.add("fn__none");
         initDockFiles(dock);
         initDockActiveState(dock);
         return;
@@ -265,7 +278,7 @@ export function initDockData(
     if (second && second.length > 0) {
         dock.genButton(second, 1);
     }
-    dock.elements[0].parentElement.classList.remove("fn__none");
+    dock.elements[0]?.parentElement?.classList.remove("fn__none");
     initDockFiles(dock);
     initDockActiveState(dock);
 }
@@ -274,8 +287,8 @@ export function initDockData(
  * 初始化 dock 激活状态
  */
 export function initDockActiveState(dock: DockDomain): void {
-    const activeElements = [...dock.elements[0].querySelectorAll(".dock__item--active"),
-        ...dock.elements[1].querySelectorAll(".dock__item--active")];
+    const activeElements = dock.elements.flatMap(element =>
+        [...element.querySelectorAll(".dock__item--active")]);
     /**
      * 作用：恢复 Dock 的激活状态。
      * 意图：如果有 Dock 项在之前被标记为激活（例如从布局恢复），则直接初始化这些项的状态，跳过默认的无激活处理逻辑。

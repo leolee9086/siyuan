@@ -24,7 +24,7 @@ const calculateColorComponent = (n: number, h: number, a: number, l: number) => 
  * @param l 亮度值 (0-100)
  * @returns 十六进制颜色值
  */
-const hslToHex = (h: number, s: number, l: number) => {
+export const hslToHex = (h: number, s: number, l: number) => {
     l /= 100;
     const a = s * Math.min(l, 1 - l) / 100;
     return `#${calculateColorComponent(0, h, a, l)}${calculateColorComponent(8, h, a, l)}${calculateColorComponent(4, h, a, l)}`;

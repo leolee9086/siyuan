@@ -63,6 +63,8 @@ const buildAgentChatHeaderHTML = () => {
         '<svg><use xlink:href="#iconAdd"></use></svg></span><span class="fn__space"></span>' +
         '<span data-type="session-menu" class="block__icon ariaLabel" data-position="north" aria-label="' + L.manageSessions + '">' +
         '<svg><use xlink:href="#iconFolderClock"></use></svg></span><span class="fn__space"></span>' +
+        '<span data-type="open-as-new-tab" class="block__icon ariaLabel" data-position="north" aria-label="' + (L.openNewAgentInTab || "New in tab") + '">' +
+        '<svg><use xlink:href="#iconAdd"></use></svg></span><span class="fn__space"></span>' +
         '<span data-type="open-as-tab" class="block__icon ariaLabel" data-position="north" aria-label="' + (L.openInNewTab || "Open in tab") + '">' +
         '<svg><use xlink:href="#iconOpen"></use></svg></span><span class="fn__space"></span>' +
         '<span data-type="open-as-dialog" class="block__icon ariaLabel" data-position="north" aria-label="' + (L.refPopover || "Open in popover") + '">' +
@@ -178,6 +180,7 @@ function bindAgentChatActionElements(runtime: AgentChatRuntime, panel: HTMLEleme
     runtime.identityLabelElement = requireElement<HTMLElement>(panel, '[data-type="magi-identity-label"]');
     runtime.newSessionBtn = requireElement<HTMLElement>(panel, '.block__icon[data-type="new-session"]');
     runtime.sessionMenuBtn = requireElement<HTMLElement>(panel, '.block__icon[data-type="session-menu"]');
+    runtime.tabNewBtn = requireElement<HTMLElement>(panel, '.block__icon[data-type="open-as-new-tab"]');
     runtime.tabBtn = requireElement<HTMLElement>(panel, '.block__icon[data-type="open-as-tab"]');
     runtime.floatingBtn = requireElement<HTMLElement>(panel, '.block__icon[data-type="open-as-dialog"]');
     runtime.titleElement = requireElement<HTMLElement>(panel, ".agent-chat__title");

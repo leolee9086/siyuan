@@ -1,5 +1,18 @@
 import { 注册类型, 类型可用 } from "./dock.registry";
 
+/** 领域 Dock 可声明的旧布局恢复信息；布局层不需要知道面板实现。 */
+export interface DockRecoveryDefinition {
+    type: string;
+    icon: string;
+    title: string;
+    position: TDockPosition;
+    column: 0 | 1;
+    size: Config.IUILayoutDockPanelSize;
+    show: boolean;
+    hotkey: string;
+    hotkeyLangId: string;
+}
+
 /**
  * 检查并注册 Dock 项
  * 
@@ -62,7 +75,8 @@ export function 恢复缺失面板(
     type: string,
     icon: string,
     title: string,
-    position: TDockPosition
+    position: TDockPosition,
+    template?: Pick<Config.IUILayoutDockTab, "size" | "show" | "hotkey" | "hotkeyLangId">,
 ): void {
     // 使用全局注册表检查是否已被其他 Dock 占用
     if (!类型可用(type)) {
@@ -83,13 +97,40 @@ export function 恢复缺失面板(
         type,
         icon,
         title,
-        size: { width: 0, height: 0 },
-        show: false,
-        hotkey: "",
-        hotkeyLangId: title
+        size: template ? {...template.size} : {width: 0, height: 0},
+        show: template?.show ?? false,
+        hotkey: template?.hotkey ?? "",
+        hotkeyLangId: template?.hotkeyLangId ?? title,
     };
     targetArray.push(missingTab);
     existingTypes.add(type);
+}
+
+/** 按领域声明恢复缺失的内建 Dock，供任意后续内建面板复用。 */
+export function 恢复声明的内建面板(
+    data: Config.IUILayoutDockTab[][],
+    existingTypes: Set<string>,
+    position: TDockPosition,
+    definitions: readonly DockRecoveryDefinition[],
+): void {
+    for (const definition of definitions) {
+        if (definition.position !== position) {
+            continue;
+        }
+        const target = data[definition.column];
+        if (!target) {
+            continue;
+        }
+        恢复缺失面板(
+            target,
+            existingTypes,
+            definition.type,
+            definition.icon,
+            definition.title,
+            position,
+            definition,
+        );
+    }
 }
 
 

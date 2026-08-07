@@ -1,4 +1,5 @@
 {
+    "openNewAgentInTab": "새 탭에서 만들기",
     "agentQueuePending": "대기 중",
     "agentQueueInjecting": "전송 중",
     "agentQueueBlocked": "차단됨",

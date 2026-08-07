@@ -1,4 +1,5 @@
 {
+    "openNewAgentInTab": "Yeni sekmede oluştur",
     "agentQueuePending": "Bekliyor",
     "agentQueueInjecting": "Gönderiliyor",
     "agentQueueBlocked": "Engellendi",

@@ -1,0 +1,147 @@
+.sforge-file-tags {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--b3-border-color);
+}
+.sforge-file-tags__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.sforge-file-tags__label {
+    color: var(--b3-theme-on-surface-light);
+    font-size: 12px;
+}
+
+.sforge-file-tags__modes {
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--b3-border-color);
+    border-radius: 4px;
+}
+
+.sforge-file-tags__modes .block__icon {
+    width: 24px;
+    height: 24px;
+}
+
+.sforge-file-tags__modes svg {
+    width: 16px;
+    height: 16px;
+}
+
+.sforge-file-tags__mode--active {
+    color: var(--b3-theme-primary);
+    background: var(--b3-theme-secondary);
+}
+
+.sforge-file-tags__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 6px 0;
+}
+
+.sforge-file-tags__chips .b3-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sforge-file-tags__chips button {
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+}
+
+.sforge-file-tags__chips button svg {
+    width: 12px;
+    height: 12px;
+}
+
+.sforge-file-tags__color {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    padding: 0;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+}
+
+.sforge-file-tags__input {
+    display: flex;
+    gap: 4px;
+}
+
+.sforge-file-tags__input input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 5px 8px;
+    border: 1px solid var(--b3-border-color);
+    border-radius: 4px;
+    color: var(--b3-theme-on-background);
+    background: var(--b3-theme-surface);
+}
+
+.sforge-file-tags__input .block__icon {
+    flex: 0 0 28px;
+}
+
+.sforge-file-tags__input--file {
+    margin-top: 4px;
+}
+
+.sforge-file-tags__files {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 6px 0;
+}
+
+.sforge-file-tags__file {
+    min-width: 0;
+    padding: 6px;
+    border: 1px solid var(--b3-border-color);
+    border-radius: 4px;
+}
+
+.sforge-file-tags__file > strong {
+    display: block;
+    overflow: hidden;
+    margin-bottom: 4px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.sforge-file-tags__status {
+    display: flex;
+    min-height: 24px;
+    align-items: center;
+    gap: 6px;
+    color: var(--b3-theme-on-surface-light);
+    font-size: 12px;
+}
+
+.sforge-file-tags__status svg {
+    width: 14px;
+    height: 14px;
+}
+
+.sforge-file-properties__error {
+    margin: 8px 0 0;
+    color: var(--b3-theme-error);
+    font-size: 12px;
+}

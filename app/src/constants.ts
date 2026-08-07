@@ -1,3 +1,8 @@
+import {
+    createFileBrowserDockLayoutItem,
+    FILE_BROWSER_DOCK_DEFINITIONS,
+} from "./sforge/fileBrowser/FileBrowser.docks";
+
 declare const SIYUAN_VERSION: string;
 declare const NODE_ENV: string;
 
@@ -711,7 +716,7 @@ export abstract class Constants {
                     show: true,
                     icon: "iconFiles",
                     hotkeyLangId: "fileTree",
-                }, {
+                }, createFileBrowserDockLayoutItem(FILE_BROWSER_DOCK_DEFINITIONS[0]), {
                     type: "outline",
                     size: { width: 232, height: 0 },
                     show: false,
@@ -735,7 +740,7 @@ export abstract class Constants {
                     show: false,
                     icon: "iconTag",
                     hotkeyLangId: "tag",
-                }, {
+                }, createFileBrowserDockLayoutItem(FILE_BROWSER_DOCK_DEFINITIONS[1]), {
                     type: "sforge-colors",
                     size: { width: 232, height: 0 },
                     show: false,

@@ -1,0 +1,193 @@
+.sforge-file-properties {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    color: var(--b3-theme-on-background);
+    background: var(--b3-theme-background);
+}
+
+.sforge-file-properties__header {
+    flex: 0 0 auto;
+}
+
+.sforge-file-properties__header .block__logo {
+    min-width: 0;
+}
+
+.sforge-file-properties__header .block__logo span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sforge-file-properties__content {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 8px 12px 16px;
+}
+
+.sforge-file-properties__state {
+    display: flex;
+    min-height: 120px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--b3-theme-on-surface-light);
+}
+
+.sforge-file-properties__state svg {
+    width: 20px;
+    height: 20px;
+}
+
+.sforge-file-properties__state--error,
+.sforge-file-properties__error {
+    color: var(--b3-theme-error);
+}
+
+.sforge-file-properties__preview {
+    position: relative;
+    display: flex;
+    min-height: 180px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+}
+
+.sforge-file-properties__preview-frame {
+    display: flex;
+    width: min(100%, 256px);
+    aspect-ratio: 1;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: var(--b3-theme-surface-lighter);
+}
+
+.sforge-file-properties__preview-frame img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.sforge-file-properties__file-icon {
+    width: 48px;
+    height: 48px;
+    color: var(--b3-theme-on-surface-light);
+}
+
+.sforge-file-properties__counter {
+    position: absolute;
+    right: 4px;
+    bottom: 2px;
+    padding: 2px 6px;
+    color: var(--b3-theme-on-surface);
+    background: var(--b3-theme-surface);
+    font-size: 12px;
+}
+
+.sforge-file-properties__identity {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 0 12px;
+    border-bottom: 1px solid var(--b3-border-color);
+}
+
+.sforge-file-properties__identity strong,
+.sforge-file-properties__identity span,
+.sforge-file-properties__facts dd {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sforge-file-properties__identity span {
+    color: var(--b3-theme-on-surface-light);
+    font-size: 12px;
+}
+
+.sforge-file-properties__section {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--b3-border-color);
+}
+
+.sforge-file-properties__label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--b3-theme-on-surface-light);
+    font-size: 12px;
+}
+
+.sforge-file-properties__section textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--b3-border-color);
+    border-radius: 4px;
+    color: var(--b3-theme-on-background);
+    background: var(--b3-theme-surface);
+}
+
+.sforge-file-properties__section textarea {
+    resize: vertical;
+    padding: 6px 8px;
+    font: inherit;
+}
+
+.sforge-file-properties__rating {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.sforge-file-properties__rating > button:not(.block__icon) {
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    color: var(--b3-theme-on-surface-light);
+    background: transparent;
+}
+
+.sforge-file-properties__rating > button.sforge-file-properties__rating--active {
+    color: var(--b3-theme-primary);
+}
+
+.sforge-file-properties__rating svg {
+    width: 18px;
+    height: 18px;
+}
+
+.sforge-file-properties__facts {
+    margin: 0;
+    padding: 10px 0;
+}
+
+.sforge-file-properties__facts div {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 8px;
+    padding: 3px 0;
+    font-size: 12px;
+}
+
+.sforge-file-properties__facts dt {
+    color: var(--b3-theme-on-surface-light);
+}
+
+.sforge-file-properties__facts dd {
+    margin: 0;
+}
+
+.sforge-file-properties__error {
+    margin: 8px 0 0;
+    font-size: 12px;
+}

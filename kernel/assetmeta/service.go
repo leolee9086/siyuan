@@ -1,31 +1,25 @@
 package assetmeta
 
 import (
-	"encoding/xml"
+	"context"
 	"errors"
 	"image"
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
-	"io"
-	"os"
-	"path/filepath"
-	"strconv"
+	"io/fs"
+	"path"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/88250/gulu"
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/fswalk"
 	"github.com/siyuan-note/siyuan/kernel/util"
-	_ "golang.org/x/image/bmp"
-	_ "golang.org/x/image/tiff"
-	_ "golang.org/x/image/webp"
 )
 
 // AssetMetaService 负责协调 JSON 数据源和 SQL 索引
 type AssetMetaService struct {
 	manager *Manager
+	files   *fswalk.Walker
 	mutex   sync.Mutex
 
 	// 缓存标签信息 (读多写少)
@@ -37,12 +31,18 @@ var (
 	once     sync.Once
 )
 
+const assetMetaStoreRoot = "storage/s-forge-asset-meta"
+
 func NewInstance() *AssetMetaService {
 	once.Do(func() {
-		// 数据存储目录: data/storage/s-forge-asset-meta/assets
-		rootDir := filepath.Join(util.DataDir, "storage", "s-forge-asset-meta", "assets")
+		files, err := fswalk.New(util.DataDir)
+		if err != nil {
+			logging.LogErrorf("bind asset metadata filesystem root failed: %s", err)
+		}
 		Instance = &AssetMetaService{
-			manager: NewManager(rootDir),
+			files:     files,
+			manager:   NewManager(files, assetMetaStoreRoot),
+			tagsCache: make(map[string]TagInfo),
 		}
 		// 初始化数据库（确保在任何 API 调用前完成）
 		InitIndexDB()
@@ -54,13 +54,24 @@ func NewInstance() *AssetMetaService {
 func (s *AssetMetaService) Initialize() error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+	if s == nil || s.manager == nil {
+		return fswalk.ErrRootUnavailable
+	}
+	if err := s.manager.available(); err != nil {
+		return err
+	}
 
 	// 1. 初始化数据库
 	InitIndexDB()
 
 	// 2. 加载标签缓存
 	if tags, err := s.manager.LoadTags(); err == nil {
-		s.tagsCache = tags
+		if normalized, normalizeErr := normalizeTagMap(tags); normalizeErr == nil {
+			s.tagsCache = normalized
+		} else {
+			logging.LogWarnf("ignore invalid asset tag definitions: %s", normalizeErr)
+			s.tagsCache = make(map[string]TagInfo)
+		}
 	} else {
 		s.tagsCache = make(map[string]TagInfo)
 	}
@@ -87,6 +98,23 @@ func (s *AssetMetaService) Initialize() error {
 	return nil
 }
 
+func normalizeTagMap(tags map[string]TagInfo) (map[string]TagInfo, error) {
+	keys := make([]string, 0, len(tags))
+	for key := range tags {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	items := make([]TagInfo, 0, len(tags))
+	for _, key := range keys {
+		tag := tags[key]
+		if strings.TrimSpace(tag.Name) == "" {
+			tag.Name = key
+		}
+		items = append(items, tag)
+	}
+	return normalizeTagDefinitions(items)
+}
+
 // Shutdown 关闭服务
 func (s *AssetMetaService) Shutdown() {
 	CloseIndexDB()
@@ -102,10 +130,29 @@ func (s *AssetMetaService) GetAsset(path string) (AssetMeta, bool) {
 	return meta, true
 }
 
+// GetAssetAt 从工作空间主数据存储读取一个文件浏览根地址。
+func (s *AssetMetaService) GetAssetAt(address AssetAddress) (AssetMeta, bool) {
+	meta, err := s.LoadAssetAt(address)
+	return meta, err == nil
+}
+
+// LoadAssetAt 保留主数据读取错误，供批量属性端口区分不存在与损坏记录。
+func (s *AssetMetaService) LoadAssetAt(address AssetAddress) (AssetMeta, error) {
+	if s == nil || s.manager == nil {
+		return AssetMeta{}, fswalk.ErrRootUnavailable
+	}
+	return s.manager.LoadAssetAt(address)
+}
+
 // GetAssetFromIndex 从索引表获取素材元数据
 // 这是前端 API 获取元数据的标准方式
 func (s *AssetMetaService) GetAssetFromIndex(path string) (AssetMeta, bool) {
 	return GetIndexAsset(path)
+}
+
+// GetAssetFromIndexAt 从可重建索引读取一个稳定根地址。
+func (s *AssetMetaService) GetAssetFromIndexAt(address AssetAddress) (AssetMeta, bool) {
+	return GetIndexAssetAt(address)
 }
 
 // SetAsset 设置/更新素材元数据
@@ -121,6 +168,26 @@ func (s *AssetMetaService) SetAsset(meta AssetMeta) error {
 		logging.LogErrorf("update index for [%s] failed: %s", meta.Path, err)
 	}
 
+	return nil
+}
+
+// SetAssetAt 把元数据保存到工作空间主数据，并同步更新根地址索引。
+func (s *AssetMetaService) SetAssetAt(address AssetAddress, meta AssetMeta) error {
+	if s == nil || s.manager == nil {
+		return fswalk.ErrRootUnavailable
+	}
+	normalized, err := NewAssetAddress(address.RootID, address.Path)
+	if err != nil {
+		return err
+	}
+	meta.RootID = normalized.RootID
+	meta.Path = normalized.Path
+	if err = s.manager.SaveAssetAt(normalized, meta); err != nil {
+		return err
+	}
+	if err = UpdateIndexAsset(meta); err != nil {
+		logging.LogErrorf("update index for [%s:%s] failed: %s", normalized.RootID, normalized.Path, err)
+	}
 	return nil
 }
 
@@ -156,93 +223,78 @@ func (s *AssetMetaService) QueryAssets(keyword string, limit int) []AssetMeta {
 
 // ScanAssets 扫描 assets 目录，发现未索引的文件
 func (s *AssetMetaService) ScanAssets() {
-	assetsDir := filepath.Join(util.DataDir, "assets")
-	if !gulu.File.IsExist(assetsDir) {
-		return
+	if err := s.scanAssets(context.Background()); err != nil && !errors.Is(err, fswalk.ErrStartUnavailable) {
+		logging.LogErrorf("scan assets failed: %s", err)
 	}
+}
 
+func (s *AssetMetaService) scanAssets(ctx context.Context) error {
+	if s == nil || s.files == nil || s.manager == nil {
+		return fswalk.ErrRootUnavailable
+	}
 	// 1. 获取所有已索引的路径 (内存 Map 查询，比文件系统快得多)
 	indexedPaths, err := GetAllPaths()
 	if err != nil {
 		logging.LogErrorf("scan assets failed: load indexed paths error: %s", err)
-		return
+		return err
 	}
 
-	// 2. 遍历物理文件
+	// 2. 深模块负责目录枚举、链接边界和图片头读取；领域只声明未索引文件选择。
+	probed, err := s.files.ProbeImages(ctx, "assets", fswalk.ImageProbeQuery{
+		Walk: fswalk.WalkOptions{SortEntries: true},
+		SelectFile: func(entry fswalk.Metadata) bool {
+			_, indexed := indexedPaths[entry.Path]
+			return !indexed
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	// 3. 领域阶段只恢复对象、组装新对象和更新索引事务。
 	var newAssets []AssetMeta
-	filepath.Walk(assetsDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
-			return nil
-		}
-
-		relPath, err := filepath.Rel(util.DataDir, path)
-		if err != nil {
-			return nil
-		}
-		relPath = filepath.ToSlash(relPath)
-
-		// 优化：仅检查索引中不存在的文件
-		if _, ok := indexedPaths[relPath]; ok {
-			return nil
-		}
-
-		// 双重检查：物理 meta 文件是否存在 (避免索引没数据但文件已有的情况，虽然 Initialize 会重建)
-		// 如果我们信任 RebuildIndex，这一步可以省略。但为了健壮性，我们可以 check 一下。
-		// 考虑到性能，如果 indexedPaths 是从 RebuildIndex 来的，那就是准的。
-		// 如果是从 DB 查的，且 DB 是准的，那也是准的。
-		// 只有在 "DB 丢失但 JSON 文件存在" 的情况下，这里会误判为 New Asset。
-		// 如果误判为 New Asset，SetAsset 会覆盖旧 JSON。
-		// 所以，为了安全，必须检查 metaPath 是否存在。
-		metaPath, pathErr := s.manager.getMetaPath(relPath)
-		if pathErr != nil {
-			// 路径逃逸，跳过此文件
-			return nil
-		}
-		if gulu.File.IsExist(metaPath) {
-			// 文件存在但索引还在 Syncing? 或者 DB 坏了?
-			// 这种情况下，应该 Load 并 UpdateIndex，而不是覆盖。
-			if meta, err := s.manager.LoadAsset(relPath); err == nil {
-				UpdateIndexAsset(meta) // 修复索引
+	for _, record := range probed.Files {
+		relPath := record.Probe.Path
+		if meta, loadErr := s.manager.LoadAsset(relPath); loadErr == nil {
+			if indexErr := UpdateIndexAsset(meta); indexErr != nil {
+				logging.LogErrorf("repair asset index [%s] failed: %s", relPath, indexErr)
 			}
-			return nil
+			continue
+		} else if !errors.Is(loadErr, fs.ErrNotExist) {
+			if errors.Is(loadErr, ErrPathTraversal) {
+				logging.LogWarnf("path traversal attempt in LoadAsset: %s", relPath)
+			} else {
+				logging.LogErrorf("load existing asset meta [%s] failed: %s", relPath, loadErr)
+			}
+			continue
 		}
-
-		// 确实是新文件
 		now := time.Now().Unix()
 		meta := AssetMeta{
 			Path:       relPath,
-			Name:       info.Name(),
+			Name:       record.Probe.Name,
 			Source:     "scan",
 			ImportTime: now,
+			FileSize:   record.Probe.Size,
 		}
-
-		// 获取图片尺寸 (只对新文件做 IO)
-		if w, h, err := getImageDimensions(path); err == nil {
-			meta.Width = w
-			meta.Height = h
+		if record.Err == nil {
+			meta.Width = record.Probe.Width
+			meta.Height = record.Probe.Height
 		}
-
 		newAssets = append(newAssets, meta)
-		return nil
-	})
+	}
 
-	// 3. 批量处理新文件
+	// 4. 批量处理新文件
 	if len(newAssets) == 0 {
-		return
+		return nil
 	}
 
-	// 3.1 批量写入 JSON 文件 (Disk IO)
-	// 只有写入成功的才更新索引，保证数据一致性
-	var validAssets []AssetMeta
-	for _, meta := range newAssets {
-		if err := s.manager.SaveAsset(meta); err != nil {
-			logging.LogErrorf("scan save asset [%s] json failed: %s", meta.Path, err)
-			continue
-		}
-		validAssets = append(validAssets, meta)
+	// 4.1 存储模块执行批量对象保存；只有成功项进入索引事务。
+	validAssets, saveErrors := s.manager.saveAssets(ctx, newAssets)
+	for _, saveErr := range saveErrors {
+		logging.LogErrorf("scan save asset [%s] json failed: %s", saveErr.Path, saveErr.Err)
 	}
 
-	// 3.2 批量更新数据库索引 (DB IO - 单次事务)
+	// 4.2 批量更新数据库索引 (DB IO - 单次事务)
 	if err := BatchUpdateIndexAssets(validAssets); err != nil {
 		logging.LogErrorf("scan batch update index failed: %s", err)
 	}
@@ -250,68 +302,64 @@ func (s *AssetMetaService) ScanAssets() {
 	if len(validAssets) > 0 {
 		logging.LogInfof("scanned and added %d new assets", len(validAssets))
 	}
+	return nil
 }
 
 // HandleFileChange 处理文件变更 (新增/修改)
 func (s *AssetMetaService) HandleFileChange(absPath string) {
-	relPath, err := filepath.Rel(util.DataDir, absPath)
+	if s == nil || s.files == nil || s.manager == nil {
+		return
+	}
+	relPath, err := s.files.RelativePath(context.Background(), absPath)
 	if err != nil {
 		return
 	}
-	relPath = filepath.ToSlash(relPath)
-
-	// 安全验证：确保相对路径不包含逃逸
-	if strings.HasPrefix(relPath, "..") || strings.Contains(relPath, "/../") {
-		logging.LogWarnf("path traversal attempt detected in HandleFileChange: %s", absPath)
-		return
-	}
-
-	info, err := os.Stat(absPath)
-	if err != nil {
+	probe, probeErr := s.files.ProbeImage(context.Background(), relPath)
+	if probe.Name == "" {
 		return
 	}
 
 	// 尝试加载现有元数据
 	meta, err := s.manager.LoadAsset(relPath)
 	if err != nil {
-		// 不存在或路径验证失败，视为新增
-		if errors.Is(err, ErrPathTraversal) {
-			logging.LogWarnf("path traversal attempt in LoadAsset: %s", relPath)
+		if !errors.Is(err, fs.ErrNotExist) {
+			logging.LogErrorf("load changed asset meta [%s] failed: %s", relPath, err)
 			return
 		}
 		meta = AssetMeta{
 			Path:       relPath,
-			Name:       info.Name(),
+			Name:       probe.Name,
 			Source:     "watch",
 			ImportTime: time.Now().Unix(),
 		}
 	}
 
-	// 始终更新物理属性
-	if w, h, err := getImageDimensions(absPath); err == nil {
-		// 如果尺寸变了，或者之前没尺寸
-		if meta.Width != w || meta.Height != h {
-			meta.Width = w
-			meta.Height = h
-			s.SetAsset(meta)
+	dirty := err != nil
+	if probeErr == nil {
+		if meta.Width != probe.Width || meta.Height != probe.Height {
+			meta.Width = probe.Width
+			meta.Height = probe.Height
+			dirty = true
 		}
-	} else if meta.Source == "watch" {
-		// 新文件且获取尺寸失败，但也保存 (至少有记录)
-		s.SetAsset(meta)
+	}
+	if meta.FileSize != probe.Size {
+		meta.FileSize = probe.Size
+		dirty = true
+	}
+	if dirty {
+		if saveErr := s.SetAsset(meta); saveErr != nil {
+			logging.LogErrorf("save changed asset [%s] failed: %s", relPath, saveErr)
+		}
 	}
 }
 
 // HandleFileRemove 处理文件删除
 func (s *AssetMetaService) HandleFileRemove(absPath string) {
-	relPath, err := filepath.Rel(util.DataDir, absPath)
-	if err != nil {
+	if s == nil || s.files == nil || s.manager == nil {
 		return
 	}
-	relPath = filepath.ToSlash(relPath)
-
-	// 安全验证：确保相对路径不包含逃逸
-	if strings.HasPrefix(relPath, "..") || strings.Contains(relPath, "/../") {
-		logging.LogWarnf("path traversal attempt detected in HandleFileRemove: %s", absPath)
+	relPath, err := s.files.RelativePath(context.Background(), absPath)
+	if err != nil {
 		return
 	}
 
@@ -330,61 +378,6 @@ func (s *AssetMetaService) HandleFileRemove(absPath string) {
 	RemoveIndexAsset(relPath)
 }
 
-// getImageDimensions 获取图片尺寸
-func getImageDimensions(path string) (int, int, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return 0, 0, err
-	}
-	defer f.Close()
-
-	if strings.HasSuffix(strings.ToLower(path), ".svg") {
-		return getSvgDimensions(f)
-	}
-
-	cfg, _, err := image.DecodeConfig(f)
-	if err == nil {
-		return cfg.Width, cfg.Height, nil
-	}
-	return 0, 0, err
-}
-
-func getSvgDimensions(r io.Reader) (int, int, error) {
-	type svg struct {
-		Width   string `xml:"width,attr"`
-		Height  string `xml:"height,attr"`
-		ViewBox string `xml:"viewBox,attr"`
-	}
-	var s svg
-	if err := xml.NewDecoder(r).Decode(&s); err != nil {
-		return 0, 0, err
-	}
-
-	w := parseDim(s.Width)
-	h := parseDim(s.Height)
-
-	if w == 0 || h == 0 {
-		if s.ViewBox != "" {
-			parts := strings.Fields(s.ViewBox)
-			if len(parts) == 4 {
-				if w == 0 {
-					w = parseDim(parts[2])
-				}
-				if h == 0 {
-					h = parseDim(parts[3])
-				}
-			}
-		}
-	}
-	return w, h, nil
-}
-
-func parseDim(s string) int {
-	s = strings.TrimSuffix(s, "px")
-	d, _ := strconv.ParseFloat(s, 64)
-	return int(d)
-}
-
 // ExtractAndStorePalette 提取素材调色板并存储
 // 复用缩略图服务进行降采样，提升性能
 // relPath: 相对于 data/ 的路径 (如 "assets/xxx.png")
@@ -398,22 +391,23 @@ func (s *AssetMetaService) ExtractAndStorePalette(relPath string, colorCount int
 		colorCount = 8
 	}
 
-	// 构建绝对路径
-	absPath := filepath.Join(util.DataDir, relPath)
-	if !gulu.File.IsExist(absPath) {
-		return nil, os.ErrNotExist
+	if s == nil || s.files == nil || s.manager == nil {
+		return nil, fswalk.ErrRootUnavailable
+	}
+	probe, probeErr := s.files.ProbeImage(context.Background(), relPath)
+	if probe.Name == "" {
+		return nil, probeErr
 	}
 
 	// 1. 加载现有元数据
 	meta, loadErr := s.manager.LoadAsset(relPath)
 	if loadErr != nil {
-		// 如果不存在，创建新的
-		if !errors.Is(loadErr, os.ErrNotExist) && !errors.Is(loadErr, ErrPathTraversal) {
+		if !errors.Is(loadErr, fs.ErrNotExist) {
 			return nil, loadErr
 		}
 		meta = AssetMeta{
 			Path:       relPath,
-			Name:       filepath.Base(relPath),
+			Name:       path.Base(relPath),
 			Source:     "palette-extract",
 			ImportTime: time.Now().Unix(),
 		}
@@ -422,30 +416,29 @@ func (s *AssetMetaService) ExtractAndStorePalette(relPath string, colorCount int
 	// 2. 检查并补全物理属性 (无论是新建的还是已有的)
 	isDirty := loadErr != nil // 如果是新建的，必然脏
 	if meta.Width == 0 || meta.Height == 0 {
-		if w, h, err := getImageDimensions(absPath); err == nil {
-			meta.Width = w
-			meta.Height = h
+		if probeErr == nil {
+			meta.Width = probe.Width
+			meta.Height = probe.Height
 			isDirty = true
 		} else {
-			logging.LogErrorf("get image dimensions for [%s] failed: %s", absPath, err)
+			logging.LogErrorf("get image dimensions for [%s] failed: %s", relPath, probeErr)
 		}
 	}
-	if meta.FileSize == 0 {
-		if info, statErr := os.Stat(absPath); statErr == nil {
-			meta.FileSize = info.Size()
-			isDirty = true
-		} else {
-			logging.LogErrorf("stat file [%s] failed: %s", absPath, statErr)
-		}
+	if meta.FileSize != probe.Size {
+		meta.FileSize = probe.Size
+		isDirty = true
 	}
 
 	// 3. 提取调色板 (如果需要)
 	var palettes []Palette
 	if overwrite || len(meta.Palettes) == 0 {
-		var err error
-		palettes, err = ExtractPaletteFromImage(absPath, colorCount)
-		if err != nil {
-			return nil, err
+		var decodeErr error
+		_, decodeErr = s.files.DecodeImage(context.Background(), relPath, func(_ fswalk.ImageProbe, decoded image.Image) error {
+			palettes = ExtractPaletteFromDecodedImage(decoded, colorCount)
+			return nil
+		})
+		if decodeErr != nil {
+			return nil, decodeErr
 		}
 		meta.Palettes = palettes
 		isDirty = true
@@ -471,6 +464,13 @@ func (s *AssetMetaService) ExtractPaletteOnly(relPath string, colorCount int) ([
 		colorCount = 8
 	}
 
-	absPath := filepath.Join(util.DataDir, relPath)
-	return ExtractPaletteFromImage(absPath, colorCount)
+	if s == nil || s.files == nil {
+		return nil, fswalk.ErrRootUnavailable
+	}
+	var palettes []Palette
+	_, err := s.files.DecodeImage(context.Background(), relPath, func(_ fswalk.ImageProbe, decoded image.Image) error {
+		palettes = ExtractPaletteFromDecodedImage(decoded, colorCount)
+		return nil
+	})
+	return palettes, err
 }

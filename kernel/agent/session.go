@@ -444,6 +444,25 @@ func taskDirectoryBindingsSnapshot() (map[string]*TaskDirectoryBinding, error) {
 	return bindings, nil
 }
 
+// ListTaskDirectoryBindings 返回工作空间中保存过的全部任务目录绑定。
+// 该快照保留已失效目录，供本地文件浏览器显示历史绑定位置；会话执行路径继续使用带存在性校验的 snapshot。
+func ListTaskDirectoryBindings() (map[string]*TaskDirectoryBinding, error) {
+	taskDirectoryMu.Lock()
+	defer taskDirectoryMu.Unlock()
+	store, err := loadTaskDirectoryStoreLocked()
+	if err != nil {
+		return nil, err
+	}
+	bindings := make(map[string]*TaskDirectoryBinding, len(store.Bindings))
+	for id, binding := range store.Bindings {
+		if binding == nil || !normalizeTaskDirectoryBinding(binding) {
+			return nil, fmt.Errorf("invalid task directory binding %s", id)
+		}
+		bindings[id] = cloneTaskDirectoryBinding(binding)
+	}
+	return bindings, nil
+}
+
 func validateTaskDirectoryGrant(grant *TaskDirectoryGrant) error {
 	if grant == nil || grant.Path == "" || grant.OwnerIdentityID == "" || !validTaskDirectoryPermission(grant.Permission) {
 		return fmt.Errorf("invalid directory grant")

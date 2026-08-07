@@ -120,6 +120,30 @@ func requireProtectedForgeApproval(args map[string]interface{}, root string, tar
 	return nil
 }
 
+// requireProtectedForgeRelativeApproval 接收已由 fswalk 规划出的根相对路径；
+// 保护策略只做相对路径判断，不要求领域层重新拼接或读取文件系统路径。
+func requireProtectedForgeRelativeApproval(args map[string]interface{}, root string, relatives ...string) error {
+	forgeRoot, err := ForgeDevRepoRoot()
+	if err != nil || !sameOrSubForgePath(forgeRoot, root) {
+		return nil
+	}
+	rootRelative := relativeForgePath(forgeRoot, root)
+	for _, relative := range relatives {
+		targetRelative := pathpkg.Join(filepath.ToSlash(rootRelative), filepath.ToSlash(relative))
+		protected, policyErr := isProtectedForgeRelativePath(forgeRoot, targetRelative)
+		if policyErr != nil {
+			return policyErr
+		}
+		if !protected {
+			continue
+		}
+		if _, approved := args[forgeProtectedApprovalArg].(forgeProtectedApproval); !approved {
+			return errors.New("forge_protected_approval_required: 核心测试与 Forge 重启门禁文件必须经过本次人工复核，拒绝未授权修改")
+		}
+	}
+	return nil
+}
+
 func requireForgeCommandApproval(args map[string]interface{}, root string) error {
 	if !isForgeSourceCommandRoot(root) {
 		return nil

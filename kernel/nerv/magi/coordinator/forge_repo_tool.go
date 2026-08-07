@@ -1,24 +1,20 @@
 package coordinator
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
-	ignore "github.com/sabhiram/go-gitignore"
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/fswalk"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/observability"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
@@ -42,11 +38,7 @@ const (
 	maxForgeDevRepoSearchLineRunes = 320
 )
 
-var (
-	errForgeDevRepoSearchLimitReached = errors.New("forge dev repo search limit reached")
-
-	resolveForgeDevRepoRoot = detectForgeDevRepoRoot
-)
+var resolveForgeDevRepoRoot = detectForgeDevRepoRoot
 
 type forgeDevRepoPlainInputArgs struct {
 	Input string `json:"input"`
@@ -103,19 +95,6 @@ type forgeDevRepoSearchPayload struct {
 	MatchCount   int                       `json:"matchCount"`
 	HasMore      bool                      `json:"hasMore"`
 	Matches      []forgeDevRepoSearchMatch `json:"matches"`
-}
-
-// forgeDevRepoFileCache 按文件路径缓存已读取的内容（只读工具共享）
-var forgeDevRepoFileCache = struct {
-	m map[string]fileCacheEntry
-}{
-	m: make(map[string]fileCacheEntry),
-}
-
-type fileCacheEntry struct {
-	Content   string
-	TotalLine int
-	FileSize  int64
 }
 
 type forgeDevRepoToolResultExecutor struct {
@@ -231,29 +210,32 @@ func executeForgeDevRepoList(rawArgs string) (string, error) {
 	typeFilter := strings.ToLower(strings.TrimSpace(input.Fields["typefilter"]))
 	namePattern := strings.TrimSpace(input.Fields["namepattern"])
 
-	targetAbs, targetRel, err := resolveForgeDevRepoTarget(root, targetPath)
+	_, targetRel, err := resolveForgeDevRepoTarget(root, targetPath)
 	if err != nil {
 		return "", err
 	}
-
-	info, err := os.Stat(targetAbs)
+	walker, err := fswalk.New(root)
+	if err != nil {
+		return "", fmt.Errorf("绑定开发仓库目录失败: %w", err)
+	}
+	targetEntry, err := walker.Inspect(context.Background(), targetRel)
 	if err != nil {
 		return "", fmt.Errorf("读取开发仓库目录失败: %w", err)
 	}
-	if !info.IsDir() {
+	if !targetEntry.IsDir {
 		return "", fmt.Errorf("目标路径不是目录: %s", targetRel)
 	}
 
-	allEntries, err := os.ReadDir(targetAbs)
+	allEntries, err := walker.ReadDirectory(context.Background(), targetRel, true)
 	if err != nil {
 		return "", fmt.Errorf("列出开发仓库目录失败: %w", err)
 	}
 
 	// 按类型和名称模式过滤
-	entries := make([]os.DirEntry, 0, len(allEntries))
+	entries := make([]fswalk.Metadata, 0, len(allEntries))
 	for _, entry := range allEntries {
 		if typeFilter != "" {
-			isDir := entry.IsDir()
+			isDir := entry.IsDir && !entry.IsSymlink
 			switch typeFilter {
 			case "dir":
 				if !isDir {
@@ -266,21 +248,12 @@ func executeForgeDevRepoList(rawArgs string) (string, error) {
 			}
 		}
 		if namePattern != "" {
-			if matched, matchErr := filepath.Match(namePattern, entry.Name()); matchErr != nil || !matched {
+			if matched, matchErr := filepath.Match(namePattern, entry.Name); matchErr != nil || !matched {
 				continue
 			}
 		}
 		entries = append(entries, entry)
 	}
-
-	sort.Slice(entries, func(i, j int) bool {
-		left := strings.ToLower(entries[i].Name())
-		right := strings.ToLower(entries[j].Name())
-		if left == right {
-			return entries[i].Name() < entries[j].Name()
-		}
-		return left < right
-	})
 
 	payload := forgeDevRepoListPayload{
 		RootHint:        compactWorkspacePathHint(root),
@@ -296,7 +269,7 @@ func executeForgeDevRepoList(rawArgs string) (string, error) {
 		if idx >= limit {
 			break
 		}
-		name, entryType := classifyForgeDevRepoDirEntry(root, targetAbs, entry)
+		name, entryType := classifyForgeDevRepoMetadata(entry)
 		payload.Entries = append(payload.Entries, forgeDevRepoListEntry{
 			Name: name,
 			Type: entryType,
@@ -304,38 +277,6 @@ func executeForgeDevRepoList(rawArgs string) (string, error) {
 	}
 	payload.ReturnedEntries = len(payload.Entries)
 	return marshalForgeDevRepoPayload(payload)
-}
-
-func readFileWithCache(targetAbs, targetRel string) ([]byte, int64, error) {
-	entry, ok := forgeDevRepoFileCache.m[targetAbs]
-	if ok {
-		return []byte(entry.Content), entry.FileSize, nil
-	}
-
-	info, err := os.Stat(targetAbs)
-	if err != nil {
-		return nil, 0, fmt.Errorf("读取开发仓库文件失败: %w", err)
-	}
-	if info.Size() > maxForgeDevRepoReadBytes {
-		return nil, 0, fmt.Errorf("文件过大（%d bytes），请缩小目标文件范围后再读取: %s", info.Size(), targetRel)
-	}
-
-	data, err := os.ReadFile(targetAbs)
-	if err != nil {
-		return nil, 0, fmt.Errorf("读取开发仓库文件失败: %w", err)
-	}
-	if bytes.Contains(data, []byte{0}) || !utf8.Valid(data) {
-		return nil, 0, fmt.Errorf("仅支持读取 UTF-8 文本文件: %s", targetRel)
-	}
-
-	normalized := normalizeForgeRepoText(string(data))
-	lines := strings.Split(normalized, "\n")
-	forgeDevRepoFileCache.m[targetAbs] = fileCacheEntry{
-		Content:   normalized,
-		TotalLine: len(lines),
-		FileSize:  info.Size(),
-	}
-	return []byte(normalized), info.Size(), nil
 }
 
 func executeForgeDevRepoRead(rawArgs string) (string, error) {
@@ -362,25 +303,23 @@ func executeForgeDevRepoRead(rawArgs string) (string, error) {
 		return "", fmt.Errorf("%s 参数错误: %w", config.ForgeDevRepoReadToolName, err)
 	}
 
-	targetAbs, targetRel, err := resolveForgeDevRepoTarget(root, targetPath)
+	_, targetRel, err := resolveForgeDevRepoTarget(root, targetPath)
 	if err != nil {
 		return "", err
 	}
-
-	info, err := os.Stat(targetAbs)
+	walker, err := fswalk.New(root)
 	if err != nil {
-		return "", fmt.Errorf("读取开发仓库文件失败: %w", err)
+		return "", fmt.Errorf("绑定开发仓库目录失败: %w", err)
 	}
-	if info.IsDir() {
-		return "", fmt.Errorf("目标路径是目录，请改用 %s: %s", config.ForgeDevRepoListToolName, targetRel)
-	}
-
-	data, _, err := readFileWithCache(targetAbs, targetRel)
+	document, err := walker.ReadTextFile(context.Background(), targetRel, maxForgeDevRepoReadBytes)
 	if err != nil {
+		if errors.Is(err, fswalk.ErrNotRegularFile) {
+			return "", fmt.Errorf("目标路径是目录，请改用 %s: %s", config.ForgeDevRepoListToolName, targetRel)
+		}
 		return "", err
 	}
 
-	lines := strings.Split(string(data), "\n")
+	lines := strings.Split(document.Text, "\n")
 	if startLine > len(lines) {
 		return "", fmt.Errorf("start=%d 超出文件总行数 %d", startLine, len(lines))
 	}
@@ -403,7 +342,7 @@ func executeForgeDevRepoRead(rawArgs string) (string, error) {
 	payload := forgeDevRepoReadPayload{
 		RootHint:   compactWorkspacePathHint(root),
 		Path:       targetRel,
-		FileSize:   info.Size(),
+		FileSize:   document.Size,
 		StartLine:  startLine,
 		EndLine:    endLine,
 		TotalLines: len(lines),
@@ -470,14 +409,9 @@ func executeForgeDevRepoSearch(rawArgs string) (string, error) {
 		}
 	}
 
-	targetAbs, targetRel, err := resolveForgeDevRepoTarget(root, targetPath)
+	_, targetRel, err := resolveForgeDevRepoTarget(root, targetPath)
 	if err != nil {
 		return "", err
-	}
-
-	info, err := os.Stat(targetAbs)
-	if err != nil {
-		return "", fmt.Errorf("搜索开发仓库失败: %w", err)
 	}
 
 	payload := forgeDevRepoSearchPayload{
@@ -496,128 +430,64 @@ func executeForgeDevRepoSearch(rawArgs string) (string, error) {
 		needle = strings.ToLower(pattern)
 	}
 
+	walker, err := fswalk.New(root)
+	if err != nil {
+		return "", fmt.Errorf("搜索开发仓库失败: %w", err)
+	}
 	// 尊重 .gitignore 规则：加载仓库根 .gitignore（若存在），默认跳过被忽略路径；
 	// includeIgnored=true 时强制包含被忽略路径（不做忽略过滤）。
-	var gitIgnoreMatcher *ignore.GitIgnore
-	if respectGitIgnore && !includeIgnored {
-		if gitIgnorePath := filepath.Join(root, ".gitignore"); pathExists(gitIgnorePath) {
-			if data, readErr := os.ReadFile(gitIgnorePath); readErr == nil {
-				text := strings.ReplaceAll(string(data), "\r\n", "\n")
-				lines := strings.Split(text, "\n")
-				gitIgnoreMatcher = ignore.CompileIgnoreLines(lines...)
+	gitIgnoreMatcher := loadForgeDevRepoGitIgnore(context.Background(), walker,
+		respectGitIgnore && !includeIgnored)
+	search, err := walker.SearchText(context.Background(), targetRel, fswalk.TextSearchQuery{
+		Walk:         fswalk.WalkOptions{SortEntries: true},
+		MaxFileBytes: maxForgeDevRepoSearchBytes,
+		MaxMatches:   limit,
+		PruneDirectory: func(entry fswalk.Metadata) bool {
+			return isBlockedForgeDevRepoPath(entry.Path)
+		},
+		SelectFile: func(entry fswalk.Metadata) bool {
+			if isBlockedForgeDevRepoPath(entry.Path) {
+				return false
 			}
-		}
-	}
-
-	appendMatchesFromFile := func(fileAbsPath, fileRelPath string) error {
-		// 检查 filePattern 过滤
-		if filePattern != "" {
-			fileName := filepath.Base(fileAbsPath)
-			if matched, matchErr := filepath.Match(filePattern, fileName); matchErr != nil || !matched {
-				return nil
+			if gitIgnoreMatcher != nil && entry.Path != targetRel && gitIgnoreMatcher.MatchesPath(entry.Path) {
+				return false
 			}
-		}
-
-		fileInfo, err := os.Stat(fileAbsPath)
-		if err != nil || fileInfo.IsDir() {
-			return nil
-		}
-		if fileInfo.Size() > maxForgeDevRepoSearchBytes {
-			return nil
-		}
-
-		data, err := os.ReadFile(fileAbsPath)
-		if err != nil {
-			return nil
-		}
-		if bytes.Contains(data, []byte{0}) || !utf8.Valid(data) {
-			return nil
-		}
-
-		payload.ScannedFiles++
-		lines := strings.Split(normalizeForgeRepoText(string(data)), "\n")
-		for idx, line := range lines {
-			var matched bool
+			if filePattern == "" {
+				return true
+			}
+			matched, matchErr := filepath.Match(filePattern, entry.Name)
+			return matchErr == nil && matched
+		},
+		MatchLine: func(line fswalk.TextLine) bool {
 			if useRegex {
-				if regex != nil {
-					matched = regex.MatchString(line)
-				}
-			} else {
-				haystack := line
-				if ignoreCase {
-					haystack = strings.ToLower(line)
-				}
-				matched = strings.Contains(haystack, needle)
+				return regex != nil && regex.MatchString(line.Text)
 			}
-			if !matched {
-				continue
+			haystack := line.Text
+			if ignoreCase {
+				haystack = strings.ToLower(haystack)
 			}
-
-			payload.Matches = append(payload.Matches, forgeDevRepoSearchMatch{
-				Path:    fileRelPath,
-				Line:    idx + 1,
-				Content: truncateForgeDevRepoSearchLine(line),
-			})
-			if len(payload.Matches) >= limit {
-				return errForgeDevRepoSearchLimitReached
-			}
-		}
-		return nil
+			return strings.Contains(haystack, needle)
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("搜索开发仓库失败: %w", err)
 	}
-
-	if info.IsDir() {
-		err = filepath.WalkDir(targetAbs, func(path string, d fs.DirEntry, walkErr error) error {
-			if walkErr != nil {
-				return nil
-			}
-			if path == targetAbs {
-				return nil
-			}
-
-			rel, relErr := filepath.Rel(root, path)
-			if relErr != nil {
-				return nil
-			}
-			rel = filepath.ToSlash(rel)
-			if isBlockedForgeDevRepoPath(rel) {
-				if d.IsDir() {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-			if d.Type()&os.ModeSymlink != 0 {
-				if d.IsDir() {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-			if d.IsDir() {
-				return nil
-			}
-			if gitIgnoreMatcher != nil && gitIgnoreMatcher.MatchesPath(rel) {
-				return nil
-			}
-			return appendMatchesFromFile(path, rel)
+	payload.ScannedFiles = search.ScannedFileCount
+	for _, match := range search.Matches {
+		payload.Matches = append(payload.Matches, forgeDevRepoSearchMatch{
+			Path: match.Path, Line: match.Number, Content: truncateForgeDevRepoSearchLine(match.Text),
 		})
-		if err != nil && !errors.Is(err, errForgeDevRepoSearchLimitReached) {
-			return "", fmt.Errorf("搜索开发仓库失败: %w", err)
-		}
-	} else {
-		err = appendMatchesFromFile(targetAbs, targetRel)
-		if err != nil && !errors.Is(err, errForgeDevRepoSearchLimitReached) {
-			return "", fmt.Errorf("搜索开发仓库失败: %w", err)
-		}
 	}
-
 	payload.MatchCount = len(payload.Matches)
-	payload.HasMore = errors.Is(err, errForgeDevRepoSearchLimitReached)
+	payload.HasMore = search.MatchLimitReached
 	return marshalForgeDevRepoPayload(payload)
 }
 
 type forgeDevRepoEditPayload struct {
-	RootHint   string `json:"rootHint"`
-	TargetPath string `json:"targetPath"`
-	State      string `json:"state"`
+	RootHint   string                   `json:"rootHint"`
+	TargetPath string                   `json:"targetPath"`
+	State      string                   `json:"state"`
+	Candidate  *forgeTransformCandidate `json:"candidate,omitempty"`
 }
 
 func executeForgeDevRepoEdit(rawArgs string) (string, error) {
@@ -654,43 +524,42 @@ func executeForgeDevRepoEdit(rawArgs string) (string, error) {
 		return "", err
 	}
 
-	targetAbs, targetRel, err := resolveForgeDevRepoTarget(root, args.TargetPath)
+	_, targetRel, err := resolveForgeDevRepoTarget(root, args.TargetPath)
 	if err != nil {
 		return "", err
 	}
-
-	info, err := os.Stat(targetAbs)
+	planned, err := planForgeRepoEdit(context.Background(), root, targetRel, args.OldString, args.NewString)
 	if err != nil {
-		return "", fmt.Errorf("目标文件不存在: %s", targetRel)
+		return "", fmt.Errorf("%s 规划失败: %w", config.ForgeDevRepoEditToolName, err)
 	}
-	if info.IsDir() {
-		return "", fmt.Errorf("目标路径是目录，不能编辑: %s", targetRel)
-	}
-	if info.Size() > maxForgeDevRepoReadBytes {
-		return "", fmt.Errorf("文件过大（%d bytes），无法编辑: %s", info.Size(), targetRel)
+	candidates := forgeTransformCandidates(planned.preview)
+	if len(candidates) != 1 {
+		return "", fmt.Errorf("%s 规划失败: 编辑计划没有唯一候选文件", config.ForgeDevRepoEditToolName)
 	}
 
 	payload := forgeDevRepoEditPayload{
 		RootHint:   compactWorkspacePathHint(root),
 		TargetPath: targetRel,
 		State:      "pending_governance",
+		Candidate:  &candidates[0],
 	}
 	return marshalForgeDevRepoPayload(payload)
 }
 
 // forgeDevRepoBatchReplacePayload 是 forge_dev_repo_batch_replace 工具结果的结构
 type forgeDevRepoBatchReplacePayload struct {
-	RootHint     string          `json:"rootHint"`
-	Path         string          `json:"path"`
-	Pattern      string          `json:"pattern"`
-	FilePattern  string          `json:"filePattern,omitempty"`
-	OldString    string          `json:"oldString"`
-	NewString    string          `json:"newString"`
-	Preview      bool            `json:"preview"`
-	State        string          `json:"state"`
-	MatchedFiles []string        `json:"matchedFiles,omitempty"`
-	ChangedFiles []string        `json:"changedFiles,omitempty"`
-	FailedFiles  []matchedFileOp `json:"failedFiles,omitempty"`
+	RootHint          string                    `json:"rootHint"`
+	Path              string                    `json:"path"`
+	Pattern           string                    `json:"pattern"`
+	FilePattern       string                    `json:"filePattern,omitempty"`
+	OldString         string                    `json:"oldString"`
+	NewString         string                    `json:"newString"`
+	Preview           bool                      `json:"preview"`
+	State             string                    `json:"state"`
+	MatchedFiles      []string                  `json:"matchedFiles,omitempty"`
+	MatchedCandidates []forgeTransformCandidate `json:"matchedCandidates"`
+	ChangedFiles      []string                  `json:"changedFiles,omitempty"`
+	FailedFiles       []matchedFileOp           `json:"failedFiles,omitempty"`
 }
 
 type matchedFileOp struct {
@@ -741,68 +610,28 @@ func executeForgeDevRepoBatchReplace(rawArgs string) (string, error) {
 	if targetPath == "" {
 		targetPath = "."
 	}
-	targetAbs, targetRel, err := resolveForgeDevRepoTarget(root, targetPath)
+	_, targetRel, err := resolveForgeDevRepoTarget(root, targetPath)
 	if err != nil {
 		return "", err
 	}
-
-	// 使用 Glob 匹配文件
-	globPattern := args.Pattern
-	if !filepath.IsAbs(globPattern) {
-		globPattern = filepath.Join(targetAbs, filepath.FromSlash(globPattern))
-	}
-	matches, err := filepath.Glob(globPattern)
+	planned, err := planForgeRepoBatch(context.Background(), root, targetRel, args.Pattern,
+		args.FilePattern, args.OldString, args.NewString)
 	if err != nil {
 		return "", fmt.Errorf("%s 文件匹配失败: %w", config.ForgeDevRepoBatchReplaceToolName, err)
 	}
-
-	// 过滤掉目录和非文本文件
-	matchedFiles := make([]string, 0, len(matches))
-	for _, m := range matches {
-		info, statErr := os.Stat(m)
-		if statErr != nil || info.IsDir() {
-			continue
-		}
-		if info.Size() > maxForgeDevRepoReadBytes {
-			continue
-		}
-		// 检查 filePattern 过滤
-		if args.FilePattern != "" {
-			fileName := filepath.Base(m)
-			if matched, matchErr := filepath.Match(args.FilePattern, fileName); matchErr != nil || !matched {
-				continue
-			}
-		}
-		// 检查是否是 UTF-8 文本文件
-		data, readErr := os.ReadFile(m)
-		if readErr != nil {
-			continue
-		}
-		if bytes.Contains(data, []byte{0}) || !utf8.Valid(data) {
-			continue
-		}
-		// 检查 old_string 是否存在
-		if !strings.Contains(string(data), args.OldString) {
-			continue
-		}
-		rel, relErr := filepath.Rel(root, m)
-		if relErr != nil {
-			rel = m
-		} else {
-			rel = filepath.ToSlash(rel)
-		}
-		matchedFiles = append(matchedFiles, rel)
-	}
+	matchedFiles := forgeTransformCandidatePaths(planned.preview)
+	matchedCandidates := forgeTransformCandidates(planned.preview)
 
 	payload := forgeDevRepoBatchReplacePayload{
-		RootHint:     compactWorkspacePathHint(root),
-		Path:         targetRel,
-		Pattern:      args.Pattern,
-		FilePattern:  args.FilePattern,
-		OldString:    args.OldString,
-		NewString:    args.NewString,
-		Preview:      args.Preview,
-		MatchedFiles: matchedFiles,
+		RootHint:          compactWorkspacePathHint(root),
+		Path:              targetRel,
+		Pattern:           args.Pattern,
+		FilePattern:       args.FilePattern,
+		OldString:         args.OldString,
+		NewString:         args.NewString,
+		Preview:           args.Preview,
+		MatchedFiles:      matchedFiles,
+		MatchedCandidates: matchedCandidates,
 	}
 
 	if args.Preview {
@@ -977,27 +806,20 @@ func resolveForgeDevRepoTarget(root, rawPath string) (string, string, error) {
 	return resolvedPath, relativeToRoot, nil
 }
 
-func classifyForgeDevRepoDirEntry(root, dirPath string, entry os.DirEntry) (string, string) {
-	name := entry.Name()
-	fullPath := filepath.Join(dirPath, name)
-
-	if entry.Type()&os.ModeSymlink != 0 {
-		if evaluated, err := filepath.EvalSymlinks(fullPath); err == nil {
-			evaluated = filepath.Clean(evaluated)
-			if sameOrSubForgeDevRepoPath(root, evaluated) {
-				if targetInfo, statErr := os.Stat(evaluated); statErr == nil && targetInfo.IsDir() {
-					return name + "@/", "symlink-dir"
-				}
-				return name + "@", "symlink-file"
-			}
+func classifyForgeDevRepoMetadata(entry fswalk.Metadata) (string, string) {
+	if entry.IsSymlink {
+		if entry.Restricted {
+			return entry.Name + "@", "symlink-blocked"
 		}
-		return name + "@", "symlink-blocked"
+		if entry.IsDir {
+			return entry.Name + "@/", "symlink-dir"
+		}
+		return entry.Name + "@", "symlink-file"
 	}
-
-	if entry.IsDir() {
-		return name + "/", "dir"
+	if entry.IsDir {
+		return entry.Name + "/", "dir"
 	}
-	return name, "file"
+	return entry.Name, "file"
 }
 
 func marshalForgeDevRepoPayload(payload interface{}) (string, error) {
@@ -1132,35 +954,26 @@ func materializeForgeDevRepoEditResult(
 	if rootErr != nil {
 		return marshalForgeDevRepoEditFailure(rootErr)
 	}
-	targetAbs, targetRel, targetErr := resolveForgeDevRepoTarget(root, args.TargetPath)
+	_, targetRel, targetErr := resolveForgeDevRepoTarget(root, args.TargetPath)
 	if targetErr != nil {
 		return marshalForgeDevRepoEditFailure(targetErr)
 	}
-
-	data, readErr := os.ReadFile(targetAbs)
-	if readErr != nil {
-		return marshalForgeDevRepoEditFailure(fmt.Errorf("读取文件失败: %w", readErr))
+	planned, planErr := planForgeRepoEdit(ctx, root, targetRel, args.OldString, args.NewString)
+	if planErr != nil {
+		return marshalForgeDevRepoEditFailure(planErr)
 	}
-
-	newContent, applied, srErr := applySearchReplace(string(data), args.OldString, args.NewString)
-	if srErr != nil {
-		if errors.Is(srErr, ErrSearchNotFound) {
-			return marshalForgeDevRepoEditFailure(WrapSearchNotFoundError(string(data), args.OldString))
-		}
-		return marshalForgeDevRepoEditFailure(srErr)
+	approvedCandidate, candidateOK := forgeApprovedSingleCandidate(payload)
+	currentCandidates := forgeTransformCandidates(planned.preview)
+	if !candidateOK || len(currentCandidates) != 1 || !sameForgeCandidateRevisions(
+		[]forgeTransformCandidate{approvedCandidate}, currentCandidates) {
+		return marshalForgeDevRepoEditFailure(errors.New("治理期间目标文件内容发生变化，请重新预览和审批"))
 	}
-	if !applied {
-		return marshalForgeDevRepoEditFailure(errors.New("搜索文本未找到"))
+	applied, applyErr := applyForgeTransform(ctx, planned, true)
+	if applyErr != nil {
+		return marshalForgeDevRepoEditFailure(applyErr)
 	}
-
-	// 写入前创建 .bak 备份文件，提供回滚能力
-	bakPath := targetAbs + ".bak"
-	if bakErr := os.WriteFile(bakPath, data, 0644); bakErr != nil {
-		return marshalForgeDevRepoEditFailure(fmt.Errorf("创建备份文件失败: %w", bakErr))
-	}
-
-	if writeErr := os.WriteFile(targetAbs, []byte(newContent), 0644); writeErr != nil {
-		return marshalForgeDevRepoEditFailure(fmt.Errorf("写入文件失败: %w", writeErr))
+	if applied.ErrorCount > 0 {
+		return marshalForgeDevRepoEditFailure(applied.Errors[0])
 	}
 
 	payload["ok"] = true
@@ -1230,89 +1043,37 @@ func materializeForgeDevRepoBatchReplaceResult(
 	if targetPath == "" {
 		targetPath = "."
 	}
-	targetAbs, _, targetErr := resolveForgeDevRepoTarget(root, targetPath)
+	_, targetRelative, targetErr := resolveForgeDevRepoTarget(root, targetPath)
 	if targetErr != nil {
 		return marshalForgeDevRepoBatchReplaceFailure(targetErr.Error())
 	}
-
-	// 使用 Glob 匹配文件
-	globPattern := args.Pattern
-	if !filepath.IsAbs(globPattern) {
-		globPattern = filepath.Join(targetAbs, filepath.FromSlash(globPattern))
+	planned, planErr := planForgeRepoBatch(ctx, root, targetRelative, args.Pattern,
+		args.FilePattern, args.OldString, args.NewString)
+	if planErr != nil {
+		return marshalForgeDevRepoBatchReplaceFailure(planErr.Error())
 	}
-	matches, err := filepath.Glob(globPattern)
-	if err != nil {
-		return marshalForgeDevRepoBatchReplaceFailure(fmt.Sprintf("文件匹配失败: %v", err))
+	currentCandidates := forgeTransformCandidatePaths(planned.preview)
+	approvedCandidates, candidateOK := forgeApprovedCandidates(payload)
+	currentCandidateDetails := forgeTransformCandidates(planned.preview)
+	if !candidateOK || !sameForgeCandidateRevisions(approvedCandidates, currentCandidateDetails) {
+		return marshalForgeDevRepoBatchReplaceFailure("治理期间批量替换候选文件发生变化，请重新预览和审批")
 	}
-
-	changedFiles := make([]string, 0, len(matches))
-	failedFiles := make([]matchedFileOp, 0)
-	hasFailure := false
-
-	for _, m := range matches {
-		info, statErr := os.Stat(m)
-		if statErr != nil || info.IsDir() {
-			continue
-		}
-		if info.Size() > maxForgeDevRepoReadBytes {
-			continue
-		}
-		// 检查 filePattern 过滤
-		if args.FilePattern != "" {
-			fileName := filepath.Base(m)
-			if matched, matchErr := filepath.Match(args.FilePattern, fileName); matchErr != nil || !matched {
-				continue
-			}
-		}
-
-		data, readErr := os.ReadFile(m)
-		if readErr != nil {
-			failedFiles = append(failedFiles, matchedFileOp{Path: m, Error: readErr.Error()})
-			hasFailure = true
-			continue
-		}
-		if bytes.Contains(data, []byte{0}) || !utf8.Valid(data) {
-			continue
-		}
-		if !strings.Contains(string(data), args.OldString) {
-			continue
-		}
-
-		newContent, applied, srErr := applySearchReplace(string(data), args.OldString, args.NewString)
-		if srErr != nil || !applied {
-			failedFiles = append(failedFiles, matchedFileOp{Path: m, Error: "search/replace 失败"})
-			hasFailure = true
-			continue
-		}
-
-		// 创建 .bak 备份
-		bakPath := m + ".bak"
-		if bakErr := os.WriteFile(bakPath, data, 0644); bakErr != nil {
-			failedFiles = append(failedFiles, matchedFileOp{Path: m, Error: fmt.Sprintf("备份失败: %v", bakErr)})
-			hasFailure = true
-			continue
-		}
-
-		if writeErr := os.WriteFile(m, []byte(newContent), 0644); writeErr != nil {
-			failedFiles = append(failedFiles, matchedFileOp{Path: m, Error: fmt.Sprintf("写入失败: %v", writeErr)})
-			hasFailure = true
-			continue
-		}
-
-		rel, relErr := filepath.Rel(root, m)
-		if relErr != nil {
-			rel = m
-		} else {
-			rel = filepath.ToSlash(rel)
-		}
-		changedFiles = append(changedFiles, rel)
+	applied, applyErr := applyForgeTransform(ctx, planned, false)
+	if applyErr != nil {
+		return marshalForgeDevRepoBatchReplaceFailure(applyErr.Error())
 	}
+	failedFiles := make([]matchedFileOp, 0, len(applied.Errors))
+	for _, pathError := range applied.Errors {
+		failedFiles = append(failedFiles, matchedFileOp{Path: pathError.Path, Error: pathError.Err.Error()})
+	}
+	changedFiles := applied.Changed
+	hasFailure := applied.ErrorCount > 0
 
 	payload["ok"] = !hasFailure || len(changedFiles) > 0
 	payload["state"] = "batch_replaced"
 	payload["changedFiles"] = changedFiles
 	payload["failedFiles"] = failedFiles
-	payload["totalMatched"] = len(changedFiles) + len(failedFiles)
+	payload["totalMatched"] = len(currentCandidates)
 
 	resultBytes, marshalErr := json.Marshal(payload)
 	if marshalErr != nil {

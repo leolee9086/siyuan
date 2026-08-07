@@ -4,8 +4,7 @@
  */
 
 import { updateHotkeyTip } from "../../protyle/util/compatibility";
-
-const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob", "agentChat", "magi-identity-access", "sforge-colors"];
+import {isBuiltinDockType} from "./dock.builtin";
 
 /**
  * 生成单个按钮的 HTML
@@ -16,8 +15,8 @@ export function generateButtonHTML(
     index: number,
     dockTip: string,
     tabIndex?: number
-): string {
-    if (typeof tabIndex === "undefined" && !TYPES.includes(item.type) && !item.type.startsWith("custom_list:")) {
+) {
+    if (typeof tabIndex === "undefined" && !isBuiltinDockType(item.type) && !item.type.startsWith("custom_list:")) {
         return "";
     }
 
@@ -38,7 +37,7 @@ export function generateAllButtonsHTML(
     index: number,
     dockTip: string,
     tabIndex?: number
-): string {
+) {
     let html = "";
     for (const item of data) {
         html += generateButtonHTML(item, index, dockTip, tabIndex);
@@ -59,7 +58,7 @@ export function insertButtonsToContainer(
     html: string,
     tabIndex: number | undefined,
     append: boolean = false
-): void {
+) {
     if (!container) {
         return;
     }
@@ -88,7 +87,7 @@ function insertAtTabIndex(
     container: Element,
     html: string,
     tabIndex: number
-): void {
+) {
     const target = container.children[tabIndex];
 
     if (target) {

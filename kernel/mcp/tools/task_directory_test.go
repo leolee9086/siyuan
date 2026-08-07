@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/siyuan-note/siyuan/kernel/internal/testutil/symlinkfixture"
 )
 
 func TestTaskDirectoryToolsAreRegisteredButNotGenerallyAvailable(t *testing.T) {
@@ -113,9 +115,7 @@ func TestTaskDirectoryCapabilityRejectsSymlinkEscape(t *testing.T) {
 		t.Fatal(err)
 	}
 	link := filepath.Join(root, "link.txt")
-	if err := os.Symlink(outsideFile, link); err != nil {
-		t.Skipf("symbolic links are unavailable: %v", err)
-	}
+	symlinkfixture.Create(t, outsideFile, link)
 
 	args := map[string]interface{}{"path": "link.txt"}
 	WithTaskDirectoryCapability(args, root)

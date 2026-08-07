@@ -25,8 +25,9 @@ import { removeSourceTab, initDockFloatMode, initDockData } from "./dock.init";
 import { setSizeForItem } from "./dock.size";
 import { handleMouseLeave } from "./dock.events";
 import { executeToggleHide, executeToggleShow, executeUpdatePanelRelations } from "./dock.model";
+import {BUILTIN_DOCK_TYPES} from "./dock.builtin";
 
-const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob", "agentChat", "magi-identity-access", "sforge-colors"];
+const TYPES = [...BUILTIN_DOCK_TYPES];
 /**
  * @AIDONE 已修复：界面初始化时Tag类型的dock有时消失的bug
  * 原因：各 Dock 实例初始化顺序不确定，使用 DOM 查询去重不可靠

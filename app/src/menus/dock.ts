@@ -94,6 +94,13 @@ export const initDockMenu = (target: Element) => {
             click: () => requestOpenTabAsTab(tab, "dock-menu"),
         }).element);
         getSiyuanGlobalMenusMenu().append(new MenuItem({
+            id: "openAsNewTab",
+            label: window.siyuan.languages.openNewAgentInTab || "New in tab",
+            icon: "iconAdd",
+            /** 请求在标签页新建空白会话的独立 Agent 面板，复用同一 Port 并声明 new 模式。 */
+            click: () => requestOpenTabAsTab(tab, "dock-menu", "new"),
+        }).element);
+        getSiyuanGlobalMenusMenu().append(new MenuItem({
             id: "openAsPopover",
             label: window.siyuan.languages.refPopover,
             icon: "iconPictureInPicture",

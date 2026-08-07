@@ -35,22 +35,23 @@ export interface ILayoutTabFloatFactory {
     canCreate: (tab: ILayoutTabHandle) => boolean;
     /** 创建独立 Tab，不得返回或复用源 Tab 的 DOM。 */
     createTab: (source: ILayoutTabHandle) => ILayoutTabHandle;
-    /** 在目标 Tab 中初始化副本模型。 */
-    create: (source: ILayoutTabHandle, target: ILayoutTabHandle) => ILayoutTabFloatCopy | Promise<ILayoutTabFloatCopy>;
+    /**
+     * 在目标 Tab 中初始化副本模型。
+     * mode 为 "new" 时工厂应创建空白会话副本而不是复制当前会话；
+     * 模型不支持该模式时应回退到默认复制语义。
+     */
+    create: (
+        source: ILayoutTabHandle,
+        target: ILayoutTabHandle,
+        mode?: "copy" | "new"
+    ) => ILayoutTabFloatCopy | Promise<ILayoutTabFloatCopy>;
 }
 
 /** 布局页签作为 Dialog 浮窗打开时的宿主能力；宿主必须创建副本，不得搬移原 Tab 的 DOM。 */
 export interface ILayoutTabFloatPort {
     /**
      * 打开一个页签副本浮窗。
-     * 返回 false 表示宿主没有处理该请求，调用方可继续走事件委托。
+     * 返回 false 表示宿主没有处理该请求，由调用方决定后续行为。
      */
     open: (tab: ILayoutTabHandle) => boolean | void | Promise<boolean | void>;
-}
-
-/** 未注册浮窗宿主时发出的类型化请求事件。 */
-export interface ILayoutTabFloatRequest {
-    tabId: string;
-    title: string;
-    source: "tab-menu";
 }

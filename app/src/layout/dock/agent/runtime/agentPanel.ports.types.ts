@@ -47,6 +47,8 @@ export interface AgentPanelCapabilities {
     reloadFrontend?: () => void | Promise<void>;
     minimizeDock?: () => void;
     openTab?: () => void | Promise<void>;
+    /** 在标签页新建一个空白会话的独立 Agent 面板，不影响当前面板的流式状态。 */
+    openTabNew?: () => void | Promise<void>;
     openFloat?: () => void | Promise<void>;
     postRender?: (container: HTMLElement) => void;
 }

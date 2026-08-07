@@ -4,7 +4,6 @@ import {
     requestOpenTabAsDialog,
     resetLayoutTabFloatPort,
     setLayoutTabFloatPort,
-    subscribeTabFloatRequest,
 } from "../../../src/layout/tabFloat.port";
 
 const makeTab = (id = "tab-1", title = "Test tab") => ({id, title} as Tab);
@@ -14,18 +13,8 @@ afterEach(() => {
 });
 
 describe("Layout tab Dialog float capability", () => {
-    it("emits a validated request when the host has no float port", () => {
-        const listener = vi.fn();
-        const unsubscribe = subscribeTabFloatRequest(listener);
-
-        expect(requestOpenTabAsDialog(makeTab())).toBe(true);
-        expect(listener).toHaveBeenCalledWith({
-            tabId: "tab-1",
-            title: "Test tab",
-            source: "tab-menu",
-        });
-
-        unsubscribe();
+    it("returns false when the host has no float port", () => {
+        expect(requestOpenTabAsDialog(makeTab())).toBe(false);
     });
 
     it("forwards the opaque Tab handle to a registered host", () => {
@@ -37,18 +26,11 @@ describe("Layout tab Dialog float capability", () => {
         expect(open).toHaveBeenCalledWith(tab);
     });
 
-    it("falls back to the typed request event when a host declines", () => {
-        const listener = vi.fn();
-        const unsubscribe = subscribeTabFloatRequest(listener);
-        setLayoutTabFloatPort({open: () => false});
+    it("returns false when a registered host declines", () => {
+        const open = vi.fn(() => false);
+        setLayoutTabFloatPort({open});
 
-        expect(requestOpenTabAsDialog(makeTab("tab-2", "Declined tab"))).toBe(true);
-        expect(listener).toHaveBeenCalledWith({
-            tabId: "tab-2",
-            title: "Declined tab",
-            source: "tab-menu",
-        });
-
-        unsubscribe();
+        expect(requestOpenTabAsDialog(makeTab("tab-2", "Declined tab"))).toBe(false);
+        expect(open).toHaveBeenCalledTimes(1);
     });
 });

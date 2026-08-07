@@ -20,15 +20,15 @@ function createAgentTabFloatFactory() {
             icon: source.icon,
             docIcon: source.docIcon,
         }),
-        /** 校验宿主后创建独立 AgentChat 副本并返回确定的销毁协议。 */
-        async create(source, target) {
+        /** 校验宿主后创建独立 AgentChat 副本并返回确定的销毁协议；mode 为 "new" 时创建空白会话副本。 */
+        async create(source, target, mode = "copy") {
             if (!isAgentChatDomain(source)) {
                 throw new Error("Agent tab float source does not implement AgentChatDomain");
             }
             if (!isLayoutTab(target)) {
                 throw new Error("Agent tab float target does not implement LayoutTab");
             }
-            const copy = await source.model.createFloatingCopy(target);
+            const copy = await source.model.createFloatingCopy(target, {blankSession: mode === "new"});
             target.addModel(copy);
             return copy;
         },

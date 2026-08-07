@@ -19,11 +19,11 @@ import type {ICustomList} from "./customBlockLists/customLists.types";
 import { isStylableElement } from "./imports";
 /** 用途：HTMLElement 类型守卫。使用范围：dock.guard 类型检查。解耦评估：通过 imports.ts 转发。 */
 import { isHTMLElement } from "./imports";
+/** 用途：复用内建 Dock 类型注册；使用范围：持久化布局边界。 */
+import {isBuiltinDockType} from "./dock.builtin";
 
 /** 导出 DOM 类型守卫，供外部模块使用 */
 export { isStylableElement, isHTMLElement };
-
-const DOCK_TYPES = "file|outline|inbox|bookmark|tag|graph|globalGraph|backlink|forwardlink|embedding_dock|cronjob|agentChat|magi-identity-access|sforge-colors";
 
 /**
  * 判断是否为 Model 构造函数
@@ -61,7 +61,7 @@ export function isWnd(child: unknown): child is LayoutWindow {
  * 调用时机：在创建 Dock、解析配置或处理 Dock 相关事件时调用。
  */
 export function isTDock(type: string | null | undefined): type is TDock {
-    return type !== null && type !== undefined && (DOCK_TYPES.split("|").includes(type) || type.startsWith("custom_list:"));
+    return type !== null && type !== undefined && (isBuiltinDockType(type) || type.startsWith("custom_list:"));
 }
 
 /** @简洁函数 这是一个简单的 undefined 或 string 类型检查辅助函数 */

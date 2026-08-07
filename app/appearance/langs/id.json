@@ -1,4 +1,5 @@
 {
+    "openNewAgentInTab": "Buat di tab baru",
     "agentQueuePending": "Tertunda",
     "agentQueueInjecting": "Mengirim",
     "agentQueueBlocked": "Diblokir",

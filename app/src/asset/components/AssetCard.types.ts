@@ -9,5 +9,7 @@ export interface AssetItem {
     hName: string;
     /** 文件路径 */
     path: string;
+    /** 可选的授权根缩略图地址；缺省时沿用工作空间资产缩略图。 */
+    thumbnailUrl?: string;
 }
 

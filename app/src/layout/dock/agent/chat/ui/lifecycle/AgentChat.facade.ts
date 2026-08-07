@@ -83,6 +83,7 @@ export function setFloatingCopyOptions(runtime: AgentChatRuntime, options: { onC
     runtime.isFloatingCopy = true;
     runtime.floatingCloseHandler = options.onClose || null;
     runtime.tabBtn?.classList.add("fn__none");
+    runtime.tabNewBtn?.classList.add("fn__none");
     runtime.floatingBtn?.classList.add("fn__none");
 }
 

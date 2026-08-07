@@ -710,6 +710,21 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/s-forge/asset-meta/set", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, setAssetMeta)
 	ginServer.Handle("POST", "/api/s-forge/asset-meta/search", model.CheckAuth, sForgeAssetMetaSearchHandler)
 
+	// S-Forge File Browser
+	ginServer.Handle("POST", "/api/s-forge/file-browser/roots", model.CheckAuth, model.CheckAdminRole, getSForgeFileBrowserRoots)
+	ginServer.Handle("POST", "/api/s-forge/file-browser/list", model.CheckAuth, model.CheckAdminRole, listSForgeFileBrowserDirectory)
+	ginServer.Handle("POST", "/api/s-forge/file-browser/walk", model.CheckAuth, model.CheckAdminRole, walkSForgeFileBrowserDirectory)
+	ginServer.Handle("POST", "/api/s-forge/file-browser/stat", model.CheckAuth, model.CheckAdminRole, statSForgeFileBrowserFile)
+	ginServer.Handle("POST", "/api/s-forge/file-browser/properties", model.CheckAuth, model.CheckAdminRole, batchSForgeFileBrowserProperties)
+	ginServer.Handle("POST", "/api/s-forge/file-browser/properties/set", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, setSForgeFileProperties)
+	ginServer.Handle("POST", "/api/s-forge/file-browser/tag-definitions", model.CheckAuth, model.CheckAdminRole, getSForgeFileBrowserTagDefinitions)
+	ginServer.Handle("POST", "/api/s-forge/file-browser/tag-definitions/set", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, setSForgeFileBrowserTagDefinitions)
+	ginServer.Handle("POST", "/api/s-forge/file-browser/preview", model.CheckAuth, model.CheckAdminRole, previewSForgeFileBrowserFile)
+	ginServer.Handle("POST", "/api/s-forge/file-browser/search", model.CheckAuth, model.CheckAdminRole, searchSForgeFileBrowserAssets)
+	ginServer.Handle("POST", "/api/s-forge/file-browser/tags", model.CheckAuth, model.CheckAdminRole, listSForgeFileBrowserTags)
+	ginServer.Handle("GET", "/api/s-forge/file-browser/thumbnail", model.CheckAuth, model.CheckAdminRole, getSForgeFileBrowserThumbnail)
+	ginServer.Handle("GET", "/api/s-forge/file-browser/content/:rootID/*path", model.CheckAuth, model.CheckAdminRole, serveSForgeFileBrowserContent)
+
 	// S-Forge CronJob Service
 	ginServer.Handle("POST", "/api/cronjob/list", model.CheckAuth, listCronjobs)
 	ginServer.Handle("POST", "/api/cronjob/get", model.CheckAuth, getCronjob)

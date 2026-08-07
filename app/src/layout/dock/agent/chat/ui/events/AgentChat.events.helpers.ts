@@ -164,6 +164,18 @@ function handleCopyButtonClick(runtime: AgentChatRuntime, event: MouseEvent, kin
     });
 }
 
+/** 处理"在标签页新建"按钮点击，打开空白会话的独立 Agent 面板。 */
+function handleNewTabClick(runtime: AgentChatRuntime, event: MouseEvent) {
+    event.stopPropagation();
+    if (runtime.isFloatingCopy) {
+        return;
+    }
+    const result = runtime.capabilities.openTabNew?.();
+    void Promise.resolve(result).catch((error) => {
+        console.error("[agent-chat] failed to open new tab copy", error);
+    });
+}
+
 /** 绑定新会话、身份入口、会话菜单和副本窗口动作。 */
 /** @同步豁免: UI构建 - DOM 事件绑定必须在同一次渲染中完成，事件回调本身不启动异步任务。 */
 export function bindAgentChatSessionEvents(runtime: AgentChatRuntime) {
@@ -175,6 +187,7 @@ export function bindAgentChatSessionEvents(runtime: AgentChatRuntime) {
     runtime.sessionMenuBtn.addEventListener("click", (event: MouseEvent) => handleSessionMenuClick(runtime, event));
     runtime.floatingBtn.addEventListener("click", (event: MouseEvent) => handleCopyButtonClick(runtime, event, "floating"));
     runtime.tabBtn.addEventListener("click", (event: MouseEvent) => handleCopyButtonClick(runtime, event, "tab"));
+    runtime.tabNewBtn.addEventListener("click", (event: MouseEvent) => handleNewTabClick(runtime, event));
 }
 
 /** 处理面板点击：关闭浮窗副本、最小化面板或聚焦输入框。 */

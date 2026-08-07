@@ -29,7 +29,11 @@ const findCenterWnd = (): Wnd | undefined => {
 };
 
 const createAppTabOpenPort = () => ({
-    async open(source: ILayoutTabHandle, _requestSource: ILayoutTabOpenRequest["source"] = "agent-dock") {
+    async open(
+        source: ILayoutTabHandle,
+        _requestSource: ILayoutTabOpenRequest["source"] = "agent-dock",
+        mode: ILayoutTabOpenRequest["mode"] = "copy"
+    ) {
         const factory = getTabFloatFactory(source);
         const wnd = findCenterWnd();
         if (!factory || !wnd) {
@@ -47,7 +51,8 @@ const createAppTabOpenPort = () => ({
         let copy: Awaited<ReturnType<typeof factory.create>> | undefined;
         try {
             // 先完成模型初始化，再把 Tab 放入布局，避免异步窗口在初始化期间被激活而访问空 model。
-            copy = await factory.create(source, target);
+            // mode 为 "new" 时通知工厂创建空白会话副本，否则复制当前会话。
+            copy = await factory.create(source, target, mode);
             if (!copy) {
                 return true;
             }

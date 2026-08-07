@@ -45,7 +45,14 @@ import {createBrowserHostReload} from "./agentPanel.reload.browser.factory";
 export const createAppAgentPanelCapabilities = (app: AppFacade, tab: Tab): AgentPanelCapabilities => {
     /** 打开绑定当前 Tab 的普通布局副本。 */
     // @柯里化：需要为通用 Port 绑定当前 Tab 实例。
-    const openTab = () => requestOpenTabAsTab(tab);
+    const openTab = () => {
+        void requestOpenTabAsTab(tab);
+    };
+    /** 在标签页新建一个空白会话的独立 Agent 面板，复用同一 Port 并声明 new 模式。 */
+    // @柯里化：需要为通用 Port 绑定当前 Tab 实例。
+    const openTabNew = () => {
+        void requestOpenTabAsTab(tab, "agent-dock", "new");
+    };
     /** 打开绑定当前 Tab 的非模态浮窗副本。 */
     // @柯里化：需要为通用 Port 绑定当前 Tab 实例。
     const openFloat = () => requestOpenTabAsDialog(tab);
@@ -94,6 +101,7 @@ export const createAppAgentPanelCapabilities = (app: AppFacade, tab: Tab): Agent
             getDockByType("agentChat")?.toggleModel("agentChat", false, true);
         },
         openTab,
+        openTabNew,
         openFloat,
         postRender: renderContent,
     };

@@ -1,0 +1,87 @@
+.sforge-file-tag-tree {
+    display: flex;
+    flex: none;
+    min-width: 0;
+    max-height: 34%;
+    border-bottom: 1px solid var(--b3-border-color);
+    flex-direction: column;
+}
+
+.sforge-file-tag-tree__header {
+    flex: none;
+    border-bottom: 1px solid var(--b3-border-color);
+}
+
+.sforge-file-tag-tree__header .block__logo {
+    min-width: 0;
+}
+
+.sforge-file-tag-tree__list {
+    min-height: 0;
+    overflow: auto;
+    padding: 3px 0 6px;
+}
+
+.sforge-file-tag-tree__row {
+    display: flex;
+    min-width: 0;
+    min-height: 28px;
+    align-items: center;
+    gap: 4px;
+    padding: 0 6px 0 2px;
+    cursor: pointer;
+}
+
+.sforge-file-tag-tree__row:hover {
+    color: var(--b3-theme-primary);
+    background: var(--b3-theme-secondary);
+}
+
+.sforge-file-tag-tree__toggle {
+    flex: none;
+    width: 22px;
+    height: 24px;
+}
+
+.sforge-file-tag-tree__swatch {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    border: 1px solid var(--b3-border-color);
+    border-radius: 50%;
+}
+
+.sforge-file-tag-tree__name {
+    overflow: hidden;
+    min-width: 0;
+    flex: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sforge-file-tag-tree__count {
+    flex: none;
+    color: var(--b3-theme-on-surface);
+    font-size: 10px;
+}
+
+.sforge-file-tag-tree__children {
+    margin: 0;
+    padding: 0 0 0 16px;
+    list-style: none;
+}
+
+.sforge-file-tag-tree__state {
+    display: flex;
+    min-height: 46px;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+    color: var(--b3-theme-on-surface);
+    font-size: 11px;
+}
+
+.sforge-file-tag-tree__state--error {
+    color: var(--b3-theme-error);
+}

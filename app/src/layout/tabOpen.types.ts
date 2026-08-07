@@ -13,13 +13,17 @@ export interface ILayoutTabOpenRequest {
     title: string;
     dockType: string;
     source: "agent-dock" | "dock-menu";
+    /** 副本打开策略：复制当前会话（copy）或在标签页新建空白会话（new）。 */
+    mode: "copy" | "new";
 }
 
 /** 完整 App 或外部宿主提供的普通 Tab 能力。 */
 export interface ILayoutTabOpenPort {
     /**
      * 打开来源模型的独立普通 Tab 副本。
+     * mode 为 "new" 时宿主应创建空白会话副本而不是复制当前会话。
      * 返回 false 表示当前宿主没有处理该模型，调用方会继续发出类型化事件。
      */
-    open: (tab: ILayoutTabHandle, source?: ILayoutTabOpenRequest["source"]) => boolean | void | Promise<boolean | void>;
+    open: (tab: ILayoutTabHandle, source?: ILayoutTabOpenRequest["source"], mode?: ILayoutTabOpenRequest["mode"]) =>
+        boolean | void | Promise<boolean | void>;
 }

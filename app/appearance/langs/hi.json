@@ -1,4 +1,5 @@
 {
+    "openNewAgentInTab": "नए टैब में बनाएं",
     "agentQueuePending": "लंबित",
     "agentQueueInjecting": "भेजा जा रहा है",
     "agentQueueBlocked": "अवरुद्ध",

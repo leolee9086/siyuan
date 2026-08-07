@@ -145,6 +145,8 @@ export interface AgentChatRuntime {
     sessionMenuBtn: HTMLElement;
     floatingBtn: HTMLElement;
     tabBtn: HTMLElement;
+    /** 在标签页新建空白会话面板的标题栏按钮。 */
+    tabNewBtn: HTMLElement;
     sessionPanel: AgentSessionPanelController;
     sessionPorts: AgentChatSessionPorts;
     sessionId: string;

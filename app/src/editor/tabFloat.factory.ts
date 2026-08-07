@@ -22,7 +22,7 @@ registerTabFloatFactory({
         return copyTab(source.model.app, source);
     },
     /** 作用：初始化副本并返回销毁句柄；意图：让浮窗宿主控制副本生命周期；调用时机：临时页签挂载到 Dialog 后。 @显式返回类型原因：固定浮窗宿主跨模块契约，避免返回对象推导随实现细节漂移。 */
-    create: (_source, target): ILayoutTabFloatCopy => {
+    create: (_source, target, _mode = "copy"): ILayoutTabFloatCopy => {
         // copyTab 已经集中维护 root/block/action/滚动位置兼容语义，
         // 这里仅触发既有初始化回调，不复制源编辑器 DOM 或可变状态。
         target.initialize();

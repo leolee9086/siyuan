@@ -18,7 +18,7 @@ package util
 
 import (
 	"bytes"
-	"io"
+	"context"
 	"io/fs"
 	"mime"
 	"os"
@@ -34,6 +34,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/siyuan-note/filelock"
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/fswalk"
 )
 
 // IsOfficeTempFile 判断是否为 Office（Word/Excel/PowerPoint/WPS）打开文档时生成的临时文件。
@@ -332,59 +333,74 @@ func IsCompressibleAssetImage(p string) bool {
 		(strings.HasSuffix(lowerName, ".png") || strings.HasSuffix(lowerName, ".jpg") || strings.HasSuffix(lowerName, ".jpeg"))
 }
 
-func SizeOfDirectory(path string) (size int64, err error) {
-	err = filelock.Walk(path, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
+func SizeOfDirectory(root string) (size int64, err error) {
+	walker, err := fswalk.New(root)
+	if err != nil {
+		return 0, err
+	}
+	rootEntry, err := walker.Inspect(context.Background(), "")
+	if err != nil {
+		return 0, err
+	}
+	if rootEntry.IsDir {
+		size = 4096
+	} else {
+		size = rootEntry.Size
+	}
+	result, err := walker.Walk(context.Background(), "", fswalk.WalkOptions{}, func(entry fswalk.Metadata) error {
+		if entry.IsSymlink || entry.Restricted {
+			return nil
 		}
-
-		info, err := d.Info()
-		if err != nil {
-			logging.LogErrorf("size of dir [%s] failed: %s", path, err)
-			return err
-		}
-
-		if !info.IsDir() {
-			size += info.Size()
-		} else {
+		if entry.IsDir {
 			size += 4096
+		} else if entry.IsRegular {
+			size += entry.Size
 		}
 		return nil
 	})
+	if err == nil && result.ErrorCount > 0 {
+		err = result.Errors[0]
+	}
 	if err != nil {
-		logging.LogErrorf("size of dir [%s] failed: %s", path, err)
+		logging.LogErrorf("size of dir [%s] failed: %s", root, err)
 	}
 	return
 }
 
 func DataSize() (dataSize, assetsSize int64) {
-	filelock.Walk(DataDir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			if os.IsNotExist(err) {
-				return nil
-			}
-			logging.LogErrorf("size of data failed: %s", err)
-			return io.EOF
-		}
+	dataSize, assetsSize, err := dataSizeAt(context.Background(), DataDir)
+	if err != nil && !os.IsNotExist(err) {
+		logging.LogErrorf("size of data failed: %s", err)
+	}
+	return
+}
 
-		info, err := d.Info()
-		if err != nil {
-			logging.LogErrorf("size of data failed: %s", err)
+func dataSizeAt(ctx context.Context, root string) (dataSize, assetsSize int64, err error) {
+	walker, err := fswalk.New(root)
+	if err != nil {
+		return 0, 0, err
+	}
+	dataSize = 4096
+	result, err := walker.Walk(ctx, "", fswalk.WalkOptions{}, func(entry fswalk.Metadata) error {
+		if entry.IsSymlink || entry.Restricted {
 			return nil
 		}
-
-		if !info.IsDir() {
-			s := info.Size()
-			dataSize += s
-
-			if strings.Contains(strings.TrimPrefix(path, DataDir), "assets") {
-				assetsSize += s
-			}
-		} else {
+		if entry.IsDir {
 			dataSize += 4096
+			return nil
+		}
+		if !entry.IsRegular {
+			return nil
+		}
+		dataSize += entry.Size
+		if strings.Contains(entry.Path, "assets") {
+			assetsSize += entry.Size
 		}
 		return nil
 	})
+	if err == nil && result.ErrorCount > 0 {
+		err = result.Errors[0]
+	}
 	return
 }
 

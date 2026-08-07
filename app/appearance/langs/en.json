@@ -1,4 +1,5 @@
 {
+    "openNewAgentInTab": "New in Tab",
     "agentQueuePending": "Pending",
     "agentQueueInjecting": "Sending",
     "agentQueueBlocked": "Blocked",

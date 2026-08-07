@@ -1,0 +1,126 @@
+.sforge-file-preview {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    color: var(--b3-theme-on-background);
+    background: var(--b3-theme-background);
+    flex-direction: column;
+}
+
+.sforge-file-preview__header {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--b3-border-color);
+}
+
+.sforge-file-preview__icon {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    color: var(--b3-theme-primary);
+}
+
+.sforge-file-preview__identity {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sforge-file-preview__identity strong,
+.sforge-file-preview__identity span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sforge-file-preview__identity strong {
+    font-size: 13px;
+}
+
+.sforge-file-preview__identity span,
+.sforge-file-preview__meta {
+    color: var(--b3-theme-on-surface);
+    font-family: var(--b3-font-family-code);
+    font-size: 11px;
+}
+
+.sforge-file-preview__header .block__icon {
+    flex: none;
+    width: 28px;
+    height: 28px;
+}
+
+.sforge-file-preview__meta {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    gap: 5px 12px;
+    padding: 5px 12px;
+    border-bottom: 1px solid var(--b3-border-color);
+}
+
+.sforge-file-preview__content {
+    display: flex;
+    flex: 1;
+    overflow: auto;
+    min-width: 0;
+    min-height: 0;
+}
+
+.sforge-file-preview__text {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 14px 16px;
+    color: var(--b3-theme-on-background);
+    background: var(--b3-theme-background);
+    font-family: var(--b3-font-family-code);
+    font-size: 12px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.sforge-file-preview__content > img,
+.sforge-file-preview__content > video {
+    max-width: 100%;
+    max-height: 100%;
+    margin: auto;
+    object-fit: contain;
+}
+
+.sforge-file-preview__content > audio {
+    width: min(560px, calc(100% - 32px));
+    margin: auto;
+}
+
+.sforge-file-preview__state {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+    padding: 24px;
+    color: var(--b3-theme-on-surface);
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+}
+
+.sforge-file-preview__state svg {
+    width: 30px;
+    height: 30px;
+    fill: currentcolor;
+}
+
+.sforge-file-preview__state--error {
+    color: var(--b3-theme-error);
+}

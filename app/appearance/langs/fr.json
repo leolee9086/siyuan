@@ -1,4 +1,5 @@
 {
+    "openNewAgentInTab": "Créer dans un nouvel onglet",
     "agentQueuePending": "En attente",
     "agentQueueInjecting": "Envoi en cours",
     "agentQueueBlocked": "Bloqué",

@@ -15,6 +15,13 @@ import { Cronjob } from "./Cronjob";
 import { createAgentDockModel } from "./agent/runtime/host/dock/dockModel.factory";
 /** 用途：创建 s-forge 原生颜色 Dock；使用范围：MODEL_FACTORIES 的内建颜色类型；解耦评估：不经过插件列表，直接由颜色模块提供 Custom Model。 */
 import { createColorToolDockModel } from "../../sforge/colors/init";
+/** 用途：创建 S-Forge 文件浏览 Dock；使用范围：内建模型注册表；解耦评估：面板状态和 Vue 生命周期留在文件浏览领域。 */
+import {
+    createFileBrowserDockModel,
+    createFilePropertiesDockModel,
+    FILE_BROWSER_DOCK_TYPE,
+    FILE_PROPERTIES_DOCK_TYPE,
+} from "../../sforge/fileBrowser/init";
 import { createIdentityAccessDockModel } from "../../magi/identity-access/adapters/dock.factory";
 import { Tab } from "./imports";
 import type { AppFacade } from "./imports";
@@ -201,6 +208,8 @@ const MODEL_FACTORIES: Record<string, ModelFactory<AppFacade, Tab, ProtyleDomain
     agentChat: createAgentDockModel,
     "magi-identity-access": createIdentityAccessDockModel,
     "sforge-colors": createColorToolDockModel,
+    [FILE_BROWSER_DOCK_TYPE]: createFileBrowserDockModel,
+    [FILE_PROPERTIES_DOCK_TYPE]: createFilePropertiesDockModel,
 };
 
 /**

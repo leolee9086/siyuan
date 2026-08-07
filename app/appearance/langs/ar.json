@@ -1,4 +1,5 @@
 {
+    "openNewAgentInTab": "إنشاء في علامة تبويب جديدة",
     "agentQueuePending": "معلّق",
     "agentQueueInjecting": "جارٍ الإرسال",
     "agentQueueBlocked": "محظور",

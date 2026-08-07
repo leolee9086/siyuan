@@ -106,6 +106,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> implements Agen
     public sessionMenuBtn!: HTMLElement;
     public floatingBtn!: HTMLElement;
     public tabBtn!: HTMLElement;
+    public tabNewBtn!: HTMLElement;
     public sessionPanel!: AgentChatRuntime["sessionPanel"];
     public sessionPorts: AgentChatRuntime["sessionPorts"];
     public sessionId = "";
@@ -366,17 +367,21 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> implements Agen
     /**
      * 创建一个真正独立的 Agent Dock 副本。
      * 副本拥有自己的 Tab、DOM、编辑器、WebSocket 和会话状态，不共享原实例的可变数组。
+     * options.blankSession 为 true 时不复制当前会话，副本初始化后落入空白欢迎会话。
      * @显式返回类型原因 浮窗工厂必须获得完整 AgentChat 门面，而不是内部初始化过程推导出的结构类型。
      */
-    public async createFloatingCopy(tab: Tab): Promise<AgentChat> {
+    public async createFloatingCopy(tab: Tab, options: {blankSession?: boolean} = {}): Promise<AgentChat> {
         await this.ready();
-        // 当前会话可能刚刚完成一轮响应，先把已持久化的内容写入存储，
-        // 这样副本可以通过稳定的会话协议加载，而不复制内部 DOM/引用。
-        await saveSession(this);
+        // 复制会话副本需要先把已持久化的内容写入存储，这样副本可以通过稳定的会话协议加载；
+        // 空白会话副本不依赖当前实例状态，跳过保存避免无谓写入。
+        if (!options.blankSession) {
+            await saveSession(this);
+        }
         const copy = createAgentChatInstance(AgentChat, this.app || undefined, tab, {
             capabilities: this.capabilitiesFactory?.(tab) ?? this.capabilities,
             ...(this.capabilitiesFactory ? {capabilitiesFactory: this.capabilitiesFactory} : {}),
-            initialConversation: this.getConversation(),
+            // 空白副本不传初始会话，让 initSessions 的空白分支创建全新会话。
+            ...(options.blankSession ? {} : {initialConversation: this.getConversation()}),
             enableSessionWebSocket: this.enableSessionWebSocket,
             sessionPorts: this.sessionPorts,
             conversationAdapters: this.conversationAdapters,
@@ -384,7 +389,10 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> implements Agen
         try {
             await copy.ready();
             copy.setFloatingCopyOptions();
-            const session = this.entries.length > 0 ? await this.sessionPorts.repository.load(this.sessionId) : null;
+            // 仅复制会话副本需要从存储加载会话快照，空白副本保持欢迎页。
+            const session = !options.blankSession && this.entries.length > 0
+                ? await this.sessionPorts.repository.load(this.sessionId)
+                : null;
             if (session) {
                 loadSessionForFloating(copy, session);
             }

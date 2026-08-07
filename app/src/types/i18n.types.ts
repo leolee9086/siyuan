@@ -197,6 +197,7 @@ agentQuestionSubmitted: `已提交`
 agentQuestionPending: `待回答`
 agentNewSession: `新会话`
 agentInputPlaceholder: `输入消息，@引用，/技能，回车发送...`
+openNewAgentInTab: `在标签页新建`
 agentSend: `发送`
 agentStop: `停止`
 editorFontSize: `编辑器字号`

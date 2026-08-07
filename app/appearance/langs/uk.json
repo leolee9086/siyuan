@@ -1,4 +1,5 @@
 {
+    "openNewAgentInTab": "Створити в новій вкладці",
     "agentQueuePending": "Очікує",
     "agentQueueInjecting": "Надсилається",
     "agentQueueBlocked": "Заблоковано",

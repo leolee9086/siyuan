@@ -1,4 +1,5 @@
 {
+    "openNewAgentInTab": "Crea in nuova scheda",
     "agentQueuePending": "In attesa",
     "agentQueueInjecting": "Invio in corso",
     "agentQueueBlocked": "Bloccato",

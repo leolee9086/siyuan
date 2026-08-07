@@ -17,7 +17,10 @@
 package cache
 
 import (
+	"context"
+	"errors"
 	"io/fs"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -25,6 +28,7 @@ import (
 
 	"github.com/siyuan-note/filelock"
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/fswalk"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
@@ -144,42 +148,43 @@ func LoadAssets() {
 	defer logging.Recover()
 
 	start := time.Now()
-	assetsLock.Lock()
-	defer assetsLock.Unlock()
-
-	assetsCache = map[string]*Asset{}
 	assets := util.GetDataAssetsAbsPath()
-	filelock.Walk(assets, func(path string, d fs.DirEntry, err error) error {
-		if nil != err || nil == d {
-			return err
-		}
-		if d.IsDir() {
-			if strings.HasPrefix(d.Name(), ".") {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if strings.HasSuffix(d.Name(), ".sya") || strings.HasPrefix(d.Name(), ".") || filelock.IsHidden(path) || util.IsOfficeTempFile(path) {
-			return nil
-		}
-
-		info, err := d.Info()
-		if nil != err {
-			logging.LogErrorf("load assets failed: %s", err)
-			return nil
-		}
-
-		hName := util.RemoveID(d.Name())
-		path = "assets" + filepath.ToSlash(strings.TrimPrefix(path, assets))
-		assetsCache[path] = &Asset{
-			HName:   hName,
-			Path:    path,
-			Updated: info.ModTime().Unix(),
-		}
-		return nil
-	})
+	loaded, err := loadAssetsFromRoot(context.Background(), assets)
+	if err != nil && !errors.Is(err, fswalk.ErrRootUnavailable) {
+		logging.LogErrorf("load assets failed: %s", err)
+	}
+	assetsLock.Lock()
+	assetsCache = loaded
+	assetsLock.Unlock()
 	elapsed := time.Since(start)
 	if 2000 < elapsed.Milliseconds() {
 		logging.LogInfof("loaded assets [%.2fs]", elapsed.Seconds())
 	}
+}
+
+func loadAssetsFromRoot(ctx context.Context, assets string) (map[string]*Asset, error) {
+	loaded := map[string]*Asset{}
+	walker, err := fswalk.New(assets)
+	if err != nil {
+		return loaded, err
+	}
+	_, err = walker.Walk(ctx, "", fswalk.WalkOptions{}, func(entry fswalk.Metadata) error {
+		if entry.IsDir {
+			if entry.Hidden || strings.HasPrefix(entry.Name, ".") {
+				return fs.SkipDir
+			}
+			return nil
+		}
+		if entry.IsSymlink || entry.Restricted || !entry.IsRegular || entry.Hidden ||
+			strings.HasSuffix(entry.Name, ".sya") || strings.HasPrefix(entry.Name, ".") ||
+			strings.HasPrefix(entry.Name, "~$") {
+			return nil
+		}
+		assetPath := path.Join("assets", entry.Path)
+		loaded[assetPath] = &Asset{
+			HName: util.RemoveID(entry.Name), Path: assetPath, Updated: entry.Updated,
+		}
+		return nil
+	})
+	return loaded, err
 }

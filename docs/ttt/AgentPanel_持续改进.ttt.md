@@ -27,7 +27,8 @@
 
 ## 近期计划
 
-- [ ] **Agent Dock 增加“在 Tab 页签中打开”能力**
+- [-] **Agent Dock 增加"在 Tab 页签中打开"能力**
+  - 2026-08-07 进行中：已具备"复制当前会话到 Tab"（open-as-tab）；本次补充"在标签页新建"空白会话面板，通过扩展 `tabOpen` Port 协议（`mode: "copy" | "new"`）与 `AgentChat.createFloatingCopy({blankSession})` 实现，纯前端改动，不涉及后端。
   - **背景**：当前 Agent Panel 可以作为 Dock 和非模态浮窗使用，但缺少标准布局 Tab 宿主；用户无法把 Agent 工作区放入正常页签区，与文档编辑器并列使用。
   - **协议设计**：在 Layout 层定义独立的 Dock-to-Tab 能力请求（建议包含稳定 Dock/Tab 句柄、来源、会话 ID 和打开策略），必要时提供类型化请求事件作为无宿主回退；不要直接从 AgentChat 导入 `Wnd/Layout` 具体实现。
   - **副本语义**：默认创建独立的普通 `Tab` 和独立 `AgentChat`，原 Agent Dock 保持可见且可继续使用；副本从 `SessionStore` 加载一致的会话快照，后续输入、流式响应和关闭均拥有独立生命周期。

@@ -1,19 +1,17 @@
 /** 用途：访问跨入口共享的宿主 Port；使用范围：读取和写入页签 Dialog 浮窗能力；解耦评估：状态访问集中在 Symbol 注册表，不能由菜单参数替代，否则会重新引入具体宿主依赖。 */
-/** 用途：读取当前宿主浮窗能力状态；使用范围：Port 查询；解耦评估：仅通过全局 Symbol 访问，避免依赖具体宿主。 */
-import {getSForgeState} from "../config/sforge.global";
-/** 用途：写入当前宿主浮窗能力状态；使用范围：完整 App 或独立宿主注册/清理；解耦评估：注册表是运行时边界，具体实现不进入菜单。 */
-import {setSForgeState} from "../config/sforge.global";
-/** 用途：提供页签浮窗 Port 的全局 Symbol；使用范围：完整 App 与独立宿主注册/清理能力；解耦评估：Symbol 是运行时边界契约，保持稳定比直接依赖 Dialog 实现更低耦合。 */
-import {SForgeSymbols} from "../config/sforge.symbols";
-/** 用途：声明菜单请求接收的 Tab 句柄；使用范围：Port 调用边界；解耦评估：type-only 导入被擦除，运行时由事件或宿主实现处理。 */
+/** 用途：布局 Port 状态读取。使用范围：布局能力模块；解耦评估：经同层 gateway 暴露全局状态访问，避免业务文件跨目录导入。 */
+import {getSForgeState} from "./imports";
+/** 用途：布局 Port 状态写入。使用范围：布局组合根注册能力；解耦评估：经同层 gateway 隔离全局存储实现。 */
+import {setSForgeState} from "./imports";
+/** 用途：布局 Port Symbol 键。使用范围：拖拽等宿主能力注册；解耦评估：经同层 gateway 转发稳定身份键。 */
+import {SForgeSymbols} from "./imports";
+/** 用途：声明菜单请求接收的 Tab 句柄；使用范围：Port 调用边界；解耦评估：type-only 导入被擦除，运行时由宿主实现处理。 */
 import type {ILayoutTabHandle} from "./tabFloat.types";
-/** 用途：共享浮窗 Port 与事件载荷类型；使用范围：菜单、完整 App 适配器和外部宿主；解耦评估：纯类型依赖，事件载荷不携带 DOM/具体 Dialog。 */
-import type {ILayoutTabFloatPort, ILayoutTabFloatRequest} from "./tabFloat.types";
-/** 用途：提供经过 Zod 校验的共享请求事件；使用范围：无 Port 时的外部宿主委托；解耦评估：事件工厂隔离发射器实例，Port 层不直接实例化第三方对象。 */
-import {tabFloatEvents} from "./tabFloat.events.factory";
+/** 用途：共享浮窗 Port 类型；使用范围：菜单、完整 App 适配器和外部宿主；解耦评估：纯类型依赖。 */
+import type {ILayoutTabFloatPort} from "./tabFloat.types";
 
-/** 导出浮窗能力和请求事件的公共类型。 */
-export type {ILayoutTabFloatPort, ILayoutTabFloatRequest} from "./tabFloat.types";
+/** 导出浮窗能力公共类型。 */
+export type {ILayoutTabFloatPort} from "./tabFloat.types";
 
 /** 获取当前宿主的页签浮窗能力。 */
 /** @同步豁免: 生命周期 - 菜单点击前必须同步读取当前宿主能力，不能通过异步事件延迟读取注册状态。 */
@@ -34,34 +32,16 @@ export const resetLayoutTabFloatPort = () => {
     setSForgeState(SForgeSymbols.TAB_FLOAT_PORT, undefined);
 };
 
-/** 订阅未注册宿主时的页签浮窗请求。 */
-/** @同步豁免: 生命周期 - 订阅必须立即返回取消函数，才能由宿主掌握监听器生命周期。 */
-// @柯里化
-export const subscribeTabFloatRequest = (listener: (request: ILayoutTabFloatRequest) => void | Promise<void>) =>
-    tabFloatEvents.subscribe("tab-open-as-dialog-requested", listener);
-
-/** 发出不携带 DOM 句柄的稳定浮窗请求，供 Port 未处理或未注册时复用。 */
-// @柯里化
-const emitTabFloatRequest = (tab: ILayoutTabHandle) => tabFloatEvents.emit("tab-open-as-dialog-requested", {
-    tabId: tab.id,
-    title: tab.title || "",
-    source: "tab-menu",
-});
-
 /**
  * 请求将页签作为副本放入 Dialog 浮窗。
- * 已注册能力优先执行；没有能力时通过类型化事件交给外部宿主。
+ * 已注册能力优先执行；宿主未注册或拒绝处理时返回 false，由调用方决定行为。
  */
-/** @同步豁免: UI构建 - 菜单动作必须在菜单关闭前同步发起宿主能力或事件请求，避免丢失当前 Tab 句柄。 */
+/** @同步豁免: UI构建 - 菜单动作必须在菜单关闭前同步发起宿主能力请求，避免丢失当前 Tab 句柄。 */
 export const requestOpenTabAsDialog = (tab: ILayoutTabHandle) => {
     const port = getLayoutTabFloatPort();
-    const result = port?.open(tab);
-    if (result instanceof Promise) {
-        return result.then((handled) => handled === false ? emitTabFloatRequest(tab) : handled);
+    // 注册表状态可能未写入任何宿主能力，先通过 in 守卫把联合类型收窄到具备 open 的 Port。
+    if (port !== undefined && typeof port === "object" && "open" in port) {
+        return port.open(tab);
     }
-    if (port && result !== false) {
-        return result;
-    }
-
-    return emitTabFloatRequest(tab);
+    return false;
 };

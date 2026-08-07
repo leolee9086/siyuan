@@ -1,4 +1,5 @@
 {
+    "openNewAgentInTab": "新しいタブで新規作成",
     "agentQueuePending": "保留中",
     "agentQueueInjecting": "送信中",
     "agentQueueBlocked": "ブロック済み",

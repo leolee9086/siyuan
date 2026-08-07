@@ -3,7 +3,6 @@ package assetmeta
 import (
 	"image"
 	"math"
-	"os"
 	"sort"
 )
 
@@ -409,22 +408,9 @@ func clamp(v int) int {
 	return v
 }
 
-// ExtractPaletteFromImage 从图像文件提取调色板
-// 使用缩略图进行降采样以提升性能
-func ExtractPaletteFromImage(imgPath string, colorCount int) ([]Palette, error) {
-	// 打开图片
-	f, err := os.Open(imgPath)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	// 解码图片
-	img, _, err := image.Decode(f)
-	if err != nil {
-		return nil, err
-	}
-
+// ExtractPaletteFromDecodedImage 从已解码的内存图像提取调色板。
+// 文件打开和解码由绑定根文件系统模块负责，本函数只保留纯色彩计算。
+func ExtractPaletteFromDecodedImage(img image.Image, colorCount int) []Palette {
 	// 如果图片太大，进行降采样
 	bounds := img.Bounds()
 	width := bounds.Dx()
@@ -436,7 +422,7 @@ func ExtractPaletteFromImage(imgPath string, colorCount int) ([]Palette, error) 
 		img = downsampleImage(img, maxDim)
 	}
 
-	return extractPalette(img, colorCount), nil
+	return extractPalette(img, colorCount)
 }
 
 // ExtractPaletteFromRGBA 直接从 RGBA 图像提取调色板
