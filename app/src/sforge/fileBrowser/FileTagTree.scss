@@ -1,8 +1,8 @@
 .sforge-file-tag-tree {
     display: flex;
-    flex: none;
+    flex: 1;
     min-width: 0;
-    max-height: 34%;
+    min-height: 0;
     border-bottom: 1px solid var(--b3-border-color);
     flex-direction: column;
 }
@@ -37,6 +37,15 @@
     background: var(--b3-theme-secondary);
 }
 
+.sforge-file-tag-tree__row--removed {
+    color: var(--b3-theme-error);
+}
+
+.sforge-file-tag-tree__row--dragover {
+    outline: 1px solid var(--b3-theme-primary);
+    background: var(--b3-theme-secondary);
+}
+
 .sforge-file-tag-tree__toggle {
     flex: none;
     width: 22px;
@@ -63,6 +72,13 @@
     flex: none;
     color: var(--b3-theme-on-surface);
     font-size: 10px;
+}
+
+.sforge-file-tag-tree__delete {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    color: var(--b3-theme-error);
 }
 
 .sforge-file-tag-tree__children {

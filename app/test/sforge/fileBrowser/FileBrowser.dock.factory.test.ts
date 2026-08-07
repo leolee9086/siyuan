@@ -8,6 +8,7 @@ const dockSpies = vi.hoisted(() => ({
 
 vi.mock("../../../src/sforge/fileBrowser/FileBrowserPanel.vue", () => ({default: {name: "FileBrowserPanel"}}));
 vi.mock("../../../src/sforge/fileBrowser/FilePropertiesPanel.vue", () => ({default: {name: "FilePropertiesPanel"}}));
+vi.mock("../../../src/sforge/fileBrowser/FileTagTreeDock.vue", () => ({default: {name: "FileTagTreeDock"}}));
 vi.mock("../../../src/sforge/fileBrowser/FileBrowser.preview", () => ({registerFileBrowserPreviewTab: vi.fn()}));
 vi.mock("../../../src/sforge/fileBrowser/dock/imports", () => ({
     Custom: class {
@@ -27,8 +28,10 @@ vi.mock("../../../src/sforge/fileBrowser/dock/imports", () => ({
 import {
     createFileBrowserDockModel,
     createFilePropertiesDockModel,
+    createFileTagTreeDockModel,
     FILE_BROWSER_DOCK_TYPE,
     FILE_PROPERTIES_DOCK_TYPE,
+    FILE_TAG_TREE_DOCK_TYPE,
 } from "../../../src/sforge/fileBrowser/init";
 
 describe("file browser Dock factory", () => {
@@ -60,16 +63,20 @@ describe("file browser Dock factory", () => {
     it("disposes the browser and properties Vue instances independently", () => {
         createFileBrowserDockModel({} as never, {} as never);
         createFilePropertiesDockModel({} as never, {} as never);
+        createFileTagTreeDockModel({} as never, {} as never);
 
         expect(dockSpies.customOptions.map(options => options.type)).toEqual([
             FILE_BROWSER_DOCK_TYPE,
             FILE_PROPERTIES_DOCK_TYPE,
+            FILE_TAG_TREE_DOCK_TYPE,
         ]);
         const browserClassList = {add: vi.fn()};
         const propertiesClassList = {add: vi.fn()};
+        const tagsClassList = {add: vi.fn()};
         const browser = {element: {classList: browserClassList}, destroy: undefined as (() => void) | undefined};
         const properties = {element: {classList: propertiesClassList}, destroy: undefined as (() => void) | undefined};
-        for (const [index, custom] of [browser, properties].entries()) {
+        const tags = {element: {classList: tagsClassList}, destroy: undefined as (() => void) | undefined};
+        for (const [index, custom] of [browser, properties, tags].entries()) {
             const init = dockSpies.customOptions[index]?.init;
             expect(init).toBeTypeOf("function");
             if (typeof init === "function") {
@@ -79,11 +86,15 @@ describe("file browser Dock factory", () => {
 
         expect(browserClassList.add).toHaveBeenCalledWith("fn__flex-column", "sforge-file-browser-dock");
         expect(propertiesClassList.add).toHaveBeenCalledWith("fn__flex-column", "sforge-file-properties-dock");
-        expect(dockSpies.mount).toHaveBeenCalledTimes(2);
+        expect(tagsClassList.add).toHaveBeenCalledWith("fn__flex-column", "sforge-file-tags-dock");
+        expect(dockSpies.mount).toHaveBeenCalledTimes(3);
         browser.destroy?.();
         expect(dockSpies.unmounts[0]).toHaveBeenCalledOnce();
         expect(dockSpies.unmounts[1]).not.toHaveBeenCalled();
         properties.destroy?.();
         expect(dockSpies.unmounts[1]).toHaveBeenCalledOnce();
+        expect(dockSpies.unmounts[2]).not.toHaveBeenCalled();
+        tags.destroy?.();
+        expect(dockSpies.unmounts[2]).toHaveBeenCalledOnce();
     });
 });

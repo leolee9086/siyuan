@@ -123,6 +123,15 @@ func TestSearchTranslatesSelectedWorkspaceChildPrefixes(t *testing.T) {
 		!reflect.DeepEqual(received.PathPrefixes, []string{"assets/icons", "assets/photos"}) {
 		t.Fatalf("selected child prefixes escaped the workspace data identity: %+v", received)
 	}
+	if _, err := service.Search(context.Background(), assetmeta.SearchRequest{
+		RootIDs: []string{"workspace"}, PathPrefixes: []string{"data/assets/icons", "notes/plans"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(received.RootIDs, []string{"data", "workspace"}) ||
+		!reflect.DeepEqual(received.PathPrefixes, []string{"assets/icons", "notes/plans"}) {
+		t.Fatalf("mixed workspace identities were not preserved: %+v", received)
+	}
 }
 
 func TestTagCountsRejectsUnavailableRootsBeforeIndexAccess(t *testing.T) {

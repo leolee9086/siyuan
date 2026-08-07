@@ -9,6 +9,7 @@
 - `filequery.Service` 负责授权根到索引身份的映射；客户端只能提交稳定 `rootID`，不能提交绝对路径或索引内部 `data` 身份。
 - 工作空间默认查询覆盖 `data + workspace`；显式 `allRoots` 只覆盖当前存在且具备浏览能力的根；失效/越权根返回明确错误。
 - 前端仓储必须验证响应结构、回显根地址映射和分页字段，不能把未校验 JSON 交给视图。
+- `pathPrefix + recursive=false + pathPrefixes` 组合表示“当前目录直接文件 OR 已选子目录递归内容”；混合 workspace `data` 身份和普通 workspace 路径必须合并根映射，不能只保留第一个子目录根。
 
 ## 进度
 
@@ -16,6 +17,7 @@
 - [x] `/api/s-forge/file-browser/search` API handler、路由和错误映射。
 - [x] 前端搜索契约、响应守卫、仓储和竞态控制器。
 - [x] 真实 Vue 挂载测试覆盖标签/颜色组合请求；后端聚焦测试覆盖索引边界和授权根映射。
+- [x] 目录面包屑/子目录选择请求通过共享仓储进入后端，并覆盖直接项、递归项和混合 workspace 根映射边界。
 
 ## 验收证据
 

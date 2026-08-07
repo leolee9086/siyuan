@@ -106,6 +106,12 @@ func TestAdvancedSearchPathScopeHonorsDirectAndSelectedChildDirectories(t *testi
 		t.Fatalf("recursive directory scope returned unexpected results: %+v total=%d err=%v", items, total, err)
 	}
 	items, total, err = SearchAssetsAdvanced(SearchRequest{
+		PathPrefix: "folder", Recursive: &direct, PathPrefixes: []string{"folder/child"}, Limit: 20,
+	})
+	if err != nil || total != 2 || len(items) != 2 {
+		t.Fatalf("direct files plus selected child scope returned unexpected results: %+v total=%d err=%v", items, total, err)
+	}
+	items, total, err = SearchAssetsAdvanced(SearchRequest{
 		PathPrefixes: []string{"folder/child", "folder/other"}, Limit: 20,
 	})
 	if err != nil || total != 2 || len(items) != 2 {

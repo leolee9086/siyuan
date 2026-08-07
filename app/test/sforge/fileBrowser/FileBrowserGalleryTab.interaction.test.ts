@@ -38,6 +38,23 @@ afterEach(() => {
 describe("FileBrowserGalleryTab", () => {
     it("loads a scoped result into the real masonry tab and shares selection/opening", async () => {
         vi.spyOn(fileBrowserRepository, "listRoots").mockResolvedValue([root]);
+zhi        vi.spyOn(fileBrowserRepository, "listDirectory").mockResolvedValue({
+            root,
+            path: "data/assets/icons",
+            entries: [
+                {
+                    name: "sub", path: "data/assets/icons/sub", isDir: true, isSymlink: false,
+                    restricted: false, hidden: false, size: 0, updated: 2,
+                    childFileCount: 2, childDirectoryCount: 1, childCountKnown: true,
+                },
+                {
+                    name: "other", path: "data/assets/icons/other", isDir: true, isSymlink: false,
+                    restricted: false, hidden: false, size: 0, updated: 1,
+                    childFileCount: 1, childDirectoryCount: 0, childCountKnown: true,
+                },
+            ],
+            total: 2, fileCount: 0, directoryCount: 2, offset: 0, limit: 2000, hasMore: false,
+        });
         vi.spyOn(fileBrowserRepository, "statFile").mockResolvedValue({
             root,
             entry: {
@@ -66,6 +83,8 @@ describe("FileBrowserGalleryTab", () => {
         })));
         await vi.waitFor(() => expect(host?.textContent).toContain("hero.png"));
         expect(host?.querySelector(".virtual-masonry-grid-wrapper")).toBeTruthy();
+        expect(host?.textContent).toContain("sub");
+        expect(host?.textContent).toContain("2 文件 / 1 目录");
         expect(host?.textContent).toContain("hero");
         expect(host?.textContent).toContain("★★★");
         expect(host?.textContent).toContain("640 x 480");
@@ -85,10 +104,43 @@ describe("FileBrowserGalleryTab", () => {
         attributes.dispatchEvent(new Event("change", {bubbles: true}));
         await vi.waitFor(() => expect(host?.textContent).toContain("catalog"));
 
+        const recursiveToggle = host?.querySelector<HTMLInputElement>("input[aria-label='显示子路径']");
+        if (!recursiveToggle) {
+            throw new Error("missing recursive scope toggle");
+        }
+        recursiveToggle.checked = false;
+        recursiveToggle.dispatchEvent(new Event("change", {bubbles: true}));
+        await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith(expect.objectContaining({
+            pathPrefix: "data/assets/icons", recursive: false,
+        })));
+
+        recursiveToggle.checked = true;
+        recursiveToggle.dispatchEvent(new Event("change", {bubbles: true}));
+        await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith(expect.objectContaining({
+            pathPrefix: "data/assets/icons", recursive: true,
+        })));
+        const otherToggle = host?.querySelector<HTMLInputElement>("input[aria-label='包含 other']");
+        if (!otherToggle) {
+            throw new Error("missing child scope toggle");
+        }
+        otherToggle.checked = false;
+        otherToggle.dispatchEvent(new Event("change", {bubbles: true}));
+        await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith(expect.objectContaining({
+            pathPrefix: "data/assets/icons", recursive: false,
+            pathPrefixes: ["data/assets/icons/sub"],
+        })));
+
         const card = host?.querySelector<HTMLElement>(".sforge-file-gallery-card");
         const assetCard = card?.querySelector<HTMLElement>(".asset-card");
         expect(card).toBeTruthy();
         expect(assetCard).toBeTruthy();
+        const setData = vi.fn();
+        const dragStart = new Event("dragstart", {bubbles: true});
+        Object.defineProperty(dragStart, "dataTransfer", {
+            value: {effectAllowed: "", setData},
+        });
+        card?.dispatchEvent(dragStart);
+        expect(setData).toHaveBeenCalledWith("application/x-sforge-file", expect.stringContaining("hero.png"));
         assetCard?.dispatchEvent(new MouseEvent("click", {bubbles: true}));
         await vi.waitFor(() => expect(fileBrowserSelection.primaryKey.value).toBe(
             JSON.stringify(["workspace", "data/assets/icons/hero.png"]),

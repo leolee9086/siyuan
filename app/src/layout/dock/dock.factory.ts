@@ -19,8 +19,10 @@ import { createColorToolDockModel } from "../../sforge/colors/init";
 import {
     createFileBrowserDockModel,
     createFilePropertiesDockModel,
+    createFileTagTreeDockModel,
     FILE_BROWSER_DOCK_TYPE,
     FILE_PROPERTIES_DOCK_TYPE,
+    FILE_TAG_TREE_DOCK_TYPE,
 } from "../../sforge/fileBrowser/init";
 import { createIdentityAccessDockModel } from "../../magi/identity-access/adapters/dock.factory";
 import { Tab } from "./imports";
@@ -210,6 +212,7 @@ const MODEL_FACTORIES: Record<string, ModelFactory<AppFacade, Tab, ProtyleDomain
     "sforge-colors": createColorToolDockModel,
     [FILE_BROWSER_DOCK_TYPE]: createFileBrowserDockModel,
     [FILE_PROPERTIES_DOCK_TYPE]: createFilePropertiesDockModel,
+    [FILE_TAG_TREE_DOCK_TYPE]: createFileTagTreeDockModel,
 };
 
 /**

@@ -28,6 +28,8 @@ export interface FileTagPresentation {
 
 export interface FileTagTreeNode extends FileTagPresentation {
     tag: string;
+    /** 标签已经没有任何索引文件引用；与 SAC 的 removed 标签状态对应。 */
+    removed: boolean;
     children: FileTagTreeNode[];
 }
 
@@ -58,4 +60,9 @@ export interface FileTagCountRepository {
 export interface FileTagDefinitionsRepository {
     get(): Promise<FileTagDefinitionsSnapshot>;
     update(update: FileTagDefinitionsUpdate): Promise<FileTagDefinitionsSnapshot>;
+}
+
+/** 标签拖放写入端口；只接受已由文件浏览器授权的根内地址。 */
+export interface FileTagMutationRepository {
+    add(requests: FileBrowserFileRequest[], tag: string): Promise<void>;
 }

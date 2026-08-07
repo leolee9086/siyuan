@@ -8,6 +8,8 @@ import {
 import FileBrowserPanel from "./FileBrowserPanel.vue";
 /** 用途：共享选择驱动的文件属性面板；使用范围：独立属性 Dock。 */
 import FilePropertiesPanel from "./FilePropertiesPanel.vue";
+/** 用途：独立标签树 Dock 宿主；使用范围：资源管理侧栏标签面板。 */
+import FileTagTreeDock from "./FileTagTreeDock.vue";
 /** 用途：注册只读文件预览页签；使用范围：布局恢复和文件打开。 */
 import {registerFileBrowserPreviewTab} from "./FileBrowser.preview";
 /** 用途：注册独立文件瀑布流页签；使用范围：内建文件浏览初始化。 */
@@ -15,9 +17,13 @@ import {registerFileBrowserGalleryTab} from "./FileBrowser.gallery";
 /** 用途：应用和页签宿主类型；使用范围：Dock 工厂参数。 */
 import type {AppFacade, CustomDomain, Tab} from "./dock/imports";
 /** 用途：文件浏览领域的 Dock 身份；使用范围：模型工厂和布局注册。 */
-import {FILE_BROWSER_DOCK_TYPE, FILE_PROPERTIES_DOCK_TYPE} from "./FileBrowser.docks";
+import {
+    FILE_BROWSER_DOCK_TYPE,
+    FILE_PROPERTIES_DOCK_TYPE,
+    FILE_TAG_TREE_DOCK_TYPE,
+} from "./FileBrowser.docks";
 
-export {FILE_BROWSER_DOCK_TYPE, FILE_PROPERTIES_DOCK_TYPE};
+export {FILE_BROWSER_DOCK_TYPE, FILE_PROPERTIES_DOCK_TYPE, FILE_TAG_TREE_DOCK_TYPE};
 
 registerFileBrowserPreviewTab();
 registerFileBrowserGalleryTab();
@@ -68,5 +74,30 @@ export function createFilePropertiesDockModel(app: AppFacade, tab: Tab) {
         type: FILE_PROPERTIES_DOCK_TYPE,
         data: {},
         init: initFilePropertiesDock,
+    });
+}
+
+/** 将独立标签树挂载到既有 Custom model，标签结果仍打开共享瀑布流页签。 */
+function initFileTagTreeDock(custom: CustomDomain) {
+    if (!isHTMLElement(custom.element)) {
+        return;
+    }
+    custom.element.classList.add("fn__flex-column", "sforge-file-tags-dock");
+    const vueApp = createVueComponentLoader(custom.element, {
+        components: {FileTagTreeDock},
+        data: {app: custom.app},
+        template: "<FileTagTreeDock :app=\"app\" />",
+    });
+    custom.destroy = () => vueApp.unmount();
+}
+
+/** 创建独立文件标签 Dock model，避免标签树嵌入任务目录树。 */
+export function createFileTagTreeDockModel(app: AppFacade, tab: Tab) {
+    return new Custom({
+        app,
+        tab,
+        type: FILE_TAG_TREE_DOCK_TYPE,
+        data: {},
+        init: initFileTagTreeDock,
     });
 }

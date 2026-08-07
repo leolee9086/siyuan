@@ -7,7 +7,7 @@
             </div>
             <span class="fn__flex-1" />
             <button type="button" class="block__icon ariaLabel" aria-label="重新查询"
-                :disabled="loading" @click="runScopedSearch">
+                :disabled="loading" @click="() => runScopedSearch()">
                 <svg :class="{'fn__rotate': loading}"><use href="#iconRefresh" /></svg>
             </button>
         </header>
@@ -29,12 +29,13 @@
             </label>
         </div>
 
-        <div class="sforge-file-gallery__scope" :title="scopeTitle">
-            <svg><use href="#iconFolder" /></svg>
-            <span>{{ scopeTitle }}</span>
-        </div>
+        <FileBrowserGalleryScope v-if="!isAllRoots" :root="scopeRoot" :path="scopePath"
+            :entries="scopeEntries" :include-subfolders="includeSubfolders"
+            :selected-subfolder-paths="selectedSubfolderPaths" :loading="scopeLoading" :error="scopeError"
+            @navigate="navigateScope" @toggle-recursive="toggleRecursive"
+            @toggle-subfolder="toggleSubfolder" @refresh="refreshScope" />
 
-        <FileBrowserSearchPanel :roots="roots" :loading="loading" :error="error" :scope="file"
+        <FileBrowserSearchPanel :roots="roots" :loading="loading" :error="error" :scope="scope"
             :available-extensions="availableExtensions" :initial-request="file.query"
             @search="runSearch" @clear="clearSearch" />
 
@@ -53,7 +54,7 @@
             </div>
             <div v-else-if="rootsError || error" class="sforge-file-gallery__state sforge-file-gallery__state--error">
                 <span>{{ rootsError || error }}</span>
-                <button type="button" class="b3-button b3-button--text" @click="runScopedSearch">重试</button>
+                <button type="button" class="b3-button b3-button--text" @click="() => runScopedSearch()">重试</button>
             </div>
             <div v-else class="sforge-file-gallery__state">
                 <svg><use href="#iconAssets" /></svg>
@@ -72,6 +73,7 @@
 import {computed, onBeforeUnmount, onMounted, ref} from "vue";
 import VirtualMasonryGrid from "../../components/masonry/components/VirtualMasonryGrid.vue";
 import FileBrowserSearchPanel from "./FileBrowserSearchPanel.vue";
+import FileBrowserGalleryScope from "./FileBrowserGalleryScope.vue";
 import FileBrowserGalleryCard from "./FileBrowserGalleryCard.vue";
 import {fileBrowserRepository} from "./FileBrowser.repository";
 import {fileBrowserQueryRepository} from "./FileBrowser.query.repository";
@@ -84,7 +86,7 @@ import {
     FILE_BROWSER_GALLERY_DEFAULT_ATTRIBUTES,
 } from "./FileBrowser.gallery.constants";
 import type {AppFacade} from "./dock/imports";
-import type {FileBrowserGalleryTabData, FileBrowserRoot} from "./FileBrowser.types";
+import type {FileBrowserEntry, FileBrowserGalleryTabData, FileBrowserRoot} from "./FileBrowser.types";
 import type {FileBrowserAssetResult, FileBrowserSearchRequest} from "./FileBrowser.query.types";
 import type {FileBrowserGalleryAttribute} from "./FileBrowser.gallery.constants";
 
@@ -100,17 +102,22 @@ const props = defineProps<{
 const roots = ref<FileBrowserRoot[]>([]);
 const rootsLoading = ref(false);
 const rootsError = ref("");
+const scopePath = ref(props.file.path);
+const scopeEntries = ref<FileBrowserEntry[]>([]);
+const scopeLoading = ref(false);
+const scopeError = ref("");
+const includeSubfolders = ref(true);
+const selectedSubfolderPaths = ref<string[]>([]);
+let scopeRevision = 0;
 const selectedKey = ref("");
 const columnWidth = ref(typeof window !== "undefined" && window.innerWidth < 768 ? 150 : 220);
 const selectedAttributes = ref<FileBrowserGalleryAttribute[]>([...FILE_BROWSER_GALLERY_DEFAULT_ATTRIBUTES]);
 const search = useFileBrowserSearch(fileBrowserQueryRepository);
 const {result, loading, error} = search;
 const openEntry = createFileBrowserEntryOpener(props.app, fileBrowserRepository);
-const scopeTitle = computed(() => {
-    const root = roots.value.find(item => item.id === props.file.rootID);
-    const path = props.file.path.replaceAll("/", "\\");
-    return path ? `${root?.path ?? root?.label ?? props.file.rootID}\\${path}` : (root?.path ?? props.file.name);
-});
+const isAllRoots = computed(() => Boolean(props.file.query?.allRoots));
+const scopeRoot = computed(() => roots.value.find(root => root.id === props.file.rootID));
+const scope = computed(() => ({rootID: props.file.rootID, path: scopePath.value}));
 const hasQuery = computed(() => result.value.totalCount > 0 || loading.value || Boolean(error.value));
 const galleryAssets = computed<GalleryAsset[]>(() => result.value.assets.map(asset => ({
     ...asset,
@@ -136,11 +143,26 @@ function estimateItemHeight(asset: GalleryAsset, width = columnWidth.value) {
 
 function scopedRequest(request: FileBrowserSearchRequest): FileBrowserSearchRequest {
     const next = {...request, limit: request.limit ?? 200, offset: request.offset ?? 0};
-    if (!next.allRoots && (!next.rootIDs || next.rootIDs.length === 0)) {
+    if (next.allRoots || isAllRoots.value) {
+        return next;
+    }
+    if (!next.rootIDs || next.rootIDs.length === 0) {
         next.rootIDs = [props.file.rootID];
     }
-    if (!next.allRoots && next.pathPrefix === undefined && props.file.path) {
-        next.pathPrefix = props.file.path;
+    next.pathPrefix = scopePath.value;
+    if (!includeSubfolders.value) {
+        next.recursive = false;
+        delete next.pathPrefixes;
+    } else {
+        const childPaths = scopeEntries.value.filter(entry => entry.isDir).map(entry => entry.path);
+        const selected = new Set(selectedSubfolderPaths.value);
+        if (childPaths.length > 0 && selected.size < childPaths.length) {
+            next.recursive = false;
+            next.pathPrefixes = childPaths.filter(path => selected.has(path));
+        } else {
+            next.recursive = true;
+            delete next.pathPrefixes;
+        }
     }
     return next;
 }
@@ -150,7 +172,7 @@ function runSearch(request: FileBrowserSearchRequest) {
 }
 
 function runScopedSearch(includeInitialQuery = true) {
-    const request = includeInitialQuery && props.file.query ?
+    const request: FileBrowserSearchRequest = includeInitialQuery && props.file.query ?
         {...props.file.query, orderBy: props.file.query.orderBy ?? "updated"} : {orderBy: "updated"};
     runSearch(request);
 }
@@ -158,6 +180,83 @@ function runScopedSearch(includeInitialQuery = true) {
 function clearSearch() {
     search.clear();
     runScopedSearch(false);
+}
+
+function childDirectoryPaths() {
+    return scopeEntries.value.filter(entry => entry.isDir).map(entry => entry.path);
+}
+
+function selectAllSubfolders() {
+    selectedSubfolderPaths.value = childDirectoryPaths();
+}
+
+async function loadScope() {
+    if (isAllRoots.value) {
+        return;
+    }
+    const revision = ++scopeRevision;
+    scopeLoading.value = true;
+    scopeError.value = "";
+    try {
+        const page = await fileBrowserRepository.listDirectory({
+            rootID: props.file.rootID,
+            path: scopePath.value,
+            offset: 0,
+            limit: 2000,
+            sortBy: "name",
+            sortDirection: "asc",
+            directoriesFirst: true,
+            includeChildCounts: true,
+        });
+        if (revision !== scopeRevision) {
+            return;
+        }
+        scopeEntries.value = page.entries;
+        if (includeSubfolders.value) {
+            selectAllSubfolders();
+        }
+    } catch (reason) {
+        if (revision === scopeRevision) {
+            scopeError.value = reason instanceof Error ? reason.message : String(reason);
+            scopeEntries.value = [];
+            selectedSubfolderPaths.value = [];
+        }
+    } finally {
+        if (revision === scopeRevision) {
+            scopeLoading.value = false;
+        }
+    }
+}
+
+function navigateScope(path: string) {
+    scopePath.value = path.replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
+    selectedSubfolderPaths.value = [];
+    void loadScope().then(() => runScopedSearch(false));
+}
+
+function toggleRecursive(enabled: boolean) {
+    includeSubfolders.value = enabled;
+    if (enabled) {
+        selectAllSubfolders();
+    } else {
+        selectedSubfolderPaths.value = [];
+    }
+    runScopedSearch(false);
+}
+
+function toggleSubfolder(path: string) {
+    const selected = new Set(selectedSubfolderPaths.value);
+    if (selected.has(path)) {
+        selected.delete(path);
+    } else {
+        selected.add(path);
+    }
+    selectedSubfolderPaths.value = childDirectoryPaths().filter(childPath => selected.has(childPath));
+    runScopedSearch(false);
+}
+
+function refreshScope() {
+    void loadScope().then(() => runScopedSearch(false));
 }
 
 function selectAsset(asset: FileBrowserAssetResult) {
@@ -187,6 +286,7 @@ async function loadRoots() {
 
 onMounted(async () => {
     await loadRoots();
+    await loadScope();
     runScopedSearch();
 });
 

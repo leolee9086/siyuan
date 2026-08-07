@@ -57,10 +57,10 @@ export function createTagPresentation(definition: FileTagDefinition | undefined,
 export function createFileTagTreeNodes(counts: FileTagCount[], definitions: FileTagDefinition[]) {
     const definitionsByName = new Map(definitions.map(definition => [normalizeName(definition.name), definition]));
     const roots = new Map<string, FileTagTreeNode>();
-    for (const item of counts) {
-        const parts = item.name.split("/").map(part => part.trim()).filter(Boolean);
+    const ensurePath = (rawTag: string) => {
+        const parts = rawTag.split("/").map(part => part.trim()).filter(Boolean);
         if (parts.length === 0) {
-            continue;
+            return undefined;
         }
         let parent: FileTagTreeNode | undefined;
         let fullName = "";
@@ -72,6 +72,7 @@ export function createFileTagTreeNodes(counts: FileTagCount[], definitions: File
                 node = {
                     ...createTagPresentation(definitionsByName.get(normalizeName(fullName)), part, 0),
                     tag: fullName,
+                    removed: false,
                     children: [],
                 };
                 if (parent) {
@@ -80,16 +81,38 @@ export function createFileTagTreeNodes(counts: FileTagCount[], definitions: File
                     roots.set(fullName, node);
                 }
             }
-            if (fullName === item.name.trim()) {
-                node.count = item.count;
-            }
             parent = node;
         }
+        return parent;
+    };
+
+    // Keep configured-but-unreferenced tags visible so the tree can expose the same
+    // removed-tag cleanup affordance as SACAssetsManager.
+    for (const definition of definitions) {
+        const node = ensurePath(definition.name);
+        if (node) {
+            node.removed = true;
+        }
     }
-    return [...roots.values()].sort(compareTagNodes);
+    const aggregatedCounts = new Map<string, FileTagCount>();
+    for (const item of counts) {
+        const key = normalizeName(item.name);
+        const current = aggregatedCounts.get(key);
+        aggregatedCounts.set(key, {name: current?.name ?? item.name.trim(), count: (current?.count ?? 0) + item.count});
+    }
+    for (const item of aggregatedCounts.values()) {
+        const node = ensurePath(item.name);
+        if (node) {
+            node.count = item.count;
+            node.removed = false;
+        }
+    }
+    return [...roots.values()].sort(sortTagNodes);
 }
 
-function compareTagNodes(left: FileTagTreeNode, right: FileTagTreeNode) {
+function sortTagNodes(left: FileTagTreeNode, right: FileTagTreeNode) {
+    left.children.sort(sortTagNodes);
+    right.children.sort(sortTagNodes);
     return left.name.localeCompare(right.name);
 }
 

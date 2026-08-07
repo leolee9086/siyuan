@@ -103,9 +103,9 @@ const props = defineProps<{
     roots: FileBrowserRoot[];
     loading: boolean;
     error: string;
-    scope?: {rootID: string; path: string};
+    scope: {rootID: string; path: string} | undefined;
     availableExtensions?: readonly string[];
-    initialRequest?: FileBrowserSearchRequest;
+    initialRequest: FileBrowserSearchRequest | undefined;
 }>();
 
 const emit = defineEmits<{

@@ -72,14 +72,13 @@ describe("file browser panel interaction", () => {
         document.body.append(host);
         mountedApp = createApp(FileBrowserPanel, {
             app: {openAsset: vi.fn(), openTab},
-            tagCountRepository: {list: vi.fn().mockResolvedValue([])},
-            tagDefinitionsRepository: {get: vi.fn().mockResolvedValue({revision: "", items: []})},
         });
         mountedApp.mount(host);
 
         await vi.waitFor(() => expect(host?.querySelectorAll(".sforge-file-tree__row--root")).toHaveLength(2));
         expect(host.textContent).toContain("D:\\workspace");
         expect(host.textContent).toContain("D:\\tasks\\alpha");
+        expect(host.querySelector(".sforge-file-tag-tree")).toBeNull();
         expect(listDirectory).toHaveBeenCalledTimes(1);
         expect(listDirectory).toHaveBeenCalledWith(expect.objectContaining({rootID: "workspace", path: ""}));
 

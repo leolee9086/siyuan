@@ -35,8 +35,6 @@
             <span class="sforge-file-browser__root-count">{{ roots.length }} 个文件根</span>
         </div>
 
-        <FileTagTreePanel :count-repository="props.tagCountRepository"
-            :definitions-repository="props.tagDefinitionsRepository" @open-tag="openTagResults" />
         <main class="sforge-file-browser__content">
             <div v-if="loadingRoots && rootNodes.length === 0" class="sforge-file-browser__state">
                 <svg class="fn__rotate"><use href="#iconRefresh" /></svg>
@@ -80,8 +78,6 @@ import {computed, nextTick, onBeforeUnmount, onMounted} from "vue";
 import {useFileBrowser} from "./useFileBrowser";
 /** 用途：文件树组合组件；使用范围：常驻多根递归树和树级交互。 */
 import FileBrowserTree from "./FileBrowserTree.vue";
-/** 用途：参考资源管理器的标签树；使用范围：文件树 Dock 的标签结果导航。 */
-import FileTagTreePanel from "./FileTagTreePanel.vue";
 /** 用途：排序字段守卫；使用范围：DOM 选择值边界。 */
 import {isFileBrowserSortField} from "./FileBrowser.guards";
 /** 用途：默认仓储与应用绑定打开端口；使用范围：真实 Dock 控制器组合。 */
@@ -92,12 +88,9 @@ import {showFileBrowserTreeNodeMenu} from "./FileBrowser.menu";
 /** 用途：应用宿主与树节点类型；使用范围：组件参数和事件。 */
 import type {AppFacade} from "./dock/imports";
 import type {FileBrowserTreeNode as TreeNode} from "./FileBrowser.types";
-import type {FileTagCountRepository, FileTagDefinitionsRepository} from "./FileTags.types";
 
 const props = defineProps<{
     app: AppFacade;
-    tagCountRepository?: FileTagCountRepository;
-    tagDefinitionsRepository?: FileTagDefinitionsRepository;
 }>();
 const openEntry = createFileBrowserEntryOpener(props.app, fileBrowserRepository);
 const openDirectory = createFileBrowserDirectoryOpener(props.app);
@@ -147,21 +140,6 @@ function openSelectedDirectory() {
     if (node && node.kind !== "file") {
         void openNode(node);
     }
-}
-
-/** 将标签节点转换成同一画廊页签的后端查询描述，避免复制结果渲染逻辑。 */
-function openTagResults(tag: string) {
-    void props.app.openTab({
-        custom: {
-            title: `标签: ${tag}`,
-            icon: "iconTags",
-            id: "sforge-file-gallery",
-            data: {
-                rootID: "workspace", path: "", name: `标签: ${tag}`,
-                query: {allRoots: true, tags: [tag], matchAllTags: true, orderBy: "updated"},
-            },
-        },
-    });
 }
 
 async function handleNodeKeydown(payload: {event: KeyboardEvent; node: TreeNode}) {

@@ -638,8 +638,7 @@ func buildSearchSQL(req SearchRequest) searchSQL {
 	addTextAndTagSearchConditions(&query, req)
 	addNumericSearchConditions(&query, req)
 	addExtensionSearchConditions(&query, req.Exts)
-	addPathPrefixSearchCondition(&query, req.PathPrefix, recursiveSearch(req))
-	addPathPrefixesSearchCondition(&query, req.PathPrefixes)
+	addPathScopeSearchConditions(&query, req)
 	addPaletteSearchConditions(&query, req.Palette)
 	return query
 }
@@ -683,6 +682,65 @@ func addPathPrefixesSearchCondition(query *searchSQL, prefixes []string) {
 	if len(conditions) > 0 {
 		query.add("("+strings.Join(conditions, " OR ")+")", args...)
 	}
+}
+
+// addPathScopeSearchConditions combines the current directory and selected
+// child directories as one OR scope. This keeps direct files visible when a
+// user excludes one or more child folders from a recursive gallery query.
+func addPathScopeSearchConditions(query *searchSQL, req SearchRequest) {
+	if len(req.PathPrefixes) == 0 {
+		if condition, args, ok := pathPrefixCondition(req.PathPrefix, recursiveSearch(req)); ok {
+			query.add(condition, args...)
+		}
+		return
+	}
+
+	conditions := make([]string, 0, len(req.PathPrefixes)+1)
+	args := make([]any, 0, len(req.PathPrefixes)+2)
+	if condition, prefixArgs, ok := pathPrefixCondition(req.PathPrefix, recursiveSearch(req)); ok {
+		conditions = append(conditions, condition)
+		args = append(args, prefixArgs...)
+	}
+	for _, raw := range req.PathPrefixes {
+		prefix := normalizeSearchPathPrefix(raw)
+		if prefix == "" {
+			continue
+		}
+		escaped := escapeSearchPathPrefix(prefix)
+		conditions = append(conditions, "m.path LIKE ? ESCAPE '\\'")
+		args = append(args, escaped+"/%")
+	}
+	if len(conditions) > 0 {
+		query.add("("+strings.Join(conditions, " OR ")+")", args...)
+	}
+}
+
+func pathPrefixCondition(raw string, recursive bool) (string, []any, bool) {
+	prefix := normalizeSearchPathPrefix(raw)
+	if prefix == "" {
+		if !recursive {
+			return `m.path NOT LIKE ? ESCAPE '\\'`, []any{"%/%"}, true
+		}
+		return "", nil, false
+	}
+	escaped := escapeSearchPathPrefix(prefix)
+	if recursive {
+		return "m.path LIKE ? ESCAPE '\\'", []any{escaped + "/%"}, true
+	}
+	return "(m.path LIKE ? ESCAPE '\\' AND m.path NOT LIKE ? ESCAPE '\\')",
+		[]any{escaped + "/%", escaped + "/%/%"}, true
+}
+
+func normalizeSearchPathPrefix(raw string) string {
+	prefix := strings.Trim(strings.ReplaceAll(raw, "\\", "/"), "/")
+	if prefix == "." {
+		return ""
+	}
+	return prefix
+}
+
+func escapeSearchPathPrefix(prefix string) string {
+	return strings.NewReplacer("\\", "\\\\", "%", "\\%", "_", "\\_").Replace(prefix)
 }
 
 func addRootSearchConditions(query *searchSQL, req SearchRequest) {

@@ -1,6 +1,6 @@
 <template>
     <article class="sforge-file-gallery-card" :class="{'sforge-file-gallery-card--selected': selected}"
-        @dblclick.stop="emit('open', asset)">
+        draggable="true" @dragstart.stop="handleDragStart" @dblclick.stop="emit('open', asset)">
         <AssetCard :item="cardItem" :is-selected="selected" @select="emit('select', asset)" />
         <div class="sforge-file-gallery-card__meta">
             <span class="sforge-file-gallery-card__path" :title="asset.path">{{ assetName }}</span>
@@ -60,6 +60,17 @@ const cardItem = computed<AssetItem>(() => ({
 
 function rgb(color: [number, number, number]) {
     return `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+}
+
+function handleDragStart(event: DragEvent) {
+    if (!event.dataTransfer) {
+        return;
+    }
+    event.dataTransfer.effectAllowed = "copy";
+    event.dataTransfer.setData("application/x-sforge-file", JSON.stringify({
+        rootID: props.asset.rootID, path: props.asset.path, kind: "file", name: assetName.value,
+    }));
+    event.dataTransfer.setData("text/plain", props.asset.path);
 }
 </script>
 

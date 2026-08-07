@@ -1,6 +1,7 @@
 import {describe, expect, it} from "vitest";
 import {
     createPerFileTagPresentations,
+    createFileTagTreeNodes,
     createTagPresentations,
     fallbackTagColor,
 } from "../../../src/sforge/fileBrowser/FileTags.presentation";
@@ -56,5 +57,16 @@ describe("file tag presentation", () => {
         expect(perFile).toHaveLength(2);
         expect(perFile[0]?.request).toEqual({rootID: "workspace", path: "one.md"});
         expect(perFile[0]?.tags.map(tag => tag.name)).toEqual(["Blue", "Review"]);
+    });
+
+    it("keeps configured orphan tags visible and merges case variants in the tree", () => {
+        const nodes = createFileTagTreeNodes(
+            [{name: "Review", count: 2}, {name: "review", count: 3}, {name: "ui/icons", count: 1}],
+            [{name: "orphan", color: "#FF0000"}],
+        );
+        expect(nodes.map(node => node.tag)).toEqual(["orphan", "Review", "ui"]);
+        expect(nodes.find(node => node.tag === "orphan")).toMatchObject({removed: true, count: 0});
+        expect(nodes.find(node => node.tag === "Review")).toMatchObject({removed: false, count: 5});
+        expect(nodes.find(node => node.tag === "ui")?.children[0]).toMatchObject({tag: "ui/icons", count: 1});
     });
 });

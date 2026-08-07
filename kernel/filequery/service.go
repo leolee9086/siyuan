@@ -141,14 +141,15 @@ func scopePathPrefix(requested []string, allRoots bool, prefix string, resolved 
 }
 
 func scopePathPrefixes(requested []string, allRoots bool, prefixes []string, resolved []string) ([]string, []string) {
-	resultRoots := resolved
+	resultRoots := make([]string, 0, len(resolved))
 	result := make([]string, 0, len(prefixes))
-	for index, prefix := range prefixes {
+	for _, prefix := range prefixes {
 		roots, scoped := scopePathPrefix(requested, allRoots, prefix, resultRoots)
-		if index == 0 {
-			resultRoots = roots
-		}
+		resultRoots = uniqueRoots(append(resultRoots, roots...))
 		result = append(result, scoped)
+	}
+	if len(resultRoots) == 0 {
+		resultRoots = resolved
 	}
 	return resultRoots, result
 }

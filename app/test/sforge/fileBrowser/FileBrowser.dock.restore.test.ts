@@ -70,7 +70,7 @@ describe("file browser Dock layout recovery", () => {
         resetRegistry();
     });
 
-    it("restores both missing types to their declared columns with the complete layout template", () => {
+    it("restores all missing file-browser types to their declared columns with the complete layout template", () => {
         const data: Config.IUILayoutDockTab[][] = [[layoutItem("file")], [layoutItem("bookmark")]];
         const dock = createDock("Left");
 
@@ -89,14 +89,15 @@ describe("file browser Dock layout recovery", () => {
     it("keeps the first persisted occurrence and removes same-position duplicates across columns", () => {
         const browser = createFileBrowserDockLayoutItem(FILE_BROWSER_DOCK_DEFINITIONS[0]);
         const properties = createFileBrowserDockLayoutItem(FILE_BROWSER_DOCK_DEFINITIONS[1]);
+        const tags = createFileBrowserDockLayoutItem(FILE_BROWSER_DOCK_DEFINITIONS[2]);
         const data: Config.IUILayoutDockTab[][] = [
             [{...browser, size: {...browser.size}}, {...browser, size: {...browser.size}}],
-            [{...browser, size: {...browser.size}}, {...properties, size: {...properties.size}}, {...properties, size: {...properties.size}}],
+            [{...browser, size: {...browser.size}}, {...properties, size: {...properties.size}}, {...properties, size: {...properties.size}}, {...tags, size: {...tags.size}}],
         ];
 
         initDockData(createDock("Left"), data, [...BUILTIN_DOCK_TYPES]);
 
-        expect(countFileBrowserTypes(data)).toEqual([browser.type, properties.type]);
+        expect(countFileBrowserTypes(data)).toEqual([browser.type, properties.type, tags.type]);
         expect(data[0]?.filter(item => item.type === browser.type)).toHaveLength(1);
         expect(data[1]?.filter(item => item.type === properties.type)).toHaveLength(1);
     });

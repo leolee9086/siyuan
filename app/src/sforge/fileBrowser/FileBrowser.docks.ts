@@ -1,7 +1,7 @@
 /** 文件浏览领域内建 Dock 的稳定声明；布局层只消费这里的类型、位置和外观。 */
 export interface FileBrowserDockDefinition {
-    type: "sforge-file-browser" | "sforge-file-properties";
-    icon: "iconFolder" | "iconInfo";
+    type: "sforge-file-browser" | "sforge-file-properties" | "sforge-file-tags";
+    icon: "iconFolder" | "iconInfo" | "iconTags";
     title: string;
     position: "Left";
     column: 0 | 1;
@@ -13,6 +13,7 @@ export interface FileBrowserDockDefinition {
 
 export const FILE_BROWSER_DOCK_TYPE = "sforge-file-browser";
 export const FILE_PROPERTIES_DOCK_TYPE = "sforge-file-properties";
+export const FILE_TAG_TREE_DOCK_TYPE = "sforge-file-tags";
 
 export const FILE_BROWSER_DOCK_DEFINITIONS = [
     {
@@ -30,6 +31,17 @@ export const FILE_BROWSER_DOCK_DEFINITIONS = [
         type: FILE_PROPERTIES_DOCK_TYPE,
         icon: "iconInfo",
         title: "文件属性",
+        position: "Left",
+        column: 1,
+        size: {width: 320, height: 0},
+        show: false,
+        hotkey: "",
+        hotkeyLangId: "",
+    },
+    {
+        type: FILE_TAG_TREE_DOCK_TYPE,
+        icon: "iconTags",
+        title: "文件标签",
         position: "Left",
         column: 1,
         size: {width: 320, height: 0},

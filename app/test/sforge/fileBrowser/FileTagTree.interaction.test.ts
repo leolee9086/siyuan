@@ -47,4 +47,64 @@ describe("FileTagTreePanel", () => {
         blueRow?.click();
         expect(openTag).toHaveBeenCalledWith("blue");
     });
+
+    it("opens note search on Ctrl click and writes an authorized dropped file", async () => {
+        const openNotes = vi.fn();
+        const add = vi.fn().mockResolvedValue(undefined);
+        const on = vi.fn();
+        const off = vi.fn();
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileTagTreePanel, {
+            countRepository: {list: vi.fn().mockResolvedValue([{name: "blue", count: 1}])},
+            definitionsRepository: {get: vi.fn().mockResolvedValue({revision: "1", items: []})},
+            mutationRepository: {add},
+            eventBus: {on, off},
+            onOpenNotes: openNotes,
+        });
+        app.mount(host);
+
+        await vi.waitFor(() => expect(host?.textContent).toContain("blue"));
+        const row = host.querySelector<HTMLElement>("[role='treeitem']");
+        row?.dispatchEvent(new MouseEvent("click", {bubbles: true, ctrlKey: true}));
+        expect(openNotes).toHaveBeenCalledWith("blue");
+
+        const dataTransfer = {
+            getData: vi.fn((type: string) => type === "application/x-sforge-file" ? JSON.stringify({
+                rootID: "agent-a", path: "output/blue.png", kind: "file", name: "blue.png",
+            }) : ""),
+        };
+        const drop = new Event("drop", {bubbles: true, cancelable: true});
+        Object.defineProperty(drop, "dataTransfer", {value: dataTransfer});
+        row?.dispatchEvent(drop);
+        await vi.waitFor(() => expect(add).toHaveBeenCalledWith([
+            {rootID: "agent-a", path: "output/blue.png"},
+        ], "blue"));
+        expect(on).toHaveBeenCalledWith("ws-main", expect.any(Function));
+    });
+
+    it("deletes an unreferenced configured tag and unregisters the event listener", async () => {
+        const update = vi.fn().mockResolvedValue({revision: "2", items: []});
+        const on = vi.fn();
+        const off = vi.fn();
+        const confirmDelete = vi.fn().mockResolvedValue(true);
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileTagTreePanel, {
+            countRepository: {list: vi.fn().mockResolvedValue([])},
+            definitionsRepository: {
+                get: vi.fn().mockResolvedValue({revision: "1", items: [{name: "orphan", color: "#FF0000"}]}),
+                update,
+            },
+            eventBus: {on, off},
+            confirmDelete,
+        });
+        app.mount(host);
+
+        await vi.waitFor(() => expect(host?.textContent).toContain("orphan"));
+        host.querySelector<HTMLButtonElement>(".sforge-file-tag-tree__delete")?.click();
+        await vi.waitFor(() => expect(update).toHaveBeenCalledWith({expectedRevision: "1", items: []}));
+        app.unmount();
+        expect(off).toHaveBeenCalledWith("ws-main", expect.any(Function));
+    });
 });

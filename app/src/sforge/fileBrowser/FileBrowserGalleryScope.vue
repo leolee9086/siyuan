@@ -70,7 +70,7 @@ interface Breadcrumb {
 }
 
 const props = defineProps<{
-    root?: FileBrowserRoot;
+    root: FileBrowserRoot | undefined;
     path: string;
     entries: FileBrowserEntry[];
     includeSubfolders: boolean;

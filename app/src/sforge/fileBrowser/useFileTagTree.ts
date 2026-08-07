@@ -5,6 +5,7 @@ import {createFileTagTreeNodes} from "./FileTags.presentation";
 import type {
     FileTagCountRepository,
     FileTagDefinitionsRepository,
+    FileTagDefinitionsSnapshot,
     FileTagTreeNode,
 } from "./FileTags.types";
 
@@ -15,6 +16,7 @@ export function useFileTagTree(
     const nodes = ref<FileTagTreeNode[]>([]);
     const loading = ref(false);
     const error = ref("");
+    const definitions = ref<FileTagDefinitionsSnapshot>({revision: "", items: []});
     const revision = ref(0);
     const expanded = ref<Set<string>>(new Set());
     let disposed = false;
@@ -24,12 +26,13 @@ export function useFileTagTree(
         loading.value = true;
         error.value = "";
         try {
-            const [counts, definitions] = await Promise.all([
+            const [counts, snapshot] = await Promise.all([
                 countRepository.list({allRoots: true}),
                 definitionsRepository.get(),
             ]);
             if (!disposed && current === revision.value) {
-                nodes.value = createFileTagTreeNodes(counts, definitions.items);
+                definitions.value = snapshot;
+                nodes.value = createFileTagTreeNodes(counts, snapshot.items);
             }
         } catch (reason) {
             if (!disposed && current === revision.value) {
@@ -58,5 +61,5 @@ export function useFileTagTree(
     }
 
     const hasTags = computed(() => nodes.value.length > 0);
-    return {nodes, loading, error, expanded, hasTags, refresh, toggle, dispose};
+    return {nodes, definitions, loading, error, expanded, hasTags, refresh, toggle, dispose};
 }
