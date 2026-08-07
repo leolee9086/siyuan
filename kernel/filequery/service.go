@@ -19,7 +19,15 @@ type RootProvider interface {
 // IndexSearch keeps index implementation details outside the query coordinator.
 type IndexSearch func(assetmeta.SearchRequest) ([]assetmeta.AssetMeta, int, error)
 
-// Result is the browser-addressable page returned by an indexed file query.
+// FileEnumerator is the narrow traversal port used by default file browsing.
+// The query domain supplies only an authorized root-relative scan request and
+// a file callback; filesystem access, link policy and scheduling remain in
+// filebrowser/fswalk.
+type FileEnumerator interface {
+	ScanContext(context.Context, filebrowser.ScanRequest, filebrowser.ScanVisitor) (filebrowser.ScanResult, error)
+}
+
+// Result is the browser-addressable page returned by a file query.
 type Result struct {
 	Assets     []assetmeta.AssetMeta `json:"assets"`
 	TotalCount int                   `json:"totalCount"`
@@ -34,19 +42,24 @@ type TagRequest struct {
 
 // Service translates browser root IDs at the only boundary that knows both authorization and metadata identities.
 type Service struct {
-	roots  RootProvider
-	search IndexSearch
+	roots      RootProvider
+	search     IndexSearch
+	enumerator FileEnumerator
 }
 
 // NewService composes a root authority and an indexed metadata search implementation.
-func NewService(roots RootProvider, search IndexSearch) *Service {
+func NewService(roots RootProvider, search IndexSearch, enumerators ...FileEnumerator) *Service {
 	if search == nil {
 		search = assetmeta.SearchAssetsAdvanced
 	}
-	return &Service{roots: roots, search: search}
+	var enumerator FileEnumerator
+	if len(enumerators) > 0 {
+		enumerator = enumerators[0]
+	}
+	return &Service{roots: roots, search: search, enumerator: enumerator}
 }
 
-// Search scopes every metadata query to roots currently exposed by the file browser.
+// Search scopes every query to roots currently exposed by the file browser.
 func (s *Service) Search(ctx context.Context, request assetmeta.SearchRequest) (Result, error) {
 	if err := ctx.Err(); err != nil {
 		return Result{}, err
@@ -58,9 +71,16 @@ func (s *Service) Search(ctx context.Context, request assetmeta.SearchRequest) (
 	if err != nil {
 		return Result{}, err
 	}
-	mapping := buildRootMapping(roots)
 	browserRequested := append([]string(nil), request.RootIDs...)
 	browserAllRoots := request.AllRoots
+	if s.enumerator != nil && canEnumerateFiles(request) {
+		browserRoots, rootErr := resolveBrowserRoots(roots, browserRequested, browserAllRoots)
+		if rootErr != nil {
+			return Result{}, rootErr
+		}
+		return s.searchFiles(ctx, browserRoots, request)
+	}
+	mapping := buildRootMapping(roots)
 	indexRoots, err := resolveIndexRoots(mapping, browserRequested, browserAllRoots)
 	if err != nil {
 		return Result{}, err

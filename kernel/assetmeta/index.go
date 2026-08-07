@@ -490,6 +490,7 @@ func GetIndexAssetAt(address AssetAddress) (AssetMeta, bool) {
 	}
 	assetKey := normalized.identityKey()
 	var meta AssetMeta
+	meta.Tags = []string{}
 
 	// 1. 查询主表
 	row := indexDB.QueryRow(`

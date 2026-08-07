@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 describe("FileBrowserSearchPanel", () => {
-    it("emits tag, RGB tolerance, palette ratio and circular Hue filters", () => {
+    it("emits tag, RGB tolerance, palette ratio and circular Hue filters", async () => {
         const search = vi.fn();
         host = document.createElement("div");
         document.body.append(host);
@@ -50,18 +50,20 @@ describe("FileBrowserSearchPanel", () => {
         setInput("input[aria-label='最大饱和度']", "80");
         setInput("input[aria-label='最小亮度']", "20");
         setInput("input[aria-label='最大亮度']", "70");
-        const extensions = host.querySelector<HTMLSelectElement>("select[aria-label='扩展名筛选']");
-        if (!extensions?.options[0]) {
+        const extensionTrigger = host.querySelector<HTMLButtonElement>("button[aria-label='扩展名筛选']");
+        extensionTrigger?.click();
+        await vi.waitFor(() => expect(host?.querySelector(".sforge-multi-select__option input")).toBeTruthy());
+        const extensionOption = host.querySelector<HTMLInputElement>(".sforge-multi-select__option input");
+        if (!extensionOption) {
             throw new Error("missing extension options");
         }
-        extensions.options[0].selected = true;
-        extensions.dispatchEvent(new Event("change", {bubbles: true}));
+        extensionOption.click();
         input("input[type='checkbox']")?.click();
         host.querySelector("form")?.dispatchEvent(new Event("submit", {bubbles: true, cancelable: true}));
 
         expect(search).toHaveBeenCalledWith(expect.objectContaining({
             keyword: "hero", allRoots: true, tags: ["red", "blue"], matchAllTags: false,
-            exts: [extensions.options[0].value],
+            exts: [".bmp"],
             palette: {color: [255, 0, 128], tolerance: 12, minRatio: 0.5, minH: 330, maxH: 20,
                 minS: 40, maxS: 80, minL: 20, maxL: 70},
         }));
@@ -77,5 +79,45 @@ describe("FileBrowserSearchPanel", () => {
 
         expect(host.querySelector(".sforge-file-search__result")).toBeNull();
         expect(host.querySelector("form")).toBeTruthy();
+    });
+
+    it("allows an initially filtered global form to become an empty filter", async () => {
+        const search = vi.fn();
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileBrowserSearchPanel, {
+            roots: [root], loading: false, error: "", scope: undefined,
+            initialRequest: {allRoots: true, tags: ["blue"], exts: [".tmp"], orderBy: "updated"},
+            onSearch: search,
+            onClear: vi.fn(),
+        });
+        app.mount(host);
+
+        await vi.waitFor(() => expect(host?.querySelector("button[aria-label='清空文件查询']")).toBeTruthy());
+        host?.querySelector<HTMLButtonElement>("button[aria-label='清空文件查询']")?.click();
+        host?.querySelector("form")?.dispatchEvent(new Event("submit", {bubbles: true, cancelable: true}));
+
+        expect(search).toHaveBeenLastCalledWith({allRoots: true, orderBy: "updated"});
+        await vi.waitFor(() => expect(host?.querySelector(".sforge-multi-select__value--placeholder")).toBeTruthy());
+        expect(host?.querySelector(".sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
+        expect(host?.querySelector<HTMLInputElement>("input[aria-label='标签筛选']")?.value).toBe("");
+    });
+
+    it("treats blank query list entries as an empty filter", async () => {
+        const search = vi.fn();
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileBrowserSearchPanel, {
+            roots: [root], loading: false, error: "", scope: undefined,
+            initialRequest: {allRoots: true, tags: ["  "], exts: [""], orderBy: "updated"},
+            onSearch: search,
+        });
+        app.mount(host);
+
+        await vi.waitFor(() => expect(host?.querySelector(".sforge-multi-select__value--placeholder")).toBeTruthy());
+        expect(host?.querySelector<HTMLInputElement>("input[aria-label='标签筛选']")?.value).toBe("");
+        host?.querySelector("form")?.dispatchEvent(new Event("submit", {bubbles: true, cancelable: true}));
+
+        expect(search).toHaveBeenCalledWith({allRoots: true, orderBy: "updated"});
     });
 });

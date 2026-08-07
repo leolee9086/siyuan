@@ -24,12 +24,8 @@
                         {{ root.label }}{{ root.exists ? "" : "（失效）" }}
                     </option>
                 </select>
-                <select v-model="selectedExtensions" class="b3-select sforge-file-search__extensions" multiple
-                    aria-label="扩展名筛选">
-                    <option v-for="extension in extensions" :key="extension" :value="extension">
-                        {{ extension }}
-                    </option>
-                </select>
+                <FileBrowserMultiSelect v-model="selectedExtensions" :options="extensions" placeholder="扩展名"
+                    ariaLabel="扩展名筛选" />
                 <input v-model="tagsText" class="b3-text-field" type="text" placeholder="标签，以逗号分隔"
                     aria-label="标签筛选" />
                 <label class="sforge-file-search__check">
@@ -93,6 +89,7 @@
 /** 用途：查询表单、结果投影和根标签显示；使用范围：文件 Dock 搜索区域。 */
 import {computed, ref, watch} from "vue";
 import {FILE_BROWSER_GALLERY_DEFAULT_EXTENSIONS} from "./FileBrowser.gallery.constants";
+import FileBrowserMultiSelect from "./FileBrowserMultiSelect.vue";
 import type {FileBrowserRoot} from "./FileBrowser.types";
 import type {
     FileBrowserPaletteSearch,
@@ -103,9 +100,9 @@ const props = defineProps<{
     roots: FileBrowserRoot[];
     loading: boolean;
     error: string;
-    scope: {rootID: string; path: string} | undefined;
+    scope?: {rootID: string; path: string} | undefined;
     availableExtensions?: readonly string[];
-    initialRequest: FileBrowserSearchRequest | undefined;
+    initialRequest?: FileBrowserSearchRequest | undefined;
 }>();
 
 const emit = defineEmits<{
@@ -113,13 +110,18 @@ const emit = defineEmits<{
     clear: [];
 }>();
 
+function cleanStringList(values: readonly string[] | undefined) {
+    return (values ?? []).map(value => value.trim()).filter(Boolean);
+}
+
 const initialRequest = props.initialRequest ?? {};
+const initialAllRoots = computed(() => Boolean(props.initialRequest?.allRoots));
 const keyword = ref(initialRequest.keyword ?? "");
 const allRoots = ref(initialRequest.allRoots ?? false);
-const selectedRootIDs = ref<string[]>(initialRequest.rootIDs ? [...initialRequest.rootIDs] :
+const selectedRootIDs = ref<string[]>(initialRequest.rootIDs ? cleanStringList(initialRequest.rootIDs) :
     (props.scope ? [props.scope.rootID] : []));
-const tagsText = ref((initialRequest.tags ?? []).join(", "));
-const selectedExtensions = ref<string[]>([...(initialRequest.exts ?? [])]);
+const tagsText = ref(cleanStringList(initialRequest.tags).join(", "));
+const selectedExtensions = ref<string[]>(cleanStringList(initialRequest.exts));
 const matchAllTags = ref(initialRequest.matchAllTags ?? false);
 const colorEnabled = ref(false);
 const color = ref("#ffffff");
@@ -146,10 +148,10 @@ function resetFormFromProps() {
     const request = props.initialRequest ?? {};
     keyword.value = request.keyword ?? "";
     allRoots.value = request.allRoots ?? false;
-    selectedRootIDs.value = request.rootIDs ? [...request.rootIDs] :
+    selectedRootIDs.value = request.rootIDs ? cleanStringList(request.rootIDs) :
         (props.scope ? [props.scope.rootID] : []);
-    tagsText.value = (request.tags ?? []).join(", ");
-    selectedExtensions.value = [...(request.exts ?? [])];
+    tagsText.value = cleanStringList(request.tags).join(", ");
+    selectedExtensions.value = cleanStringList(request.exts);
     matchAllTags.value = request.matchAllTags ?? false;
     colorEnabled.value = Boolean(request.palette);
     color.value = colorToHex(request.palette?.color);
@@ -173,6 +175,14 @@ watch(
 const extensions = computed(() => {
     const values = new Set<string>(FILE_BROWSER_GALLERY_DEFAULT_EXTENSIONS);
     for (const extension of props.availableExtensions ?? []) {
+        const normalized = extension.trim().toLowerCase();
+        if (normalized) {
+            values.add(normalized.startsWith(".") ? normalized : `.${normalized}`);
+        }
+    }
+    // 保留当前查询中的扩展名，即使结果为空或索引暂时没有返回该类型，
+    // 用户仍然可以在下拉菜单中直接取消这个条件。
+    for (const extension of selectedExtensions.value) {
         const normalized = extension.trim().toLowerCase();
         if (normalized) {
             values.add(normalized.startsWith(".") ? normalized : `.${normalized}`);
@@ -274,7 +284,7 @@ function submit() {
 
 function clear() {
     keyword.value = "";
-    allRoots.value = false;
+    allRoots.value = initialAllRoots.value;
     selectedRootIDs.value = [];
     tagsText.value = "";
     selectedExtensions.value = [];

@@ -106,7 +106,7 @@ describe("file browser panel interaction", () => {
         await vi.waitFor(() => expect(openTab).toHaveBeenCalledWith({
             custom: {
                 title: "logs", icon: "iconAssets", id: "sforge-file-gallery",
-                data: {rootID: "agent-root", path: "logs", name: "logs"},
+                data: {rootID: "agent-root", path: "logs", name: "logs", scope: "directory"},
             },
         }));
 

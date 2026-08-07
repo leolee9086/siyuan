@@ -11,7 +11,8 @@ import (
 
 // newFileBrowserQueryService is the API composition seam; authorization and index search remain separate domains.
 var newFileBrowserQueryService = func() *filequery.Service {
-	return filequery.NewService(newFileBrowserService(), assetmeta.SearchAssetsAdvanced)
+	browser := newFileBrowserService()
+	return filequery.NewService(browser, assetmeta.SearchAssetsAdvanced, browser)
 }
 
 // searchSForgeFileBrowserAssets serves tag, keyword, numeric and palette queries scoped by authorized browser roots.

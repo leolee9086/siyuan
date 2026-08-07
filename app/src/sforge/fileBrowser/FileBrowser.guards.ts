@@ -107,7 +107,8 @@ function isFileBrowserSearchQuery(value: unknown): value is FileBrowserSearchReq
 /** 校验瀑布流页签恢复数据，拒绝把绝对路径塞进页签持久化。 */
 export const isFileBrowserGalleryTabData = (value: unknown): value is FileBrowserGalleryTabData =>
     isRecord(value) && typeof value.rootID === "string" && typeof value.path === "string" &&
-    typeof value.name === "string" && (value.query === undefined || isFileBrowserSearchQuery(value.query));
+    typeof value.name === "string" && (value.scope === undefined || value.scope === "global" ||
+        value.scope === "directory") && (value.query === undefined || isFileBrowserSearchQuery(value.query));
 
 /** 把根列表响应收窄到稳定领域契约。 */
 export function parseFileBrowserRoots(value: unknown): FileBrowserRoot[] {

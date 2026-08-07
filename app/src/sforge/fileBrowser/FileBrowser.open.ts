@@ -53,7 +53,7 @@ export function createFileBrowserDirectoryOpener(app: Pick<AppFacade, "openTab">
                 title: name,
                 icon: "iconAssets",
                 id: FILE_BROWSER_GALLERY_TAB_TYPE,
-                data: {rootID, path, name},
+                data: {rootID, path, name, scope: "directory"},
             },
         });
     };

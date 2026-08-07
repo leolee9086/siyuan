@@ -84,6 +84,24 @@ func TestAdvancedSearchUsesTagAndPaletteIndicesAcrossExplicitRoots(t *testing.T)
 	}
 }
 
+func TestAdvancedSearchEmptyExtensionFilterIsUnrestricted(t *testing.T) {
+	bindTestIndex(t)
+	if err := RebuildIndex([]AssetMeta{
+		{Path: "one.png", Name: "one.png"},
+		{Path: "two.tmp", Name: "two.tmp"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	withoutFilter, total, err := SearchAssetsAdvanced(SearchRequest{Exts: nil, Limit: 20})
+	if err != nil || total != 2 || len(withoutFilter) != 2 {
+		t.Fatalf("nil extension filter restricted results: items=%+v total=%d err=%v", withoutFilter, total, err)
+	}
+	emptyFilter, total, err := SearchAssetsAdvanced(SearchRequest{Exts: []string{}, Limit: 20})
+	if err != nil || total != 2 || len(emptyFilter) != 2 {
+		t.Fatalf("empty extension filter restricted results: items=%+v total=%d err=%v", emptyFilter, total, err)
+	}
+}
+
 func TestAdvancedSearchPathScopeHonorsDirectAndSelectedChildDirectories(t *testing.T) {
 	bindTestIndex(t)
 	if err := RebuildIndex([]AssetMeta{

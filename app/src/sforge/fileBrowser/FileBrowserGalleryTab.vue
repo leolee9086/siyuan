@@ -29,13 +29,13 @@
             </label>
         </div>
 
-        <FileBrowserGalleryScope v-if="!isAllRoots" :root="scopeRoot" :path="scopePath"
+        <FileBrowserGalleryScope v-if="!isGlobalResult" :root="scopeRoot" :path="scopePath"
             :entries="scopeEntries" :include-subfolders="includeSubfolders"
             :selected-subfolder-paths="selectedSubfolderPaths" :loading="scopeLoading" :error="scopeError"
             @navigate="navigateScope" @toggle-recursive="toggleRecursive"
             @toggle-subfolder="toggleSubfolder" @refresh="refreshScope" />
 
-        <FileBrowserSearchPanel :roots="roots" :loading="loading" :error="error" :scope="scope"
+        <FileBrowserSearchPanel :key="searchPanelKey" :roots="roots" :loading="loading" :error="error" :scope="scope"
             :available-extensions="availableExtensions" :initial-request="initialSearchRequest"
             @search="runSearch" @clear="clearSearch" />
 
@@ -115,11 +115,78 @@ const selectedAttributes = ref<FileBrowserGalleryAttribute[]>([...FILE_BROWSER_G
 const search = useFileBrowserSearch(fileBrowserQueryRepository);
 const {result, loading, error} = search;
 const openEntry = createFileBrowserEntryOpener(props.app, fileBrowserRepository);
-const isAllRoots = computed(() => Boolean(props.file.query?.allRoots));
+
+function cloneSearchRequest(request: FileBrowserSearchRequest | undefined) {
+    if (!request) {
+        return undefined;
+    }
+    const result: FileBrowserSearchRequest = {...request};
+    if (request.rootIDs) {
+        result.rootIDs = [...request.rootIDs];
+    }
+    if (request.pathPrefixes) {
+        result.pathPrefixes = [...request.pathPrefixes];
+    }
+    if (request.tags) {
+        result.tags = [...request.tags];
+    }
+    if (request.exts) {
+        result.exts = [...request.exts];
+    }
+    if (request.palette) {
+        result.palette = {...request.palette};
+        if (request.palette.color) {
+            result.palette.color = [...request.palette.color] as [number, number, number];
+        }
+    }
+    return result;
+}
+
+function normalizeSearchRequest(request: FileBrowserSearchRequest | undefined) {
+    const result = cloneSearchRequest(request);
+    if (!result) {
+        return undefined;
+    }
+    if (!result.keyword?.trim()) {
+        delete result.keyword;
+    }
+    for (const key of ["rootIDs", "pathPrefixes", "tags", "exts"] as const) {
+        const values = result[key];
+        if (!values) {
+            continue;
+        }
+        const cleaned = values.map(value => value.trim()).filter(Boolean);
+        if (cleaned.length === 0) {
+            delete result[key];
+            continue;
+        }
+        result[key] = cleaned;
+    }
+    if (!result.tags || result.tags.length === 0) {
+        delete result.matchAllTags;
+    }
+    return result;
+}
+
+// 只有没有目录路径的全根结果页签才接受布局恢复的 query；目录页签即使被旧布局
+// 恢复出历史 query，也必须继续以自身的 root/path 作为唯一范围。
+const isGlobalResult = props.file.path.trim() === "" &&
+    (props.file.scope === "global" || Boolean(props.file.query?.allRoots));
+// 目录页签只保存 root/path。旧版本曾把筛选 query 写进目录页签，启动时直接丢弃，
+// 这样布局序列化也不会继续携带已经失效的 .tmp、关键词或标签条件。
+if (!isGlobalResult && props.file.query) {
+    delete props.file.query;
+}
+// currentQuery 持有运行期筛选；全根查询提交后会把规范化快照同步回 file.query，供布局恢复使用。
+const currentQuery = ref<FileBrowserSearchRequest | undefined>(
+    isGlobalResult ? normalizeSearchRequest(props.file.query) : undefined,
+);
 // 目录页签只携带地址；查询数据属于标签/全根结果页签，不能把旧的目录筛选带入新范围。
-const initialSearchRequest = computed(() => isAllRoots.value ? props.file.query : undefined);
+const initialSearchRequest = computed(() => currentQuery.value);
 const scopeRoot = computed(() => roots.value.find(root => root.id === props.file.rootID));
 const scope = computed(() => ({rootID: props.file.rootID, path: scopePath.value}));
+// 目录切换必须创建一份空表单，不能依赖旧表单的异步 watch 是否及时触发。
+const searchPanelKey = computed(() => `${props.file.rootID}:${scopePath.value}:${isGlobalResult ? "global" : "directory"}`);
 const hasQuery = computed(() => result.value.totalCount > 0 || loading.value || Boolean(error.value));
 const galleryAssets = computed<GalleryAsset[]>(() => result.value.assets.map(asset => ({
     ...asset,
@@ -145,7 +212,13 @@ function estimateItemHeight(asset: GalleryAsset, width = columnWidth.value) {
 
 function scopedRequest(request: FileBrowserSearchRequest): FileBrowserSearchRequest {
     const next = {...request, limit: request.limit ?? 200, offset: request.offset ?? 0};
-    if (next.allRoots || isAllRoots.value) {
+    if (isGlobalResult) {
+        if (next.allRoots || (next.rootIDs && next.rootIDs.length > 0)) {
+            return next;
+        }
+        // 清空全根结果页签的表单时，表单请求不再携带 allRoots；恢复页签原有
+        // 的全根范围，但不恢复已经清掉的标签、扩展名或颜色条件。
+        next.allRoots = true;
         return next;
     }
     if (!next.rootIDs || next.rootIDs.length === 0) {
@@ -170,17 +243,46 @@ function scopedRequest(request: FileBrowserSearchRequest): FileBrowserSearchRequ
 }
 
 function runSearch(request: FileBrowserSearchRequest) {
-    void search.search(scopedRequest(request));
+    const scoped = normalizeSearchRequest(scopedRequest(request)) ?? {orderBy: "updated"};
+    currentQuery.value = isGlobalResult ? cloneSearchRequest(scoped) : undefined;
+    if (isGlobalResult) {
+        const persisted = cloneSearchRequest(scoped) ?? {orderBy: "updated"};
+        delete persisted.limit;
+        delete persisted.offset;
+        delete persisted.pathPrefix;
+        delete persisted.pathPrefixes;
+        delete persisted.recursive;
+        if (!persisted.allRoots && (!persisted.rootIDs || persisted.rootIDs.length === 0)) {
+            persisted.allRoots = true;
+        }
+        props.file.scope = "global";
+        props.file.query = persisted;
+    }
+    void search.search(scoped);
 }
 
 function runScopedSearch(includeInitialQuery = true) {
     const query = initialSearchRequest.value;
     const request: FileBrowserSearchRequest = includeInitialQuery && query ?
-        {...query, orderBy: query.orderBy ?? "updated"} : {orderBy: "updated"};
+        (cloneSearchRequest(query) ?? {}) : {orderBy: "updated"};
+    if (includeInitialQuery && query) {
+        request.orderBy = query.orderBy ?? "updated";
+    }
     runSearch(request);
 }
 
 function clearSearch() {
+    const clearedQuery = isGlobalResult ? {
+        allRoots: true,
+        orderBy: currentQuery.value?.orderBy ?? "updated",
+    } : undefined;
+    currentQuery.value = clearedQuery;
+    if (clearedQuery) {
+        // Custom 页签数据会参与布局序列化；同步清理初始 query，避免重建页签恢复旧筛选。
+        props.file.query = {...clearedQuery};
+    } else if (props.file.query) {
+        delete props.file.query;
+    }
     search.clear();
     runScopedSearch(false);
 }
@@ -194,7 +296,7 @@ function selectAllSubfolders() {
 }
 
 async function loadScope() {
-    if (isAllRoots.value) {
+    if (isGlobalResult) {
         return;
     }
     const revision = ++scopeRevision;

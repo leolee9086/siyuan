@@ -239,6 +239,8 @@ export interface FileBrowserPreviewTabData extends FileBrowserFileRequest {
 /** 独立文件瀑布流页签的稳定范围；路径仍相对授权根。 */
 export interface FileBrowserGalleryTabData extends FileBrowserFileRequest {
     name: string;
+    /** 全根结果页签的稳定范围标记；筛选条件变化不应改变页签类型。 */
+    scope?: "global" | "directory";
     query?: import("./FileBrowser.query.types").FileBrowserSearchRequest;
 }
 

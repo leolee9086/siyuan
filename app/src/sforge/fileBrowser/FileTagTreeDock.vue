@@ -26,7 +26,7 @@ function openTagResults(tag: string) {
             icon: "iconTags",
             id: "sforge-file-gallery",
             data: {
-                rootID: "workspace", path: "", name: `标签: ${tag}`,
+                rootID: "workspace", path: "", name: `标签: ${tag}`, scope: "global",
                 query: {allRoots: true, tags: [tag], matchAllTags: true, orderBy: "updated"},
             },
         },

@@ -115,7 +115,7 @@
 
 #### 当前推进
 
-- 控制器/组件 P0 拆分由 [`属性Dock标签切片.shorterm.ttt.md`](属性Dock标签切片.shorterm.ttt.md) 跟踪，完成后回写并删除短期文档。
+- 控制器/组件 P0 拆分由 [`属性Dock标签切片.shorterm.ttt.md`](属性Dock标签切片.shorterm.ttt.md) 跟踪，完成后回写并将短期文档移动到 `docs/ttt/archive/`。
 - [x] `kernel/assetmeta/tags.go` 已实现标签定义快照、严格边界校验、稳定 revision、过期 revision 冲突和完整快照原子替换。
 - [x] `go test ./assetmeta -run 'TestTagDefinitions|TestManagerUsesBoundStoreForAssetAndTagLifecycle' -count=1` 通过，覆盖等价输入 revision、大小写重复、非法颜色、持久化与重载。
 - [x] 接入 `/api/s-forge/file-browser/tag-definitions` 和 `/set`；`go test ./api -run 'TestFileBrowser(TagDefinitions|Roots|Walk|Stat)' -count=1` 通过，覆盖本机门禁、完整快照解码和 400/409/503 映射。
@@ -126,4 +126,4 @@
 - [ ] SACAssetsManager 属性面板所有真实可工作行为都有 S-Forge 等价实现和证据；参考缺陷被修复而非复制。
 - [ ] 工作空间与 Agent 根的文件/目录均可显示真实属性，元数据不会写入外部根。
 - [ ] 两个 Dock 独立销毁/恢复后仍共享正确选择，乱序响应不会回退界面。
-- [ ] 当前子任务结论回写父 TTT 后删除本短期文档。
+- [ ] 当前子任务结论回写父 TTT 后将本短期文档移动到 `docs/ttt/archive/`，保留审计轨迹。

@@ -2,7 +2,7 @@
 
 > **目标**: 在 S-Forge 中实现一个可独立使用的文件浏览 Dock，默认浏览当前工作空间的全部文件，并聚合展示所有已绑定 Agent 任务目录的位置与内容；浏览、标签、颜色检索、预览、文件操作和编辑能力以 `D:\dev\SACAssetsManager` 的最完备历史实现为功能基线，并完整覆盖 `Zuoqiu-Yingyi/siyuan-plugin-monaco-editor` 的文件资源管理器与编辑器功能。
 >
-> **流程**: 先审计参考仓库和 S-Forge 现有能力，冻结领域契约；随后按可独立使用的里程碑逐步交付，每个里程碑完成聚焦验证后再推进。完成项移动到归档区，短期子 TTT 在成果回写后删除。
+> **流程**: 先审计参考仓库和 S-Forge 现有能力，冻结领域契约；随后按可独立使用的里程碑逐步交付，每个里程碑完成聚焦验证后再推进。完成项和短期子 TTT 在成果回写后移动到归档区，保留审计轨迹，不删除。
 
 ## 参考基线
 
@@ -35,7 +35,7 @@
 - 支持目录展开、分页/流式子项、面包屑、刷新、文件统计、文本/图片/PDF/音视频/D5A 等已有预览入口和双击打开。
 - 验收：工作空间和至少两个绑定目录可同时浏览；路径遍历、越权根和失效 capability 被拒绝；重启后根集合可恢复。
 
-**当前事实（部分实现）**：根聚合、节点级懒加载树源码、单层分页列表、只读内容接口和有界并发递归遍历已进入工作区。此前以 S-Forge 自身 `filepath.Walk` 为基线的性能结论已撤回；SACAssetsManager 最终 `fdirModified`、`fast-glob`、stock `fdir` 和常见 Go walker 已接入独立小规模校验工具，但完整 `D:\` 验收和目录遍历边界矩阵仍未完成。文件树已拆出独立 `FileBrowserTree.vue`，真实 DOM 挂载测试证明工作空间/Agent 根、递归层级、懒加载、折叠和目录双击打开 `sforge-file-gallery` 页签；真实瀑布流挂载测试证明查询范围、`VirtualMasonryGrid`/`AssetCard` 卡片投影、共享选择和文件打开端口。这里的结构是“侧边栏树 Dock + 独立文件标签 Dock + 独立瀑布流 Tab”，标签树不再嵌入任务文件树，树 Dock 不渲染查询结果卡片。扩展名筛选、颜色/RGB/HSL/调色板查询、卡片尺寸和属性列投影已经接线并有挂载测试；面包屑、递归开关和子目录包含选择已接入 `listDirectory` 与后端范围查询。桌面运行界面、TabRegistry 真实布局恢复、实际根媒体加载和大结果滚动仍缺证据，因此 M1 保持未完成。参考画廊的表格模式、框选多选、拖放批处理、外部索引入口和完整目录操作仍待实现。文件属性 Dock 已接入共享选择端口、批量属性、星级、注释、图片轮播、聚合/逐文件标签和标签树；SAC 标签删除/拖放/Ctrl 笔记搜索、来源入口和完整目录动作仍待实现。
+**当前事实（部分实现）**：根聚合、节点级懒加载树源码、单层分页列表、只读内容接口和有界并发递归遍历已进入工作区。此前以 S-Forge 自身 `filepath.Walk` 为基线的性能结论已撤回；SACAssetsManager 最终 `fdirModified`、`fast-glob`、stock `fdir` 和常见 Go walker 已接入独立小规模校验工具，但完整 `D:\` 验收和目录遍历边界矩阵仍未完成。文件树已拆出独立 `FileBrowserTree.vue`，真实 DOM 挂载测试证明工作空间/Agent 根、递归层级、懒加载、折叠和目录双击打开 `sforge-file-gallery` 页签；真实瀑布流挂载测试证明查询范围、`VirtualMasonryGrid`/`AssetCard` 卡片投影、共享选择和文件打开端口。这里的结构是“侧边栏树 Dock + 独立文件标签 Dock + 独立瀑布流 Tab”，标签树不再嵌入任务文件树，树 Dock 不渲染查询结果卡片。扩展名筛选、颜色/RGB/HSL/调色板查询、卡片尺寸和属性列投影已经接线并有挂载测试；面包屑、递归开关和子目录包含选择已接入 `listDirectory` 与后端范围查询。目录画廊筛选状态已按 `SACAssetsManager-ref@94c8534a` 对齐：空扩展名显示占位而不伪装成 `.bmp`；带路径页签忽略历史 query，全根结果清空保留范围但清空扩展名/标签/颜色，当前查询与初始页签 query 分离，刷新不再恢复旧 `.tmp`；无标签/颜色/尺寸/星级门槛的默认查询通过 `filebrowser.ScanContext` 枚举授权根中的未索引文件，标签/调色板等元数据门槛继续走 `assetmeta`，证据见 `标签结果打开与颜色检索.shorterm.ttt.md`。桌面运行界面、TabRegistry 真实布局恢复、实际根媒体加载和大结果滚动仍缺证据，因此 M1 保持未完成。参考画廊的表格模式、框选多选、拖放批处理、外部索引入口和完整目录操作仍待实现。文件属性 Dock 已接入共享选择端口、批量属性、星级、注释、图片轮播、聚合/逐文件标签和标签树；SAC 标签删除/拖放/Ctrl 笔记搜索、来源入口和完整目录动作仍待实现。
 
 ### M2：完整浏览与检索（可用版 2）
 
@@ -43,7 +43,7 @@
 - 接入标签树、标签面包屑、标签编辑、星级/注释和标签颜色；支持按 RGB/HSL/调色板相似度检索，结果可跨工作空间和 Agent 根聚合。
 - 验收：SACAssetsManager 历史矩阵中的浏览与检索条目逐项有测试证据；颜色查询实际命中索引而非仅前端过滤。
 
-**当前切片（进行中）**：已确认资源管理的组合边界为“文件树 Dock + 独立文件标签 Dock + 独立资源瀑布流页签”，树 Dock 不再承载查询结果，标签 Dock 复用标签树/计数/颜色模型并通过共享页签入口打开结果。扩展名筛选、颜色/RGB/HSL/调色板查询、卡片尺寸和属性列投影、面包屑子目录控制已接入 s-forge 现有 `VirtualMasonryGrid`/`AssetCard` 和真实后端查询；框选多选、拖放批处理、表格模式和外部索引入口仍未完成。
+**当前切片（进行中）**：已确认资源管理的组合边界为“文件树 Dock + 独立文件标签 Dock + 独立资源瀑布流页签”，树 Dock 不再承载查询结果，标签 Dock 复用标签树/计数/颜色模型并通过共享页签入口打开结果。扩展名筛选、颜色/RGB/HSL/调色板查询、卡片尺寸和属性列投影、面包屑子目录控制已接入 s-forge 现有 `VirtualMasonryGrid`/`AssetCard` 和真实后端查询；空筛选生命周期已完成为当前查询状态与初始页签数据分离，默认无元数据筛选使用授权 `filebrowser` 遍历覆盖未索引文件；框选多选、拖放批处理、表格模式和外部索引入口仍未完成。
 
 ### M3：文件操作与增量同步（可用版 3）
 
@@ -85,13 +85,24 @@
 ### M0.5 当前切片证据
 
 - 已完成：共享 `{rootID, path}` 多选、批量属性读取/逐项错误、属性 Dock 注册/恢复/独立销毁、星级/注释/图片轮播、聚合/逐文件标签、批量/逐文件标签修改、标签颜色定义与确定性回退色。
-- 证据：`pnpm exec vitest --run test/sforge/fileBrowser`（13 个文件、33 个用例）；目标 `vue-tsc` 诊断 0；`go test ./assetmeta ./filebrowser ./fileproperties ./api -run 'Test(Index|Advanced|Manager|BatchProperties|Properties|Inspect|Update|FileBrowser|TagDefinitions)' -count=1` 通过；本次新增/修改文件 P0 lint 0。
+- 证据：`pnpm exec vitest --run test/sforge/fileBrowser`（21 个文件、58 个用例）；目标 `vue-tsc` 诊断 0；`go test ./assetmeta ./filequery ./api -count=1` 通过；`git diff --check` 通过；本次新增/修改文件 P0 lint 0。
 - 保持未完成：桌面布局持久化重启/截图验收、真实媒体加载、SAC 标签删除/拖放/Ctrl 笔记搜索、框选/拖放批处理、表格模式、目录动作、所在笔记/来源和外部根图片调色板提取。
 - 标签树和标签结果查询已有源码接线与挂载测试；授权响应、颜色查询边界和桌面验收继续由 [`标签结果打开与颜色检索.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/标签结果打开与颜色检索.shorterm.ttt.md) 追踪。
 
 ## 🔴 远期计划
 
 - [ ] **M5：大规模目录、跨界面一致性和发布级验证**（见 [`验证与交互验收.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/验证与交互验收.shorterm.ttt.md)）
+
+## 2026-08-08 筛选条件为空回归证据
+
+- [x] 修正旧目录页签把筛选条件持久化到 `file.query` 的迁移问题：带路径页签启动时移除历史 query，空表单不再恢复 `.tmp`、关键词、标签或颜色。
+- [x] 全根结果页签现在保存每次提交后的规范化当前查询；空查询只保留 `allRoots` 和排序，非空查询也不会把旧 `.tmp` 覆盖回来。
+- [x] 为页签增加稳定的 `scope` 标记，筛选条件变化不会把全根结果误判为目录页签；目录范围变化通过组件 key 强制重建空筛选表单。
+- [x] 扩展名菜单保留当前查询中的扩展名，即使当前结果为空也能直接取消该条件。
+- [x] 规范化空数组/空字符串请求，并保留全根范围语义；目录页签仍只使用 root/path，标签结果仍可携带显式全根 query。
+- [x] 证据：`pnpm exec vitest --run test/sforge/fileBrowser/FileBrowserGalleryTab.interaction.test.ts test/sforge/fileBrowser/FileBrowserSearchPanel.interaction.test.ts test/sforge/fileBrowser/FileBrowserPanel.interaction.test.ts test/sforge/fileBrowser/FileTagTreeDock.interaction.test.ts`（4 个文件、11 个用例）；`pnpm run typecheck:protyle-contract`；目标文件 `vue-tsc` 筛选诊断无新增输出；`git diff --check` 通过。
+- [x] `pnpm run dev:once` 的 app、desktop、mobile、magi、protyle 和 agent 构建目标全部成功，`FileBrowserPanel.scss` 不再触发 `Unknown word //`。
+- [ ] 完整文件浏览测试和桌面真实布局验收仍按 M1/M2 条目追踪；当前仍不把聚焦挂载测试等同于桌面验收。
 
 ## ℹ️ 维护指南
 
