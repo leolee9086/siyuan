@@ -112,6 +112,19 @@
 - [x] 回归证据：`pnpm exec vitest --run test/sforge/fileBrowser`（21 个文件、60 个用例）；`pnpm run typecheck:protyle-contract`；目标 `vue-tsc` 诊断 0；`git diff --check`。
 - [ ] Git 提交门禁和桌面真实窗口验收按用户要求暂不处理；完整大目录媒体验收仍属于 M1/M2 未完成项。
 
+## 2026-08-08 扩展名筛选刷新回归
+
+- [x] 修正扩展名菜单变更未进入查询请求的链路：按参考画廊增加 300ms 防抖自动提交，手动提交/清空/销毁取消待执行刷新。
+- [x] 保持领域职责分离：前端只构造 `exts` 查询契约，后端继续由 `filequery` 统一枚举并过滤，未新增前端卡片二次过滤。
+- [x] 证据：`FileBrowserSearchPanel.interaction.test.ts`、`FileBrowserGalleryTab.interaction.test.ts` 共 13 个用例通过；此前 `pnpm exec vitest --run test/sforge/fileBrowser` 的全量回归需在本轮改动后重新执行。
+- [ ] 桌面真实窗口的扩展名结果纯度和快速连续选择竞态仍待验收。
+
+## 2026-08-08 文件根父子归并回归（已完成切片）
+
+- [x] 发现工作空间 `D:\\dev` 与 Agent 子目录被作为两个顶层根重复加载；已冻结并实现“最小祖先顶层 + 子根挂载元数据 + 原 root ID 别名解析”语义。
+- [x] 后端完成物理路径父子归并、能力范围守恒和全根查询去重，证据由 [`archive/文件根父子归并.shorterm.ttt.md`](archive/文件根父子归并.shorterm.ttt.md) 维护。
+- [x] 前端树只显示一套父子目录状态，并保留绑定来源和位置提示；21 个文件、65 个用例通过。
+
 ## 2026-08-08 查询错误可诊断性与遍历性能证据
 
 - [x] 将查询响应守卫错误拆为包络级和条目级：包络指出 `data.assets/totalCount/pageCount`，条目指出索引、相对路径、字段和实际类型；保留严格拒绝，不以放宽校验掩盖协议漂移。
