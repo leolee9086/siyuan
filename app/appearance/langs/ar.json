@@ -1,4 +1,5 @@
 {
+    "exportFileSaveFailed": "تعذر حفظ الملف، تأكد من أنه غير مستخدم بواسطة برنامج آخر وأن موقع الوجهة قابل للكتابة",
     "openNewAgentInTab": "إنشاء في علامة تبويب جديدة",
     "agentQueuePending": "معلّق",
     "agentQueueInjecting": "جارٍ الإرسال",

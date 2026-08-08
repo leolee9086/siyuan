@@ -1,4 +1,5 @@
 {
+    "exportFileSaveFailed": "Nie można zapisać pliku; upewnij się, że nie jest używany przez inny program i że lokalizacja docelowa jest zapisywalna",
     "openNewAgentInTab": "Utwórz w nowej karcie",
     "agentQueuePending": "Oczekuje",
     "agentQueueInjecting": "Wysyłanie",

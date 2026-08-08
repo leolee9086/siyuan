@@ -1,11 +1,177 @@
 /**
  * 自动生成的思源笔记国际化类型定义
  * 请勿手动修改此文件，重新生成会覆盖更改
- * 生成时间: 2026-07-06T16:11:54.474Z
+ * 生成时间: 2026-08-08T01:52:42.523Z
  * 语言: zh_CN
  */
 
 export interface SiYuanI18n {
+exportFileSaveFailed: `无法保存文件，请确认该文件未被其他程序占用且目标位置可写`
+openNewAgentInTab: `在标签页新建`
+agentQueuePending: `等待中`
+agentQueueInjecting: `正在投递`
+agentQueueBlocked: `已阻塞`
+agentQueueFailed: `失败`
+agentSteer: `引导`
+agentQueue: `排队`
+backlinkShowBottom: `在文档底部显示反链`
+deleteRefConfirm: `待删除或剪切的内容中存在被引用的内容块，是否继续？`
+addAllAiModels: `添加全部模型`
+autoDetectProxy: `自动探测代理`
+autoDetectProxyTip: `自动从环境变量或本地代理端口检测系统代理配置`
+detectProxyRunning: `正在探测代理...`
+insertRowTip: `新增条目已被过滤，可取消过滤或分组设置后进行查看`
+databaseAttrHideEmpty: `数据库属性隐藏空字段`
+databaseAttrUseTabs: `数据库属性使用页签`
+rebuildHistoryIndex: `重建历史索引`
+rebuildAssetContentIndex: `重建资源文件索引`
+newItemWithTemplate: `使用模板新建条目`
+newTemplate: `新建模板`
+itemTemplate: `条目模板`
+databaseItemFiltered: `条目已被过滤，可取消过滤或分组设置后进行查看`
+copyDatabaseItemLink: `复制条目链接`
+databaseViewNotFound: `未找到数据库视图`
+databaseItemNotFound: `未找到数据库条目`
+alignment: `对齐方式`
+newItemTemplateUnavailableNotebookTip: `该模板原先选择的笔记本已关闭或不可用，请重新选择存放位置`
+specificTime: `具体时间`
+savePath: `存放路径`
+contentTemplate: `内容模板`
+createDetachedBlock: `创建非绑定块`
+createBoundBlock: `创建绑定块`
+setAsDefault: `设为默认`
+avBacklinks: `\$\{count\} 个反向关联`
+databaseAttrViewMode: `数据库属性默认状态`
+databaseAttrViewModeTip: `设置打开文档时是否展开数据库属性`
+bind: `绑定`
+targetNotebook: `目标笔记本`
+dataMigration: `数据迁移`
+settingsAndSync: `设置与同步`
+onboardingWelcome: `欢迎使用思源`
+onboardingDescription: `你的第一个笔记本已经准备好啦，写下此刻的想法吧！`
+importExistingData: `导入已有数据`
+loginAndSync: `登录并同步`
+agentEditHistoryWarning: `后续消息包含已执行的工具调用。重新发送将删除后续对话，但不会撤销已经执行的操作。是否继续？`
+boxDocEnabled: `启用顶层笔记本文档`
+boxDocEnabledTip: `启用后笔记本本身也可用于记录内容`
+insertImage: `插入图片`
+obsidianUnreadableFiles: `无法读取的文件：\$\{count\}，这些未被引用的文件无法读取且不会导入`
+obsidianStatsSeparator: ` · `
+importFromMoreApps: `从其他格式或者应用导入`
+obsidianSyntaxStats: `WikiLink：\$\{wikiLink\} · ![[Embed]]：\$\{embed\} · ^block-id：\$\{blockID\} · Footnote：\$\{footnote\} · %%comment%%：\$\{comment\}`
+obsidianBasicStats: `Markdown：\$\{markdown\} · \$\{assets\}：\$\{count\}（\$\{size\}）`
+obsidianMissingTargets: `目标缺失：\$\{count\}，未找到链接或嵌入指向的文件或块，将保留原文`
+obsidianAmbiguousTargets: `目标有歧义：\$\{count\}，存在多个匹配目标，将使用第一个匹配到的目标`
+obsidianUnsupportedTargets: `不支持的目标：\$\{count\}，目标类型或写法无法可靠转换，将保留原文`
+obsidianVaultImport: `导入 Obsidian Vault`
+obsidianAnalyzing: `正在分析 Obsidian Vault...`
+obsidianImporting: `正在导入 Obsidian Vault...`
+obsidianCompatibilityTip: `Obsidian 使用了一些非标准 Markdown 私有语法。我们已投入专门开发工作进行适配，目前能够处理大部分常见情形；无法可靠转换的内容将保留原文`
+obsidianIssueSummary: `潜在问题`
+obsidianSkippedSummary: `已跳过路径：\$\{count\}，隐藏文件、符号链接、特殊文件和嵌套 Vault 不会导入`
+obsidianUnreferencedTip: `\$\{count\} 个未被引用的文件将作为未引用的资源文件导入`
+obsidianImportFailed: `Obsidian Vault 导入失败`
+openDocument: `打开文档`
+docIconClickExpand: `单击文档图标展开或折叠下级文档`
+docIconClickExpandTip: `启用后单击文档图标将展开或折叠下级文档，没有下级文档时将打开文档；关闭后单击文档图标将修改图标`
+parentDocClickExpand: `单击父文档标题时展开或折叠下级文档`
+parentDocClickExpandTip: `启用后单击父文档标题将展开或折叠下级文档，可通过右键菜单中的“打开文档”打开父文档；没有子文档时仍会直接打开文档`
+mcpStatusAuthorizing: `正在授权`
+mcpStatusAuthorizationRequired: `需要授权`
+mcpAuthorize: `授权`
+mcpDisconnectAuthorization: `断开授权`
+mcpDisconnectAuthorizationConfirm: `确定要断开该远程服务的 OAuth 授权吗？`
+switchLeftDock: `切换左侧面板布局`
+switchRightDock: `切换右侧面板布局`
+switchBottomDock: `切换底部面板布局`
+aiImageUnderstandingTip: `用于分析图片，请选择支持图片输入的模型`
+aiImageGenerationTip: `用于生成图片，请选择支持图片输出的模型`
+aiImageUnderstanding: `图片理解`
+aiImageGeneration: `图片生成`
+agentEffectDataEgress: `将向已配置的 API 提供商发送文档或图片数据`
+agentEffectExternalCost: `可能产生外部 API 调用费用`
+agentEffectLocalWrite: `将修改本地数据`
+agentRetrying: `正在重试（\$\{attempt\}/\$\{maxRetries\}）...`
+agentStreamIdleTimeout: `流空闲超时时间`
+agentStreamIdleTimeoutTip: `模型持续无输出多久后停止本次请求`
+aiMcpTrustToolAnnotations: `信任工具注解`
+aiMcpTrustToolAnnotationsTip: `允许此服务的只读工具注解跳过操作确认。仅对可信服务启用。`
+testConnectionFailMsg: `连接失败：\$\{msg\}`
+testConnectionSuccessDimensions: `连接成功（维度 \$\{dimensions\}）`
+masterPasswordMigrationPending: `主密码迁移进行中`
+coverWildlife: `动物生灵`
+coverInkWashLandscape: `水墨山水`
+configGroupRerank: `重排模型`
+rerankModel: `重排`
+rerankTip: `语义搜索召回后，使用重排模型对候选项二次打分以获得更精准的结果`
+apiEndpoint: `API 端点地址`
+apiEndpointRerankTip: `重排端点的完整地址。各服务商端点路径不一，请按目标模型文档填写`
+rerankCandidateCount: `候选数量`
+rerankCandidateCountTip: `向量召回后送入重排模型的候选文档数。值越大越精准，但延迟也越高`
+coverChineseGarden: `中式园林`
+coverStillWater: `静谧水面`
+coverTeaCeremony: `茶道文房`
+coverCountryside: `田园乡村`
+coverMistyMorning: `晨雾氤氲`
+coverAurora: `极光天象`
+coverDesert: `沙漠戈壁`
+coverNeonNights: `灯红酒绿`
+coverAutumnLeaves: `秋色落叶`
+coverRoadAhead: `路与远方`
+coverLightGeometry: `光影几何`
+coverZenMinimal: `禅意留白`
+coverReadingNook: `阅读时光`
+coverClassicalArchitecture: `古典建筑`
+coverCityNight: `城市夜景`
+coverNature: `自然风景`
+coverAll: `全部`
+encryptedExportRiskTip: `导出加密笔记本内容会生成未加密文件，任何可访问这些文件的人都能读取。确定继续吗？`
+passwordStrengthWeak: `密码强度：弱`
+passwordStrengthMedium: `密码强度：中`
+passwordStrengthStrong: `密码强度：强`
+weakPasswordConfirmTitle: `密码强度较弱`
+weakPasswordConfirmTip: `此密码强度较弱，可能被暴力破解。确定仍要使用吗？`
+encryptedNotebookAutoLock: `自动锁定`
+encryptedNotebookAutoLockDesc: `闲置指定分钟后自动锁定加密笔记本，浏览、编辑、搜索加密内容会重置计时，设置为 0 表示禁用自动锁定`
+exportNotebookCryptoBackupTip: `密钥已导出，请妥善保管`
+exportNotebookCryptoBackup: `导出密钥`
+importNotebookCryptoBackupTip: `密钥已导入，后续请使用该密钥对应的主密码解锁`
+importNotebookCryptoBackup: `导入密钥`
+desktopModeRestartTip: `修改后会自动关闭应用，请手动重启`
+aiEdit: `智能编辑`
+configGroupMcp: `智能体 MCP 服务`
+configGroupEmbedding: `嵌入模型`
+addToAgent: `添加到智能体会话`
+encryptedNotebook: `加密笔记本`
+enableEncryptedNotebook: `启用加密笔记本`
+encryptedNotebookTip: `将敏感内容存入加密笔记本，需要主密码解锁后才能查看`
+encryptedNotebookDisableTip: `目前已经存在 \$\{x\} 个加密笔记本，只有不存在任何加密笔记本时才支持禁用`
+encryptedNotebookEnabled: `加密笔记本已启用`
+encryptedNotebookDisabled: `加密笔记本已禁用`
+encryptedNotebookCount: `加密笔记本：\$\{x\} 个`
+setMasterPassword: `设置主密码`
+masterPassword: `主密码`
+confirmMasterPassword: `确认主密码`
+changeMasterPassword: `修改主密码`
+changeMasterPasswordSuccessTip: `修改主密码完毕`
+oldMasterPassword: `旧主密码`
+newMasterPassword: `新主密码`
+encryptedNotebookRiskTip: `忘记主密码则内容无法恢复；加密笔记本解锁打开期间，AI 智能体、插件、MCP 工具、API 等均能读取其中内容，与普通笔记本无异`
+newEncryptedNotebook: `新建加密笔记本`
+unlockEncryptedNotebook: `🔓 解锁 \$\{x\}`
+unlocking: `解锁中...`
+incorrectMasterPassword: `主密码错误`
+mcpStatusConnected: `已连接`
+mcpStatusConnecting: `连接中`
+mcpStatusFailed: `连接失败`
+mcpStatusDisabled: `未启用`
+mcpStatusTools: `\$\{x\} 个工具`
+notifications: `通知`
+notificationsMsgPushTip: `在这里配置需要推送显示的消息，关闭后该消息将不再显示`
+msgDocTreeMaxList: `文档面板展开上限`
+msgTagMaxList: `标签面板展开上限`
+msgWorkspaceNotSSD: `工作空间未放置在固态硬盘`
+msgBrowserCompatibility: `浏览器兼容性提示`
 reasoningEffortTooltip: `思考强度`
 reasoningEffortDefault: `默认`
 reasoningEffortLow: `低`
@@ -23,7 +189,7 @@ embeddingIgnoredByConfig: `配置忽略：`
 retryFailedEmbedding: `重试失败：`
 retryFailedEmbeddingTip: `重新尝试索引失败的块`
 retryFailedEmbeddingStarted: `已开始重试失败的块`
-rebuildEmbeddingIndex: `重建索引`
+rebuildEmbeddingIndex: `重建嵌入索引`
 rebuildEmbeddingIndexTip: `清空并重新计算所有块的嵌入向量`
 rebuildEmbeddingIndexConfirmTip: `确定要清空并重新生成所有嵌入向量吗？此操作可能耗时较长。`
 rebuildEmbeddingIndexStarted: `已开始重建嵌入索引`
@@ -86,8 +252,8 @@ dragTipRef: `插入引用`
 dragTipEmbed: `插入嵌入块`
 dragTipMoveTargetFront: `移动到 \$\{x\} 的前方`
 dragTipMoveTargetBack: `移动到 \$\{x\} 的后方`
-dragTipMoveTargetAbove: `移动到 \$\{x\} 上方`
-dragTipMoveTargetBelow: `移动到 \$\{x\} 下方`
+dragTipMoveTargetAbove: `移动到 \$\{x\} 的上方`
+dragTipMoveTargetBelow: `移动到 \$\{x\} 的下方`
 dragTipMoveChild: `移动为 \$\{x\} 的子文档`
 dragTipMoveBefore: `移动到 \$\{x\} 的上方`
 dragTipMoveAfter: `移动到 \$\{x\} 的下方`
@@ -100,7 +266,6 @@ dragTip2DocAfter: `转换为文档并移动到 \$\{x\} 的下方`
 workspace: `工作空间`
 addAiProvider: `添加提供商`
 addAiModel: `添加模型`
-addAllAiModels: `全部添加模型`
 aiProviderSettings: `提供商设置`
 customDisplayName: `自定义显示名称`
 aiProviderDisplayNameTip: `在提供商列表中展示的名称，留空则使用 API 地址`
@@ -118,8 +283,8 @@ aiMcpServerSettings: `MCP 服务设置`
 aiMcpServerName: `名称`
 aiMcpServerNameTip: `不能与其他 MCP 服务名称重复`
 connectionType: `连接类型`
-aiMcpTypeStdio: `标准输入输出 (stdio)`
-aiMcpTypeHttp: `HTTP 服务 (http)`
+aiMcpTypeStdio: `本地命令行（stdio）`
+aiMcpTypeHttp: `远程服务（HTTP/OAuth）`
 command: `命令`
 aiMcpCommandTip: `可执行文件，如 npx、node、python、uvx 等`
 args: `参数`
@@ -145,7 +310,7 @@ calcOperatorTemplate: `模板`
 calcResultTemplate: `模板`
 rollupTemplateTip: `示例：.action{divf (countif .values "gt" 0) (len .values)\}`
 agentChatBusy: `该会话正在其他实例对话中`
-agentMirrorStreaming: `其他实例正在对话中…`
+agentMirrorStreaming: `其他实例正在对话中...`
 rollbackCompleted: `已完成回滚`
 snapshotAutoCreated: `已自动创建数据快照`
 agentThinkingDoneTime: `已思考 %s`
@@ -181,7 +346,7 @@ agentConfirmReject: `拒绝`
 agentConfirmAlways: `会话允许`
 agentConfirmAlwaysDesc: `本次会话中不再询问任何确认`
 agentConfirmPending: `待确认`
-agentTimeout: `智能体超时时间`
+agentTimeout: `超时时间`
 agentTimeoutTip: `智能体会话总超时时间，0 表示不限制`
 agentConfirmTimeout: `确认超时时间`
 agentConfirmTimeoutTip: `操作确认超时后自动拒绝`
@@ -196,8 +361,7 @@ agentRegenerate: `重新回答`
 agentQuestionSubmitted: `已提交`
 agentQuestionPending: `待回答`
 agentNewSession: `新会话`
-agentInputPlaceholder: `输入消息，@引用，/技能，回车发送...`
-openNewAgentInTab: `在标签页新建`
+agentInputPlaceholder: `输入消息，/技能，回车发送...`
 agentSend: `发送`
 agentStop: `停止`
 editorFontSize: `编辑器字号`
@@ -336,7 +500,6 @@ dynamicIcon: `动态图标`
 dynamicIconDateEmptyInfo: `清除日期，日历图标将动态显示当天日期`
 backlinkContainChildren: `反向链接包含子块`
 backlinkContainChildrenTip: `启用后子块将被纳入到反向链接计算中`
-backlinkShowBottom: `在文档底部显示反链`
 entryNum: `条目数`
 workspaceData: `工作空间数据`
 confirmRemoveRelationField: `确定要删除 <b>\$\{x\}</b> 字段吗？删除本字段后，<b>\$\{y\}</b> 数据库中的双向关联字段 <b>\$\{z\}</b> 也会同步删除。`
@@ -391,8 +554,8 @@ newRow: `添加条目`
 enterKey: `回车`
 doubleClick: `双击`
 click: `点击`
-allowHTMLBLockScript: `允许执行 HTML 块内脚本`
-allowHTMLBLockScriptTip: `启用后将不对 HTML 块中的代码进行安全过滤，请注意潜在的 XSS 攻击风险`
+allowHTMLBLockScript: `允许执行 HTML 内容中的脚本`
+allowHTMLBLockScriptTip: `启用后将不对 HTML 块和数据库模板字段中的代码进行安全过滤，请注意潜在的 XSS 攻击风险`
 allowSVGScript: `允许执行 SVG 内脚本`
 allowSVGScriptTip: `启用后将不对 SVG 中的代码进行安全过滤，请注意潜在的 XSS 攻击风险`
 autoLaunchMode0: `不自动启动`
@@ -439,7 +602,6 @@ forgetCount: `遗忘次数`
 lastReviewTime: `最后复习时间`
 cardStatus: `卡片状态`
 noSupportTip: `该功能不支持卡包使用`
-insertRowTip: `新增条目已被过滤，可取消过滤或分组设置后进行查看`
 insertPhoto: `拍照并插入`
 relativeToToday: `相对于今天`
 current: `当前`
@@ -749,6 +911,8 @@ apiProxy: `网络代理`
 apiProxyTip: `发起请求的网络代理，如 <code class='fn__code'>socks://user:pass@127.0.0.1:1080</code>`
 apiModel: `模型名称`
 apiModelTip: `请求 API 时传入的 <code class='fn__code'>model</code> 参数，用于指定使用的模型`
+apiDimensions: `维度`
+apiDimensionsTip: `请求 API 时传递的 <code class='fn__code'>dimensions</code> 参数，用于指定输出向量维度。仅 text-embedding-3 及以上模型支持，设为 0 使用模型默认值`
 apiMaxTokens: `最大 Token 数`
 apiMaxTokensTip: `请求 API 时传入的 <code class='fn__code'>max_completion_tokens</code> 参数，用于限制单次响应的最大 token 数，设置为 0 表示不限制`
 apiTemperature: `温度`
@@ -757,6 +921,7 @@ apiMaxContexts: `最大上下文数`
 apiMaxContextsTip: `请求 API 时传入的最大上下文数`
 apiBaseURL: `API 基础地址`
 apiBaseURLTip: `请求 API 的基础地址，如 <code class='fn__code'>https://api.openai.com/v1</code>，实际请求端点为该地址下的 <code class='fn__code'>/chat/completions</code>`
+apiBaseURLEmbeddingTip: `请求 API 的基础地址，如 <code class='fn__code'>https://api.openai.com/v1</code>，实际请求端点为该地址下的 <code class='fn__code'>/embeddings</code>`
 apiUserAgentTip: `发起请求的用户代理，即 HTTP 标头 <code class='fn__code'>User-Agent</code>`
 apiVersion: `API 版本`
 apiVersionTip: `仅在使用 Azure OpenAI 服务时需要设置`
@@ -830,8 +995,8 @@ topBottomLayout: `上下布局`
 keyword: `关键字`
 searchMethod: `搜索方式`
 regex: `正则表达式`
-semanticSearch: `模糊搜索`
-semanticSearchTip: `配置嵌入模型 Embedding 并启用，可在全文搜索中使用模糊搜索（实验性功能，速度可能较慢，花费可能较大）`
+semanticSearch: `语义搜索`
+semanticSearchTip: `配置并启用嵌入模型后，可在全文搜索中使用语义搜索（实验性功能，速度可能较慢，花费可能较大）`
 keywordsLimit: `关键字数量限制`
 exportAsImage: `导出为图片`
 proFeature: `该特性需要付费（订阅会员不用再单独付费），<a href="https://b3log.org/siyuan/pricing.html" target="_blank">一次性付费后终身可用</a>`
@@ -876,7 +1041,6 @@ editReadonlyTip: `启用后文档编辑器将默认锁定编辑。仍然能够�
 generateConflictDoc: `同步冲突时生成冲突文档`
 generateConflictDocTip: `启用后当同步发生冲突时会生成冲突文档，以便直接打开查看。无论是否启用，[数据历史] 都会记录冲突文档`
 deleteOpConfirm: `⚠️ 删除操作确认`
-deleteRefConfirm: `待删除或剪切的内容中存在被引用的内容块，是否继续？`
 filterKeywordEnter: `关键字过滤 Enter`
 defBlock: `定义块`
 defBlockChildren: `定义块及其子块`
@@ -1044,9 +1208,6 @@ refTab: `在后台页签中打开`
 showHideBg: `显示/隐藏背景`
 directConnection: `直接连接`
 networkProxy: `网络代理`
-autoDetectProxy: `自动探测代理`
-autoDetectProxyTip: `自动从环境变量或本地代理端口检测系统代理配置`
-detectProxyRunning: `正在探测代理...`
 copyAnnotation: `复制标注`
 rectAnnotation: `矩形标注`
 fileName: `文件名`
@@ -1089,7 +1250,7 @@ pageScaleFit: `适合页面`
 pageScaleAuto: `自动缩放`
 pageScaleActual: `实际大小`
 thumbPageTitle: `第 {{page\}\} 页`
-loading: `正在载入…`
+loading: `正在载入...`
 toggleSidebarNotification2Title: `切换侧栏（文档所含的大纲/附件/图层）`
 toggleSidebarTitle: `切换侧栏`
 loadingError: `载入 PDF 时发生错误。`
@@ -1115,7 +1276,6 @@ password_label: `输入密码以打开此 PDF 文件。`
 password_invalid: `密码无效。请重试。`
 stateExcepted: `🚧 状态异常`
 rebuildIndex: `重建索引`
-rebuildAssetContentIndex: `重建资源内容索引`
 rebuildIndexTip: `发现了一个系统运行时错误，请选择需要退出还是重建索引进行修复`
 closeNotebook: `已关闭的笔记本`
 widget: `挂件`
@@ -1746,6 +1906,7 @@ _trayMenu: {
   quit: `退出程序`
   };
 _attrView: {
+  empty: `空白`
   table: `表格`
   gallery: `卡片`
   kanban: `看板`
@@ -2052,6 +2213,59 @@ _kernel: {
   '296': `正在重建搜索索引...`
   '297': `输出已达到最大补全 Token 数限制`
   '298': `你曾经试用订阅过，不支持重复试用订阅`
+  '299': `正在启动内核...`
+  '300': `即将完成启动...`
+  '301': `正在初始化数据库...`
+  '302': `正在初始化外观...`
+  '303': `正在列出文件...`
+  '304': `正在解析引用...`
+  '305': `正在索引引用...`
+  '306': `正在索引引用 %s`
+  '307': `正在从云端同步数据...`
+  '308': `同步重建索引中...`
+  '309': `加密笔记本已锁定，请先解锁`
+  '310': `加密笔记本功能未启用`
+  '311': `主密码错误`
+  '312': `加密笔记本功能已启用`
+  '313': `加密笔记本不支持该操作`
+  '314': `请先解锁加密笔记本`
+  '315': `已存在加密笔记本但缺少主密钥备份，需恢复原始 conf.json 或备份文件后才能重新启用`
+  '316': `解密失败：密钥不正确或数据已损坏`
+  '317': `密钥备份文件无效`
+  '318': `加密笔记本元数据已损坏，请检查备份文件`
+  '319': `笔记本未加密`
+  '320': `修改主密码部分失败，请重启思源以完成恢复。详情：%s`
+  '321': `不支持通过此 API 操作加密笔记本内的数据`
+  '322': `加密笔记本 [%s] 因长时间未操作已自动锁定`
+  '323': `无法禁用加密笔记本：已删除笔记本的历史仍依赖当前密钥备份，请先清除该历史`
+  '324': `无法导入密钥备份：加密笔记本功能已启用，请先禁用`
+  '325': `授权已完成`
+  '326': `可以关闭此页面并返回思源查看连接状态`
+  '327': `未完成授权`
+  '328': `可以关闭此页面并返回思源重新授权。`
+  '329': `已有 Obsidian Vault 导入任务正在运行`
+  '330': `未找到 Obsidian Vault 导入任务或任务已过期`
+  '331': `Obsidian Vault 导入任务已无法取消`
+  '332': `Obsidian Vault 分析尚未完成或已过期`
+  '333': `分析 Obsidian Vault 失败`
+  '334': `导入 Obsidian Vault 失败`
+  '335': `（导入未完成）`
+  '336': `无法读取所选 Obsidian Vault`
+  '337': `所选路径不是文件夹`
+  '338': `不支持所选 Vault 路径，请选择思源工作空间以外的普通文件夹`
+  '339': `仅支持使用默认 .obsidian 文件夹的 Obsidian Vault`
+  '340': `所选 Vault 中没有可读取的非隐藏 Markdown 文件`
+  '341': `顶层笔记本文档不能被删除或移动`
+  '342': `我的笔记本`
+  '343': `全新的开始`
+  '344': `Markdown 文件 [%s] 不是 UTF-8 编码`
+  '345': `无法读取 Markdown 文件 [%s]`
+  '346': `文件 [%s] 在分析后发生变化，请重新分析 Vault`
+  '347': `无法转换 Markdown 文件 [%s]`
+  '348': `无法导入资源文件 [%s]`
+  '349': `Vault 内容在分析后发生变化，请重新分析`
+  '350': `无法完成新笔记本的写入或索引，已将其标记为导入未完成`
+  '351': `发生未知错误，请在系统日志中查找任务 [%s]`
   };
 }
 
@@ -2110,6 +2324,7 @@ quit: `退出程序`
 }
 
 export interface AttrView {
+empty: `空白`
 table: `表格`
 gallery: `卡片`
 kanban: `看板`
@@ -2417,4 +2632,58 @@ export interface Kernel {
 '296': `正在重建搜索索引...`
 '297': `输出已达到最大补全 Token 数限制`
 '298': `你曾经试用订阅过，不支持重复试用订阅`
+'299': `正在启动内核...`
+'300': `即将完成启动...`
+'301': `正在初始化数据库...`
+'302': `正在初始化外观...`
+'303': `正在列出文件...`
+'304': `正在解析引用...`
+'305': `正在索引引用...`
+'306': `正在索引引用 %s`
+'307': `正在从云端同步数据...`
+'308': `同步重建索引中...`
+'309': `加密笔记本已锁定，请先解锁`
+'310': `加密笔记本功能未启用`
+'311': `主密码错误`
+'312': `加密笔记本功能已启用`
+'313': `加密笔记本不支持该操作`
+'314': `请先解锁加密笔记本`
+'315': `已存在加密笔记本但缺少主密钥备份，需恢复原始 conf.json 或备份文件后才能重新启用`
+'316': `解密失败：密钥不正确或数据已损坏`
+'317': `密钥备份文件无效`
+'318': `加密笔记本元数据已损坏，请检查备份文件`
+'319': `笔记本未加密`
+'320': `修改主密码部分失败，请重启思源以完成恢复。详情：%s`
+'321': `不支持通过此 API 操作加密笔记本内的数据`
+'322': `加密笔记本 [%s] 因长时间未操作已自动锁定`
+'323': `无法禁用加密笔记本：已删除笔记本的历史仍依赖当前密钥备份，请先清除该历史`
+'324': `无法导入密钥备份：加密笔记本功能已启用，请先禁用`
+'325': `授权已完成`
+'326': `可以关闭此页面并返回思源查看连接状态`
+'327': `未完成授权`
+'328': `可以关闭此页面并返回思源重新授权。`
+'329': `已有 Obsidian Vault 导入任务正在运行`
+'330': `未找到 Obsidian Vault 导入任务或任务已过期`
+'331': `Obsidian Vault 导入任务已无法取消`
+'332': `Obsidian Vault 分析尚未完成或已过期`
+'333': `分析 Obsidian Vault 失败`
+'334': `导入 Obsidian Vault 失败`
+'335': `（导入未完成）`
+'336': `无法读取所选 Obsidian Vault`
+'337': `所选路径不是文件夹`
+'338': `不支持所选 Vault 路径，请选择思源工作空间以外的普通文件夹`
+'339': `仅支持使用默认 .obsidian 文件夹的 Obsidian Vault`
+'340': `所选 Vault 中没有可读取的非隐藏 Markdown 文件`
+'341': `顶层笔记本文档不能被删除或移动`
+'342': `我的笔记本`
+'343': `全新的开始`
+'344': `Markdown 文件 [%s] 不是 UTF-8 编码`
+'345': `无法读取 Markdown 文件 [%s]`
+'346': `文件 [%s] 在分析后发生变化，请重新分析 Vault`
+'347': `无法转换 Markdown 文件 [%s]`
+'348': `无法导入资源文件 [%s]`
+'349': `Vault 内容在分析后发生变化，请重新分析`
+'350': `无法完成新笔记本的写入或索引，已将其标记为导入未完成`
+'351': `发生未知错误，请在系统日志中查找任务 [%s]`
 }
+

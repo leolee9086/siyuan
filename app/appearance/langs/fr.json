@@ -1,4 +1,5 @@
 {
+    "exportFileSaveFailed": "Impossible d’enregistrer le fichier ; vérifiez qu’il n’est pas utilisé par un autre programme et que l’emplacement de destination est accessible en écriture",
     "openNewAgentInTab": "Créer dans un nouvel onglet",
     "agentQueuePending": "En attente",
     "agentQueueInjecting": "Envoi en cours",

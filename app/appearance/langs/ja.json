@@ -1,4 +1,5 @@
 {
+    "exportFileSaveFailed": "ファイルを保存できません。別のプログラムで使用されていないこと、および保存先に書き込み可能であることを確認してください",
     "openNewAgentInTab": "新しいタブで新規作成",
     "agentQueuePending": "保留中",
     "agentQueueInjecting": "送信中",

@@ -1,4 +1,5 @@
 {
+    "exportFileSaveFailed": "לא ניתן לשמור את הקובץ; יש לוודא שהוא אינו בשימוש על ידי תוכנית אחרת ושניתן לכתוב במיקום היעד",
     "openNewAgentInTab": "צור בכרטיסייה חדשה",
     "agentQueuePending": "ממתין",
     "agentQueueInjecting": "נשלח",
