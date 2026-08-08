@@ -1,10 +1,14 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"image"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,6 +24,19 @@ type fileBrowserTagDefinitionsStub struct {
 	snapshot assetmeta.TagDefinitionsSnapshot
 	update   assetmeta.TagDefinitionsUpdate
 	err      error
+}
+
+type fileBrowserThumbnailStub struct {
+	data        []byte
+	contentType string
+}
+
+func (s fileBrowserThumbnailStub) GetWithSize(string, int, int) ([]byte, string, error) {
+	return s.data, s.contentType, nil
+}
+
+func (s fileBrowserThumbnailStub) Refresh(string, int, int) ([]byte, string, error) {
+	return s.data, s.contentType, nil
 }
 
 func (s *fileBrowserTagDefinitionsStub) GetTagDefinitions() assetmeta.TagDefinitionsSnapshot {
@@ -132,6 +149,106 @@ func TestFileBrowserWalkUsesRecursiveRootRelativeContract(t *testing.T) {
 	}
 }
 
+func TestFileBrowserEditorReadWriteHandlersUseRevisionAndEncodingContract(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	workspace := t.TempDir()
+	path := filepath.Join(workspace, "notes", "guide.md")
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("# guide\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	originalFactory := newFileBrowserService
+	newFileBrowserService = func() *filebrowser.Service {
+		return filebrowser.NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) {
+			return nil, nil
+		})
+	}
+	t.Cleanup(func() { newFileBrowserService = originalFactory })
+
+	readResponse := callFileBrowserHandler(t, readSForgeFileBrowserEditor, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"notes/guide.md"}`)
+	if readResponse.Code != 0 {
+		t.Fatalf("editor read failed: %+v", readResponse)
+	}
+	var document filebrowser.EditorDocument
+	if err := json.Unmarshal(readResponse.Data, &document); err != nil {
+		t.Fatal(err)
+	}
+	if document.Text != "# guide\n" || document.Encoding != "utf-8" || document.Language != "markdown" || document.Revision == "" {
+		t.Fatalf("unexpected editor document: %+v", document)
+	}
+
+	body := `{"rootID":"workspace","path":"notes/guide.md","text":"# changed\n","encoding":"utf-8","revision":"` + document.Revision + `"}`
+	writeResponse := callFileBrowserHandler(t, writeSForgeFileBrowserEditor, "127.0.0.1:6806", body)
+	if writeResponse.Code != 0 || !strings.Contains(string(writeResponse.Data), `"revision"`) {
+		t.Fatalf("editor write failed: %+v", writeResponse)
+	}
+	if content, err := os.ReadFile(path); err != nil || string(content) != "# changed\n" {
+		t.Fatalf("editor content mismatch: %q err=%v", content, err)
+	}
+	conflict := callFileBrowserHandler(t, writeSForgeFileBrowserEditor, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"notes/guide.md","text":"stale","encoding":"utf-8","revision":"`+document.Revision+`"}`)
+	if conflict.Code != http.StatusConflict {
+		t.Fatalf("stale editor write status: %+v", conflict)
+	}
+	missingRevision := callFileBrowserHandler(t, writeSForgeFileBrowserEditor, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"notes/guide.md","text":"missing","encoding":"utf-8"}`)
+	if missingRevision.Code != http.StatusPreconditionRequired {
+		t.Fatalf("missing revision status: %+v", missingRevision)
+	}
+}
+
+func TestFileBrowserEditorHandlersRejectBinaryAndRemoteRequests(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	remote := callFileBrowserHandler(t, readSForgeFileBrowserEditor, "203.0.113.10:6806",
+		`{"rootID":"workspace","path":"notes/guide.md"}`)
+	if remote.Code != http.StatusForbidden {
+		t.Fatalf("remote editor read must be rejected: %+v", remote)
+	}
+}
+
+func TestFileBrowserMutationOperationsUseRootRelativeContracts(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	workspace := t.TempDir()
+	if err := os.Mkdir(filepath.Join(workspace, "source"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(workspace, "source", "old name.txt"), []byte("payload"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	originalFactory := newFileBrowserService
+	newFileBrowserService = func() *filebrowser.Service {
+		return filebrowser.NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) { return nil, nil })
+	}
+	t.Cleanup(func() { newFileBrowserService = originalFactory })
+
+	create := callFileBrowserHandler(t, createSForgeFileBrowserDirectory, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"source/新目录"}`)
+	if create.Code != 0 || !strings.Contains(string(create.Data), `"operation":"create-directory"`) {
+		t.Fatalf("unexpected create response: %+v", create)
+	}
+	rename := callFileBrowserHandler(t, renameSForgeFileBrowserEntry, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"source/old name.txt","newName":"new name.txt"}`)
+	if rename.Code != 0 || !strings.Contains(string(rename.Data), `"path":"source/new name.txt"`) {
+		t.Fatalf("unexpected rename response: %+v", rename)
+	}
+	copyResponse := callFileBrowserHandler(t, copySForgeFileBrowserEntry, "127.0.0.1:6806",
+		`{"sourceRootID":"workspace","sourcePath":"source/new name.txt","destinationRootID":"workspace","destinationPath":"copied/new name.txt"}`)
+	if copyResponse.Code != 0 || !strings.Contains(string(copyResponse.Data), `"copiedFileCount":1`) {
+		t.Fatalf("unexpected copy response: %+v", copyResponse)
+	}
+	if data, err := os.ReadFile(filepath.Join(workspace, "copied", "new name.txt")); err != nil || string(data) != "payload" {
+		t.Fatalf("copied content mismatch: %q err=%v", data, err)
+	}
+	conflict := callFileBrowserHandler(t, createSForgeFileBrowserDirectory, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"source/新目录"}`)
+	if conflict.Code != http.StatusConflict {
+		t.Fatalf("expected create conflict, got %+v", conflict)
+	}
+}
+
 func TestFileBrowserStatPreviewAndContentRange(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	workspace := t.TempDir()
@@ -161,6 +278,79 @@ func TestFileBrowserStatPreviewAndContentRange(t *testing.T) {
 	}
 	if disposition := contentResponse.Header().Get("Content-Disposition"); !strings.HasPrefix(disposition, "attachment") {
 		t.Fatalf("text content must download instead of execute: %q", disposition)
+	}
+}
+
+func TestFileBrowserImageContentPreservesImageMimeAndBytes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	workspace := t.TempDir()
+	imagePath := filepath.Join(workspace, "nested", "中文 folder", "page-2.png")
+	if err := os.MkdirAll(filepath.Dir(imagePath), 0755); err != nil {
+		t.Fatal(err)
+	}
+	source := image.NewRGBA(image.Rect(0, 0, 2, 1))
+	source.Pix[0], source.Pix[1], source.Pix[2], source.Pix[3] = 255, 0, 0, 255
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, source); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(imagePath, encoded.Bytes(), 0600); err != nil {
+		t.Fatal(err)
+	}
+	originalFactory := newFileBrowserService
+	newFileBrowserService = func() *filebrowser.Service {
+		return filebrowser.NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) { return nil, nil })
+	}
+	t.Cleanup(func() { newFileBrowserService = originalFactory })
+
+	contentResponse := callFileBrowserContentHandler(t, "127.0.0.1:6806", "workspace",
+		"nested/中文 folder/page-2.png", "")
+	if contentResponse.Code != http.StatusOK {
+		t.Fatalf("unexpected image response status: %d", contentResponse.Code)
+	}
+	if contentType := contentResponse.Header().Get("Content-Type"); contentType != "image/png" {
+		t.Fatalf("image content must preserve image/png MIME, got %q", contentType)
+	}
+	if !bytes.Equal(contentResponse.Body.Bytes(), encoded.Bytes()) {
+		t.Fatalf("image content bytes changed: got=%d want=%d", contentResponse.Body.Len(), encoded.Len())
+	}
+}
+
+func TestFileBrowserThumbnailResponsePreservesProviderMime(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	workspace := t.TempDir()
+	imagePath := filepath.Join(workspace, "中文 folder", "page-2.png")
+	if err := os.MkdirAll(filepath.Dir(imagePath), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(imagePath, []byte("fixture"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	originalFactory := newFileBrowserService
+	originalThumbnailFactory := newFileBrowserThumbnailService
+	newFileBrowserService = func() *filebrowser.Service {
+		return filebrowser.NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) { return nil, nil })
+	}
+	newFileBrowserThumbnailService = func() fileBrowserThumbnailService {
+		return fileBrowserThumbnailStub{data: []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a}, contentType: "image/png"}
+	}
+	t.Cleanup(func() {
+		newFileBrowserService = originalFactory
+		newFileBrowserThumbnailService = originalThumbnailFactory
+	})
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet,
+		"http://localhost/api/s-forge/file-browser/thumbnail?rootID=workspace&path="+
+			url.QueryEscape("中文 folder/page-2.png")+"&size=360", nil)
+	request.RemoteAddr = "127.0.0.1:6806"
+	context, _ := gin.CreateTestContext(recorder)
+	context.Request = request
+	getSForgeFileBrowserThumbnail(context)
+	if recorder.Code != http.StatusOK || recorder.Header().Get("Content-Type") != "image/png" ||
+		!bytes.Equal(recorder.Body.Bytes(), []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a}) {
+		t.Fatalf("unexpected thumbnail response: status=%d type=%q bytes=%x", recorder.Code,
+			recorder.Header().Get("Content-Type"), recorder.Body.Bytes())
 	}
 }
 

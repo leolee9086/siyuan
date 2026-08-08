@@ -1,5 +1,5 @@
 <template>
-    <section class="sforge-file-gallery" aria-label="文件资源瀑布流"
+    <section class="sforge-file-gallery" aria-label="文件资源画廊" :data-layout-mode="layoutMode"
         :aria-busy="loading || loadingMore || rootsLoading">
         <header class="sforge-file-gallery__header">
             <div class="sforge-file-gallery__topline">
@@ -24,6 +24,15 @@
                         aria-label="卡片宽度" />
                     <output>{{ columnWidth }}px</output>
                 </label>
+                <div class="sforge-file-gallery__view-modes" role="group" aria-label="布局模式">
+                    <button v-for="mode in galleryViewModes" :key="mode.value" type="button"
+                        class="block__icon ariaLabel"
+                        :class="{'block__icon--active': layoutMode === mode.value}"
+                        :aria-label="mode.label" :aria-pressed="layoutMode === mode.value"
+                        @click="layoutMode = mode.value">
+                        <svg><use :href="mode.icon" /></svg>
+                    </button>
+                </div>
                 <button type="button" class="block__icon ariaLabel" aria-label="重新查询"
                     :disabled="loading" @click="() => runScopedSearch()">
                     <svg :class="{'fn__rotate': loading}"><use href="#iconRefresh" /></svg>
@@ -60,11 +69,25 @@
             @search="runSearch" @clear="clearSearch" />
 
         <main class="sforge-file-gallery__content">
-            <VirtualMasonryGrid v-if="galleryAssets.length > 0" ref="galleryGrid" :items="galleryAssets" :column-width="columnWidth"
-                :gap="12" id-key="key" :item-height="estimateItemHeight" :managed-by-provider="true"
+            <div v-if="layoutMode === 'table' && galleryAssets.length > 0" class="sforge-file-gallery-table-header"
+                role="row" aria-label="表格列标题">
+                <span role="columnheader">预览</span>
+                <span role="columnheader">名称</span>
+                <span role="columnheader">路径</span>
+                <span role="columnheader">标签</span>
+                <span role="columnheader">尺寸</span>
+                <span role="columnheader">大小</span>
+                <span role="columnheader">类型</span>
+            </div>
+            <VirtualMasonryGrid v-if="galleryAssets.length > 0" :key="layoutMode" ref="galleryGrid" :items="galleryAssets"
+                :column-width="columnWidth" :gap="12" id-key="key" :item-height="estimateItemHeight"
+                :mode="layoutMode === 'table' ? 'list' : layoutMode" :managed-by-provider="true"
                 @load-more="loadNextPage">
                 <template #default="{item}">
-                    <FileBrowserGalleryCard :asset="item" :thumbnail-url="thumbnailUrl(item)"
+                    <FileBrowserGalleryTableRow v-if="layoutMode === 'table'" :asset="item"
+                        :thumbnail-url="thumbnailUrl(item)" :selected="selectedKey === item.key"
+                        @select="selectAsset" @open="openAsset" />
+                    <FileBrowserGalleryCard v-else :asset="item" :thumbnail-url="thumbnailUrl(item)"
                         :selected="selectedKey === item.key" :show-path="showPaths"
                         :display-attributes="selectedAttributes"
                         @select="selectAsset" @open="openAsset" />
@@ -103,15 +126,18 @@ import VirtualMasonryGrid from "../../components/masonry/components/VirtualMason
 import FileBrowserSearchPanel from "./FileBrowserSearchPanel.vue";
 import FileBrowserGalleryScope from "./FileBrowserGalleryScope.vue";
 import FileBrowserGalleryCard from "./FileBrowserGalleryCard.vue";
+import FileBrowserGalleryTableRow from "./FileBrowserGalleryTableRow.vue";
 import {fileBrowserRepository} from "./FileBrowser.repository";
 import {fileBrowserQueryRepository} from "./FileBrowser.query.repository";
 import {useFileBrowserSearch} from "./useFileBrowserSearch";
 import {createFileBrowserEntryOpener} from "./FileBrowser.open";
 import {fileBrowserSelection} from "./FileBrowser.selection";
 import {makeFileBrowserNodeKey} from "./FileBrowser.tree";
+import {resolveAssetURL} from "../../asset/assetUrl";
 import {
     FILE_BROWSER_GALLERY_ATTRIBUTES,
     FILE_BROWSER_GALLERY_DEFAULT_ATTRIBUTES,
+    FILE_BROWSER_GALLERY_VIEW_MODES,
 } from "./FileBrowser.gallery.constants";
 import type {AppFacade} from "./dock/imports";
 import type {FileBrowserEntry, FileBrowserGalleryTabData, FileBrowserRoot} from "./FileBrowser.types";
@@ -120,7 +146,7 @@ import type {
     FileBrowserSearchRequest,
     FileBrowserSearchResult,
 } from "./FileBrowser.query.types";
-import type {FileBrowserGalleryAttribute} from "./FileBrowser.gallery.constants";
+import type {FileBrowserGalleryAttribute, FileBrowserGalleryViewMode} from "./FileBrowser.gallery.constants";
 
 interface GalleryAsset extends FileBrowserAssetResult {
     key: string;
@@ -147,6 +173,8 @@ const selectedSubfolderPaths = ref<string[]>([]);
 let scopeRevision = 0;
 const selectedKey = ref("");
 const columnWidth = ref(typeof window !== "undefined" && window.innerWidth < 768 ? 150 : 220);
+const galleryViewModes = FILE_BROWSER_GALLERY_VIEW_MODES;
+const layoutMode = ref<FileBrowserGalleryViewMode>("masonry");
 const showPaths = ref(true);
 const selectedAttributes = ref<FileBrowserGalleryAttribute[]>([...FILE_BROWSER_GALLERY_DEFAULT_ATTRIBUTES]);
 const galleryGrid = ref<InstanceType<typeof VirtualMasonryGrid> | null>(null);
@@ -364,7 +392,7 @@ async function loadNextPage() {
 
 function thumbnailUrl(asset: FileBrowserAssetResult) {
     const params = new URLSearchParams({rootID: asset.rootID, path: asset.path, size: "360"});
-    return `/api/s-forge/file-browser/thumbnail?${params.toString()}`;
+    return resolveAssetURL(`/api/s-forge/file-browser/thumbnail?${params.toString()}`);
 }
 
 function extensionOf(path: string) {
@@ -373,6 +401,9 @@ function extensionOf(path: string) {
 }
 
 function estimateItemHeight(asset: GalleryAsset, width = columnWidth.value) {
+    if (layoutMode.value === "table") {
+        return 56;
+    }
     const ratio = asset.width > 0 && asset.height > 0 ? asset.height / asset.width : 0.75;
     return Math.max(150, Math.round(width * Math.min(Math.max(ratio, 0.55), 1.8)) + 92);
 }

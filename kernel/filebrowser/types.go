@@ -137,6 +137,42 @@ type FileRequest struct {
 	Path   string `json:"path"`
 }
 
+// CreateDirectoryRequest addresses one new directory inside an authorized root.
+type CreateDirectoryRequest struct {
+	RootID string `json:"rootID"`
+	Path   string `json:"path"`
+}
+
+// RenameRequest changes an entry's final name while keeping its parent path.
+type RenameRequest struct {
+	RootID  string `json:"rootID"`
+	Path    string `json:"path"`
+	NewName string `json:"newName"`
+}
+
+// CopyRequest keeps source and destination authorization scopes explicit.
+type CopyRequest struct {
+	SourceRootID      string `json:"sourceRootID"`
+	SourcePath        string `json:"sourcePath"`
+	DestinationRootID string `json:"destinationRootID"`
+	DestinationPath   string `json:"destinationPath"`
+}
+
+// FileOperationResult reports only root-relative identities and counts.
+type FileOperationResult struct {
+	Operation             string `json:"operation"`
+	RootID                string `json:"rootID,omitempty"`
+	Path                  string `json:"path,omitempty"`
+	SourceRootID          string `json:"sourceRootID,omitempty"`
+	SourcePath            string `json:"sourcePath,omitempty"`
+	DestinationRootID     string `json:"destinationRootID,omitempty"`
+	DestinationPath       string `json:"destinationPath,omitempty"`
+	CopiedFileCount       int    `json:"copiedFileCount,omitempty"`
+	CopiedDirectoryCount  int    `json:"copiedDirectoryCount,omitempty"`
+	CreatedDirectoryCount int    `json:"createdDirectoryCount,omitempty"`
+	CopiedBytes           int64  `json:"copiedBytes,omitempty"`
+}
+
 // StatResult describes a validated file and its frontend opening target.
 type StatResult struct {
 	Root        Root        `json:"root"`

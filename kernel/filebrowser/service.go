@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/siyuan-note/siyuan/kernel/agent"
+	"github.com/siyuan-note/siyuan/kernel/fswalk"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
@@ -21,6 +22,13 @@ var (
 	ErrPathNotFound       = errors.New("file browser path not found")
 	ErrNotDirectory       = errors.New("file browser path is not a directory")
 	ErrNotFile            = errors.New("file browser path is not a file")
+	ErrPathExists         = errors.New("file browser target already exists")
+	ErrInvalidName        = errors.New("file browser name is invalid")
+	ErrWriteDenied        = errors.New("file browser write capability is required")
+	ErrDestinationType    = errors.New("file browser destination has an incompatible type")
+	ErrPathOverlap        = errors.New("file browser source and destination overlap")
+	ErrSymlinkRestricted  = errors.New("file browser operation cannot cross a symbolic link")
+	ErrUnsupportedFile    = errors.New("file browser operation does not support this file type")
 	ErrPreviewUnsupported = errors.New("file browser preview is not text")
 	ErrPropertiesEmpty    = errors.New("file browser property request is empty")
 	ErrPropertiesTooLarge = errors.New("file browser property request exceeds 100 items")
@@ -33,6 +41,37 @@ type BindingProvider func() (map[string]*agent.TaskDirectoryBinding, error)
 type Service struct {
 	workspacePath string
 	bindings      BindingProvider
+}
+
+// adaptFileOperationError keeps the deep fswalk implementation behind the
+// file-browser domain's stable error vocabulary and HTTP mapping.
+func adaptFileOperationError(err error) error {
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, fswalk.ErrRootUnavailable):
+		return ErrRootUnavailable
+	case errors.Is(err, fswalk.ErrStartUnavailable), errors.Is(err, os.ErrNotExist):
+		return ErrPathNotFound
+	case errors.Is(err, fswalk.ErrPathTraversal), errors.Is(err, fswalk.ErrDirectoryChangedToReparsePoint):
+		return ErrPathTraversal
+	case errors.Is(err, fswalk.ErrPathComponentNotDirectory):
+		return ErrNotDirectory
+	case errors.Is(err, fswalk.ErrPathExists):
+		return ErrPathExists
+	case errors.Is(err, fswalk.ErrCopyPathOverlap), errors.Is(err, fswalk.ErrMovePathOverlap):
+		return ErrPathOverlap
+	case errors.Is(err, fswalk.ErrCopyDestinationType):
+		return ErrDestinationType
+	case errors.Is(err, fswalk.ErrCopySymlink):
+		return ErrSymlinkRestricted
+	case errors.Is(err, fswalk.ErrCopyUnsupportedFile), errors.Is(err, fswalk.ErrNotRegularFile):
+		return ErrUnsupportedFile
+	case errors.Is(err, os.ErrPermission):
+		return ErrWriteDenied
+	default:
+		return err
+	}
 }
 
 // NewService creates a browser service. A nil provider reads the persisted Agent store.

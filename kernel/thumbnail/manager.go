@@ -17,10 +17,12 @@
 package thumbnail
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -175,14 +177,7 @@ func (m *Manager) GetWithSize(filePath string, width, height int) (data []byte, 
 	}
 
 	data = result.([]byte)
-	// 缩略图统一使用 JPEG 格式（除了 SVG 图标）
-	contentType = "image/jpeg"
-	// 检查是否是 SVG（文件图标 fallback）
-	if len(data) > 5 && string(data[:5]) == "<?xml" || (len(data) > 4 && string(data[:4]) == "<svg") {
-		contentType = "image/svg+xml"
-	}
-
-	return data, contentType, nil
+	return data, detectContentType(data), nil
 }
 
 // generate 尝试使用各个 Provider 生成缩略图
@@ -331,13 +326,21 @@ func (m *Manager) Refresh(filePath string, width, height int) (data []byte, cont
 	cacheKey := m.getCacheKey(filePath, width, height)
 	m.writeCache(cacheKey, data)
 
-	// 确定 content type
-	contentType = "image/png"
-	if len(data) > 5 && (string(data[:5]) == "<?xml" || string(data[:4]) == "<svg") {
-		contentType = "image/svg+xml"
-	} else if len(data) > 2 && data[0] == 0xFF && data[1] == 0xD8 {
-		contentType = "image/jpeg"
-	}
+	contentType = detectContentType(data)
 
 	return data, contentType, nil
+}
+
+func detectContentType(data []byte) string {
+	trimmed := bytes.TrimSpace(data)
+	switch {
+	case len(data) >= 8 && bytes.Equal(data[:8], []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a}):
+		return "image/png"
+	case len(data) >= 2 && data[0] == 0xff && data[1] == 0xd8:
+		return "image/jpeg"
+	case bytes.HasPrefix(trimmed, []byte("<?xml")) || bytes.HasPrefix(trimmed, []byte("<svg")):
+		return "image/svg+xml"
+	default:
+		return http.DetectContentType(data)
+	}
 }

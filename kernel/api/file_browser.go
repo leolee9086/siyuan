@@ -117,6 +117,78 @@ func walkSForgeFileBrowserDirectory(c *gin.Context) {
 	ret.Data = result
 }
 
+func createSForgeFileBrowserDirectory(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+	if !requireLocalFileBrowser(c, ret) {
+		return
+	}
+	var request filebrowser.CreateDirectoryRequest
+	if !decodeFileBrowserRequest(c, ret, &request) {
+		return
+	}
+	if request.RootID == "" || request.Path == "" {
+		ret.Code = http.StatusBadRequest
+		ret.Msg = "rootID and path are required"
+		return
+	}
+	result, err := newFileBrowserService().CreateDirectory(c.Request.Context(), request)
+	if err != nil {
+		ret.Code = fileBrowserErrorCode(err)
+		ret.Msg = err.Error()
+		return
+	}
+	ret.Data = result
+}
+
+func renameSForgeFileBrowserEntry(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+	if !requireLocalFileBrowser(c, ret) {
+		return
+	}
+	var request filebrowser.RenameRequest
+	if !decodeFileBrowserRequest(c, ret, &request) {
+		return
+	}
+	if request.RootID == "" || request.Path == "" || request.NewName == "" {
+		ret.Code = http.StatusBadRequest
+		ret.Msg = "rootID, path and newName are required"
+		return
+	}
+	result, err := newFileBrowserService().Rename(c.Request.Context(), request)
+	if err != nil {
+		ret.Code = fileBrowserErrorCode(err)
+		ret.Msg = err.Error()
+		return
+	}
+	ret.Data = result
+}
+
+func copySForgeFileBrowserEntry(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+	if !requireLocalFileBrowser(c, ret) {
+		return
+	}
+	var request filebrowser.CopyRequest
+	if !decodeFileBrowserRequest(c, ret, &request) {
+		return
+	}
+	if request.SourceRootID == "" || request.DestinationRootID == "" || request.SourcePath == "" || request.DestinationPath == "" {
+		ret.Code = http.StatusBadRequest
+		ret.Msg = "source and destination root-relative paths are required"
+		return
+	}
+	result, err := newFileBrowserService().Copy(c.Request.Context(), request)
+	if err != nil {
+		ret.Code = fileBrowserErrorCode(err)
+		ret.Msg = err.Error()
+		return
+	}
+	ret.Data = result
+}
+
 func decodeFileBrowserRequest(c *gin.Context, ret *gulu.Result, target any) bool {
 	arg, ok := util.JsonArg(c, ret)
 	if !ok {
@@ -248,6 +320,54 @@ func previewSForgeFileBrowserFile(c *gin.Context) {
 	ret.Data = result
 }
 
+func readSForgeFileBrowserEditor(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+	if !requireLocalFileBrowser(c, ret) {
+		return
+	}
+	var request filebrowser.EditorReadRequest
+	if !decodeFileBrowserRequest(c, ret, &request) {
+		return
+	}
+	if request.RootID == "" || request.Path == "" {
+		ret.Code = http.StatusBadRequest
+		ret.Msg = "rootID and path are required"
+		return
+	}
+	result, err := newFileBrowserService().ReadEditorFile(c.Request.Context(), request)
+	if err != nil {
+		ret.Code = fileBrowserErrorCode(err)
+		ret.Msg = err.Error()
+		return
+	}
+	ret.Data = result
+}
+
+func writeSForgeFileBrowserEditor(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+	if !requireLocalFileBrowser(c, ret) {
+		return
+	}
+	var request filebrowser.EditorWriteRequest
+	if !decodeFileBrowserRequest(c, ret, &request) {
+		return
+	}
+	if request.RootID == "" || request.Path == "" {
+		ret.Code = http.StatusBadRequest
+		ret.Msg = "rootID and path are required"
+		return
+	}
+	result, err := newFileBrowserService().WriteEditorFile(c.Request.Context(), request)
+	if err != nil {
+		ret.Code = fileBrowserErrorCode(err)
+		ret.Msg = err.Error()
+		return
+	}
+	ret.Data = result
+}
+
 func serveSForgeFileBrowserContent(c *gin.Context) {
 	ret := gulu.Ret.NewResult()
 	if !requireLocalFileBrowser(c, ret) {
@@ -294,14 +414,28 @@ func fileBrowserErrorCode(err error) int {
 		return http.StatusBadRequest
 	case errors.Is(err, filebrowser.ErrRootNotFound), errors.Is(err, filebrowser.ErrPathNotFound):
 		return http.StatusNotFound
-	case errors.Is(err, filebrowser.ErrPathTraversal):
+	case errors.Is(err, filebrowser.ErrPathTraversal), errors.Is(err, filebrowser.ErrWriteDenied),
+		errors.Is(err, filebrowser.ErrSymlinkRestricted):
 		return http.StatusForbidden
+	case errors.Is(err, filebrowser.ErrPathExists), errors.Is(err, filebrowser.ErrPathOverlap):
+		return http.StatusConflict
+	case errors.Is(err, filebrowser.ErrEditorConflict):
+		return http.StatusConflict
+	case errors.Is(err, filebrowser.ErrInvalidName), errors.Is(err, filebrowser.ErrDestinationType),
+		errors.Is(err, filebrowser.ErrUnsupportedFile):
+		return http.StatusBadRequest
 	case errors.Is(err, filebrowser.ErrRootUnavailable):
 		return http.StatusGone
 	case errors.Is(err, filebrowser.ErrNotDirectory), errors.Is(err, filebrowser.ErrNotFile):
 		return http.StatusMethodNotAllowed
 	case errors.Is(err, filebrowser.ErrPreviewUnsupported):
 		return http.StatusUnsupportedMediaType
+	case errors.Is(err, filebrowser.ErrEditorEncoding), errors.Is(err, filebrowser.ErrEditorBinary):
+		return http.StatusUnsupportedMediaType
+	case errors.Is(err, filebrowser.ErrEditorTooLarge):
+		return http.StatusRequestEntityTooLarge
+	case errors.Is(err, filebrowser.ErrEditorRevisionNeeded):
+		return http.StatusPreconditionRequired
 	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
 		return http.StatusRequestTimeout
 	default:

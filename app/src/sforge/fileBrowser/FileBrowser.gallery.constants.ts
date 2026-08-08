@@ -22,3 +22,14 @@ export type FileBrowserGalleryAttribute = typeof FILE_BROWSER_GALLERY_ATTRIBUTES
 export const FILE_BROWSER_GALLERY_DEFAULT_ATTRIBUTES: readonly FileBrowserGalleryAttribute[] = [
     "dimensions", "size",
 ];
+
+/** 资源画廊的显示模式；表格模式复用列表虚拟化，只替换行投影。 */
+export const FILE_BROWSER_GALLERY_VIEW_MODES = [
+    {value: "masonry", label: "瀑布流视图", icon: "#iconGallery"},
+    {value: "grid", label: "网格视图", icon: "#iconLayoutGrid"},
+    {value: "justified", label: "对齐视图", icon: "#iconImage"},
+    {value: "list", label: "列表视图", icon: "#iconList"},
+    {value: "table", label: "表格视图", icon: "#iconTable"},
+] as const;
+
+export type FileBrowserGalleryViewMode = typeof FILE_BROWSER_GALLERY_VIEW_MODES[number]["value"];

@@ -8,6 +8,15 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/thumbnail"
 )
 
+type fileBrowserThumbnailService interface {
+	GetWithSize(filePath string, width, height int) (data []byte, contentType string, err error)
+	Refresh(filePath string, width, height int) (data []byte, contentType string, err error)
+}
+
+var newFileBrowserThumbnailService = func() fileBrowserThumbnailService {
+	return thumbnail.NewInstance()
+}
+
 // getSForgeFileBrowserThumbnail serves a resized preview after the file-browser root boundary has resolved it.
 // The query form keeps root-relative paths opaque to routing and works for external Agent roots as well.
 func getSForgeFileBrowserThumbnail(c *gin.Context) {
@@ -36,9 +45,9 @@ func getSForgeFileBrowserThumbnail(c *gin.Context) {
 	var data []byte
 	var contentType string
 	if c.Query("refresh") == "true" || c.Query("refresh") == "1" {
-		data, contentType, err = thumbnail.NewInstance().Refresh(absolutePath, width, height)
+		data, contentType, err = newFileBrowserThumbnailService().Refresh(absolutePath, width, height)
 	} else {
-		data, contentType, err = thumbnail.NewInstance().GetWithSize(absolutePath, width, height)
+		data, contentType, err = newFileBrowserThumbnailService().GetWithSize(absolutePath, width, height)
 	}
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)

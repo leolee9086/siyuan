@@ -43,6 +43,20 @@ function item(path: string, tags: string[]): FilePropertiesItem {
     };
 }
 
+function imageItem(path: string): FilePropertiesItem {
+    const result = item(path, []);
+    if (!result.properties) {
+        throw new Error("图片夹具缺少物理属性");
+    }
+    result.properties = {
+        ...result.properties,
+        entry: {...result.properties.entry, name: path.split("/").at(-1) ?? path, extension: ".png"},
+        previewKind: "image",
+        contentURL: `/api/s-forge/file-browser/content/workspace/${path}`,
+    };
+    return result;
+}
+
 function inspectResult(items: FilePropertiesItem[]): FilePropertiesInspectResult {
     return {items, successCount: items.length, failureCount: 0, metadataFailureCount: 0};
 }
@@ -53,11 +67,38 @@ let host: HTMLDivElement | undefined;
 afterEach(() => {
     app?.unmount();
     host?.remove();
+    document.getElementById("baseURL")?.remove();
     app = undefined;
     host = undefined;
 });
 
 describe("file properties panel tag interactions", () => {
+    it("resolves a root-relative image content URL against the application origin", async () => {
+        const image = imageItem("nested/page-2.png");
+        const repository: FilePropertiesRepository = {
+            inspect: vi.fn(async () => inspectResult([image])),
+            update: vi.fn(async () => ({items: [image], successCount: 1, failureCount: 0}) satisfies FilePropertiesUpdateResult),
+        };
+        const tagRepository: FileTagDefinitionsRepository = {
+            get: vi.fn(async () => ({revision: "tag-revision-1", items: []})),
+            update: vi.fn(async request => ({revision: "tag-revision-2", items: request.items})),
+        };
+        const selection = createFileBrowserSelectionStore();
+        selection.replace(node("nested/page-2.png"));
+        const base = document.createElement("base");
+        base.id = "baseURL";
+        base.href = "/stage/build/desktop/";
+        document.head.append(base);
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FilePropertiesPanel, {repository, selection, tagRepository});
+        app.mount(host);
+
+        await vi.waitFor(() => expect(host?.querySelector("img")).not.toBeNull());
+        expect(host?.querySelector<HTMLImageElement>("img")?.src)
+            .toBe(`${window.location.origin}/api/s-forge/file-browser/content/workspace/nested/page-2.png`);
+    });
+
     it("switches to per-file rows and sends root-aware remove/add/color updates", async () => {
         const first = item("one.md", ["Review"]);
         const second = item("two.md", ["Review", "Blue"]);

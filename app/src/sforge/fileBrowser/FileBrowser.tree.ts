@@ -2,6 +2,7 @@
 import type {
     FileBrowserDirectoryPage,
     FileBrowserEntry,
+    FileBrowserRootCapabilities,
     FileBrowserRoot,
     FileBrowserTreeNode,
 } from "./FileBrowser.types";
@@ -19,6 +20,29 @@ function makeFileBrowserNodeDOMID(key: string) {
 /** 判断节点能否拥有异步子项。 */
 export function isFileBrowserContainer(node: FileBrowserTreeNode) {
     return node.kind === "root" || node.kind === "directory";
+}
+
+/**
+ * 取得一个根内路径最具体的授权范围。
+ *
+ * 父根归并后，树节点仍使用展示根 ID；这里按挂载点重新计算能力，
+ * 使只读 Agent 挂载不会错误显示新建、重命名和复制入口。
+ */
+export function getFileBrowserCapabilitiesForPath(root: FileBrowserTreeNode["root"], path: string) {
+    const normalize = (value: string) => value.trim().replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
+    const normalizedPath = normalize(path);
+    let capabilities: FileBrowserRootCapabilities = root.capabilities;
+    let bestPrefixLength = 0;
+    for (const mount of root.mounts ?? []) {
+        const prefix = normalize(mount.relativePath);
+        if (!prefix || (normalizedPath !== prefix && !normalizedPath.startsWith(`${prefix}/`)) ||
+            prefix.length <= bestPrefixLength) {
+            continue;
+        }
+        capabilities = mount.capabilities;
+        bestPrefixLength = prefix.length;
+    }
+    return capabilities;
 }
 
 /** 从服务端根创建一个常驻顶层节点。 */

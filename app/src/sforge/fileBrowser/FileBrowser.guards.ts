@@ -1,8 +1,13 @@
 /** 用途：文件浏览器 API 领域类型；使用范围：不可信响应的运行时校验。 */
 import type {
     FileBrowserDirectoryPage,
+    FileBrowserEditorDocument,
+    FileBrowserEditorEncoding,
+    FileBrowserEditorWriteResult,
+    FileBrowserEditorTabData,
     FileBrowserEntry,
     FileBrowserFileStat,
+	FileBrowserOperationResult,
     FileBrowserGalleryTabData,
     FileBrowserPermission,
     FileBrowserRoot,
@@ -106,6 +111,40 @@ export const isFileBrowserPreviewTabData = (value: unknown): value is FileBrowse
     isRecord(value) && typeof value.rootID === "string" && typeof value.path === "string" &&
     typeof value.name === "string";
 
+/** @同步豁免: 类型守卫 */
+export const isFileBrowserEditorTabData = (value: unknown): value is FileBrowserEditorTabData =>
+    isRecord(value) && typeof value.rootID === "string" && typeof value.path === "string" &&
+    typeof value.name === "string";
+
+/** @同步豁免: 类型守卫 */
+export const isFileBrowserEditorEncoding = (value: unknown): value is FileBrowserEditorEncoding =>
+    value === "utf-8" || value === "utf-8-bom" || value === "utf-16le" || value === "utf-16be";
+
+/** @同步豁免: 类型守卫 */
+const isEditorDocumentShape = (value: unknown): value is FileBrowserEditorDocument | FileBrowserEditorWriteResult =>
+    isRecord(value) && isFileBrowserRoot(value.root) && isFileBrowserEntry(value.entry) &&
+    value.previewKind === "text" && typeof value.contentURL === "string" &&
+    isFileBrowserEditorEncoding(value.encoding) && typeof value.size === "number" &&
+    Number.isFinite(value.size) && value.size >= 0 && typeof value.updated === "number" &&
+    Number.isFinite(value.updated) && typeof value.revision === "string" &&
+    typeof value.readOnly === "boolean" && typeof value.language === "string";
+
+/** 严格校验编辑器读取响应。 */
+export function parseFileBrowserEditorDocument(value: unknown): FileBrowserEditorDocument {
+    if (!isEditorDocumentShape(value) || typeof value.text !== "string") {
+        throw new Error("文件编辑器文档响应格式错误");
+    }
+    return value;
+}
+
+/** 严格校验编辑器保存响应。 */
+export function parseFileBrowserEditorWriteResult(value: unknown): FileBrowserEditorWriteResult {
+    if (!isEditorDocumentShape(value)) {
+        throw new Error("文件编辑器保存响应格式错误");
+    }
+    return value;
+}
+
 function isFileBrowserSearchQuery(value: unknown): value is FileBrowserSearchRequest {
     if (!isRecord(value)) {
         return false;
@@ -188,5 +227,38 @@ export function parseFileBrowserTextPreview(value: unknown): FileBrowserTextPrev
         text: value.text,
         encoding: value.encoding,
         truncated: value.truncated,
+    };
+}
+
+/** 把文件操作成功响应收窄为不含绝对路径的稳定包络。 */
+export function parseFileBrowserOperationResult(value: unknown): FileBrowserOperationResult {
+    if (!isRecord(value) ||
+        (value.operation !== "create-directory" && value.operation !== "rename" && value.operation !== "copy")) {
+        throw new Error("文件操作响应格式错误");
+    }
+    const stringFields = ["rootID", "path", "sourceRootID", "sourcePath", "destinationRootID", "destinationPath"] as const;
+    for (const field of stringFields) {
+        if (value[field] !== undefined && typeof value[field] !== "string") {
+            throw new Error(`文件操作响应格式错误：${field} 应为字符串`);
+        }
+    }
+    const numberFields = ["copiedFileCount", "copiedDirectoryCount", "createdDirectoryCount", "copiedBytes"] as const;
+    for (const field of numberFields) {
+        if (value[field] !== undefined && (typeof value[field] !== "number" || !Number.isFinite(value[field]) || value[field] < 0)) {
+            throw new Error(`文件操作响应格式错误：${field} 应为非负有限数字`);
+        }
+    }
+    return {
+        operation: value.operation,
+        ...(typeof value.rootID === "string" ? {rootID: value.rootID} : {}),
+        ...(typeof value.path === "string" ? {path: value.path} : {}),
+        ...(typeof value.sourceRootID === "string" ? {sourceRootID: value.sourceRootID} : {}),
+        ...(typeof value.sourcePath === "string" ? {sourcePath: value.sourcePath} : {}),
+        ...(typeof value.destinationRootID === "string" ? {destinationRootID: value.destinationRootID} : {}),
+        ...(typeof value.destinationPath === "string" ? {destinationPath: value.destinationPath} : {}),
+        ...(typeof value.copiedFileCount === "number" ? {copiedFileCount: value.copiedFileCount} : {}),
+        ...(typeof value.copiedDirectoryCount === "number" ? {copiedDirectoryCount: value.copiedDirectoryCount} : {}),
+        ...(typeof value.createdDirectoryCount === "number" ? {createdDirectoryCount: value.createdDirectoryCount} : {}),
+        ...(typeof value.copiedBytes === "number" ? {copiedBytes: value.copiedBytes} : {}),
     };
 }

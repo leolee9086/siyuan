@@ -83,8 +83,18 @@ import {isFileBrowserSortField} from "./FileBrowser.guards";
 /** 用途：默认仓储与应用绑定打开端口；使用范围：真实 Dock 控制器组合。 */
 import {fileBrowserRepository} from "./FileBrowser.repository";
 import {createFileBrowserDirectoryOpener, createFileBrowserEntryOpener} from "./FileBrowser.open";
+import {fileBrowserOperationsRepository} from "./FileBrowser.operations.repository";
+import {
+    requestFileBrowserCopyDestination,
+    requestFileBrowserText,
+} from "./FileBrowser.operations.dialog";
 /** 用途：应用全局菜单；使用范围：树节点上下文菜单。 */
 import {showFileBrowserTreeNodeMenu} from "./FileBrowser.menu";
+/** 用途：树节点查找和容器判断；使用范围：操作完成后的精确刷新。 */
+import {findFileBrowserTreeNode, getFileBrowserCapabilitiesForPath, isFileBrowserContainer, makeFileBrowserNodeKey} from "./FileBrowser.tree";
+/** 用途：标准消息提示和 HTML 转义；使用范围：操作成功/失败反馈。 */
+import {showMessage} from "../../dialog/message";
+import {escapeHtml} from "../../util/DOM/escape";
 /** 用途：应用宿主与树节点类型；使用范围：组件参数和事件。 */
 import type {AppFacade} from "./dock/imports";
 import type {FileBrowserTreeNode as TreeNode} from "./FileBrowser.types";
@@ -136,7 +146,141 @@ function handleSortChange(event: Event) {
 
 function handleNodeMenu(payload: {event: MouseEvent; node: TreeNode}) {
     browser.selectNode(payload.node);
-    showFileBrowserTreeNodeMenu(payload.event, payload.node, {open: openNode, refresh: refreshNode});
+    showFileBrowserTreeNodeMenu(payload.event, payload.node, {
+        open: openNode,
+        refresh: refreshNode,
+        createDirectory: createDirectory,
+        rename: renameNode,
+        copy: copyNode,
+    });
+}
+
+function joinRootRelativePath(parent: string, name: string) {
+    const normalizedParent = parent.trim().replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
+    const normalizedName = name.trim().replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
+    return normalizedParent ? `${normalizedParent}/${normalizedName}` : normalizedName;
+}
+
+function parentRootRelativePath(path: string) {
+    const normalized = path.trim().replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
+    const index = normalized.lastIndexOf("/");
+    return index >= 0 ? normalized.slice(0, index) : "";
+}
+
+function findRefreshTarget(rootID: string, path: string) {
+    const direct = findFileBrowserTreeNode(rootNodes.value, makeFileBrowserNodeKey(rootID, path));
+    if (direct) {
+        return direct;
+    }
+    for (const rootNode of rootNodes.value) {
+        const mount = rootNode.root.mounts?.find(candidate => candidate.id === rootID);
+        if (!mount) {
+            continue;
+        }
+        const displayPath = joinRootRelativePath(mount.relativePath, path);
+        return findFileBrowserTreeNode(rootNodes.value, makeFileBrowserNodeKey(rootNode.rootID, displayPath));
+    }
+    return undefined;
+}
+
+async function refreshOperationParent(rootID: string, path: string) {
+    const parentPath = parentRootRelativePath(path);
+    const target = findRefreshTarget(rootID, parentPath) ?? findRefreshTarget(rootID, "");
+    if (target && isFileBrowserContainer(target)) {
+        await refreshNode(target);
+    }
+}
+
+function operationErrorMessage(error: unknown) {
+    return error instanceof Error ? error.message : String(error);
+}
+
+function reportOperationError(error: unknown) {
+    showMessage(escapeHtml(operationErrorMessage(error)), 6000, "error", "sforgeFileBrowserOperationError");
+}
+
+function canWriteNode(node: TreeNode) {
+    return node.root.exists && !node.entry?.restricted && getFileBrowserCapabilitiesForPath(node.root, node.path).write;
+}
+
+async function createDirectory(node: TreeNode) {
+    if (!canWriteNode(node)) {
+        return;
+    }
+    const name = await requestFileBrowserText({title: "新建目录", label: "目录名称", placeholder: "例如：素材"});
+    if (!name) {
+        return;
+    }
+    const path = joinRootRelativePath(node.path, name);
+    try {
+        await fileBrowserOperationsRepository.createDirectory({rootID: node.rootID, path});
+        await refreshNode(node);
+        showMessage(`已创建目录：${escapeHtml(path)}`, 3000);
+    } catch (error) {
+        reportOperationError(error);
+    }
+}
+
+async function renameNode(node: TreeNode) {
+    if (node.kind === "root" || !canWriteNode(node)) {
+        return;
+    }
+    const newName = await requestFileBrowserText({title: "重命名", label: "名称", value: node.name});
+    if (!newName || newName === node.name) {
+        return;
+    }
+    try {
+        await fileBrowserOperationsRepository.rename({rootID: node.rootID, path: node.path, newName});
+        await refreshOperationParent(node.rootID, node.path);
+        showMessage(`已重命名为：${escapeHtml(newName)}`, 3000);
+    } catch (error) {
+        reportOperationError(error);
+    }
+}
+
+function operationRoots() {
+    const result: TreeNode["root"][] = [];
+    for (const root of roots.value) {
+        result.push(root);
+        for (const mount of root.mounts ?? []) {
+            result.push({
+                id: mount.id, kind: mount.kind, label: mount.label, path: mount.path,
+                permission: mount.permission, capabilities: mount.capabilities,
+                sources: mount.sources, exists: mount.exists,
+            });
+        }
+    }
+    return result;
+}
+
+function suggestCopyPath(node: TreeNode) {
+    const parent = parentRootRelativePath(node.path);
+    const dot = node.kind === "file" ? node.name.lastIndexOf(".") : -1;
+    const base = dot > 0 ? node.name.slice(0, dot) : node.name;
+    const extension = dot > 0 ? node.name.slice(dot) : "";
+    return joinRootRelativePath(parent, `${base} - copy${extension}`);
+}
+
+async function copyNode(node: TreeNode) {
+    if (node.kind === "root" || !node.root.exists || node.entry?.restricted) {
+        return;
+    }
+    const destination = await requestFileBrowserCopyDestination(operationRoots(), node.rootID, suggestCopyPath(node));
+    if (!destination) {
+        return;
+    }
+    try {
+        const result = await fileBrowserOperationsRepository.copy({
+            sourceRootID: node.rootID,
+            sourcePath: node.path,
+            destinationRootID: destination.rootID,
+            destinationPath: destination.path,
+        });
+        await refreshOperationParent(destination.rootID, destination.path);
+        showMessage(`已复制：${escapeHtml(destination.path)}（${result.copiedFileCount ?? 0} 个文件）`, 3000);
+    } catch (error) {
+        reportOperationError(error);
+    }
 }
 
 function handleNodeActivate(payload: {event: MouseEvent; node: TreeNode}) {

@@ -186,6 +186,9 @@ importers:
       mini-css-extract-plugin:
         specifier: 2.9.2
         version: 2.9.2(webpack@5.106.2)
+      monaco-editor:
+        specifier: 0.48.0
+        version: 0.48.0
       path-browserify:
         specifier: ^1.0.1
         version: 1.0.1
@@ -4101,6 +4104,9 @@ packages:
     resolution: {integrity: sha512-Jc3XmOaR9FdfMJSK8+vyLgsCkzm8z2L0NS6vrlRWi12DjS7MY7TMNE7E1yj8yXx837xtMDbKSSgcdXnFlJ2YLg==}
     engines: {node: '>=18'}
     hasBin: true
+
+  monaco-editor@0.48.0:
+    resolution: {integrity: sha512-goSDElNqFfw7iDHMg8WDATkfcyeLTNpBHQpO8incK6p5qZt5G/1j41X0xdGzpIkGojGXM+QiRQyLjnfDVvrpwA==}
 
   mrmime@1.0.1:
     resolution: {integrity: sha512-hzzEagAgDyoU1Q6yg5uI+AorQgdvMCur3FcKf7NhMKWsaYg+RnbTyHRa/9IlLF9rf455MOCtcqqrQQ83pPP7Uw==}
@@ -9728,6 +9734,8 @@ snapshots:
       commander: 12.1.0
       requirejs: 2.3.8
       requirejs-config-file: 4.0.0
+
+  monaco-editor@0.48.0: {}
 
   mrmime@1.0.1: {}
 

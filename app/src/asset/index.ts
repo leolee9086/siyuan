@@ -14,6 +14,7 @@ import PDFviewer from "../components/PDFviewer.vue";
 import {getDisplayName} from "../util/file/path/operations";
 import { isMobile } from "../platform";
 import {assetModelBrand} from "./asset.types";
+import {resolveAssetURL} from "./assetUrl";
 
 /** 资产页签模型的具体运行时实现。 */
 export class Asset extends Model<AppFacade, LayoutTab> {
@@ -112,13 +113,11 @@ export class Asset extends Model<AppFacade, LayoutTab> {
 
   private render(_isInit = true) {
     const type = this.path.substr(this.path.lastIndexOf(".")).toLowerCase().split("?")[0] || "";
-    const assetURL = this.path.startsWith("file")
-      ? this.path
-      : document.getElementById("baseURL")?.getAttribute("href") + "/" + this.path;
+    const assetURL = resolveAssetURL(this.path);
     // 音视频路径会进入 HTML 属性，必须在模板拼接前转义以防止属性闭合。
     const escapedAssetURL = Lute.EscapeHTMLStr(assetURL);
     if (Constants.SIYUAN_ASSETS_IMAGE.includes(type)) {
-      render(this.element, this.path);
+      render(this.element, assetURL);
       return;
     }
     if (Constants.SIYUAN_ASSETS_AUDIO.includes(type)) {

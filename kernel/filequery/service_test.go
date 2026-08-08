@@ -164,6 +164,12 @@ func TestSearchMapsMountedWorkspaceIndexAddressesToCanonicalDisplayRoot(t *testi
 		result.Assets[1].RootID != "agent-parent" || result.Assets[1].Path != "workspace/notes/child.md" {
 		t.Fatalf("mounted workspace addresses were not mapped to the displayed root: %+v", result)
 	}
+	if _, err := service.Search(context.Background(), assetmeta.SearchRequest{RootIDs: []string{"agent-parent"}, Limit: 50}); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(received.RootIDs, []string{"agent-parent", "data", "workspace"}) {
+		t.Fatalf("displayed ancestor selection dropped mounted index identities: %+v", received)
+	}
 }
 
 func TestTagCountsRejectsUnavailableRootsBeforeIndexAccess(t *testing.T) {

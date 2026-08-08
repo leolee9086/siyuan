@@ -220,6 +220,13 @@ func addBrowserRootMapping(mapping *rootMapping, root filebrowser.Root, displayR
 		}
 	}
 	mapping.browserToIndex[browserID] = uniqueRoots(append(mapping.browserToIndex[browserID], indexIDs...))
+	if browserID != displayRootID {
+		// Selecting the displayed ancestor must include metadata identities of
+		// its mounted descendants. Filesystem scans already cover the ancestor
+		// physically; this keeps tag/palette queries from silently dropping a
+		// mounted root when the selection is the displayed root.
+		mapping.browserToIndex[displayRootID] = uniqueRoots(append(mapping.browserToIndex[displayRootID], indexIDs...))
+	}
 }
 
 func resolveIndexRoots(mapping rootMapping, requested []string, allRoots bool) ([]string, error) {

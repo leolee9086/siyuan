@@ -3,6 +3,8 @@ import {fetchSyncPost} from "./repository/imports";
 /** 用途：校验外部响应；使用范围：根和目录 API 边界。 */
 import {
     parseFileBrowserDirectoryPage,
+    parseFileBrowserEditorDocument,
+    parseFileBrowserEditorWriteResult,
     parseFileBrowserFileStat,
     parseFileBrowserRoots,
     parseFileBrowserTextPreview,
@@ -10,6 +12,8 @@ import {
 /** 用途：文件浏览器仓储契约；使用范围：请求输入与公开实现。 */
 import type {
     FileBrowserFileRequest,
+    FileBrowserEditorReadRequest,
+    FileBrowserEditorWriteRequest,
     FileBrowserListRequest,
     FileBrowserPreviewRequest,
     FileBrowserRepository,
@@ -19,6 +23,8 @@ const ROOTS_ENDPOINT = "/api/s-forge/file-browser/roots";
 const LIST_ENDPOINT = "/api/s-forge/file-browser/list";
 const STAT_ENDPOINT = "/api/s-forge/file-browser/stat";
 const PREVIEW_ENDPOINT = "/api/s-forge/file-browser/preview";
+const EDITOR_READ_ENDPOINT = "/api/s-forge/file-browser/editor/read";
+const EDITOR_WRITE_ENDPOINT = "/api/s-forge/file-browser/editor/write";
 
 /** 在进入领域层前统一解释思源 API 包络。 */
 export function requireFileBrowserResponseData(response: IWebSocketData, operation: string): unknown {
@@ -67,10 +73,32 @@ export async function previewFileBrowserText(request: FileBrowserPreviewRequest)
     return preview;
 }
 
+/** 读取本地编辑器快照；响应仍通过统一 API 包络和领域守卫。 */
+export async function readFileBrowserEditor(request: FileBrowserEditorReadRequest) {
+    const response = await fetchSyncPost(EDITOR_READ_ENDPOINT, request);
+    const document = parseFileBrowserEditorDocument(requireFileBrowserResponseData(response, "读取编辑器文档"));
+    if (document.root.id !== request.rootID || document.entry.path !== request.path) {
+        throw new Error("编辑器文档响应与请求地址不一致");
+    }
+    return document;
+}
+
+/** 保存本地编辑器快照；revision 和编码由调用方显式提交。 */
+export async function writeFileBrowserEditor(request: FileBrowserEditorWriteRequest) {
+    const response = await fetchSyncPost(EDITOR_WRITE_ENDPOINT, request);
+    const result = parseFileBrowserEditorWriteResult(requireFileBrowserResponseData(response, "保存编辑器文档"));
+    if (result.root.id !== request.rootID || result.entry.path !== request.path) {
+        throw new Error("编辑器保存响应与请求地址不一致");
+    }
+    return result;
+}
+
 /** 默认仓储实例；控制器支持注入替身以验证竞态和失败状态。 */
 export const fileBrowserRepository: FileBrowserRepository = {
     listRoots: listFileBrowserRoots,
     listDirectory: listFileBrowserDirectory,
     statFile: statFileBrowserFile,
     previewText: previewFileBrowserText,
+    readEditorFile: readFileBrowserEditor,
+    writeEditorFile: writeFileBrowserEditor,
 };

@@ -21,6 +21,16 @@ import (
 	"testing"
 )
 
+func TestDetectContentTypeUsesActualThumbnailBytes(t *testing.T) {
+	png := []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a}
+	if got := detectContentType(png); got != "image/png" {
+		t.Fatalf("PNG bytes must be served as image/png, got %q", got)
+	}
+	if got := detectContentType([]byte("<svg viewBox=\"0 0 1 1\"></svg>")); got != "image/svg+xml" {
+		t.Fatalf("SVG bytes must be served as image/svg+xml, got %q", got)
+	}
+}
+
 // TestGoImagingProvider_CanHandle 测试 GoImagingProvider 的文件类型判断
 func TestGoImagingProvider_CanHandle(t *testing.T) {
 	p := NewGoImagingProvider()

@@ -25,3 +25,14 @@
 - [ ] 参考覆盖矩阵每一项都有模型、UI、失败状态和测试证据。
 - [ ] 工作空间/Agent 文件编辑不绕过后端 capability；历史/网络/只读模型不显示可写动作。
 - [ ] 参考插件仓库只读，S-Forge 不留下临时 iframe/旧 API 兼容层。
+
+## 2026-08-08 编辑器入口依赖隔离（已完成切片）
+
+- [x] 编辑器页签类型移到轻量 `FileBrowser.editor.constants.ts`；文件树打开端口不再因读取常量而提前解析 Monaco。
+- [x] 文本文件打开契约测试改为验证 `sforge-file-editor` 和 `{rootID, path, name}` 稳定数据，Monaco 仍由页签初始化时动态加载。
+- [x] 图片/文件浏览专项回归 6 个测试文件、21 个用例通过，`pnpm run dev:once` 全目标构建成功。
+
+## 2026-08-08 M4.1 本地文件读写切片
+
+- [~] 已冻结 [`Monaco文件读写契约.shorterm.ttt.md`](Monaco文件读写契约.shorterm.ttt.md)：先实现后端有界文本读写，再接入编辑器页签。
+- [ ] 当前切片不覆盖网络、块、历史、快照、Vditor 和 Monaco UI；这些能力继续按上方覆盖矩阵分别验收。

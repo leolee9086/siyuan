@@ -1,0 +1,138 @@
+.sforge-file-editor {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    color: var(--b3-theme-on-background);
+    background: var(--b3-theme-background);
+}
+
+.sforge-file-editor__header {
+    display: flex;
+    min-height: 48px;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--b3-border-color);
+}
+
+.sforge-file-editor__icon {
+    width: 22px;
+    height: 22px;
+    flex: none;
+    color: var(--b3-theme-primary);
+}
+
+.sforge-file-editor__identity {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sforge-file-editor__identity strong,
+.sforge-file-editor__identity span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sforge-file-editor__identity strong {
+    font-size: 13px;
+}
+
+.sforge-file-editor__identity span,
+.sforge-file-editor__language,
+.sforge-file-editor__encoding,
+.sforge-file-editor__footer {
+    color: var(--b3-theme-on-surface);
+    font-family: var(--b3-font-family-code);
+    font-size: 11px;
+}
+
+.sforge-file-editor__language,
+.sforge-file-editor__encoding {
+    flex: none;
+    padding: 2px 5px;
+    border: 1px solid var(--b3-border-color);
+}
+
+.sforge-file-editor__content {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
+}
+
+.sforge-file-editor__monaco {
+    width: 100%;
+    min-height: 0;
+    flex: 1;
+}
+
+.sforge-file-editor__monaco--hidden {
+    visibility: hidden;
+}
+
+.sforge-file-editor__state {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px;
+    color: var(--b3-theme-on-surface);
+    background: var(--b3-theme-background);
+    flex-direction: column;
+    text-align: center;
+}
+
+.sforge-file-editor__state--error {
+    color: var(--b3-theme-error);
+}
+
+.sforge-file-editor__state-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.sforge-file-editor__readonly {
+    position: absolute;
+    right: 12px;
+    bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 6px;
+    color: var(--b3-theme-on-surface);
+    background: color-mix(in srgb, var(--b3-theme-background) 84%, transparent);
+    font-size: 11px;
+}
+
+.sforge-file-editor__readonly svg {
+    width: 14px;
+    height: 14px;
+    fill: currentcolor;
+}
+
+.sforge-file-editor__footer {
+    display: flex;
+    min-height: 25px;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 4px 10px;
+    border-top: 1px solid var(--b3-border-color);
+}
+
+.sforge-file-editor__footer span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

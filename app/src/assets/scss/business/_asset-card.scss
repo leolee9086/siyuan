@@ -23,6 +23,7 @@
     }
 
     &__image {
+        position: relative;
         width: 100%;
         display: flex;
         justify-content: center;
@@ -36,6 +37,31 @@
             height: auto;
             display: block;
             object-fit: cover;
+        }
+
+        img.asset-card__image-placeholder {
+            height: 100px;
+            object-fit: contain;
+        }
+
+        &--loading {
+            min-height: 100px;
+        }
+
+        &-fallback {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            width: 100%;
+            min-height: 100px;
+            align-items: center;
+            justify-content: center;
+
+            svg {
+                width: 48px;
+                height: 48px;
+                fill: var(--b3-theme-on-surface-light);
+            }
         }
     }
 

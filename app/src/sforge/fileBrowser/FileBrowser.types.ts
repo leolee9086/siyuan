@@ -76,6 +76,42 @@ export interface FileBrowserFileRequest {
     path: string;
 }
 
+/** 新建目录请求，path 始终是目标相对路径。 */
+export interface FileBrowserCreateDirectoryRequest {
+    rootID: string;
+    path: string;
+}
+
+/** 同父目录重命名请求。 */
+export interface FileBrowserRenameRequest {
+    rootID: string;
+    path: string;
+    newName: string;
+}
+
+/** 复制请求显式区分源和目标授权根。 */
+export interface FileBrowserCopyRequest {
+    sourceRootID: string;
+    sourcePath: string;
+    destinationRootID: string;
+    destinationPath: string;
+}
+
+/** 文件操作成功包络；不承载绝对物理路径。 */
+export interface FileBrowserOperationResult {
+    operation: "create-directory" | "rename" | "copy";
+    rootID?: string;
+    path?: string;
+    sourceRootID?: string;
+    sourcePath?: string;
+    destinationRootID?: string;
+    destinationPath?: string;
+    copiedFileCount?: number;
+    copiedDirectoryCount?: number;
+    createdDirectoryCount?: number;
+    copiedBytes?: number;
+}
+
 /** 根内路径导航使用的稳定面包屑，不携带操作系统绝对路径。 */
 export interface FileBrowserBreadcrumb {
     label: string;
@@ -103,6 +139,51 @@ export interface FileBrowserTextPreview {
     text: string;
     encoding: string;
     truncated: boolean;
+}
+
+/** 编码后的本地编辑文档；文本内容来自已授权根的有界快照。 */
+export type FileBrowserEditorEncoding = "utf-8" | "utf-8-bom" | "utf-16le" | "utf-16be";
+
+/** 本地编辑器读取请求；客户端只携带根 ID 和根相对路径。 */
+export interface FileBrowserEditorReadRequest extends FileBrowserFileRequest {
+    maxBytes?: number;
+}
+
+/** 本地编辑器保存请求；revision 是读取快照的精确字节版本。 */
+export interface FileBrowserEditorWriteRequest extends FileBrowserFileRequest {
+    text: string;
+    encoding: FileBrowserEditorEncoding;
+    revision: string;
+    maxBytes?: number;
+}
+
+/** 编辑器页签消费的完整本地文本快照。 */
+export interface FileBrowserEditorDocument {
+    root: FileBrowserRoot;
+    entry: FileBrowserEntry;
+    previewKind: "text";
+    contentURL: string;
+    text: string;
+    encoding: FileBrowserEditorEncoding;
+    size: number;
+    updated: number;
+    revision: string;
+    readOnly: boolean;
+    language: string;
+}
+
+/** 原子保存后的新版本元数据。 */
+export interface FileBrowserEditorWriteResult {
+    root: FileBrowserRoot;
+    entry: FileBrowserEntry;
+    previewKind: "text";
+    contentURL: string;
+    encoding: FileBrowserEditorEncoding;
+    size: number;
+    updated: number;
+    revision: string;
+    readOnly: boolean;
+    language: string;
 }
 
 /** 当前目录的分页响应。 */
@@ -142,6 +223,15 @@ export interface FileBrowserRepository {
     listDirectory(request: FileBrowserListRequest): Promise<FileBrowserDirectoryPage>;
     statFile(request: FileBrowserFileRequest): Promise<FileBrowserFileStat>;
     previewText(request: FileBrowserPreviewRequest): Promise<FileBrowserTextPreview>;
+    readEditorFile(request: FileBrowserEditorReadRequest): Promise<FileBrowserEditorDocument>;
+    writeEditorFile(request: FileBrowserEditorWriteRequest): Promise<FileBrowserEditorWriteResult>;
+}
+
+/** 文件树菜单使用的独立写操作仓储，不把写入混入只读浏览仓储。 */
+export interface FileBrowserOperationRepository {
+    createDirectory(request: FileBrowserCreateDirectoryRequest): Promise<FileBrowserOperationResult>;
+    rename(request: FileBrowserRenameRequest): Promise<FileBrowserOperationResult>;
+    copy(request: FileBrowserCopyRequest): Promise<FileBrowserOperationResult>;
 }
 
 /** 布局宿主绑定后的统一文件打开动作。 */
@@ -262,4 +352,9 @@ export interface FileBrowserGalleryTabData extends FileBrowserFileRequest {
 /** 只读预览组件参数。 */
 export interface FileBrowserPreviewPanelProps {
     file: FileBrowserPreviewTabData;
+}
+
+/** 自定义文本编辑页签的稳定入口数据。 */
+export interface FileBrowserEditorTabData extends FileBrowserFileRequest {
+    name: string;
 }

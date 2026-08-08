@@ -14,6 +14,8 @@ import FileTagTreeDock from "./FileTagTreeDock.vue";
 import {registerFileBrowserPreviewTab} from "./FileBrowser.preview";
 /** 用途：注册独立文件瀑布流页签；使用范围：内建文件浏览初始化。 */
 import {registerFileBrowserGalleryTab} from "./FileBrowser.gallery";
+/** 用途：注册本地文本编辑页签；使用范围：文件树打开和布局恢复。 */
+import {registerFileBrowserEditorTab} from "./FileBrowser.editor";
 /** 用途：应用和页签宿主类型；使用范围：Dock 工厂参数。 */
 import type {AppFacade, CustomDomain, Tab} from "./dock/imports";
 /** 用途：文件浏览领域的 Dock 身份；使用范围：模型工厂和布局注册。 */
@@ -27,6 +29,7 @@ export {FILE_BROWSER_DOCK_TYPE, FILE_PROPERTIES_DOCK_TYPE, FILE_TAG_TREE_DOCK_TY
 
 registerFileBrowserPreviewTab();
 registerFileBrowserGalleryTab();
+registerFileBrowserEditorTab();
 
 /** 将共享文件浏览面板挂载到既有 Custom model，并把销毁交还布局生命周期。 */
 function initFileBrowserDock(custom: CustomDomain) {

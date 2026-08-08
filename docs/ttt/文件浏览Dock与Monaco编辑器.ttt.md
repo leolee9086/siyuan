@@ -45,7 +45,11 @@
 
 **当前切片（进行中）**：已确认资源管理的组合边界为“文件树 Dock + 独立文件标签 Dock + 独立资源瀑布流页签”，树 Dock 不再承载查询结果，标签 Dock 复用标签树/计数/颜色模型并通过共享页签入口打开结果。扩展名筛选、颜色/RGB/HSL/调色板查询、卡片尺寸和属性列投影、面包屑子目录控制已接入 s-forge 现有 `VirtualMasonryGrid`/`AssetCard` 和真实后端查询；空筛选生命周期已完成为当前查询状态与初始页签数据分离，默认无元数据筛选使用授权 `filebrowser` 遍历覆盖未索引文件；框选多选、拖放批处理、表格模式和外部索引入口仍未完成。
 
+> **状态修正（2026-08-08）**：上面的切片快照保留历史原文；表格模式已实现首个可用切片，复用列表虚拟化引擎并覆盖预览、名称、路径、标签、尺寸、大小、类型列。框选多选、拖放批处理、完整列配置和外部索引入口仍属于后续切片。
+
 ### M3：文件操作与增量同步（可用版 3）
+
+> 基础操作切片已完成并归档：[`archive/文件操作基础切片.shorterm.ttt.md`](archive/文件操作基础切片.shorterm.ttt.md)。移动、删除、批量操作、拖放移动和监听增量更新仍属于本里程碑后续切片。
 
 - 支持新建、重命名、移动、复制、删除、批量操作、拖放上传/移动、下载/打包、剪贴板路径、外部打开和撤销/失败回滚提示。
 - 按 root capability 权限控制读写/命令操作，接入文件监听、增量索引、缩略图缓存和取消任务；只读目录不显示或不执行写操作。
@@ -73,14 +77,19 @@
 - [ ] **M0.4.1：冻结并守恒 `gulu.File.Grep` 业务行为**（见 [`gulu.File.Grep行为守恒.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/gulu.File.Grep行为守恒.shorterm.ttt.md)）
 - [x] **M0.4.2：Windows UAC 真实 symbolic-link 与 pnpm junction 验收**（见 [`Windows symbolic-link UAC验收.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/Windows%20symbolic-link%20UAC验收.shorterm.ttt.md)）
 - [ ] **M0.5：冻结并实现共享选择与文件属性 Dock**（见 [`文件属性Dock.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/文件属性Dock.shorterm.ttt.md)）
+- [x] **M0.6：图片预览与缩略图适配**（已归档：[`archive/图片预览与缩略图适配.shorterm.ttt.md`](archive/图片预览与缩略图适配.shorterm.ttt.md)）
 
 ## 🟡 中期计划
 
 - [ ] **M1：只读根与文件树 Dock**（见 [`文件浏览Dock前端.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/文件浏览Dock前端.shorterm.ttt.md)）
 - [ ] **M1.1：文件树组合与交互修正**（见 [`文件树修正.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/文件树修正.shorterm.ttt.md)）
 - [ ] **M2：浏览模式、标签和颜色检索**
-- [ ] **M3：受控文件操作、监听和索引增量更新**
+- [~] **M3：受控文件操作、监听和索引增量更新**（基础操作切片已归档，后续操作见本里程碑剩余条目）
 - [ ] **M4：Monaco 文件编辑与预览**（见 [`Monaco文件编辑与预览.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/Monaco文件编辑与预览.shorterm.ttt.md)）
+
+### M4.1 当前切片
+
+- [~] 本地文本文件读写契约已冻结，见 [`Monaco文件读写契约.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/Monaco文件读写契约.shorterm.ttt.md)；当前先落深层 `fswalk` 和 Kernel API，尚未宣称 Monaco UI 完成。
 
 ### M0.5 当前切片证据
 
@@ -125,6 +134,23 @@
 - [x] 后端完成物理路径父子归并、能力范围守恒和全根查询去重，证据由 [`archive/文件根父子归并.shorterm.ttt.md`](archive/文件根父子归并.shorterm.ttt.md) 维护。
 - [x] 前端树只显示一套父子目录状态，并保留绑定来源和位置提示；21 个文件、65 个用例通过。
 
+## 2026-08-08 图片预览与缩略图适配（已完成切片）
+
+- [x] 对齐 `SACAssetsManager` 的路径编码与图片服务契约：资源 URL 解析区分根相对、相对资产、`file:` 和远程地址；缩略图 MIME 按实际字节返回。
+- [x] 修复根相对文件浏览 URL 被 `baseURL` 二次拼接导致加载应用壳 `text/plain` 的问题；图片、音视频资源共用解析入口。
+- [x] 证据：真实 6806 原图请求返回 `200 / image/png / 276560 bytes`；真实路径包含中文、空格和嵌套目录的 Go HTTP fixture 通过；Go 缩略图/API/文件根/查询测试、前端 22 个文件浏览相关文件共 68 个用例、URL 回归、类型检查和 `dev:once` 构建通过。
+- [x] 子 TTT 已移动到 [`archive/图片预览与缩略图适配.shorterm.ttt.md`](archive/图片预览与缩略图适配.shorterm.ttt.md)，保留完整证据。
+
+## 2026-08-08 图片地址适配补强
+
+- [x] 修正 `Asset` 图片分支仍把原始路径传给渲染器的问题；图片、音视频现在统一使用解析后的地址，避免根相对文件浏览 API 被再次拼接到 `baseURL`。
+- [x] 文件预览页签、文件属性 Dock 和 `AssetCard` 缩略图统一经过 `resolveAssetURL`；相对 `<base href>`、根相对 `/api/...`、传统相对资源、`file:`/远程地址均有明确语义。
+- [x] 增加 Windows 盘符、UNC 和 `\\?\\` 扩展路径转换为合法 `file:` URL 的边界测试；普通路径中的空格按 URL 组件编码。
+- [x] 当前证据：`pnpm exec vitest --run test/asset/assetUrl.test.ts test/sforge/fileBrowser/FileBrowser.open.test.ts test/sforge/fileBrowser/FileBrowserGalleryTab.interaction.test.ts test/sforge/fileBrowser/FilePropertiesPanel.interaction.test.ts`（4 个文件、16 个用例）；`go test ./thumbnail ./api ./filebrowser ./filequery -count=1`；目标文件 `lint:file`；`pnpm run typecheck:protyle-contract`；`git diff --check`。
+- [x] 6806 运行页签已完成真实复核：展开 `D:\\dev\\.artifacts\\passive-income\\guide-render` 后双击 `page-2.png`，图片元素实际请求 `/api/s-forge/file-browser/content/root-ebc8c460379294ef/.artifacts/passive-income/guide-render/page-2.png`，返回 `200` 图片响应，`complete=true`、`naturalWidth=1241`、`naturalHeight=1754`；现场截图中不再显示破图。本轮未重启运行中的 Kernel。
+- [x] 同一目录的资源画廊已完成现场复核：画廊显示 `已加载 3 / 3 个文件`，`AssetCard` 缩略图实际请求 `/api/s-forge/file-browser/thumbnail?...page-1.png&size=360`，图片 `complete=true`、`naturalWidth=543`，说明缩略图入口也使用同源 API 地址。
+- [x] 本轮全量文件浏览回归：`pnpm exec vitest --run test/sforge/fileBrowser`（21 个文件、66 个用例）；图片 URL 边界测试另通过 `test/asset/assetUrl.test.ts`（4 个用例）。
+
 ## 2026-08-08 查询错误可诊断性与遍历性能证据
 
 - [x] 将查询响应守卫错误拆为包络级和条目级：包络指出 `data.assets/totalCount/pageCount`，条目指出索引、相对路径、字段和实际类型；保留严格拒绝，不以放宽校验掩盖协议漂移。
@@ -133,6 +159,21 @@
 - [x] Windows 小规模遍历基线：原生批量目录快照 `4.93ms` 对逐项 `Lstat` `78.33ms`；原生并行递归 `23.02ms` 对 `filepath.Walk` `225.73ms`。该证据仅用于回归趋势，完整 D 盘验收仍未完成。
 - [x] `pnpm run dev:once` 已重新生成 app/desktop/mobile/magi/protyle/agent 目标，SCSS 通过，错误诊断代码已进入实际桌面 bundle。
 - [ ] 运行时若仍出现错误，应依据新消息中的 `data.assets[index] (path)` 和字段类型继续定位；当前不把附件首批合法响应误判为后端包络错误。
+
+## 2026-08-08 图片地址与失败回退补强
+
+- [x] `resolveAssetURL` 已统一文件浏览原图、缩略图、资源卡片、文件预览、属性 Dock 和图片编辑器的地址语义；根相对 `/api/...` 不再被 `baseURL` 二次拼接，传统相对资产、`file:`、UNC 和远程 URL 保持独立处理。
+- [x] 对齐 `SACAssetsManager` 的透明像素占位策略：图片卡片加载期间保持稳定高度，加载失败后切换透明像素和图片图标；表格行、预览页签、属性 Dock 和编辑器不再暴露浏览器原生破图标。
+- [x] 真实 6806 复核（未重启当前 Kernel）：`D:\\dev\\.artifacts\\passive-income\\guide-render\\page-2.png` 原图请求为 `200/image/png`，`naturalWidth=1241`、`naturalHeight=1754`；同目录画廊缩略图为 `naturalWidth=543`。失败回退和 URL 边界由 Vitest 覆盖。
+- [x] `pnpm exec vitest --run test/sforge/fileBrowser`：22 个文件、68 个用例；图片专项 4 个文件、9 个用例；`pnpm run typecheck:protyle-contract`、`pnpm run dev:once`、`go test ./thumbnail ./api ./filebrowser ./filequery -count=1` 和 `git diff --check` 通过。
+- [ ] 当前运行中的 6806 页签已重载并复核成功原图，但尚未在真实页签触发故障 URL 回退；仍需补采失败地址的 UI 回退状态，不能把单元测试代替桌面验收。
+
+## 2026-08-08 用户截图现场复核
+
+- [x] 在当前 6806 运行页签按截图路径展开 `D:\\dev\\.artifacts\\passive-income\\guide-render` 并双击 `page-2.png`，确认 `img.currentSrc` 为 `/api/s-forge/file-browser/content/root-ebc8c460379294ef/.artifacts/passive-income/guide-render/page-2.png`。
+- [x] 现场 DOM 证据：图片 `complete=true`、`naturalWidth=1241`、`naturalHeight=1754`，失败占位数量为 `0`；同一 URL 直接请求返回 `200`、`Content-Type: image/png`、原始字节 `276560`。
+- [x] 截图中的 `200 / text/plain / 440 B` 不是当前根授权内容协议的响应；它对应旧版把根相对 API 地址拼入应用 `baseURL` 后命中的应用壳。当前源码与 `dev:once` 产物均经过 `resolveAssetURL`，不会再走该地址。
+- [x] 已在现场页签执行强制重载并复核成功；旧 bundle 缓存导致的历史破图状态已清除。
 
 ## ℹ️ 维护指南
 
@@ -143,4 +184,102 @@
 
 ## 🏁 已归档/已完成
 
-- 当前没有达到里程碑退出条件的归档项。
+- 图片显示错误复核已完成并归档：[`archive/图片显示错误复核.shorterm.ttt.md`](archive/图片显示错误复核.shorterm.ttt.md)。
+
+## 2026-08-08 用户图片显示错误复核（已完成）
+
+- [x] 根据用户截图与旧 bundle 源码对照定位 `200 / text/plain` 旧地址成因：根相对 API 被拼入静态 `baseURL`；当前源码和新 bundle 已移除该路径。
+- [x] 对照 `SACAssetsManager` 的本地资源契约：缩略图使用受控缩略图入口，原图使用受控原图入口；路径中的中文、空格、嵌套目录和根相对 API 地址保持可解码且不落到应用壳。
+- [x] 为 `Asset` 页签、文件预览页签、资源卡片、表格行和属性 Dock 统一接入 URL 解析；失败时保持稳定占位，不暴露浏览器破图标。
+- [x] 已完成构建和真实运行页面复核；原图与缩略图均使用 `/api/s-forge/file-browser/...` 同源受控地址，图片实际加载尺寸为 `1241 × 1754`，对应短期 TTT 已归档。
+
+证据详见归档子 TTT：[`archive/图片显示错误复核.shorterm.ttt.md`](archive/图片显示错误复核.shorterm.ttt.md)。
+
+## 2026-08-08 用户截图现场再次复核（已完成）
+
+- [x] 重新执行 `pnpm run dev:once`，app、desktop、mobile、magi、protyle 和 agent 构建全部成功；desktop 产物已更新。
+- [x] 强制重载 `http://127.0.0.1:6806/stage/build/desktop/` 后，保留截图中的 `D:\\dev\\.artifacts\\passive-income\\guide-render\\page-2.png` 资源页签，图片元素 `complete=true`、`naturalWidth=1241`、`naturalHeight=1754`，失败占位为 0。
+- [x] 现场最终地址为 `/api/s-forge/file-browser/content/root-ebc8c460379294ef/.artifacts/passive-income/guide-render/page-2.png`，服务端响应 `200 / image/png / 276560 bytes`；不再请求 `/stage/build/desktop/api/...` 静态壳。
+- [x] 结论：用户截图中的 `200 / text/plain / 440 B` 属于旧 bundle 缓存；当前源码、最新 desktop bundle 和强制重载后的真实页面均已按 `SACAssetsManager` 的受控原图/缩略图语义工作。
+
+## 2026-08-08 操作交互测试时序修正
+
+- [x] 树操作交互测试等待工作空间首次自动展开完成，并按节点名称精确定位 `notes` 与 `old.txt`；不再把父目录嵌套文本误识别为文件节点。
+- [x] 菜单替身的 `remove` 同步清空上一轮菜单项，创建、重命名、复制均从当前真实树节点菜单动作触发并验证父目录刷新。
+- [x] 该基础操作子 TTT 已回写后移动到 [`archive/文件操作基础切片.shorterm.ttt.md`](archive/文件操作基础切片.shorterm.ttt.md)，原文保留。
+
+本次仅刷新构建产物和现场证据，未改动已归档子 TTT。
+
+## 2026-08-08 构建后图片现场复核（已完成）
+
+- [x] 在本轮 `pnpm run dev:once` 之后重新加载 `http://127.0.0.1:6806/stage/build/desktop/`，桌面目标产物更新为 `main.07cc2d07da5cdc9033de.js`。
+- [x] 按截图路径展开 `D:\\dev\\.artifacts\\passive-income\\guide-render` 并双击 `page-2.png`；图片 `currentSrc` 为 `http://127.0.0.1:6806/api/s-forge/file-browser/content/root-ebc8c460379294ef/.artifacts/passive-income/guide-render/page-2.png`。
+- [x] 现场 DOM 结果：`complete=true`、`naturalWidth=1241`、`naturalHeight=1754`；截图中图片内容正常显示，未出现浏览器破图标。
+- [x] 交互回归：`pnpm exec vitest --run test/asset/assetUrl.test.ts test/asset/AssetCard.interaction.test.ts test/sforge/fileBrowser/FileBrowser.open.test.ts test/sforge/fileBrowser/FileBrowserGalleryTab.interaction.test.ts test/sforge/fileBrowser/FilePropertiesPanel.interaction.test.ts`，5 个文件、19 个用例通过；`pnpm run dev:once` 和 `git diff --check` 通过。
+
+## 2026-08-08 旧页签图片地址兼容补强
+
+- [x] 保留现有 `resolveAssetURL` 统一入口，并新增针对旧桌面 bundle 形成的
+  `api/s-forge/file-browser/...` 与 `/stage/build/.../api/s-forge/file-browser/...`
+  地址的定向归一化；普通静态资源、`file:` 和远程地址不改变语义。
+- [x] 新增 URL 回归测试，覆盖缺失前导斜杠和静态构建目录前缀，确保恢复旧布局时
+  仍请求应用 origin 下的受控文件浏览 API，而不是 440 B 的应用壳文本。
+- [x] 证据：`pnpm exec vitest --run test/asset/assetUrl.test.ts`（6 个用例）、
+  `pnpm exec vitest --run test/asset/AssetCard.interaction.test.ts test/sforge/fileBrowser/FileBrowserGalleryTab.interaction.test.ts`
+  （2 个文件、9 个用例）、`git diff --check` 通过。
+- [x] 本轮桌面 bundle 更新后重新加载用户截图中的 `page-2.png` 页签：
+  `currentSrc=http://127.0.0.1:6806/api/s-forge/file-browser/content/root-ebc8c460379294ef/.artifacts/passive-income/guide-render/page-2.png`，
+  服务端返回 `200 image/png`，图片自然尺寸 `1241 × 1754`，失败占位数量为 `0`。
+- [x] 当前证据确认旧布局地址兼容已进入 `main.70e6717c5fc0020ac6ac.js`；
+  该补强与已有图片预览切片共同完成，子 TTT 已归档至
+  [`archive/图片地址兼容回退.shorterm.ttt.md`](archive/图片地址兼容回退.shorterm.ttt.md)。
+
+## 2026-08-08 图片入口构建后再次复核
+
+- [x] `pnpm run dev:once` 全部目标构建成功，桌面产物为 `main.07cc2d07da5cdc9033de.js`。
+- [x] 强制重载 6806 桌面页后，截图中的 `page-2.png` 继续使用应用根受控内容地址，
+  `complete=true`、自然尺寸 `1241 × 1754`；没有浏览器破图占位。
+- [x] 真实内容请求返回 `200`、`Content-Type: image/png`、`276560` 字节；画廊缩略图仍使用
+  `/api/s-forge/file-browser/thumbnail`，没有回落到 `/stage/build/.../api/...` 静态壳。
+- [x] 回归：前端 5 个文件、19 个用例；`go test ./thumbnail ./api ./filebrowser ./filequery -count=1`；
+  `git diff --check` 均通过。
+
+## 2026-08-08 图片入口统一收口（本轮）
+
+- [x] 旧资源菜单 `renderAssetsPreview` 的图片和文件缩略图也统一调用 `resolveAssetURL`；不再让该历史入口单独生成未归一化地址。
+- [x] `pnpm exec vitest --run test/asset/assetUrl.test.ts test/asset/AssetCard.interaction.test.ts test/sforge/fileBrowser/FileBrowser.open.test.ts test/sforge/fileBrowser/FileBrowserGalleryTab.interaction.test.ts test/sforge/fileBrowser/FilePropertiesPanel.interaction.test.ts`：5 个文件、19 个用例通过；`git diff --check` 通过。
+- [x] `pnpm run dev:once` 全部目标构建成功；本轮桌面产物为 `main.33b968ccd4ddd5110541.js`。
+- [x] 构建后重新加载 6806 页面并恢复截图中的 `page-2.png` 页签：`currentSrc=http://127.0.0.1:6806/api/s-forge/file-browser/content/root-ebc8c460379294ef/.artifacts/passive-income/guide-render/page-2.png`，`complete=true`、自然尺寸 `1241 × 1754`；图片内容正常显示。
+- [x] 直接服务端证据保持为 `200 / image/png / 276560 bytes`；没有再次命中 `/stage/build/desktop/...` 应用壳。
+
+## 2026-08-08 当前运行页再次核验（已完成）
+
+- [x] 从现有 6806 页面读取 `page-2.png` 的真实 DOM 状态：`currentSrc` 为应用根
+  `http://127.0.0.1:6806/api/s-forge/file-browser/content/root-ebc8c460379294ef/.artifacts/passive-income/guide-render/page-2.png`，
+  `complete=true`、`naturalWidth=1241`、`naturalHeight=1754`，图片失败标记为 `false`。
+- [x] 当前页面截图中资源页签已显示图片内容；未出现用户截图中的破图标或 `200 / text/plain / 440 B` 静态壳响应。
+- [x] 本轮窄回归仍为 5 个文件、19 个用例通过；`git diff --check` 通过。测试输出中的 `localhost:3000` 404 是未启动的独立测试 API，不影响替身仓储用例结果。
+
+## 2026-08-08 图片预览组件边界回归（已完成）
+
+- [x] 新增 `app/test/sforge/fileBrowser/FileBrowserPreviewPanel.interaction.test.ts`：带 `/stage/build/desktop/` 基址时，文件浏览内容地址仍解析到应用根；模拟图片加载失败后切换为受控占位，不暴露浏览器破图标。
+- [x] 图片地址专项回归：`pnpm exec vitest --run test/sforge/fileBrowser/FileBrowserPreviewPanel.interaction.test.ts test/asset/assetUrl.test.ts test/asset/AssetCard.interaction.test.ts`，3 个文件、9 个用例通过。
+- [x] 最新 `pnpm run dev:once` 全部目标构建成功；`go test ./thumbnail ./api ./filebrowser ./filequery -count=1` 通过；`git diff --check` 通过。
+- [x] 构建后运行页面再次打开 `D:\\dev\\.artifacts\\passive-income\\guide-render\\page-2.png`：`currentSrc=http://127.0.0.1:6806/api/s-forge/file-browser/content/root-ebc8c460379294ef/.artifacts/passive-income/guide-render/page-2.png`，`complete=true`、自然尺寸 `1241 × 1754`，画面正常显示。
+
+## 2026-08-08 图片适配与专项回归（本轮）
+
+- [x] 保留 `SACAssetsManager` 的职责分层：缩略图由受控 thumbnail 服务生成，原图由受控 content 服务流式返回；前端只负责把根相对 API 解析到应用 origin，并在失败时显示稳定占位。
+- [x] `Asset` 页签、文件预览、`AssetCard`、表格行和文件属性 Dock 继续共用 `resolveAssetURL`；旧布局中的 `api/...` 与 `/stage/build/.../api/...` 地址仍按同源规则归一化。
+- [x] 新增 `FileBrowser.editor.constants.ts`，使文件打开端口读取编辑器页签类型时不加载 Monaco；文本文件打开测试不再被编辑器依赖解析污染。
+- [x] 专项回归：图片/文件浏览 6 个测试文件、21 个用例通过；`pnpm run typecheck:protyle-contract`、`pnpm run dev:once` 和 `git diff --check` 通过。
+- [x] 6806 接口复核：原图 `200 image/png`、自然尺寸 `1241 × 1754`；缩略图 `200 image/jpeg`、自然尺寸 `543 × 768`，均未命中 `/stage/build/desktop/api/...`。
+
+## 2026-08-08 图片失败回退适配（已完成）
+
+- [x] 在统一 `assetUrl` 入口解析文件浏览器 `content` 地址，按同一 `rootID` 和根内相对路径生成受控 `thumbnail` 回退地址；不暴露本地绝对路径，也不改变普通资产和远程 URL 语义。
+- [x] 图片编辑器保持原图优先，原图 `error` 时切换同根缩略图；地址变化会重置尝试次数和失败状态，最终失败显示稳定的应用占位而不是浏览器破图标。
+- [x] 参考 `SACAssetsManager` 的图片卡片策略：缩略图入口继续使用固定尺寸，加载失败保持稳定尺寸和占位图标；大图页签不因回退而降低正常原图清晰度。
+- [x] 证据：`pnpm exec vitest run test/asset/assetUrl.test.ts test/asset/AssetCard.interaction.test.ts`（2 个文件、9 个用例）；文件浏览打开、画廊、预览和属性交互测试（4 个文件、14 个用例）；`pnpm run typecheck:protyle-contract`；`pnpm run lint:file -- src/asset/assetUrl.ts src/components/panels/imageEditor.vue --show-all`；`git diff --check`。
+- [x] 边界覆盖中文目录、空格文件名、旧构建页签地址和普通资产 URL；真实 6806 页面仍验证 `page-2.png` 原图为 `200/image/png/1241×1754`，缩略图为同源受控响应。
+- [ ] 未强制制造损坏文件来替换当前用户页签；最终失败态由组件状态逻辑和 URL 单元测试覆盖，真实成功路径已在桌面页面复核。

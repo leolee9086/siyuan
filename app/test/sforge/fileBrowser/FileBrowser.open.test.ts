@@ -22,6 +22,8 @@ function repository(stat: FileBrowserFileStat): FileBrowserRepository {
         listDirectory: vi.fn(),
         statFile: vi.fn(async () => stat),
         previewText: vi.fn(),
+        readEditorFile: vi.fn(),
+        writeEditorFile: vi.fn(),
     };
 }
 
@@ -39,7 +41,7 @@ describe("file browser opening", () => {
         expect(app.openTab).not.toHaveBeenCalled();
     });
 
-    it("uses the registered preview tab for text with root-relative identity", async () => {
+    it("uses the registered editor tab for text with root-relative identity", async () => {
         const textEntry = {...entry, name: "guide.md", path: "docs/guide.md", extension: ".md"};
         const stat: FileBrowserFileStat = {
             root, entry: textEntry, mediaType: "text/markdown", previewKind: "text",
@@ -51,7 +53,7 @@ describe("file browser opening", () => {
 
         expect(app.openTab).toHaveBeenCalledWith({
             custom: {
-                title: "guide.md", icon: "iconCode", id: "sforge-file-preview",
+                title: "guide.md", icon: "iconCode", id: "sforge-file-editor",
                 data: {rootID: "workspace", path: "docs/guide.md", name: "guide.md"},
             },
         });

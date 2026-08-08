@@ -68,8 +68,12 @@
     <div class="asset__image-wrapper"
       :style="{ transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`, 'z-index': 0 }"
       ref="imageWrapper">
-      <img :src="currentImageSrc" @load="onImageLoadWithCtx(imageLoadedCtx, centerImage)" ref="imageElement"
-        draggable="false" />
+      <img v-if="!imageLoadError" :src="currentImageSrc" @load="onImageLoadWithCtx(imageLoadedCtx, centerImage)"
+        @error="handleImageError" ref="imageElement" draggable="false" />
+      <div v-else class="asset__image-error" role="img" aria-label="图片预览不可用">
+        <svg aria-hidden="true"><use href="#iconImage" /></svg>
+        <span>图片预览不可用</span>
+      </div>
     </div>
   </div>
 </template>
@@ -91,6 +95,7 @@ import { onImageLoadWithCtx } from "./imageEditor.onImageLoad";
 import { centerImageWithCtx, resetZoomWithCtx, setScaleWithCtx, zoomInWithCtx, zoomOutWithCtx } from "./imageEditor.zoom";
 import { createToolbarItems } from "./imageEditor.toolbarItem";
 import { handleWheelWithCtx } from "./imageEditor.wheel";
+import { getFileBrowserThumbnailURL, resolveAssetURL } from "../../asset/assetUrl";
 
 // 定义组件属性
 interface Props {
@@ -145,7 +150,20 @@ const imageElement = ref<HTMLImageElement>();
 const originImageElement = ref<HTMLImageElement>();
 
 // 计算图片源地址
-const imageSrc = ref(props.src.startsWith("file") ? props.src : document.getElementById("baseURL")?.getAttribute("href") + "/" + props.src);
+const imageSrc = ref(resolveAssetURL(props.src));
+const imageFallbackSrc = ref(getFileBrowserThumbnailURL(props.src));
+const imageSourceAttempt = ref(0);
+const imageLoadError = ref(false);
+watch(() => props.src, value => {
+  imageSrc.value = resolveAssetURL(value);
+  imageFallbackSrc.value = getFileBrowserThumbnailURL(value);
+  imageSourceAttempt.value = 0;
+  imageLoadError.value = false;
+});
+
+const imageSource = computed(() => imageSourceAttempt.value === 0
+  ? imageSrc.value
+  : imageFallbackSrc.value || imageSrc.value);
 
 // 去雾相关状态
 const showDehazePanel = ref(false);
@@ -166,8 +184,16 @@ const currentImageSrc = computed(() => {
       return processedImage.value instanceof HTMLCanvasElement ? processedImage.value.toDataURL() : imageSrc.value;
     }
   }
-  return imageSrc.value;
+  return imageSource.value;
 });
+
+const handleImageError = () => {
+  if (imageSourceAttempt.value === 0 && imageFallbackSrc.value) {
+    imageSourceAttempt.value = 1;
+    return;
+  }
+  imageLoadError.value = true;
+};
 const imageLoadedCtx = {
   imageElement,
   imageWidth,

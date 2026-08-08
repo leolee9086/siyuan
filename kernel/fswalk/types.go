@@ -33,6 +33,7 @@ var (
 	ErrInvalidJSONKey                 = errors.New("JSON store key must name a document")
 	ErrDirectoryNotEmpty              = errors.New("directory is not empty")
 	ErrRootMutation                   = errors.New("filesystem root cannot be mutated")
+	ErrPathExists                     = errors.New("filesystem destination already exists")
 	ErrMovePathOverlap                = errors.New("move source and destination paths overlap")
 	ErrTextLineOutOfRange             = errors.New("text line offset is out of range")
 )

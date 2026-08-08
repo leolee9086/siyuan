@@ -4,6 +4,7 @@ import type {AppFacade} from "./open/imports";
 /** 用途：只读预览页签类型；使用范围：非 Asset 文件打开。 */
 import {FILE_BROWSER_PREVIEW_TAB_TYPE} from "./FileBrowser.preview";
 import {FILE_BROWSER_GALLERY_TAB_TYPE} from "./FileBrowser.gallery.constants";
+import {FILE_BROWSER_EDITOR_TAB_TYPE} from "./FileBrowser.editor.constants";
 /** 用途：文件统计、目录项和打开动作；使用范围：打开端口契约。 */
 import type {
     FileBrowserEntry,
@@ -30,6 +31,17 @@ function openRegisteredPreview(app: Pick<AppFacade, "openTab">, stat: FileBrowse
     });
 }
 
+function openRegisteredEditor(app: Pick<AppFacade, "openTab">, stat: FileBrowserFileStat) {
+    return app.openTab({
+        custom: {
+            title: stat.entry.name,
+            icon: "iconCode",
+            id: FILE_BROWSER_EDITOR_TAB_TYPE,
+            data: {rootID: stat.root.id, path: stat.entry.path, name: stat.entry.name},
+        },
+    });
+}
+
 /** 为一个 App 实例建立唯一打开端口，调用方始终只传 root ID 与相对路径。 */
 export function createFileBrowserEntryOpener(
     app: Pick<AppFacade, "openAsset" | "openTab">,
@@ -39,6 +51,10 @@ export function createFileBrowserEntryOpener(
         const stat = await repository.statFile({rootID, path: entry.path});
         if (canUseAssetTab(stat)) {
             app.openAsset({assetPath: stat.contentURL});
+            return;
+        }
+        if (stat.previewKind === "text") {
+            await openRegisteredEditor(app, stat);
             return;
         }
         await openRegisteredPreview(app, stat);

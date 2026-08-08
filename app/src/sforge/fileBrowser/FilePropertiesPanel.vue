@@ -36,7 +36,8 @@
                         <svg><use href="#iconLeft" /></svg>
                     </button>
                     <div class="sforge-file-properties__preview-frame">
-                        <img v-if="currentImage" :src="currentImage.properties?.contentURL" :alt="currentImage.properties?.entry.name">
+                        <img v-if="currentImage && !currentImageError" :src="currentImageURL"
+                            :alt="currentImage.properties?.entry.name" @error="currentImageError = true">
                         <svg v-else class="sforge-file-properties__file-icon"><use href="#iconFile" /></svg>
                     </div>
                     <button v-if="imageItems.length > 1" type="button" class="block__icon ariaLabel"
@@ -106,6 +107,8 @@ import {fileBrowserSelection} from "./FileBrowser.selection";
 import FilePropertiesTagSection from "./FilePropertiesTagSection.vue";
 /** 用途：属性记录类型；使用范围：图片和聚合派生。 */
 import type {FilePropertiesItem, FilePropertiesRepository} from "./FileProperties.types";
+/** 用途：统一图片地址；使用范围：属性 Dock 图片预览。 */
+import {resolveAssetURL} from "../../asset/assetUrl";
 /** 用途：共享选择注入边界；使用范围：生产面板和交互测试。 */
 import type {FileBrowserSelectionStore} from "./FileBrowser.types";
 /** 用途：标签定义仓储注入边界；使用范围：生产面板和交互测试。 */
@@ -124,9 +127,14 @@ const {
 } = controller;
 const imageIndex = ref(0);
 const annotationDraft = ref("");
+const currentImageError = ref(false);
 
 const imageItems = computed(() => availableItems.value.filter(item => item.properties?.previewKind === "image"));
 const currentImage = computed(() => imageItems.value[imageIndex.value] ?? imageItems.value[0]);
+const currentImageURL = computed(() => {
+    const contentURL = currentImage.value?.properties?.contentURL;
+    return contentURL ? resolveAssetURL(contentURL) : "";
+});
 const nameLabel = computed(() => {
     const names = availableItems.value.map(item => item.properties?.entry.name).filter((name): name is string => Boolean(name));
     if (names.length === 0) {
@@ -247,6 +255,13 @@ watch(() => annotation.value, value => {
 }, {immediate: true});
 watch(() => selectionItems.value.map(item => item.key).join("\n"), () => {
     imageIndex.value = 0;
+    currentImageError.value = false;
+});
+watch(imageIndex, () => {
+    currentImageError.value = false;
+});
+watch(currentImageURL, () => {
+    currentImageError.value = false;
 });
 onMounted(() => void refreshTagDefinitions());
 onBeforeUnmount(dispose);

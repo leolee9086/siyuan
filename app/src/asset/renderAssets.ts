@@ -3,6 +3,7 @@ import { getAllModels } from "../layout/getAll";
 import { isMobile } from "../platform";
 import {pathPosix} from "../util/file/path/operations";
 import * as dayjs from "dayjs";
+import {resolveAssetURL} from "./assetUrl";
 
 /** 已知的文本文件扩展名，用于判断是否提供内容预览 */
 const TEXT_EXTENSIONS = new Set([
@@ -22,6 +23,14 @@ const TEXT_EXTENSIONS = new Set([
 const isTextFile = (ext: string) => {
     return TEXT_EXTENSIONS.has(ext.toLowerCase());
 };
+
+/**
+ * 作用：为旧资源菜单生成和主 Asset/文件浏览器相同的缩略图地址。
+ * 意图：资源菜单也必须绕过静态构建目录，避免 `/stage/build/.../api` 被当成应用壳。
+ * 调用时机：悬停预览图片或非图片文件时。
+ */
+const getPreviewThumbnailURL = (pathString: string, size: number) =>
+    resolveAssetURL(`/api/s-forge/thumbnail?path=${encodeURIComponent(pathString)}&size=${size}`);
 
 /**
  * 渲染资源预览 HTML
@@ -46,7 +55,7 @@ export const renderAssetsPreview = (pathString: string) => {
 
     // 图片：使用缩略图 API + 元信息面板
     if (Constants.SIYUAN_ASSETS_IMAGE.includes(type)) {
-        const thumbnailUrl = `/api/s-forge/thumbnail?path=${encodeURIComponent(pathString)}&size=360`;
+        const thumbnailUrl = getPreviewThumbnailURL(pathString, 360);
         // 生成唯一 ID 用于后续填充元信息
         const metaId = `asset-meta-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -83,7 +92,7 @@ export const renderAssetsPreview = (pathString: string) => {
     }
 
     // 其他文件：使用缩略图 API 获取文件图标
-    const thumbnailUrl = `/api/s-forge/thumbnail?path=${encodeURIComponent(pathString)}&size=256`;
+    const thumbnailUrl = getPreviewThumbnailURL(pathString, 256);
     return `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
         <img style="max-width: 128px; max-height: 128px;" src="${thumbnailUrl}">
         <div style="margin-top: 8px; color: var(--b3-theme-on-surface); font-size: 12px; word-break: break-all; text-align: center; max-width: 100%;">

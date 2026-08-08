@@ -98,6 +98,9 @@ describe("FileBrowserGalleryTab", () => {
         expect(host?.textContent).toContain("★★★");
         expect(host?.textContent).toContain("640 x 480");
         expect(host?.textContent).toContain("1 KB");
+        expect(host?.querySelector<HTMLImageElement>(".asset-card__image img")?.src).toBe(
+            `${window.location.origin}/api/s-forge/file-browser/thumbnail?rootID=workspace&path=data%2Fassets%2Ficons%2Fhero.png&size=360`,
+        );
 
         const widthSlider = host?.querySelector<HTMLInputElement>("input[aria-label='卡片宽度']");
         widthSlider!.value = "300";
@@ -176,6 +179,16 @@ describe("FileBrowserGalleryTab", () => {
         await vi.waitFor(() => expect(openAsset).toHaveBeenCalledWith({
             assetPath: "/api/s-forge/file-browser/content/workspace/data/assets/icons/hero.png",
         }));
+
+        const viewModes = ["瀑布流视图", "网格视图", "对齐视图", "列表视图", "表格视图"];
+        for (const label of viewModes) {
+            host?.querySelector<HTMLButtonElement>(`button[aria-label='${label}']`)?.click();
+            await vi.waitFor(() => expect(host?.querySelector<HTMLButtonElement>(
+                `button[aria-label='${label}']`,
+            )?.getAttribute("aria-pressed")).toBe("true"));
+        }
+        expect(host?.querySelector(".sforge-file-gallery")?.getAttribute("data-layout-mode")).toBe("table");
+        expect(host?.querySelector(".sforge-file-gallery-table-header")?.textContent).toContain("名称");
     });
 
     it("opens a tag result without replacing it with the directory scope", async () => {
