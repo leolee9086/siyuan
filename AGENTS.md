@@ -21,6 +21,15 @@
 
 ---
 
+## 0.1 工作前必读
+
+**开始任何工作之前，必须先阅读 [`docs/agent负面行为记录.md`](docs/agent负面行为记录.md)。** 该文件记录 agent 违反规则的行为及纠正要求；遗忘或违反其中的记录会重复同样的错误。特别是：
+
+- 未获用户明确授权，不得执行任何 git 写操作（commit / revert / reset / rebase / push 等）。
+- 不得将自己的幻觉或错误归因于用户的要求；规程既有规定以规程原文为准。
+
+---
+
 ## 1. 架构
 
 **架构（上游）：** Go 内核（`kernel/`）+ TypeScript 前端（`app/`），另有一个独立的 `export` 构建产物（全局 `Protyle`，入口 `src/protyle/method.ts`），用于在导出的 HTML / PDF 预览中渲染富内容。版本号读取自 `kernel/go.mod`、`app/package.json`、`kernel/util/working.go`。
