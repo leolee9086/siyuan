@@ -386,6 +386,7 @@ function clear() {
 
 .sforge-file-search__state--error {
     color: var(--b3-theme-error);
+    overflow-wrap: anywhere;
 }
 
 </style>

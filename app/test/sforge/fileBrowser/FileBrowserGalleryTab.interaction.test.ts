@@ -194,7 +194,25 @@ describe("FileBrowserGalleryTab", () => {
         })));
     });
 
-    it("clears a global result filter without restoring an extension or losing all-root scope", async () => {
+    it("shows an unfiltered global tab as all-root even without an initial query", async () => {
+        vi.spyOn(fileBrowserRepository, "listRoots").mockResolvedValue([root]);
+        const search = vi.spyOn(fileBrowserQueryRepository, "search").mockResolvedValue(result);
+        const file = {rootID: root.id, path: "", name: "全部资源", scope: "global" as const};
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileBrowserGalleryTab, {
+            app: {openAsset: vi.fn(), openTab: vi.fn(async () => undefined)}, file,
+        });
+        app.mount(host);
+
+        await vi.waitFor(() => expect(search).toHaveBeenCalledWith({
+            allRoots: true, orderBy: "updated", limit: 200, offset: 0,
+        }));
+        expect(host.querySelector<HTMLInputElement>("input[type='checkbox']")?.checked).toBe(true);
+        expect(file.query).toEqual({allRoots: true, orderBy: "updated"});
+    });
+
+    it("keeps a tag result source while leaving runtime extension filtering empty", async () => {
         vi.spyOn(fileBrowserRepository, "listRoots").mockResolvedValue([root]);
         const search = vi.spyOn(fileBrowserQueryRepository, "search").mockResolvedValue(result);
         const file = {
@@ -210,7 +228,7 @@ describe("FileBrowserGalleryTab", () => {
         app.mount(host);
 
         await vi.waitFor(() => expect(search).toHaveBeenCalledWith(expect.objectContaining({
-            allRoots: true, tags: ["blue"], exts: [".tmp"], orderBy: "updated",
+            allRoots: true, tags: ["blue"], orderBy: "updated",
         })));
         host.querySelector<HTMLButtonElement>("button[aria-label='清空文件查询']")?.click();
         await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith({
@@ -218,7 +236,7 @@ describe("FileBrowserGalleryTab", () => {
         }));
         expect(host.querySelector(".sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
         expect(host.querySelector<HTMLInputElement>("input[type='checkbox']")?.checked).toBe(true);
-        expect(file.query).toEqual({allRoots: true, orderBy: "updated"});
+        expect(file.query).toEqual({allRoots: true, tags: ["blue"], orderBy: "updated"});
 
         host.querySelector<HTMLButtonElement>("button[aria-label='重新查询']")?.click();
         await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith({
@@ -233,12 +251,12 @@ describe("FileBrowserGalleryTab", () => {
         });
         app.mount(host);
         await vi.waitFor(() => expect(search).toHaveBeenCalledWith({
-            allRoots: true, orderBy: "updated", limit: 200, offset: 0,
+            allRoots: true, tags: ["blue"], limit: 200, offset: 0, orderBy: "updated",
         }));
         expect(host.querySelector(".sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
     });
 
-    it("persists an explicitly submitted empty global form without stale extensions", async () => {
+    it("does not persist an explicitly submitted empty global form", async () => {
         vi.spyOn(fileBrowserRepository, "listRoots").mockResolvedValue([root]);
         const search = vi.spyOn(fileBrowserQueryRepository, "search").mockResolvedValue(result);
         const file = {
@@ -252,19 +270,10 @@ describe("FileBrowserGalleryTab", () => {
         });
         app.mount(host);
 
-        await vi.waitFor(() => expect(search).toHaveBeenCalledWith(expect.objectContaining({exts: [".bmp"]})));
-        const extensionTrigger = host.querySelector<HTMLButtonElement>("button[aria-label='扩展名筛选']");
-        extensionTrigger?.click();
-        await vi.waitFor(() => expect(host!.querySelector(".sforge-multi-select__option")).toBeTruthy());
-        const extensionOption = Array.from(host!.querySelectorAll<HTMLElement>(".sforge-multi-select__option"))
-            .find(option => option.textContent?.includes(".bmp"));
-        const extensionInput = extensionOption?.querySelector<HTMLInputElement>("input");
-        if (!extensionInput) {
-            throw new Error("missing selected extension option");
-        }
-        extensionInput.checked = false;
-        extensionInput.dispatchEvent(new Event("change", {bubbles: true}));
-        await vi.waitFor(() => expect(host!.querySelector(".sforge-multi-select__value")?.textContent).not.toContain(".bmp"));
+        await vi.waitFor(() => expect(search).toHaveBeenCalledWith(expect.objectContaining({
+            allRoots: true, orderBy: "updated",
+        })));
+        expect(host.querySelector(".sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
         host.querySelector("form")?.dispatchEvent(new Event("submit", {bubbles: true, cancelable: true}));
 
         await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith({
@@ -285,7 +294,7 @@ describe("FileBrowserGalleryTab", () => {
         expect(host.querySelector(".sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
     });
 
-    it("persists the latest global extension instead of restoring a stale .tmp filter", async () => {
+    it("does not restore a stale .tmp filter after a runtime extension change", async () => {
         vi.spyOn(fileBrowserRepository, "listRoots").mockResolvedValue([root]);
         const search = vi.spyOn(fileBrowserQueryRepository, "search").mockResolvedValue(result);
         const file = {
@@ -299,21 +308,15 @@ describe("FileBrowserGalleryTab", () => {
         });
         app.mount(host);
 
-        await vi.waitFor(() => expect(search).toHaveBeenCalledWith(expect.objectContaining({exts: [".tmp"]})));
+        await vi.waitFor(() => expect(search).toHaveBeenCalledWith(expect.objectContaining({
+            allRoots: true, orderBy: "updated",
+        })));
         const extensionTrigger = host.querySelector<HTMLButtonElement>("button[aria-label='扩展名筛选']");
         extensionTrigger?.click();
         await vi.waitFor(() => expect(host!.querySelector(".sforge-multi-select__option")).toBeTruthy());
         const option = (extension: string) => Array.from(host!.querySelectorAll<HTMLElement>(
             ".sforge-multi-select__option",
         )).find(item => item.textContent?.includes(extension))?.querySelector<HTMLInputElement>("input");
-        const staleExtension = option(".tmp");
-        if (!staleExtension) {
-            throw new Error("missing stale extension option");
-        }
-        staleExtension.checked = false;
-        staleExtension.dispatchEvent(new Event("change", {bubbles: true}));
-        await vi.waitFor(() => expect(host!.querySelector(".sforge-multi-select__value")?.textContent)
-            .not.toContain(".tmp"));
         const freshExtension = option(".png");
         if (!freshExtension) {
             throw new Error("missing replacement extension option");
@@ -325,7 +328,7 @@ describe("FileBrowserGalleryTab", () => {
         await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith({
             allRoots: true, exts: [".png"], orderBy: "updated", limit: 200, offset: 0,
         }));
-        expect(file.query).toEqual({allRoots: true, exts: [".png"], orderBy: "updated"});
+        expect(file.query).toEqual({allRoots: true, orderBy: "updated"});
 
         app.unmount();
         host.innerHTML = "";
@@ -335,10 +338,9 @@ describe("FileBrowserGalleryTab", () => {
         });
         app.mount(host);
         await vi.waitFor(() => expect(search).toHaveBeenCalledWith({
-            allRoots: true, exts: [".png"], orderBy: "updated", limit: 200, offset: 0,
+            allRoots: true, orderBy: "updated", limit: 200, offset: 0,
         }));
-        expect(host.querySelector(".sforge-multi-select__value")?.textContent).toContain(".png");
-        expect(host.querySelector(".sforge-multi-select__value")?.textContent).not.toContain(".tmp");
+        expect(host.querySelector(".sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
     });
 
     it("ignores stale all-root query data on a directory tab", async () => {

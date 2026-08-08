@@ -85,7 +85,7 @@
 ### M0.5 当前切片证据
 
 - 已完成：共享 `{rootID, path}` 多选、批量属性读取/逐项错误、属性 Dock 注册/恢复/独立销毁、星级/注释/图片轮播、聚合/逐文件标签、批量/逐文件标签修改、标签颜色定义与确定性回退色。
-- 证据：`pnpm exec vitest --run test/sforge/fileBrowser`（21 个文件、58 个用例）；目标 `vue-tsc` 诊断 0；`go test ./assetmeta ./filequery ./api -count=1` 通过；`git diff --check` 通过；本次新增/修改文件 P0 lint 0。
+- 证据：`pnpm exec vitest --run test/sforge/fileBrowser`（21 个文件、60 个用例）；`pnpm run typecheck:protyle-contract` 通过；目标文件 `vue-tsc` 诊断 0；`go test ./assetmeta ./filequery ./api -count=1` 和 `git diff --check` 通过；本次新增/修改文件 P0 逻辑/类型错误 0。
 - 保持未完成：桌面布局持久化重启/截图验收、真实媒体加载、SAC 标签删除/拖放/Ctrl 笔记搜索、框选/拖放批处理、表格模式、目录动作、所在笔记/来源和外部根图片调色板提取。
 - 标签树和标签结果查询已有源码接线与挂载测试；授权响应、颜色查询边界和桌面验收继续由 [`标签结果打开与颜色检索.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/标签结果打开与颜色检索.shorterm.ttt.md) 追踪。
 
@@ -96,13 +96,30 @@
 ## 2026-08-08 筛选条件为空回归证据
 
 - [x] 修正旧目录页签把筛选条件持久化到 `file.query` 的迁移问题：带路径页签启动时移除历史 query，空表单不再恢复 `.tmp`、关键词、标签或颜色。
-- [x] 全根结果页签现在保存每次提交后的规范化当前查询；空查询只保留 `allRoots` 和排序，非空查询也不会把旧 `.tmp` 覆盖回来。
+- [x] 全根结果页签只保存打开入口的稳定来源（根、标签、调色板）；关键词、扩展名、尺寸、星级和分页属于组件运行期状态，空查询只保留 `allRoots` 和排序，不会把旧 `.tmp` 写回页签。
 - [x] 为页签增加稳定的 `scope` 标记，筛选条件变化不会把全根结果误判为目录页签；目录范围变化通过组件 key 强制重建空筛选表单。
 - [x] 扩展名菜单保留当前查询中的扩展名，即使当前结果为空也能直接取消该条件。
 - [x] 规范化空数组/空字符串请求，并保留全根范围语义；目录页签仍只使用 root/path，标签结果仍可携带显式全根 query。
 - [x] 证据：`pnpm exec vitest --run test/sforge/fileBrowser/FileBrowserGalleryTab.interaction.test.ts test/sforge/fileBrowser/FileBrowserSearchPanel.interaction.test.ts test/sforge/fileBrowser/FileBrowserPanel.interaction.test.ts test/sforge/fileBrowser/FileTagTreeDock.interaction.test.ts`（4 个文件、11 个用例）；`pnpm run typecheck:protyle-contract`；目标文件 `vue-tsc` 筛选诊断无新增输出；`git diff --check` 通过。
 - [x] `pnpm run dev:once` 的 app、desktop、mobile、magi、protyle 和 agent 构建目标全部成功，`FileBrowserPanel.scss` 不再触发 `Unknown word //`。
 - [ ] 完整文件浏览测试和桌面真实布局验收仍按 M1/M2 条目追踪；当前仍不把聚焦挂载测试等同于桌面验收。
+
+## 2026-08-08 运行期筛选与缺省元数据回归
+
+- [x] 修正全根页签筛选归属：提交/清空/刷新只更新组件当前查询，不再把 `.tmp`、关键词或新扩展名写入 `file.query`；销毁并重建页签后扩展名控件仍为空。
+- [x] 保留标签结果页的稳定标签来源；清空时运行期标签和扩展名被移除，重新打开仍按标签入口范围查询，不把历史扩展名带回。
+- [x] `FileBrowser.query.guards.ts` 接受 Go `omitempty` 省略的 `width`、`height`、`fileSize`，归一化为 `0`；非法非数值仍拒绝，调色板逐项收窄。
+- [x] 回归证据：`pnpm exec vitest --run test/sforge/fileBrowser`（21 个文件、60 个用例）；`pnpm run typecheck:protyle-contract`；目标 `vue-tsc` 诊断 0；`git diff --check`。
+- [ ] Git 提交门禁和桌面真实窗口验收按用户要求暂不处理；完整大目录媒体验收仍属于 M1/M2 未完成项。
+
+## 2026-08-08 查询错误可诊断性与遍历性能证据
+
+- [x] 将查询响应守卫错误拆为包络级和条目级：包络指出 `data.assets/totalCount/pageCount`，条目指出索引、相对路径、字段和实际类型；保留严格拒绝，不以放宽校验掩盖协议漂移。
+- [x] 真实本地目录响应验证通过：`root-ebc8c460379294ef/旧文件/新建文件夹` 返回 `200/674/4`（当前页/总数/页数），前端守卫解析通过。
+- [x] 诊断改动未增加成功热路径的错误字符串分配；调色板和可选字段校验使用定长循环。解析 200 条真实条目约 `0.6-0.9ms`。
+- [x] Windows 小规模遍历基线：原生批量目录快照 `4.93ms` 对逐项 `Lstat` `78.33ms`；原生并行递归 `23.02ms` 对 `filepath.Walk` `225.73ms`。该证据仅用于回归趋势，完整 D 盘验收仍未完成。
+- [x] `pnpm run dev:once` 已重新生成 app/desktop/mobile/magi/protyle/agent 目标，SCSS 通过，错误诊断代码已进入实际桌面 bundle。
+- [ ] 运行时若仍出现错误，应依据新消息中的 `data.assets[index] (path)` 和字段类型继续定位；当前不把附件首批合法响应误判为后端包络错误。
 
 ## ℹ️ 维护指南
 

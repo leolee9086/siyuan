@@ -18,8 +18,15 @@
 - [x] 前端搜索契约、响应守卫、仓储和竞态控制器。
 - [x] 真实 Vue 挂载测试覆盖标签/颜色组合请求；后端聚焦测试覆盖索引边界和授权根映射。
 - [x] 目录面包屑/子目录选择请求通过共享仓储进入后端，并覆盖直接项、递归项和混合 workspace 根映射边界。
+- [x] 响应守卫兼容 `assetmeta.AssetMeta` 的 `omitempty` 字段：未索引文件缺省 `width`、`height`、`fileSize` 时归一化为 `0`，非法数值和非法调色板仍拒绝。
+- [x] 响应守卫错误改为可定位诊断：包络错误指出 `data.assets/totalCount/pageCount`，条目错误指出 `data.assets[index]`、相对路径、字段、期望类型和实际类型；合法的 200 条真实响应保持通过。
+- [x] 诊断路径不在成功热路径创建条目错误字符串；调色板和可选字段校验改为复用常量/定长循环，避免为每个资源额外分配中间数组。
 
 ## 验收证据
 
 - Go：API handler 使用临时 workspace 和 stub index，验证远端拒绝、默认 workspace、全部根和越权根。
 - Vue：仓储测试验证包络、请求回显、分页和结构错误；搜索控制器测试验证取消/旧响应不覆盖新查询。
+- 本轮 Vue 回归：`FileBrowser.query.repository.test.ts` 新增缺省媒体元数据响应；完整 `pnpm exec vitest --run test/sforge/fileBrowser` 为 21 个文件、60 个用例通过，`pnpm run typecheck:protyle-contract` 通过。
+- 本轮真实响应验证：从本地 `6806` 读取 `root-ebc8c460379294ef/旧文件/新建文件夹`，响应为 `assets=200,totalCount=674,pageCount=4`，前端守卫解析通过；守卫单次解析耗时约 `0.6-0.9ms`。
+- 本轮错误定位回归：覆盖缺失 `path` 和 `tags:null`，错误分别包含 `data.assets[0]`、路径和字段类型，不再只显示“响应格式错误”。
+- 遍历性能基线（Windows，Intel i5-10400F）：`BenchmarkDirectorySnapshotNative` `4.93ms` vs 逐项 `Lstat` `78.33ms`；`BenchmarkRecursiveWalk/NativeParallel` `23.02ms` vs `filepath.Walk` `225.73ms`。该基线只证明当前小规模实现优势，不替代整个 D 盘验收。

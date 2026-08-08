@@ -113,6 +113,17 @@ node scripts/upstream-sync/audit-manifest.mjs coverage  --repo . --output docs/u
 
 `verify` 会重新计算同一关系并拒绝不一致的源数据。发布规程镜像用 `scripts/upstream-sync/procedure-block.mjs`：改发布规程（`siyuan://blocks/20260729083130-vaxfqpr`）后必须回读验证、同步仓库镜像并形成提交；计算哈希前统一为 LF 换行、按字典序排序 IAL 属性。
 
+**更新说明（CHANGELOG）验收清单工具** `scripts/upstream-sync/changelog-analyze.mjs`：
+
+以官方 `app/changelogs/<version>/` 的 markdown 为验收基准，把 changelog 每个条目（Feature/Enhancement/Bugfix/Refactor/Development，按 issue/pull 号）映射到 `commits.jsonl` 或 `SHA|date|subject` 提交清单中的上游提交：
+
+```powershell
+node scripts/upstream-sync/changelog-analyze.mjs --changelog <changelog.md> --commits <commits.jsonl|commits.txt> --output <mapping.json>
+node scripts/upstream-sync/changelog-analyze.mjs --changelog <changelog.md> --repo <isolated-clone> --range <U0>..<U1> --output <mapping.json>
+```
+
+输出 `{summary: {totalEntries, matchedEntries, unmatchedEntries, categoryCounts}, entries, unmatched}`；`unmatched` 条目必须人工核查（可能通过非 issue 号提交、更早版本已实现、或仅元数据），**不得以 changelog 文字描述代替代码变更分析**。changelog 条目本身不产生 `commits.jsonl` 记录，其对应的上游提交才是审计对象。
+
 ## 六、本地提交 trailers（强制）
 
 ```text

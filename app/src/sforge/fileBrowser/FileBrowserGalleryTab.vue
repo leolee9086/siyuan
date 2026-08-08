@@ -168,6 +168,43 @@ function normalizeSearchRequest(request: FileBrowserSearchRequest | undefined) {
     return result;
 }
 
+/**
+ * 页签数据只描述稳定的资源来源，不保存画廊运行期筛选。
+ *
+ * SACAssetsManager 的本地画廊把关键词、扩展名和显示条件都放在组件状态中；
+ * 这里保留标签/调色板这类打开入口本身的来源条件，同时丢弃旧版本曾写入
+ * 布局的 `.tmp`、关键词、尺寸和分页状态，避免重建页签时把瞬时筛选当成
+ * 永久条件。
+ */
+function normalizeGallerySourceRequest(request: FileBrowserSearchRequest | undefined) {
+    const normalized = normalizeSearchRequest(request);
+    if (!normalized) {
+        return undefined;
+    }
+    const source: FileBrowserSearchRequest = {
+        orderBy: normalized.orderBy ?? "updated",
+    };
+    if (normalized.allRoots) {
+        source.allRoots = true;
+    }
+    if (normalized.rootIDs && normalized.rootIDs.length > 0) {
+        source.rootIDs = [...normalized.rootIDs];
+    }
+    if (normalized.tags && normalized.tags.length > 0) {
+        source.tags = [...normalized.tags];
+        if (normalized.matchAllTags !== undefined) {
+            source.matchAllTags = normalized.matchAllTags;
+        }
+    }
+    if (normalized.palette) {
+        source.palette = {...normalized.palette};
+        if (normalized.palette.color) {
+            source.palette.color = [...normalized.palette.color] as [number, number, number];
+        }
+    }
+    return source;
+}
+
 // 只有没有目录路径的全根结果页签才接受布局恢复的 query；目录页签即使被旧布局
 // 恢复出历史 query，也必须继续以自身的 root/path 作为唯一范围。
 const isGlobalResult = props.file.path.trim() === "" &&
@@ -177,10 +214,20 @@ const isGlobalResult = props.file.path.trim() === "" &&
 if (!isGlobalResult && props.file.query) {
     delete props.file.query;
 }
-// currentQuery 持有运行期筛选；全根查询提交后会把规范化快照同步回 file.query，供布局恢复使用。
-const currentQuery = ref<FileBrowserSearchRequest | undefined>(
-    isGlobalResult ? normalizeSearchRequest(props.file.query) : undefined,
-);
+// 页签来源只在创建/布局恢复时读取一次；currentQuery 是画廊组件内的运行期筛选，
+// 不再回写 custom.data，因而关闭并重建页签时不会恢复上一次的 `.tmp` 条件。
+const sourceQuery = isGlobalResult ? normalizeGallerySourceRequest(props.file.query) ?? {
+    allRoots: true,
+    orderBy: "updated" as const,
+} : undefined;
+if (isGlobalResult) {
+    if (sourceQuery) {
+        props.file.query = sourceQuery;
+    } else if (props.file.query) {
+        delete props.file.query;
+    }
+}
+const currentQuery = ref<FileBrowserSearchRequest | undefined>(cloneSearchRequest(sourceQuery));
 // 目录页签只携带地址；查询数据属于标签/全根结果页签，不能把旧的目录筛选带入新范围。
 const initialSearchRequest = computed(() => currentQuery.value);
 const scopeRoot = computed(() => roots.value.find(root => root.id === props.file.rootID));
@@ -245,19 +292,6 @@ function scopedRequest(request: FileBrowserSearchRequest): FileBrowserSearchRequ
 function runSearch(request: FileBrowserSearchRequest) {
     const scoped = normalizeSearchRequest(scopedRequest(request)) ?? {orderBy: "updated"};
     currentQuery.value = isGlobalResult ? cloneSearchRequest(scoped) : undefined;
-    if (isGlobalResult) {
-        const persisted = cloneSearchRequest(scoped) ?? {orderBy: "updated"};
-        delete persisted.limit;
-        delete persisted.offset;
-        delete persisted.pathPrefix;
-        delete persisted.pathPrefixes;
-        delete persisted.recursive;
-        if (!persisted.allRoots && (!persisted.rootIDs || persisted.rootIDs.length === 0)) {
-            persisted.allRoots = true;
-        }
-        props.file.scope = "global";
-        props.file.query = persisted;
-    }
     void search.search(scoped);
 }
 
@@ -277,12 +311,6 @@ function clearSearch() {
         orderBy: currentQuery.value?.orderBy ?? "updated",
     } : undefined;
     currentQuery.value = clearedQuery;
-    if (clearedQuery) {
-        // Custom 页签数据会参与布局序列化；同步清理初始 query，避免重建页签恢复旧筛选。
-        props.file.query = {...clearedQuery};
-    } else if (props.file.query) {
-        delete props.file.query;
-    }
     search.clear();
     runScopedSearch(false);
 }
