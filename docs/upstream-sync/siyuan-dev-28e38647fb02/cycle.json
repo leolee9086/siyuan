@@ -6,9 +6,9 @@
   "upstreamBranch": "dev",
   "localBase": "7845c47e3620a7cd411648e36fd508c43ea757f7",
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
-  "upstreamTip": "f21c94468511dbc7ba567cd411c7cf58a1b42929",
+  "upstreamTip": "8ebcffa04ce16bab2a3b1b2b9f9b235485918101",
   "candidateBranch": "multipleAI",
-  "candidateHead": "a998ed3b66fa431a63e62dbd643133e606c0a92e",
+  "candidateHead": "24a729538dfd0e416040f173306beb8dd92637ef",
   "candidateCreatedAt": "2026-07-29T14:15:25+08:00",
   "mainRepository": "D:/dev/s-forge",
   "mainBranch": "multipleAI",
@@ -37,25 +37,25 @@
   ],
   "procedure": {
     "blockId": "20260729083130-vaxfqpr",
-    "updatedAt": "20260731003918",
-    "kramdownSha256": "0549ddd2028400e9913c2ddadafeaaee42bdfdc92f962ff01eaedffa011d03c8",
+    "updatedAt": "20260808221016",
+    "kramdownSha256": "31050ed7eda531b9213269b701a30e972bfeaef4c9e5207a908d97d02dd42093",
     "kramdownHashNormalization": "LF line endings and lexicographically sorted Kramdown IAL attributes",
-    "mirrorSha256": "5fa6d3748c07e0e130b878459b6223fe43473e6758823fe9fd2f8ee20c8c8f06"
+    "mirrorSha256": "0bf4e574b45f1d576225b45e12ddbc7745eb9a7fd361fa16c8cc531289fad99e"
   },
-  "commitCount": 1168,
-  "mergeCommitCount": 71,
+  "commitCount": 1194,
+  "mergeCommitCount": 73,
   "revertCommitCount": 0,
-  "stablePatchIdCount": 1097,
+  "stablePatchIdCount": 1121,
   "mappedUpstreamCommitCount": 18,
   "auditGrouping": {
     "mode": "optional",
     "fixedSize": null,
     "note": "Grouping is an execution aid and never a completion boundary."
   },
-  "upstreamTipFetchedAt": "2026-08-08T04:20:00+08:00",
+  "upstreamTipFetchedAt": "2026-08-08T21:51:00+08:00",
   "upstreamTipRefresh": {
     "mode": "before-each-series-and-final-closure",
-    "latestCheckedAt": "2026-08-08T04:20:00+08:00",
+    "latestCheckedAt": "2026-08-08T21:51:00+08:00",
     "history": [
       {
         "from": "28e38647fb02ef126002633f33f9d3fcccb8c167",
@@ -147,6 +147,13 @@
         "fetchedAt": "2026-08-08T04:20:00+08:00",
         "addedCommitCount": 15,
         "addedMergeCommitCount": 0
+      },
+      {
+        "from": "f21c94468511dbc7ba567cd411c7cf58a1b42929",
+        "to": "8ebcffa04ce16bab2a3b1b2b9f9b235485918101",
+        "fetchedAt": "2026-08-08T21:51:00+08:00",
+        "addedCommitCount": 26,
+        "addedMergeCommitCount": 2
       }
     ]
   }
