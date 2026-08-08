@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "sourceHead": "a5c1b6f94e63440b76d8f081cb58800ce9560195",
+  "sourceHead": "4f9188c92464fc28d2a2616e7973c3a98172e532",
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
-  "upstreamTip": "1ac27857a55cbe57ce214dbcc1c5edcf3dec75ac",
+  "upstreamTip": "f21c94468511dbc7ba567cd411c7cf58a1b42929",
   "summary": {
-    "total": 1153,
+    "total": 1168,
     "stateCounts": {
       "topology-integrated": 2,
       "delivery-integrated": 13,
@@ -13,7 +13,7 @@
       "semantic-verified": 3,
       "audit-in-progress": 0,
       "audit-blocked": 0,
-      "audit-pending": 1135
+      "audit-pending": 1150
     },
     "semanticVerifiedPrefix": {
       "count": 6,
@@ -1281,7 +1281,22 @@
       "c56d5a5c7be9feb86950475f74bcee70c1f3f165",
       "90be80a176f6b4523d0edcf7a7a333524e80902d",
       "af9d577a9a2d5117242018ccb6243e0692287f1e",
-      "1ac27857a55cbe57ce214dbcc1c5edcf3dec75ac"
+      "1ac27857a55cbe57ce214dbcc1c5edcf3dec75ac",
+      "a87e05d3d4a38c5a82cf6bcc8b9b4fae58578a23",
+      "26ccb40d390eb7d9b04673629a58ab1d69cc7e53",
+      "83877148fd70ecb9466c9b6959c47fa3e0f911fd",
+      "36b5545dec6c049fee685909de2cac1c23b65759",
+      "88c74d9ae57c6a1091861190b50b506a98be69c9",
+      "e0315dd84de56ed35f8ef488c57786df5189b6ae",
+      "5d2c4e5e7c4ce395b3da6030b4785885e18d6cc1",
+      "205b69e5bcfe1656df8afaec3fa92cb1fd33e591",
+      "b9a100d017985bd1d0721fa55c8d096e839d0ee0",
+      "c07cef482a89fc291b27c71f2dfa50fab27f3f60",
+      "2f7b253902ccee7407c02166ea5b62bf9fb240a9",
+      "c9211535bc14e8def2f4f43310b6de2c3049e869",
+      "f5cceba601e6d41bf0c04a810e1d11ca0f991bf9",
+      "dfd9c4b9ea09c88679a1e71031752435a6a94bc9",
+      "f21c94468511dbc7ba567cd411c7cf58a1b42929"
     ],
     "topologyLag": [
       "484e3782963cae4095bfcd71add5e168fb51d5e3",
@@ -2434,7 +2449,22 @@
       "c56d5a5c7be9feb86950475f74bcee70c1f3f165",
       "90be80a176f6b4523d0edcf7a7a333524e80902d",
       "af9d577a9a2d5117242018ccb6243e0692287f1e",
-      "1ac27857a55cbe57ce214dbcc1c5edcf3dec75ac"
+      "1ac27857a55cbe57ce214dbcc1c5edcf3dec75ac",
+      "a87e05d3d4a38c5a82cf6bcc8b9b4fae58578a23",
+      "26ccb40d390eb7d9b04673629a58ab1d69cc7e53",
+      "83877148fd70ecb9466c9b6959c47fa3e0f911fd",
+      "36b5545dec6c049fee685909de2cac1c23b65759",
+      "88c74d9ae57c6a1091861190b50b506a98be69c9",
+      "e0315dd84de56ed35f8ef488c57786df5189b6ae",
+      "5d2c4e5e7c4ce395b3da6030b4785885e18d6cc1",
+      "205b69e5bcfe1656df8afaec3fa92cb1fd33e591",
+      "b9a100d017985bd1d0721fa55c8d096e839d0ee0",
+      "c07cef482a89fc291b27c71f2dfa50fab27f3f60",
+      "2f7b253902ccee7407c02166ea5b62bf9fb240a9",
+      "c9211535bc14e8def2f4f43310b6de2c3049e869",
+      "f5cceba601e6d41bf0c04a810e1d11ca0f991bf9",
+      "dfd9c4b9ea09c88679a1e71031752435a6a94bc9",
+      "f21c94468511dbc7ba567cd411c7cf58a1b42929"
     ],
     "deliveryIds": [
       "D001",
@@ -12665,18 +12695,8 @@
         "status": "verified",
         "disposition": "ported-semantic",
         "seriesId": "export-overwrite-18448",
-        "localCommits": [
-          "d667f4f39facf50edd910c71eb109150d4a00c08"
-        ],
-        "mappingEvidence": [
-          {
-            "localCommit": "d667f4f39facf50edd910c71eb109150d4a00c08",
-            "declaredDisposition": "semantic-port",
-            "series": "siyuan-dev-28e38647fb02/export-overwrite-18448",
-            "audit": "docs/upstream-sync/siyuan-dev-28e38647fb02/commits.jsonl",
-            "patchId": null
-          }
-        ],
+        "localCommits": [],
+        "mappingEvidence": [],
         "codeEvidence": [
           "kernel/api/export.go",
           "kernel/api/export_test.go",
@@ -13063,18 +13083,8 @@
         "status": "verified",
         "disposition": "ported-exact",
         "seriesId": "table-resize-action-guard",
-        "localCommits": [
-          "7ae1dacf29444d9f76ce96045f1e48df07b3fab9"
-        ],
-        "mappingEvidence": [
-          {
-            "localCommit": "7ae1dacf29444d9f76ce96045f1e48df07b3fab9",
-            "declaredDisposition": "exact-port",
-            "series": "siyuan-dev-28e38647fb02/table-resize-action-guard",
-            "audit": "docs/upstream-sync/siyuan-dev-28e38647fb02/commits.jsonl",
-            "patchId": "22fa20f18ab52f5977e07723d25bde6e74564f09"
-          }
-        ],
+        "localCommits": [],
+        "mappingEvidence": [],
         "codeEvidence": [
           "app/src/boot/globalEvent/mousemove.ts"
         ],
@@ -13239,18 +13249,8 @@
         "status": "verified",
         "disposition": "ported-semantic",
         "seriesId": "export-overwrite-18448",
-        "localCommits": [
-          "d667f4f39facf50edd910c71eb109150d4a00c08"
-        ],
-        "mappingEvidence": [
-          {
-            "localCommit": "d667f4f39facf50edd910c71eb109150d4a00c08",
-            "declaredDisposition": "semantic-port",
-            "series": "siyuan-dev-28e38647fb02/export-overwrite-18448",
-            "audit": "docs/upstream-sync/siyuan-dev-28e38647fb02/commits.jsonl",
-            "patchId": null
-          }
-        ],
+        "localCommits": [],
+        "mappingEvidence": [],
         "codeEvidence": [
           "app/src/protyle/util/compatibility.ts"
         ],
@@ -23652,6 +23652,276 @@
       "topoIndex": 1153,
       "sha": "1ac27857a55cbe57ce214dbcc1c5edcf3dec75ac",
       "subject": ":bug: Dismiss text selection toolbar after hiding mobile keyboard",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1154,
+      "sha": "a87e05d3d4a38c5a82cf6bcc8b9b4fae58578a23",
+      "subject": ":bug: Preserve cross-notebook related docs in .sy.zip exports https://github.com/siyuan-note/siyuan/issues/18607",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1155,
+      "sha": "26ccb40d390eb7d9b04673629a58ab1d69cc7e53",
+      "subject": ":lock: Verify marketplace package name consistency before install https://github.com/siyuan-note/siyuan/security/advisories/GHSA-rpx2-p6hp-x5gj",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1156,
+      "sha": "83877148fd70ecb9466c9b6959c47fa3e0f911fd",
+      "subject": ":lock: Restrict template removal to the templates directory https://github.com/siyuan-note/siyuan/security/advisories/GHSA-w938-w7m4-qrj8",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1157,
+      "sha": "36b5545dec6c049fee685909de2cac1c23b65759",
+      "subject": ":sparkles: Support full-width tildes as a strikethrough input shortcut https://github.com/siyuan-note/siyuan/issues/18600",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1158,
+      "sha": "88c74d9ae57c6a1091861190b50b506a98be69c9",
+      "subject": ":lock: Use IsSubPath to validate content template paths https://github.com/siyuan-note/siyuan/security/advisories/GHSA-w938-w7m4-qrj8",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1159,
+      "sha": "e0315dd84de56ed35f8ef488c57786df5189b6ae",
+      "subject": ":bug: Remove search highlights from block reference names",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1160,
+      "sha": "5d2c4e5e7c4ce395b3da6030b4785885e18d6cc1",
+      "subject": ":bug: Hide unnecessary vertical scrollbars in single-row tables",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1161,
+      "sha": "205b69e5bcfe1656df8afaec3fa92cb1fd33e591",
+      "subject": ":art: Preserve mobile menu height across submenus https://github.com/siyuan-note/siyuan/issues/14648",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1162,
+      "sha": "b9a100d017985bd1d0721fa55c8d096e839d0ee0",
+      "subject": ":bug: Preserve whitespace around inline elements in table cells https://github.com/88250/lute/issues/231",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1163,
+      "sha": "c07cef482a89fc291b27c71f2dfa50fab27f3f60",
+      "subject": ":arrow_up: Upgrade kernel deps",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1164,
+      "sha": "2f7b253902ccee7407c02166ea5b62bf9fb240a9",
+      "subject": ":bug: Apply full-width strikethrough setting at runtime https://github.com/siyuan-note/siyuan/issues/18600",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1165,
+      "sha": "c9211535bc14e8def2f4f43310b6de2c3049e869",
+      "subject": ":bug: Keep the mobile keyboard open after backspace",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1166,
+      "sha": "f5cceba601e6d41bf0c04a810e1d11ca0f991bf9",
+      "subject": ":arrow_up: Upgrade kernel deps",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1167,
+      "sha": "dfd9c4b9ea09c88679a1e71031752435a6a94bc9",
+      "subject": ":art: Update SiYuan slogan for agent collaboration",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1168,
+      "sha": "f21c94468511dbc7ba567cd411c7cf58a1b42929",
+      "subject": ":art: Simplify the local marketplace package button https://github.com/siyuan-note/siyuan/issues/17940",
       "state": "audit-pending",
       "nextAction": "audit-upstream-behavior",
       "audit": {
