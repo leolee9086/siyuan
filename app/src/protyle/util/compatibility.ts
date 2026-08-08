@@ -3,7 +3,9 @@ import {fetchSyncPost} from "../../util/network/fetch";
 import {Constants} from "../../constants";
 import {isBrowser, isElectron} from "../../platform";
 import {ipcInvoke, ipcSendSync} from "../../platform/electron/ipcRenderer";
+import type {SaveDialogReturnValue} from "electron";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {getSiyuanConfig} from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import {hideMessage, showMessage} from "../runtime/dialog.port";
 import {isMac} from "../../util/platform/hotkey/format";
 import {isNotCtrl} from "../../util/platform/hotkey/format";
@@ -62,19 +64,22 @@ export const getTextSiyuanFromTextHTML = (html: string) => {
     let textSiyuan = "";
     let textHtml = html;
     if (siyuanMatch) {
-        try {
-            if (typeof Buffer !== "undefined") {
-                const decodedBytes = Buffer.from(siyuanMatch[1], "base64");
-                textSiyuan = decodedBytes.toString("utf8");
-            } else {
-                const decoder = new TextDecoder();
-                const bytes = Uint8Array.from(atob(siyuanMatch[1]), char => char.charCodeAt(0));
-                textSiyuan = decoder.decode(bytes);
+        const encoded = siyuanMatch[1];
+        if (encoded) {
+            try {
+                if (typeof Buffer !== "undefined") {
+                    const decodedBytes = Buffer.from(encoded, "base64");
+                    textSiyuan = decodedBytes.toString("utf8");
+                } else {
+                    const decoder = new TextDecoder();
+                    const bytes = Uint8Array.from(atob(encoded), char => char.charCodeAt(0));
+                    textSiyuan = decoder.decode(bytes);
+                }
+                // 移除注释节点，保持原有的 text/html 内容
+                textHtml = html.replace(/<!--data-siyuan='[^']+'-->/g, "");
+            } catch (e) {
+                console.log("Failed to decode siyuan data from HTML comment:", e);
             }
-            // 移除注释节点，保持原有的 text/html 内容
-            textHtml = html.replace(/<!--data-siyuan='[^']+'-->/g, "");
-        } catch (e) {
-            console.log("Failed to decode siyuan data from HTML comment:", e);
         }
     }
     return {
@@ -88,6 +93,7 @@ export const saveExportFile = async (uri: string, msgId?: string) => {
         return;
     }
     if (isElectron) {
+        let saveErrorMsgId: string | undefined;
         try {
             const resolved = new URL(uri, `${location.origin}/`);
             const pathSeg = resolved.pathname.substring(resolved.pathname.lastIndexOf("/") + 1);
@@ -100,30 +106,46 @@ export const saveExportFile = async (uri: string, msgId?: string) => {
             if (!fileName) {
                 fileName = "download";
             }
-            const result = await ipcInvoke(Constants.SIYUAN_GET, {
-                cmd: "showSaveDialog",
-                defaultPath: fileName,
-                properties: ["showOverwriteConfirmation"],
-            });
-            if (result?.canceled || !result?.filePath) {
-                if (msgId) {
-                    hideMessage(msgId);
+            let defaultPath = fileName;
+            while (true) {
+                const result = await ipcInvoke<SaveDialogReturnValue>(Constants.SIYUAN_GET, {
+                    cmd: "showSaveDialog",
+                    defaultPath,
+                    properties: ["showOverwriteConfirmation"],
+                });
+                if (result?.canceled || !result?.filePath) {
+                    if (msgId) {
+                        hideMessage(msgId);
+                    }
+                    if (saveErrorMsgId) {
+                        hideMessage(saveErrorMsgId);
+                    }
+                    return;
                 }
-                return;
-            }
-            const copyResponse = await (await fetch("/api/export/copyExportFile", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({
-                    srcPath: resolved.pathname,
-                    dest: result.filePath,
-                }),
-            })).json();
-            if (copyResponse.code !== 0) {
-                throw new Error(copyResponse.msg);
+                const copyResponse = await (await fetch("/api/export/copyExportFile", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        srcPath: resolved.pathname,
+                        dest: result.filePath,
+                    }),
+                })).json();
+                if (copyResponse.code === 0) {
+                    break;
+                }
+                console.error("saveExportFile failed:", new Error(copyResponse.msg));
+                if (saveErrorMsgId) {
+                    showMessage(siyuanI18n.exportFileSaveFailed, 0, "error", saveErrorMsgId);
+                } else {
+                    saveErrorMsgId = showMessage(siyuanI18n.exportFileSaveFailed, 0, "error");
+                }
+                defaultPath = result.filePath;
             }
             if (msgId) {
                 hideMessage(msgId);
+            }
+            if (saveErrorMsgId) {
+                hideMessage(saveErrorMsgId);
             }
             showMessage(siyuanI18n.exported);
             return;
@@ -131,7 +153,12 @@ export const saveExportFile = async (uri: string, msgId?: string) => {
             if (msgId) {
                 hideMessage(msgId);
             }
-            showMessage("saveExportFile failed: " + e);
+            console.error("saveExportFile failed:", e);
+            if (saveErrorMsgId) {
+                showMessage(siyuanI18n.exportFileSaveFailed, 0, "error", saveErrorMsgId);
+            } else {
+                showMessage(siyuanI18n.exportFileSaveFailed, 0, "error");
+            }
             return;
         }
     }
@@ -199,16 +226,19 @@ export const getLocalFiles = async (): Promise<ILocalFiles[]> => {
     }
     // 不再支持 PC 浏览器 https://github.com/siyuan-note/siyuan/issues/7206
     let localFiles: ILocalFiles[] = [];
-    if ("darwin" === window.siyuan.config.system.os) {
+    if ("darwin" === getSiyuanConfig().system.os) {
         const xmlString = await ipcSendSync(Constants.SIYUAN_GET, {
             cmd: "clipboardRead",
             format: "NSFilenamesPboardType",
         });
-        if (xmlString) {
+        if (typeof xmlString === "string" && xmlString) {
             const domParser = new DOMParser();
             const xmlDom = domParser.parseFromString(xmlString, "application/xml");
             Array.from(xmlDom.getElementsByTagName("string")).forEach(item => {
-                localFiles.push({path: item.childNodes[0].nodeValue, size: null});
+                const path = item.childNodes[0]?.nodeValue;
+                if (path) {
+                    localFiles.push({path, size: 0});
+                }
             });
         }
     } else {
@@ -412,11 +442,11 @@ export const copyPlainText = (text: string) => {
 };
 
 export const isHuawei = () => {
-    return window.siyuan.config.system.osPlatform.toLowerCase().indexOf("huawei") > -1;
+    return getSiyuanConfig().system.osPlatform.toLowerCase().indexOf("huawei") > -1;
 };
 
 export const isDisabledFeature = (feature: string): boolean => {
-    return window.siyuan.config.system.disabledFeatures?.indexOf(feature) > -1;
+    return getSiyuanConfig().system.disabledFeatures?.indexOf(feature) > -1;
 };
 
 export const isSafari = () => {
@@ -451,11 +481,11 @@ export const isWindows = () => {
 };
 
 export const isInAndroid = () => {
-    return window.siyuan.config.system.container === "android" && window.JSAndroid;
+    return getSiyuanConfig().system.container === "android" && window.JSAndroid;
 };
 
 export const isInIOS = () => {
-    return window.siyuan.config.system.container === "ios" && window.webkit?.messageHandlers;
+    return getSiyuanConfig().system.container === "ios" && window.webkit?.messageHandlers;
 };
 
 export const isInMobileApp = () => {
@@ -466,7 +496,7 @@ export const isInMobileApp = () => {
 };
 
 export const isInHarmony = () => {
-    return window.siyuan.config.system.container === "harmony" && window.JSHarmony;
+    return getSiyuanConfig().system.container === "harmony" && window.JSHarmony;
 };
 
 export const isInEdge = () => {
@@ -521,7 +551,7 @@ export const initNativeDialogOverride = () => {
         }
     };
 
-    window.confirm = function (message: string): boolean {
+    window.confirm = function (message?: string): boolean {
         try {
             const buttonIndex = ipcSendSync(Constants.SIYUAN_CONFIRM_DIALOG, {
                 title: window.siyuan?.languages?.siyuanNote || "SiYuan",

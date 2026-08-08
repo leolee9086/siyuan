@@ -1,4 +1,5 @@
 {
+    "exportFileSaveFailed": "Kan het bestand niet opslaan; controleer of het niet door een ander programma wordt gebruikt en of de doellocatie beschrijfbaar is",
     "openNewAgentInTab": "Maken in nieuwe tab",
     "agentQueuePending": "In behandeling",
     "agentQueueInjecting": "Wordt verzonden",
