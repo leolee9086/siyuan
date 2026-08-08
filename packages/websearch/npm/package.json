@@ -1,0 +1,25 @@
+{
+  "name": "@leolee9086/websearch-mcp",
+  "version": "1.0.0",
+  "description": "Standalone MCP server exposing the s-forge websearch package: 100+ engine meta search, aggregation, dedup, and engine diagnostics. stdio + streamable HTTP.",
+  "license": "AGPL-3.0-or-later",
+  "bin": {
+    "websearch-mcp": "bin/websearch-mcp.js"
+  },
+  "files": [
+    "bin"
+  ],
+  "scripts": {
+    "postinstall": "node bin/websearch-mcp.js --install"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "websearch",
+    "meta-search",
+    "sforge"
+  ]
+}
