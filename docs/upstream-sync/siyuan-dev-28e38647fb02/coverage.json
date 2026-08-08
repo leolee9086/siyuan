@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "sourceHead": "4f9188c92464fc28d2a2616e7973c3a98172e532",
+  "sourceHead": "a998ed3b66fa431a63e62dbd643133e606c0a92e",
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
   "upstreamTip": "f21c94468511dbc7ba567cd411c7cf58a1b42929",
   "semanticVerified": {
@@ -27,14 +27,15 @@
     ]
   },
   "deliveryIntegrated": {
-    "count": 15,
+    "count": 18,
     "deliveryIds": [
       "D001",
       "D002R",
       "D002",
       "D003",
       "D004",
-      "D005"
+      "D005",
+      "D006"
     ],
     "shas": [
       "484e3782963cae4095bfcd71add5e168fb51d5e3",
@@ -50,6 +51,9 @@
       "c61e68fbc8ad9868f3e6e9d7b6d94cc498fbefc7",
       "ace0528d1a801f42be4a1bad99c99ed67288c6e1",
       "2b3da2fca489c72d36a0efba060ef2fe0219c889",
+      "66c7c6e872f6c48a9b116afa91c765880d73b9b6",
+      "7356d2994b2209b8113eded4bce59df4f5b3de54",
+      "917e52cccc7c333adcdcb263593de2a99e63cbde",
       "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8"
     ]
@@ -2396,10 +2400,10 @@
     "total": 1168,
     "stateCounts": {
       "topology-integrated": 2,
-      "delivery-integrated": 13,
+      "delivery-integrated": 16,
       "delivery-git-integrated": 0,
       "delivery-in-progress": 0,
-      "semantic-verified": 3,
+      "semantic-verified": 0,
       "audit-in-progress": 0,
       "audit-blocked": 0,
       "audit-pending": 1150

@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "sourceHead": "4f9188c92464fc28d2a2616e7973c3a98172e532",
+  "sourceHead": "a998ed3b66fa431a63e62dbd643133e606c0a92e",
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
   "upstreamTip": "f21c94468511dbc7ba567cd411c7cf58a1b42929",
   "summary": {
     "total": 1168,
     "stateCounts": {
       "topology-integrated": 2,
-      "delivery-integrated": 13,
+      "delivery-integrated": 16,
       "delivery-git-integrated": 0,
       "delivery-in-progress": 0,
-      "semantic-verified": 3,
+      "semantic-verified": 0,
       "audit-in-progress": 0,
       "audit-blocked": 0,
       "audit-pending": 1150
@@ -139,6 +139,9 @@
       "c61e68fbc8ad9868f3e6e9d7b6d94cc498fbefc7",
       "ace0528d1a801f42be4a1bad99c99ed67288c6e1",
       "2b3da2fca489c72d36a0efba060ef2fe0219c889",
+      "66c7c6e872f6c48a9b116afa91c765880d73b9b6",
+      "7356d2994b2209b8113eded4bce59df4f5b3de54",
+      "917e52cccc7c333adcdcb263593de2a99e63cbde",
       "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8"
     ],
@@ -2472,7 +2475,8 @@
       "D002",
       "D003",
       "D004",
-      "D005"
+      "D005",
+      "D006"
     ],
     "checkpointIds": [
       "M001",
@@ -12689,14 +12693,24 @@
       "topoIndex": 545,
       "sha": "66c7c6e872f6c48a9b116afa91c765880d73b9b6",
       "subject": ":art: Improve export file overwrite handling https://github.com/siyuan-note/siyuan/issues/18448",
-      "state": "semantic-verified",
-      "nextAction": "create-rolling-delivery",
+      "state": "delivery-integrated",
+      "nextAction": "create-topology-checkpoint",
       "audit": {
         "status": "verified",
         "disposition": "ported-semantic",
         "seriesId": "export-overwrite-18448",
-        "localCommits": [],
-        "mappingEvidence": [],
+        "localCommits": [
+          "d667f4f39facf50edd910c71eb109150d4a00c08"
+        ],
+        "mappingEvidence": [
+          {
+            "localCommit": "d667f4f39facf50edd910c71eb109150d4a00c08",
+            "declaredDisposition": "semantic-port",
+            "series": "siyuan-dev-28e38647fb02/export-overwrite-18448",
+            "audit": "docs/upstream-sync/siyuan-dev-28e38647fb02/commits.jsonl",
+            "patchId": null
+          }
+        ],
         "codeEvidence": [
           "kernel/api/export.go",
           "kernel/api/export_test.go",
@@ -12710,7 +12724,14 @@
           "python scripts/check-lang-keys.py: 21 language files complete, 0 unexpected keys"
         ]
       },
-      "deliveries": [],
+      "deliveries": [
+        {
+          "deliveryId": "D006",
+          "status": "integrated",
+          "integrationCommit": "2ca37f47c57e4b94d7be83e8f2282623c7ce5bda",
+          "runtimeGateStatus": "passed"
+        }
+      ],
       "topologyCheckpoints": []
     },
     {
@@ -13077,14 +13098,24 @@
       "topoIndex": 566,
       "sha": "7356d2994b2209b8113eded4bce59df4f5b3de54",
       "subject": ":art: https://github.com/siyuan-note/siyuan/issues/17797",
-      "state": "semantic-verified",
-      "nextAction": "create-rolling-delivery",
+      "state": "delivery-integrated",
+      "nextAction": "create-topology-checkpoint",
       "audit": {
         "status": "verified",
         "disposition": "ported-exact",
         "seriesId": "table-resize-action-guard",
-        "localCommits": [],
-        "mappingEvidence": [],
+        "localCommits": [
+          "7ae1dacf29444d9f76ce96045f1e48df07b3fab9"
+        ],
+        "mappingEvidence": [
+          {
+            "localCommit": "7ae1dacf29444d9f76ce96045f1e48df07b3fab9",
+            "declaredDisposition": "exact-port",
+            "series": "siyuan-dev-28e38647fb02/table-resize-action-guard",
+            "audit": "docs/upstream-sync/siyuan-dev-28e38647fb02/commits.jsonl",
+            "patchId": "22fa20f18ab52f5977e07723d25bde6e74564f09"
+          }
+        ],
         "codeEvidence": [
           "app/src/boot/globalEvent/mousemove.ts"
         ],
@@ -13092,7 +13123,14 @@
           "ESLint on the affected file reports only the pre-existing max-lines-per-function error (215->216 lines), no new diagnostic; stable patch ID matches upstream."
         ]
       },
-      "deliveries": [],
+      "deliveries": [
+        {
+          "deliveryId": "D006",
+          "status": "integrated",
+          "integrationCommit": "2ca37f47c57e4b94d7be83e8f2282623c7ce5bda",
+          "runtimeGateStatus": "passed"
+        }
+      ],
       "topologyCheckpoints": []
     },
     {
@@ -13243,14 +13281,24 @@
       "topoIndex": 575,
       "sha": "917e52cccc7c333adcdcb263593de2a99e63cbde",
       "subject": ":art: Improve export destination reselection https://github.com/siyuan-note/siyuan/issues/18448",
-      "state": "semantic-verified",
-      "nextAction": "create-rolling-delivery",
+      "state": "delivery-integrated",
+      "nextAction": "create-topology-checkpoint",
       "audit": {
         "status": "verified",
         "disposition": "ported-semantic",
         "seriesId": "export-overwrite-18448",
-        "localCommits": [],
-        "mappingEvidence": [],
+        "localCommits": [
+          "d667f4f39facf50edd910c71eb109150d4a00c08"
+        ],
+        "mappingEvidence": [
+          {
+            "localCommit": "d667f4f39facf50edd910c71eb109150d4a00c08",
+            "declaredDisposition": "semantic-port",
+            "series": "siyuan-dev-28e38647fb02/export-overwrite-18448",
+            "audit": "docs/upstream-sync/siyuan-dev-28e38647fb02/commits.jsonl",
+            "patchId": null
+          }
+        ],
         "codeEvidence": [
           "app/src/protyle/util/compatibility.ts"
         ],
@@ -13259,7 +13307,14 @@
           "ESLint on compatibility.ts: no new diagnostics (file-level max-lines and pre-existing max-lines-per-function remain unchanged)"
         ]
       },
-      "deliveries": [],
+      "deliveries": [
+        {
+          "deliveryId": "D006",
+          "status": "integrated",
+          "integrationCommit": "2ca37f47c57e4b94d7be83e8f2282623c7ce5bda",
+          "runtimeGateStatus": "passed"
+        }
+      ],
       "topologyCheckpoints": []
     },
     {
