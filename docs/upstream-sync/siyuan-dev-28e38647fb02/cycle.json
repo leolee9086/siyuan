@@ -6,9 +6,9 @@
   "upstreamBranch": "dev",
   "localBase": "7845c47e3620a7cd411648e36fd508c43ea757f7",
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
-  "upstreamTip": "401d2928cab86a9d52ed1545610b183e78f7652a",
-  "candidateBranch": "sync/upstream-dev-484e378-backlinks-bottom",
-  "candidateHead": "e957ed332a209e9ef5570b002a473f471d90896b",
+  "upstreamTip": "1ac27857a55cbe57ce214dbcc1c5edcf3dec75ac",
+  "candidateBranch": "sync/upstream-dev-G1-v3.7.4-alpha.4",
+  "candidateHead": "d667f4f39facf50edd910c71eb109150d4a00c08",
   "candidateCreatedAt": "2026-07-29T14:15:25+08:00",
   "mainRepository": "D:/dev/s-forge",
   "mainBranch": "multipleAI",
@@ -42,20 +42,20 @@
     "kramdownHashNormalization": "LF line endings and lexicographically sorted Kramdown IAL attributes",
     "mirrorSha256": "5fa6d3748c07e0e130b878459b6223fe43473e6758823fe9fd2f8ee20c8c8f06"
   },
-  "commitCount": 573,
-  "mergeCommitCount": 44,
+  "commitCount": 1153,
+  "mergeCommitCount": 71,
   "revertCommitCount": 0,
-  "stablePatchIdCount": 529,
-  "mappedUpstreamCommitCount": 15,
+  "stablePatchIdCount": 1082,
+  "mappedUpstreamCommitCount": 18,
   "auditGrouping": {
     "mode": "optional",
     "fixedSize": null,
     "note": "Grouping is an execution aid and never a completion boundary."
   },
-  "upstreamTipFetchedAt": "2026-07-31T01:38:51.8003650+08:00",
+  "upstreamTipFetchedAt": "2026-08-08T08:15:35+08:00",
   "upstreamTipRefresh": {
     "mode": "before-each-series-and-final-closure",
-    "latestCheckedAt": "2026-07-31T01:38:51.8003650+08:00",
+    "latestCheckedAt": "2026-08-08T08:15:35+08:00",
     "history": [
       {
         "from": "28e38647fb02ef126002633f33f9d3fcccb8c167",
@@ -133,6 +133,13 @@
         "fetchedAt": "2026-07-31T01:38:51.8003650+08:00",
         "addedCommitCount": 3,
         "addedMergeCommitCount": 0
+      },
+      {
+        "from": "401d2928cab86a9d52ed1545610b183e78f7652a",
+        "to": "1ac27857a55cbe57ce214dbcc1c5edcf3dec75ac",
+        "fetchedAt": "2026-08-08T08:15:35+08:00",
+        "addedCommitCount": 580,
+        "addedMergeCommitCount": 27
       }
     ]
   }
