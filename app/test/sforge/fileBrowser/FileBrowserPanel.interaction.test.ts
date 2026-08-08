@@ -19,6 +19,7 @@ const agent: FileBrowserRoot = {
     permission: "read-only", capabilities: {browse: true, write: false, command: false}, exists: true,
     sources: [{
         sessionID: "session-alpha", directoryID: "main", name: "task-alpha",
+        path: "D:\\tasks\\alpha",
         permission: "read-only", external: true, boundAt: 1,
     }],
 };

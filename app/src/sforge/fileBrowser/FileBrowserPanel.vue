@@ -32,7 +32,7 @@
                 @click="toggleSortDirection">
                 <svg><use :href="sortDirection === 'asc' ? '#iconUp' : '#iconDown'" /></svg>
             </button>
-            <span class="sforge-file-browser__root-count">{{ roots.length }} 个文件根</span>
+            <span class="sforge-file-browser__root-count">{{ rootSummary }}</span>
         </div>
 
         <main class="sforge-file-browser__content">
@@ -103,6 +103,17 @@ const {
 } = browser;
 
 const selectedKeySet = computed<ReadonlySet<string>>(() => new Set(selectedKeys.value));
+
+const rootSummary = computed(() => {
+    const displayCount = roots.value.length;
+    const boundCount = roots.value.reduce((total, root) => {
+        const directBindings = root.kind === "workspace" ? 0 : (root.sources?.length ?? 0);
+        return total + 1 + directBindings + (root.mounts?.length ?? 0);
+    }, 0);
+    return boundCount === displayCount
+        ? `${displayCount} 个文件根`
+        : `${displayCount} 个展示根 · ${boundCount} 个绑定位置`;
+});
 
 const selectedNodeAbsolutePath = computed(() => {
     const node = selectedNode.value;

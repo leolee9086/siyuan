@@ -77,6 +77,11 @@ const { scrollTop, isScrolling, scrollDirection, ignoreScrollEventsFor } = useSc
     scrollContainer,
     onScroll: (currentScrollTop, direction) => {
         syncStickToBottomState();
+        const container = scrollContainer.value;
+        if (container && container.scrollTop + container.clientHeight >=
+            container.scrollHeight - Math.max(320, containerHeight.value * 1.5)) {
+            emit("load-more");
+        }
         // 将滚动事件抛出给父组件
         emit("scroll", currentScrollTop, direction);
     },

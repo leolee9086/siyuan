@@ -3,7 +3,7 @@
         draggable="true" @dragstart.stop="handleDragStart" @dblclick.stop="emit('open', asset)">
         <AssetCard :item="cardItem" :is-selected="selected" @select="emit('select', asset)" />
         <div class="sforge-file-gallery-card__meta">
-            <span class="sforge-file-gallery-card__path" :title="asset.path">{{ assetName }}</span>
+            <span v-if="showPath" class="sforge-file-gallery-card__path" :title="asset.path">{{ assetName }}</span>
             <dl v-if="displayAttributes.length > 0" class="sforge-file-gallery-card__attributes">
                 <template v-for="attribute in displayAttributes" :key="attribute">
                     <dt>{{ getFileBrowserGalleryAttributeLabel(attribute) }}</dt>
@@ -42,6 +42,7 @@ const props = defineProps<{
     asset: FileBrowserAssetResult;
     thumbnailUrl: string;
     selected?: boolean;
+    showPath?: boolean;
     displayAttributes?: readonly FileBrowserGalleryAttribute[];
 }>();
 
@@ -52,6 +53,7 @@ const emit = defineEmits<{
 
 const assetName = computed(() => props.asset.name || props.asset.path.split("/").at(-1) || props.asset.path);
 const displayAttributes = computed(() => props.displayAttributes ?? FILE_BROWSER_GALLERY_DEFAULT_ATTRIBUTES);
+const showPath = computed(() => props.showPath !== false);
 const cardItem = computed<AssetItem>(() => ({
     hName: assetName.value,
     path: props.asset.path,

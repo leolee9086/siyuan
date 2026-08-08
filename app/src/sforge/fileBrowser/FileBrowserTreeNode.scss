@@ -96,6 +96,14 @@
     font-size: 10px;
 }
 
+.sforge-file-tree__mounts {
+    overflow: hidden;
+    color: var(--b3-theme-primary);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .sforge-file-tree__permission {
     flex: none;
     padding: 1px 4px;

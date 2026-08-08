@@ -29,6 +29,10 @@
             <span class="b3-list-item__text sforge-file-tree__copy">
                 <span class="sforge-file-tree__name">{{ node.name }}</span>
                 <span v-if="node.kind === 'root'" class="sforge-file-tree__path">{{ node.root?.path }}</span>
+                <span v-if="node.kind === 'root' && (node.root?.mounts?.length || node.root?.sources?.length)"
+                    class="sforge-file-tree__mounts">
+                    {{ formatFileBrowserSources(node.root) }}
+                </span>
             </span>
             <span v-if="node.kind === 'root'" class="sforge-file-tree__permission">
                 {{ formatFileBrowserPermission(node.root?.permission ?? 'read-only') }}
@@ -84,7 +88,7 @@
 /** 用途：Vue 派生状态；使用范围：单个递归节点表现。 */
 import {computed} from "vue";
 /** 用途：权限显示；使用范围：常驻根节点。 */
-import {formatFileBrowserPermission, formatFileBrowserUpdated} from "./FileBrowser.presentation";
+import {formatFileBrowserPermission, formatFileBrowserSources, formatFileBrowserUpdated} from "./FileBrowser.presentation";
 /** 用途：节点容器守卫；使用范围：折叠和 ARIA 状态。 */
 import {isFileBrowserContainer} from "./FileBrowser.tree";
 /** 用途：递归树节点类型；使用范围：组件参数和事件。 */
@@ -152,7 +156,12 @@ const nodeIcon = computed(() => {
 });
 const nodeTitle = computed(() => {
     if (props.node.kind === "root") {
-        return props.node.root?.path ?? props.node.name;
+        const root = props.node.root;
+        if (!root) {
+            return props.node.name;
+        }
+        const mounts = root.mounts?.map(mount => `${mount.label}: ${mount.path}`).join("\n") ?? "";
+        return mounts ? `${root.path}\n\n已归并绑定:\n${mounts}` : root.path;
     }
     const updated = formatFileBrowserUpdated(props.node.entry?.updated ?? 0);
     return updated ? `${props.node.path}\n${updated}` : props.node.path;

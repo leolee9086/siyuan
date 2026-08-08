@@ -45,7 +45,14 @@ export async function loadFileBrowserRoots(context: FileBrowserTreeContext) {
         }
         state.roots.value = roots;
         state.rootNodes.value = reconcileFileBrowserRoots(state.rootNodes.value, roots);
-        context.selection.retainRoots(new Set(roots.map(root => root.id)));
+        const retainedRootIDs = new Set<string>();
+        for (const root of roots) {
+            retainedRootIDs.add(root.id);
+            for (const mount of root.mounts ?? []) {
+                retainedRootIDs.add(mount.id);
+            }
+        }
+        context.selection.retainRoots(retainedRootIDs);
         const initialRoot = state.selectedKey.value ? undefined : selectInitialRoot(context);
         if (initialLoad && initialRoot?.root?.exists) {
             initialRoot.expanded = true;

@@ -69,6 +69,30 @@ describe("FileBrowserSearchPanel", () => {
         }));
     });
 
+    it("refreshes the query after changing only the extension filter", async () => {
+        const search = vi.fn();
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileBrowserSearchPanel, {
+            roots: [root], loading: false, error: "", initialRequest: {allRoots: true, orderBy: "updated"},
+            onSearch: search,
+        });
+        app.mount(host);
+
+        host.querySelector<HTMLButtonElement>("button[aria-label='扩展名筛选']")?.click();
+        await vi.waitFor(() => expect(host?.querySelector(".sforge-multi-select__option input")).toBeTruthy());
+        const pngOption = Array.from(host.querySelectorAll<HTMLElement>(".sforge-multi-select__option"))
+            .find(option => option.textContent?.includes(".png"))?.querySelector<HTMLInputElement>("input");
+        if (!pngOption) {
+            throw new Error("missing png extension option");
+        }
+        pngOption.click();
+
+        await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith({
+            allRoots: true, exts: [".png"], orderBy: "updated",
+        }), {timeout: 1200});
+    });
+
     it("keeps result rendering out of the tree search form", () => {
         host = document.createElement("div");
         document.body.append(host);

@@ -147,6 +147,9 @@ describe("FileBrowserGalleryTab", () => {
         await vi.waitFor(() => expect(host?.querySelector(".sforge-multi-select__option input")).toBeTruthy());
         host?.querySelector<HTMLInputElement>(".sforge-multi-select__option input")?.click();
         await vi.waitFor(() => expect(host?.querySelector(".sforge-multi-select__value")?.textContent).toContain(".bmp"));
+        await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith(expect.objectContaining({
+            rootIDs: ["workspace"], pathPrefix: "data/assets/icons", exts: [".bmp"], orderBy: "updated",
+        })), {timeout: 1200});
         host?.querySelector<HTMLButtonElement>(".sforge-file-gallery-scope__crumb")?.click();
         await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith(expect.objectContaining({
             rootIDs: ["workspace"], pathPrefix: "", orderBy: "updated",
@@ -210,6 +213,37 @@ describe("FileBrowserGalleryTab", () => {
         }));
         expect(host.querySelector<HTMLInputElement>("input[type='checkbox']")?.checked).toBe(true);
         expect(file.query).toEqual({allRoots: true, orderBy: "updated"});
+    });
+
+    it("reports loaded versus total and appends the next page at the scroll boundary", async () => {
+        vi.spyOn(fileBrowserRepository, "listRoots").mockResolvedValue([root]);
+        const secondAsset = {
+            ...result.assets[0], path: "data/assets/icons/second.png", name: "second.png",
+        };
+        const search = vi.spyOn(fileBrowserQueryRepository, "search")
+            .mockResolvedValueOnce({...result, totalCount: 2, assets: [result.assets[0]!]})
+            .mockResolvedValueOnce({...result, totalCount: 2, assets: [secondAsset]});
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileBrowserGalleryTab, {
+            app: {openAsset: vi.fn(), openTab: vi.fn(async () => undefined)},
+            file: {rootID: root.id, path: "", name: "全部资源", scope: "global"},
+        });
+        app.mount(host);
+
+        await vi.waitFor(() => expect(search).toHaveBeenCalledWith(expect.objectContaining({
+            allRoots: true, limit: 200, offset: 0,
+        })));
+        await vi.waitFor(() => expect(host?.textContent).toContain("已加载 1 / 2 个文件"));
+
+        const container = host.querySelector<HTMLElement>(".virtual-masonry-grid-container");
+        // 初次布局恢复会暂时屏蔽 80ms 的程序化 scroll；等待该窗口结束后再模拟用户滚动。
+        await new Promise(resolve => setTimeout(resolve, 120));
+        container?.dispatchEvent(new Event("scroll", {bubbles: true}));
+        await vi.waitFor(() => expect(search).toHaveBeenCalledWith(expect.objectContaining({
+            allRoots: true, limit: 200, offset: 200,
+        })));
+        await vi.waitFor(() => expect(host?.textContent).toContain("已加载 2 / 2 个文件"));
     });
 
     it("keeps a tag result source while leaving runtime extension filtering empty", async () => {

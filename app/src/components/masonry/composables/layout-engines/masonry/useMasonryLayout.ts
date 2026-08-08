@@ -54,6 +54,15 @@ export function useMasonryLayout({
     const layoutUpdateStamp = ref(Date.now());
     const totalHeight = ref(0);
 
+    // 高度变化会移动后续卡片；RBush 的边界也必须随布局一起重建，
+    // 否则滚动到新位置时仍会按旧坐标裁剪可见项。
+    const rebuildSpatialIndex = () => {
+        tree.clear();
+        if (allItems.value.length > 0) {
+            tree.load(allItems.value.map(item => new BushItem(item)));
+        }
+    };
+
     // 计算列数
     const columnCount = createColumnCountComputed({ containerWidth, columnWidth });
 
@@ -139,6 +148,7 @@ return;
         if (hasChanges) {
             allItems.value = updatedItems;
             columns = updatedColumns;
+            rebuildSpatialIndex();
             updateTotalHeight(); // 手动更新总高度
             layoutUpdateStamp.value = Date.now();
         }
@@ -223,4 +233,4 @@ return;
         findVisibleItems,
         layoutUpdateStamp,
     };
-} 
+}

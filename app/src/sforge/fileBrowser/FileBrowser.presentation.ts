@@ -45,10 +45,17 @@ export function formatFileBrowserPermission(permission: FileBrowserPermission) {
 /** 汇总同一真实目录的 Agent 会话来源数量。 */
 export function formatFileBrowserSources(root: FileBrowserRoot) {
     const count = root.sources?.length ?? 0;
+    const mounts = root.mounts?.length ?? 0;
+    const parts: string[] = [];
     if (root.kind === "workspace") {
-        return "工作空间";
+        parts.push("工作空间");
+    } else if (count > 0) {
+        parts.push(`${count} 个绑定来源`);
     }
-    return `${count} 个绑定来源`;
+    if (mounts > 0) {
+        parts.push(`${mounts} 个嵌套绑定`);
+    }
+    return parts.join(" · ") || "文件根";
 }
 
 /** 生成目录项的第二行信息。 */

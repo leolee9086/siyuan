@@ -87,4 +87,31 @@ describe("FileBrowserTree", () => {
         vi.advanceTimersByTime(1);
         expect(toggle).toHaveBeenCalledWith(docs);
     });
+
+    it("renders a merged parent root as one tree state while retaining mounted binding locations", () => {
+        const mergedRoot: FileBrowserRoot = {
+            ...rootDefinition,
+            mounts: [{
+                id: "root-agent-child", kind: "agent-task-directory", label: "task",
+                path: "D:\\workspace\\task", relativePath: "task", permission: "read-only",
+                capabilities: {browse: true, write: false, command: false}, exists: true,
+                sources: [{
+                    sessionID: "session-a", directoryID: "task", name: "task", path: "D:\\workspace\\task",
+                    permission: "read-only", external: true, boundAt: 1,
+                }],
+            }],
+        };
+        const root = createFileBrowserRootNode(mergedRoot);
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileBrowserTree, {
+            rootNodes: [root], selectedKeys: new Set<string>(), focusedKey: root.key, openingKey: "",
+        });
+        app.mount(host);
+
+        expect(host.querySelectorAll("[role='treeitem']")).toHaveLength(1);
+        expect(host.textContent).toContain("workspace");
+        expect(host.textContent).not.toContain("root-agent-child");
+        expect(host.querySelector("[role='treeitem']")?.getAttribute("title")).toContain("D:\\workspace\\task");
+    });
 });

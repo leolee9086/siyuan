@@ -19,9 +19,23 @@ export interface FileBrowserRootSource {
     sessionID: string;
     directoryID: string;
     name: string;
+    path: string;
     permission: FileBrowserPermission;
     external: boolean;
     boundAt: number;
+}
+
+/** 被父根吸收但仍保留独立地址和能力边界的绑定根。 */
+export interface FileBrowserRootMount {
+    id: string;
+    kind: FileBrowserRootKind;
+    label: string;
+    path: string;
+    relativePath: string;
+    permission: FileBrowserPermission;
+    capabilities: FileBrowserRootCapabilities;
+    sources?: FileBrowserRootSource[];
+    exists: boolean;
 }
 
 /** 由 Kernel 解析并授权的可浏览根。 */
@@ -33,6 +47,7 @@ export interface FileBrowserRoot {
     permission: FileBrowserPermission;
     capabilities: FileBrowserRootCapabilities;
     sources?: FileBrowserRootSource[];
+    mounts?: FileBrowserRootMount[];
     exists: boolean;
 }
 

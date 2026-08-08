@@ -7,6 +7,7 @@ import type {
     FileBrowserPermission,
     FileBrowserRoot,
     FileBrowserRootCapabilities,
+    FileBrowserRootMount,
     FileBrowserRootSource,
     FileBrowserTextPreview,
     FileBrowserPreviewKind,
@@ -40,9 +41,22 @@ const isRootSource = (value: unknown): value is FileBrowserRootSource =>
     typeof value.sessionID === "string" &&
     typeof value.directoryID === "string" &&
     typeof value.name === "string" &&
+    typeof value.path === "string" &&
     isPermission(value.permission) &&
     typeof value.external === "boolean" &&
     typeof value.boundAt === "number";
+
+const isRootMount = (value: unknown): value is FileBrowserRootMount =>
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    (value.kind === "workspace" || value.kind === "agent-task-directory") &&
+    typeof value.label === "string" &&
+    typeof value.path === "string" &&
+    typeof value.relativePath === "string" &&
+    isPermission(value.permission) &&
+    isRootCapabilities(value.capabilities) &&
+    (value.sources === undefined || (Array.isArray(value.sources) && value.sources.every(isRootSource))) &&
+    typeof value.exists === "boolean";
 
 /** @同步豁免: 类型守卫 */
 export const isFileBrowserRoot = (value: unknown): value is FileBrowserRoot => {
@@ -52,6 +66,9 @@ export const isFileBrowserRoot = (value: unknown): value is FileBrowserRoot => {
     const sourcesValid = value.sources === undefined || (
         Array.isArray(value.sources) && value.sources.every(isRootSource)
     );
+    const mountsValid = value.mounts === undefined || (
+        Array.isArray(value.mounts) && value.mounts.every(isRootMount)
+    );
     return (value.kind === "workspace" || value.kind === "agent-task-directory") &&
         typeof value.id === "string" &&
         typeof value.label === "string" &&
@@ -59,6 +76,7 @@ export const isFileBrowserRoot = (value: unknown): value is FileBrowserRoot => {
         isPermission(value.permission) &&
         isRootCapabilities(value.capabilities) &&
         sourcesValid &&
+        mountsValid &&
         typeof value.exists === "boolean";
 };
 
