@@ -122,6 +122,79 @@ func TestSearchEnumeratesWorkspaceAndBoundAgentRoots(t *testing.T) {
 	}
 }
 
+func TestSearchAllRootsDoesNotDuplicateParentAndChildBindings(t *testing.T) {
+	container := t.TempDir()
+	workspace := filepath.Join(container, "workspace")
+	child := filepath.Join(workspace, "task")
+	if err := os.MkdirAll(child, 0755); err != nil {
+		t.Fatal(err)
+	}
+	writeQueryFixture(t, workspace, "root.txt")
+	writeQueryFixture(t, child, "child.txt")
+	browser := filebrowser.NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) {
+		return map[string]*agent.TaskDirectoryBinding{
+			"session-a": {Directories: []*agent.TaskDirectoryGrant{{
+				ID: "child", Path: child, Name: "task", Permission: agent.TaskDirectoryPermissionReadOnly,
+			}}},
+		}, nil
+	})
+	service := NewService(browser, nil, browser)
+	result, err := service.Search(context.Background(), assetmeta.SearchRequest{AllRoots: true, Limit: 50})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.TotalCount != 2 || len(result.Assets) != 2 {
+		t.Fatalf("parent/child roots produced duplicate filesystem results: %+v", result)
+	}
+	seen := map[string]bool{}
+	for _, asset := range result.Assets {
+		key := asset.RootID + "\x00" + asset.Path
+		if seen[key] {
+			t.Fatalf("duplicate result address: %q", key)
+		}
+		seen[key] = true
+		if asset.RootID != "workspace" {
+			t.Fatalf("display search should use the canonical ancestor root: %+v", asset)
+		}
+	}
+	roots, err := browser.ListRoots()
+	if err != nil || len(roots) != 1 || len(roots[0].Mounts) != 1 {
+		t.Fatalf("unexpected merged root response: %+v err=%v", roots, err)
+	}
+	legacyChild, err := service.Search(context.Background(), assetmeta.SearchRequest{
+		RootIDs: []string{roots[0].Mounts[0].ID}, Limit: 50,
+	})
+	if err != nil || legacyChild.TotalCount != 1 || len(legacyChild.Assets) != 1 || legacyChild.Assets[0].Path != "child.txt" {
+		t.Fatalf("mounted child root alias did not retain its original scope: %+v err=%v", legacyChild, err)
+	}
+}
+
+func TestSearchDefaultsToWorkspaceMountWhenWorkspaceIsChildOfAgentRoot(t *testing.T) {
+	container := t.TempDir()
+	workspace := filepath.Join(container, "workspace")
+	if err := os.MkdirAll(workspace, 0755); err != nil {
+		t.Fatal(err)
+	}
+	writeQueryFixture(t, container, "agent.txt")
+	writeQueryFixture(t, workspace, "workspace.txt")
+	browser := filebrowser.NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) {
+		return map[string]*agent.TaskDirectoryBinding{
+			"session-a": {Directories: []*agent.TaskDirectoryGrant{{
+				ID: "parent", Path: container, Name: "parent", Permission: agent.TaskDirectoryPermissionReadOnly,
+			}}},
+		}, nil
+	})
+	service := NewService(browser, nil, browser)
+	workspaceOnly, err := service.Search(context.Background(), assetmeta.SearchRequest{Limit: 50})
+	if err != nil || workspaceOnly.TotalCount != 1 || len(workspaceOnly.Assets) != 1 || workspaceOnly.Assets[0].Path != "workspace.txt" {
+		t.Fatalf("default workspace scope did not resolve the mounted workspace alias: %+v err=%v", workspaceOnly, err)
+	}
+	all, err := service.Search(context.Background(), assetmeta.SearchRequest{AllRoots: true, Limit: 50})
+	if err != nil || all.TotalCount != 2 || len(all.Assets) != 2 {
+		t.Fatalf("all-root scan lost the Agent parent or workspace child: %+v err=%v", all, err)
+	}
+}
+
 func TestMetadataPredicatesRemainIndexOwnedWhenEnumerationIsAvailable(t *testing.T) {
 	workspace := t.TempDir()
 	writeQueryFixture(t, workspace, filepath.Join("data", "assets", "hero.png"))

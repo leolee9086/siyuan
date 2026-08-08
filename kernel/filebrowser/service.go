@@ -46,8 +46,10 @@ func NewService(workspacePath string, provider BindingProvider) *Service {
 	return &Service{workspacePath: filepath.Clean(workspacePath), bindings: provider}
 }
 
-// ListRoots returns the workspace root followed by all unique bound directories.
-// Missing bindings remain visible so users can repair or unbind them explicitly.
+// ListRoots returns the workspace root and all unique bound directories. Roots
+// with a physical ancestor are collapsed into that ancestor for presentation;
+// the absorbed roots remain addressable through Root.Mounts and their original
+// IDs. Missing bindings remain visible so users can repair or unbind them.
 func (s *Service) ListRoots() ([]Root, error) {
 	workspace, err := absoluteCleanPath(s.workspacePath)
 	if err != nil {
@@ -56,7 +58,6 @@ func (s *Service) ListRoots() ([]Root, error) {
 	workspaceResolved, workspaceExists := resolveDirectory(workspace)
 	workspaceKey := pathKey(workspaceResolved)
 	rootMap := map[string]*Root{}
-	rootPaths := map[string]string{}
 	workspaceRoot := &Root{
 		ID:           "workspace",
 		Kind:         RootKindWorkspace,
@@ -70,7 +71,6 @@ func (s *Service) ListRoots() ([]Root, error) {
 		workspaceRoot.Label = workspace
 	}
 	rootMap[workspaceKey] = workspaceRoot
-	rootPaths[workspaceKey] = workspaceResolved
 
 	bindings, err := s.bindings()
 	if err != nil {
@@ -104,10 +104,9 @@ func (s *Service) ListRoots() ([]Root, error) {
 					root.Label = filepath.Base(path)
 				}
 				rootMap[key] = root
-				rootPaths[key] = path
 			}
 			root.Sources = append(root.Sources, RootSource{
-				SessionID: sessionID, DirectoryID: grant.ID, Name: grant.Name,
+				SessionID: sessionID, DirectoryID: grant.ID, Name: grant.Name, Path: path,
 				Permission: string(grant.Permission), External: grant.External, BoundAt: grant.BoundAt,
 			})
 			root.Capabilities.Browse = true
@@ -120,18 +119,7 @@ func (s *Service) ListRoots() ([]Root, error) {
 		}
 	}
 
-	roots := make([]Root, 0, len(rootMap))
-	for key, root := range rootMap {
-		root.Path = rootPaths[key]
-		root.Permission = aggregatePermission(root)
-		sort.Slice(root.Sources, func(i, j int) bool {
-			if root.Sources[i].SessionID != root.Sources[j].SessionID {
-				return root.Sources[i].SessionID < root.Sources[j].SessionID
-			}
-			return root.Sources[i].DirectoryID < root.Sources[j].DirectoryID
-		})
-		roots = append(roots, *root)
-	}
+	roots := collapseRootHierarchy(rootMap)
 	sort.SliceStable(roots, func(i, j int) bool {
 		if roots[i].Kind != roots[j].Kind {
 			return roots[i].Kind == RootKindWorkspace
@@ -139,6 +127,105 @@ func (s *Service) ListRoots() ([]Root, error) {
 		return pathKey(roots[i].Path) < pathKey(roots[j].Path)
 	})
 	return roots, nil
+}
+
+// collapseRootHierarchy selects the smallest physical ancestors as displayed
+// roots and records every descendant as a mount. The original roots are not
+// discarded: rootByID resolves mount IDs back to their own path and capability.
+func collapseRootHierarchy(rootMap map[string]*Root) []Root {
+	all := make([]*Root, 0, len(rootMap))
+	for _, root := range rootMap {
+		root.Permission = aggregatePermission(root)
+		sortRootSources(root)
+		all = append(all, root)
+	}
+	top := make(map[string]bool, len(all))
+	for _, child := range all {
+		top[pathKey(child.Path)] = true
+		for _, parent := range all {
+			if parent == child || !isStrictRootAncestor(parent, child) {
+				continue
+			}
+			top[pathKey(child.Path)] = false
+			break
+		}
+	}
+	for _, child := range all {
+		if !top[pathKey(child.Path)] {
+			parent := displayedRootAncestor(child, all, top)
+			if parent != nil {
+				parent.Mounts = append(parent.Mounts, rootMount(*child, parent.Path))
+			}
+		}
+	}
+	result := make([]Root, 0, len(all))
+	for _, root := range all {
+		if !top[pathKey(root.Path)] {
+			continue
+		}
+		sortRootMounts(root)
+		result = append(result, *root)
+	}
+	return result
+}
+
+func sortRootSources(root *Root) {
+	sort.SliceStable(root.Sources, func(i, j int) bool {
+		if root.Sources[i].SessionID != root.Sources[j].SessionID {
+			return root.Sources[i].SessionID < root.Sources[j].SessionID
+		}
+		if root.Sources[i].DirectoryID != root.Sources[j].DirectoryID {
+			return root.Sources[i].DirectoryID < root.Sources[j].DirectoryID
+		}
+		return pathKey(root.Sources[i].Path) < pathKey(root.Sources[j].Path)
+	})
+}
+
+func sortRootMounts(root *Root) {
+	sort.SliceStable(root.Mounts, func(i, j int) bool {
+		left, right := root.Mounts[i], root.Mounts[j]
+		if pathKey(left.RelativePath) != pathKey(right.RelativePath) {
+			return pathKey(left.RelativePath) < pathKey(right.RelativePath)
+		}
+		return left.ID < right.ID
+	})
+}
+
+func isStrictRootAncestor(parent, child *Root) bool {
+	if pathKey(parent.Path) == pathKey(child.Path) {
+		return false
+	}
+	// Missing roots remain visible as repairable top-level bindings. A lexical
+	// relation is not enough to hide either side when its target is unavailable.
+	if !parent.Exists || !child.Exists {
+		return false
+	}
+	return sameOrWithin(parent.Path, child.Path)
+}
+
+func displayedRootAncestor(child *Root, roots []*Root, top map[string]bool) *Root {
+	var displayed *Root
+	for _, candidate := range roots {
+		if !top[pathKey(candidate.Path)] || !isStrictRootAncestor(candidate, child) {
+			continue
+		}
+		if displayed == nil || len(filepath.Clean(candidate.Path)) < len(filepath.Clean(displayed.Path)) {
+			displayed = candidate
+		}
+	}
+	return displayed
+}
+
+func rootMount(root Root, parentPath string) RootMount {
+	relative := ""
+	if rel, err := filepath.Rel(parentPath, root.Path); err == nil && rel != "." && !filepath.IsAbs(rel) {
+		relative = filepath.ToSlash(rel)
+	}
+	return RootMount{
+		ID: root.ID, Kind: root.Kind, Label: root.Label, Path: root.Path,
+		RelativePath: relative, Permission: root.Permission,
+		Capabilities: root.Capabilities, Sources: append([]RootSource(nil), root.Sources...), Exists: root.Exists,
+	}
 }
 
 func aggregatePermission(root *Root) string {
@@ -216,6 +303,11 @@ func (s *Service) rootByID(id string) (Root, error) {
 	for _, root := range roots {
 		if root.ID == id {
 			return root, nil
+		}
+		for _, mount := range root.Mounts {
+			if mount.ID == id {
+				return mount.AsRoot(), nil
+			}
 		}
 	}
 	return Root{}, ErrRootNotFound

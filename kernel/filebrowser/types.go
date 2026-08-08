@@ -1,5 +1,10 @@
 package filebrowser
 
+import (
+	"runtime"
+	"strings"
+)
+
 // RootKind identifies the owner of a browsable filesystem root.
 type RootKind string
 
@@ -20,9 +25,35 @@ type RootSource struct {
 	SessionID   string `json:"sessionID"`
 	DirectoryID string `json:"directoryID"`
 	Name        string `json:"name"`
+	Path        string `json:"path"`
 	Permission  string `json:"permission"`
 	External    bool   `json:"external"`
 	BoundAt     int64  `json:"boundAt"`
+}
+
+// RootMount describes a root hidden beneath a displayed ancestor root. The
+// original ID and path remain addressable, while the tree renders the physical
+// directory only once through its ancestor.
+type RootMount struct {
+	ID           string           `json:"id"`
+	Kind         RootKind         `json:"kind"`
+	Label        string           `json:"label"`
+	Path         string           `json:"path"`
+	RelativePath string           `json:"relativePath"`
+	Permission   string           `json:"permission"`
+	Capabilities RootCapabilities `json:"capabilities"`
+	Sources      []RootSource     `json:"sources,omitempty"`
+	Exists       bool             `json:"exists"`
+}
+
+// AsRoot restores the original root contract for a legacy request targeting
+// a mounted root. It intentionally does not copy the display root's mounts.
+func (mount RootMount) AsRoot() Root {
+	return Root{
+		ID: mount.ID, Kind: mount.Kind, Label: mount.Label, Path: mount.Path,
+		Permission: mount.Permission, Capabilities: mount.Capabilities,
+		Sources: append([]RootSource(nil), mount.Sources...), Exists: mount.Exists,
+	}
 }
 
 // Root is a stable, displayable filesystem root.
@@ -34,7 +65,40 @@ type Root struct {
 	Permission   string           `json:"permission"`
 	Capabilities RootCapabilities `json:"capabilities"`
 	Sources      []RootSource     `json:"sources,omitempty"`
+	Mounts       []RootMount      `json:"mounts,omitempty"`
 	Exists       bool             `json:"exists"`
+}
+
+// CapabilitiesForPath returns the most specific capability scope for a
+// root-relative path. A displayed ancestor may contain a writable workspace
+// mount inside an otherwise read-only Agent root.
+func (root Root) CapabilitiesForPath(relative string) RootCapabilities {
+	relative = normalizeRootRelative(relative)
+	best := root.Capabilities
+	bestPrefixLength := 0
+	for _, mount := range root.Mounts {
+		prefix := normalizeRootRelative(mount.RelativePath)
+		if prefix == "" || !rootPathHasPrefix(relative, prefix) || len(prefix) <= bestPrefixLength {
+			continue
+		}
+		best = mount.Capabilities
+		bestPrefixLength = len(prefix)
+	}
+	return best
+}
+
+func normalizeRootRelative(value string) string {
+	return strings.Trim(strings.ReplaceAll(strings.TrimSpace(value), "\\", "/"), "/")
+}
+
+func rootPathHasPrefix(value, prefix string) bool {
+	if value == prefix {
+		return true
+	}
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+		value, prefix = strings.ToLower(value), strings.ToLower(prefix)
+	}
+	return strings.HasPrefix(value, prefix+"/")
 }
 
 // Entry is a single directory item returned by List.

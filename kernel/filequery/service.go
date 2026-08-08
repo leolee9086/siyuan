@@ -193,16 +193,33 @@ func buildRootMapping(roots []filebrowser.Root) rootMapping {
 		if !root.Exists || !root.Capabilities.Browse {
 			continue
 		}
-		if root.Kind == filebrowser.RootKindWorkspace {
-			mapping.browserToIndex[root.ID] = uniqueRoots(append(mapping.browserToIndex[root.ID], assetmeta.LegacyDataRootID, root.ID))
-			mapping.indexToBrowser[assetmeta.LegacyDataRootID] = browserAddress{rootID: root.ID, prefix: "data/"}
-			mapping.indexToBrowser[root.ID] = browserAddress{rootID: root.ID}
-			continue
+		addBrowserRootMapping(&mapping, root, root.ID, "")
+		for _, mount := range root.Mounts {
+			mounted := mount.AsRoot()
+			if !mounted.Exists || !mounted.Capabilities.Browse {
+				continue
+			}
+			addBrowserRootMapping(&mapping, mounted, root.ID, mount.RelativePath)
 		}
-		mapping.browserToIndex[root.ID] = uniqueRoots(append(mapping.browserToIndex[root.ID], root.ID))
-		mapping.indexToBrowser[root.ID] = browserAddress{rootID: root.ID}
 	}
 	return mapping
+}
+
+func addBrowserRootMapping(mapping *rootMapping, root filebrowser.Root, displayRootID, prefix string) {
+	prefix = normalizeRelativePrefix(prefix)
+	if prefix != "" {
+		prefix += "/"
+	}
+	browserID := root.ID
+	indexIDs := []string{browserID}
+	mapping.indexToBrowser[browserID] = browserAddress{rootID: displayRootID, prefix: prefix}
+	if root.Kind == filebrowser.RootKindWorkspace {
+		indexIDs = append([]string{assetmeta.LegacyDataRootID}, indexIDs...)
+		mapping.indexToBrowser[assetmeta.LegacyDataRootID] = browserAddress{
+			rootID: displayRootID, prefix: prefix + "data/",
+		}
+	}
+	mapping.browserToIndex[browserID] = uniqueRoots(append(mapping.browserToIndex[browserID], indexIDs...))
 }
 
 func resolveIndexRoots(mapping rootMapping, requested []string, allRoots bool) ([]string, error) {

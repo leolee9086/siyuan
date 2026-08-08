@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -27,11 +28,98 @@ func TestListRootsIncludesWorkspaceAndAggregatesBindings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(roots) != 2 || roots[0].ID != "workspace" {
+	if len(roots) != 1 || roots[0].ID != "workspace" || len(roots[0].Mounts) != 1 {
 		t.Fatalf("unexpected roots: %+v", roots)
 	}
-	if len(roots[1].Sources) != 2 || !roots[1].Capabilities.Browse || !roots[1].Capabilities.Command {
-		t.Fatalf("binding sources were not aggregated: %+v", roots[1])
+	if len(roots[0].Mounts[0].Sources) != 2 || !roots[0].Mounts[0].Capabilities.Browse ||
+		!roots[0].Mounts[0].Capabilities.Command || roots[0].Mounts[0].RelativePath != "bound" {
+		t.Fatalf("binding sources were not aggregated under the parent root: %+v", roots[0])
+	}
+}
+
+func TestListRootsMergesAgentParentAndWorkspaceChildButPreservesAliases(t *testing.T) {
+	container := t.TempDir()
+	workspace := filepath.Join(container, "workspace")
+	if err := os.MkdirAll(workspace, 0755); err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) {
+		return map[string]*agent.TaskDirectoryBinding{
+			"session-a": {Directories: []*agent.TaskDirectoryGrant{{
+				ID: "parent", Path: container, Name: "parent", Permission: agent.TaskDirectoryPermissionReadOnly,
+			}}},
+		}, nil
+	})
+	roots, err := service.ListRoots()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(roots) != 1 || roots[0].Kind != RootKindAgent || len(roots[0].Mounts) != 1 ||
+		roots[0].Mounts[0].ID != "workspace" || roots[0].Mounts[0].RelativePath != "workspace" {
+		t.Fatalf("workspace child was not mounted under the Agent parent: %+v", roots)
+	}
+	root, absolute, relative, err := service.ValidateRootPath("workspace", "")
+	if err != nil || root.ID != "workspace" || !strings.EqualFold(root.Path, workspace) ||
+		!strings.EqualFold(absolute, workspace) || relative != "" {
+		t.Fatalf("hidden workspace alias changed its root-relative contract: root=%+v absolute=%q relative=%q err=%v",
+			root, absolute, relative, err)
+	}
+}
+
+func TestListRootsDoesNotMergeSiblingOrPrefixSimilarPaths(t *testing.T) {
+	workspace := t.TempDir()
+	first := filepath.Join(workspace, "dev")
+	second := filepath.Join(workspace, "dev2")
+	if err := os.MkdirAll(first, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(second, 0755); err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) {
+		return map[string]*agent.TaskDirectoryBinding{
+			"session-a": {Directories: []*agent.TaskDirectoryGrant{
+				{ID: "first", Path: first, Name: "first", Permission: agent.TaskDirectoryPermissionReadOnly},
+				{ID: "second", Path: second, Name: "second", Permission: agent.TaskDirectoryPermissionReadOnly},
+			}},
+		}, nil
+	})
+	roots, err := service.ListRoots()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(roots) != 1 || roots[0].ID != "workspace" || len(roots[0].Mounts) != 2 {
+		t.Fatalf("sibling roots should be separate mounts under the workspace, not merged with each other: %+v", roots)
+	}
+	for _, mount := range roots[0].Mounts {
+		if mount.RelativePath != filepath.ToSlash(filepath.Join("dev")) && mount.RelativePath != filepath.ToSlash(filepath.Join("dev2")) {
+			t.Fatalf("unexpected sibling mount path: %+v", mount)
+		}
+	}
+}
+
+func TestListRootsNormalizesCaseAndTrailingSeparatorsBeforeMerging(t *testing.T) {
+	container := t.TempDir()
+	workspace := filepath.Join(container, "Workspace")
+	child := filepath.Join(workspace, "Task")
+	if err := os.MkdirAll(child, 0755); err != nil {
+		t.Fatal(err)
+	}
+	boundPath := child + string(filepath.Separator) + string(filepath.Separator)
+	if runtime.GOOS == "windows" {
+		boundPath = strings.ToUpper(boundPath)
+	}
+	service := NewService(workspace+string(filepath.Separator), func() (map[string]*agent.TaskDirectoryBinding, error) {
+		return map[string]*agent.TaskDirectoryBinding{
+			"session-a": {Directories: []*agent.TaskDirectoryGrant{{
+				ID: "child", Path: boundPath, Name: "task", Permission: agent.TaskDirectoryPermissionReadOnly,
+			}}},
+		}, nil
+	})
+	roots, err := service.ListRoots()
+	if err != nil || len(roots) != 1 || roots[0].ID != "workspace" || len(roots[0].Mounts) != 1 ||
+		!strings.EqualFold(roots[0].Mounts[0].RelativePath, "Task") {
+		t.Fatalf("case and trailing separator normalization did not merge the child root: %+v err=%v", roots, err)
 	}
 }
 

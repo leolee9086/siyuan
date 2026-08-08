@@ -134,6 +134,38 @@ func TestSearchTranslatesSelectedWorkspaceChildPrefixes(t *testing.T) {
 	}
 }
 
+func TestSearchMapsMountedWorkspaceIndexAddressesToCanonicalDisplayRoot(t *testing.T) {
+	var received assetmeta.SearchRequest
+	roots := []filebrowser.Root{{
+		ID: "agent-parent", Kind: filebrowser.RootKindAgent, Label: "parent", Path: `D:\\parent`,
+		Permission: "read-only", Capabilities: filebrowser.RootCapabilities{Browse: true}, Exists: true,
+		Mounts: []filebrowser.RootMount{{
+			ID: "workspace", Kind: filebrowser.RootKindWorkspace, Label: "workspace",
+			Path: `D:\\parent\\workspace`, RelativePath: "workspace", Permission: "read-write",
+			Capabilities: filebrowser.RootCapabilities{Browse: true, Write: true}, Exists: true,
+		}},
+	}}
+	service := NewService(rootStub{roots: roots}, func(request assetmeta.SearchRequest) ([]assetmeta.AssetMeta, int, error) {
+		received = request
+		return []assetmeta.AssetMeta{
+			{RootID: assetmeta.LegacyDataRootID, Path: "assets/child.png"},
+			{RootID: "workspace", Path: "notes/child.md"},
+			{RootID: "agent-parent", Path: "agent.txt"},
+		}, 3, nil
+	})
+	result, err := service.Search(context.Background(), assetmeta.SearchRequest{AllRoots: true, Limit: 50})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(received.RootIDs, []string{"agent-parent", "data", "workspace"}) {
+		t.Fatalf("mounted index identities were not scoped: %+v", received)
+	}
+	if len(result.Assets) != 3 || result.Assets[0].RootID != "agent-parent" || result.Assets[0].Path != "workspace/data/assets/child.png" ||
+		result.Assets[1].RootID != "agent-parent" || result.Assets[1].Path != "workspace/notes/child.md" {
+		t.Fatalf("mounted workspace addresses were not mapped to the displayed root: %+v", result)
+	}
+}
+
 func TestTagCountsRejectsUnavailableRootsBeforeIndexAccess(t *testing.T) {
 	service := NewService(rootStub{roots: testRoots()}, nil)
 	if _, err := service.TagCounts(context.Background(), TagRequest{RootIDs: []string{"missing"}}); !errors.Is(err, filebrowser.ErrRootNotFound) {

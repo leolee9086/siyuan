@@ -42,11 +42,22 @@ func resolveBrowserRoots(roots []filebrowser.Root, requested []string, allRoots 
 		if root.Exists && root.Capabilities.Browse {
 			available[root.ID] = root
 		}
+		for _, mount := range root.Mounts {
+			mounted := mount.AsRoot()
+			if mounted.Exists && mounted.Capabilities.Browse {
+				available[mounted.ID] = mounted
+			}
+		}
 	}
 	if allRoots {
-		result := make([]filebrowser.Root, 0, len(available))
-		for _, root := range available {
-			result = append(result, root)
+		// Only displayed roots are scanned for all-root queries. Mounts are
+		// already contained by their ancestor and scanning them separately
+		// would return the same physical files twice.
+		result := make([]filebrowser.Root, 0, len(roots))
+		for _, root := range roots {
+			if root.Exists && root.Capabilities.Browse {
+				result = append(result, root)
+			}
 		}
 		sort.SliceStable(result, func(left, right int) bool {
 			if strings.ToLower(result[left].ID) != strings.ToLower(result[right].ID) {
@@ -153,8 +164,8 @@ func (s *Service) scanRootFiles(ctx context.Context, root filebrowser.Root, requ
 				return nil
 			}
 			asset := basicFileAsset(root, entry)
-			if needsMetadata {
-				asset = projectFileAssetForAddress(asset)
+			if needsMetadata || len(root.Mounts) > 0 {
+				asset = projectFileAssetForRoot(root, asset)
 			}
 			if !matchesFileSearch(asset, request) {
 				return nil
@@ -190,6 +201,10 @@ func projectFileAssetForAddress(asset assetmeta.AssetMeta) assetmeta.AssetMeta {
 	if asset.RootID == "workspace" {
 		root.Kind = filebrowser.RootKindWorkspace
 	}
+	return projectFileAssetForRoot(root, asset)
+}
+
+func projectFileAssetForRoot(root filebrowser.Root, asset assetmeta.AssetMeta) assetmeta.AssetMeta {
 	for _, address := range indexAddresses(root, asset.Path) {
 		if indexed, ok := assetmeta.GetIndexAssetAt(address); ok {
 			if indexed.Tags == nil {
@@ -227,7 +242,44 @@ func indexAddresses(root filebrowser.Root, relative string) []assetmeta.AssetAdd
 	if address, err := assetmeta.NewAssetAddress(root.ID, relative); err == nil {
 		addresses = append(addresses, address)
 	}
-	return addresses
+	for _, mount := range root.Mounts {
+		mountedRelative, ok := relativeWithinMount(relative, mount.RelativePath)
+		if !ok {
+			continue
+		}
+		addresses = append(addresses, indexAddresses(mount.AsRoot(), mountedRelative)...)
+	}
+	return uniqueAssetAddresses(addresses)
+}
+
+func relativeWithinMount(relative, mountPrefix string) (string, bool) {
+	relative = normalizeRelativePrefix(relative)
+	mountPrefix = normalizeRelativePrefix(mountPrefix)
+	if mountPrefix == "" {
+		return relative, true
+	}
+	if relative == mountPrefix {
+		return "", true
+	}
+	prefix := mountPrefix + "/"
+	if strings.HasPrefix(strings.ToLower(relative), strings.ToLower(prefix)) {
+		return relative[len(prefix):], true
+	}
+	return "", false
+}
+
+func uniqueAssetAddresses(addresses []assetmeta.AssetAddress) []assetmeta.AssetAddress {
+	seen := make(map[string]struct{}, len(addresses))
+	result := make([]assetmeta.AssetAddress, 0, len(addresses))
+	for _, address := range addresses {
+		key := address.RootID + "\x00" + address.Path
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		result = append(result, address)
+	}
+	return result
 }
 
 func matchesFileSearch(asset assetmeta.AssetMeta, request assetmeta.SearchRequest) bool {

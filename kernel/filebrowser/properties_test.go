@@ -101,6 +101,40 @@ func TestPropertiesRejectsExternalSymbolicLinkAndDescribesInternalSymbolicLink(t
 	}
 }
 
+func TestPropertiesUsesMountedCapabilityForCanonicalAncestorTree(t *testing.T) {
+	container := t.TempDir()
+	workspace := filepath.Join(container, "workspace")
+	if err := os.MkdirAll(workspace, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(container, "agent.txt"), []byte("agent"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(workspace, "workspace.txt"), []byte("workspace"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) {
+		return map[string]*agent.TaskDirectoryBinding{
+			"session": {Directories: []*agent.TaskDirectoryGrant{{
+				ID: "parent", Path: container, Name: "parent", Permission: agent.TaskDirectoryPermissionReadOnly,
+			}}},
+		}, nil
+	})
+	roots, err := service.ListRoots()
+	if err != nil || len(roots) != 1 || len(roots[0].Mounts) != 1 {
+		t.Fatalf("unexpected merged roots: %+v err=%v", roots, err)
+	}
+	canonicalID := roots[0].ID
+	parentProperties, err := service.Properties(FileRequest{RootID: canonicalID, Path: "agent.txt"})
+	if err != nil || !parentProperties.ReadOnly {
+		t.Fatalf("Agent parent capability was widened by workspace mount: %+v err=%v", parentProperties, err)
+	}
+	workspaceProperties, err := service.Properties(FileRequest{RootID: canonicalID, Path: "workspace/workspace.txt"})
+	if err != nil || workspaceProperties.ReadOnly {
+		t.Fatalf("workspace mount capability was not applied through the displayed ancestor: %+v err=%v", workspaceProperties, err)
+	}
+}
+
 func TestBatchPropertiesEnforcesRequestBounds(t *testing.T) {
 	service := NewService(t.TempDir(), func() (map[string]*agent.TaskDirectoryBinding, error) { return nil, nil })
 	if _, err := service.BatchProperties(context.Background(), BatchPropertiesRequest{}); !errors.Is(err, ErrPropertiesEmpty) {

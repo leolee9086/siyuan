@@ -56,7 +56,7 @@ func (s *Service) propertiesForRoot(ctx context.Context, root Root, relative str
 	}
 	properties := ItemProperties{
 		Root: root, Entry: entry, PreviewKind: PreviewKindDirectory,
-		Revision: itemRevision(info), Created: fileCreationTime(info), ReadOnly: !root.Capabilities.Write,
+		Revision: itemRevision(info), Created: fileCreationTime(info), ReadOnly: !root.CapabilitiesForPath(relative).Write,
 	}
 	if info.IsDir() {
 		return properties, nil
