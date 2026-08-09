@@ -1,7 +1,7 @@
 # SACAssetsManager 功能历史审计 (TikTocTak)
 
 > **归属**: [文件浏览Dock与Monaco编辑器.ttt.md](../文件浏览Dock与Monaco编辑器.ttt.md)
-> **目标**: 基于 `D:\dev\SACAssetsManager-ref` 的 951 个提交和当前 `94c8534` 语义，找出文件浏览器每类功能的最完备实现、证据提交、数据流和 S-Forge 接入点。
+> **目标**: 基于完整参考检出 `D:\dev\SACAssetsManager-02e3b4d47aa4414bd397a94d7daa1747a3cb45e6` 的 951 个提交和 `master` 当前 `94c8534` 语义，找出文件浏览器每类功能的最完备实现、证据提交、数据流和 S-Forge 接入点。该检出当前为 detached `02e3b4d4`，历史对象和 `master` 仍在同一工作树中。
 
 ## 审计规则
 
@@ -29,7 +29,7 @@
 
 ## 证据记录
 
-- 当前参考检出 `HEAD=94c8534a`，完整 Git 历史在 `SACAssetsManager-ref`；工作树删除状态不影响 `git show` 读取对象。
+- 当前参考目录为 `D:\dev\SACAssetsManager-02e3b4d47aa4414bd397a94d7daa1747a3cb45e6`，detached `HEAD=02e3b4d4`；`master/origin/master=94c8534a`，共 951 个历史提交。工作树删除状态不影响 `git show` 读取对象。
 - 主检出 `D:\dev\SACAssetsManager` 只保留一个迁移后的提交，不能作为历史完整性证据。
 
 ### 本地磁盘目录树专项结论

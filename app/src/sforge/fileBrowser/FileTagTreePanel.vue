@@ -44,6 +44,7 @@
 /** 用途：标签树刷新与根节点交互；使用范围：文件浏览 Dock 侧栏。 */
 import {onBeforeUnmount, onMounted, ref} from "vue";
 import FileTagTreeNode from "./FileTagTreeNode.vue";
+import {FILE_BROWSER_DRAG_MIME, parseFileBrowserDragData} from "./FileBrowser.drag";
 import {useFileTagTree} from "./useFileTagTree";
 import {
     fileTagCountRepository,
@@ -87,20 +88,8 @@ function collapseAll() {
 }
 
 function parseDroppedRequest(event: DragEvent) {
-    const raw = event.dataTransfer?.getData("application/x-sforge-file");
-    if (!raw) {
-        return undefined;
-    }
-    try {
-        const parsed: unknown = JSON.parse(raw);
-        if (!isRecord(parsed) || typeof parsed.rootID !== "string" || typeof parsed.path !== "string" ||
-            parsed.kind !== "file" || !parsed.rootID.trim() || !parsed.path.trim()) {
-            return undefined;
-        }
-        return {rootID: parsed.rootID, path: parsed.path};
-    } catch {
-        return undefined;
-    }
+    const parsed = parseFileBrowserDragData(event.dataTransfer?.getData(FILE_BROWSER_DRAG_MIME));
+    return parsed?.kind === "file" ? {rootID: parsed.rootID, path: parsed.path} : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

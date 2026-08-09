@@ -1,14 +1,14 @@
 <template>
-    <section class="sforge-file-gallery" aria-label="文件资源画廊" :data-layout-mode="layoutMode"
+    <section ref="galleryRoot" class="sforge-file-gallery" aria-label="文件资源画廊" :data-layout-mode="layoutMode"
         :aria-busy="loading || loadingMore || rootsLoading">
         <header class="sforge-file-gallery__header">
             <div class="sforge-file-gallery__topline">
                 <div class="sforge-file-gallery__history" aria-label="目录导航">
-                    <button type="button" class="block__icon ariaLabel" aria-label="返回上一级目录"
+                    <button type="button" class="block__icon block__icon--show ariaLabel" aria-label="返回上一级目录"
                         :disabled="!canGoBack" @click="navigateHistory(-1)">
                         <svg><use href="#iconLeft" /></svg>
                     </button>
-                    <button type="button" class="block__icon ariaLabel" aria-label="前进到下一级目录"
+                    <button type="button" class="block__icon block__icon--show ariaLabel" aria-label="前进到下一级目录"
                         :disabled="!canGoForward" @click="navigateHistory(1)">
                         <svg><use href="#iconRight" /></svg>
                     </button>
@@ -26,14 +26,13 @@
                 </label>
                 <div class="sforge-file-gallery__view-modes" role="group" aria-label="布局模式">
                     <button v-for="mode in galleryViewModes" :key="mode.value" type="button"
-                        class="block__icon ariaLabel"
-                        :class="{'block__icon--active': layoutMode === mode.value}"
-                        :aria-label="mode.label" :aria-pressed="layoutMode === mode.value"
+                        class="block__icon block__icon--show ariaLabel" :class="{'block__icon--active': layoutMode === mode.value}"
+                        :aria-label="mode.label" :title="mode.label" :aria-pressed="layoutMode === mode.value"
                         @click="layoutMode = mode.value">
-                        <svg><use :href="mode.icon" /></svg>
+                        <svg aria-hidden="true"><use :href="mode.icon" /></svg>
                     </button>
                 </div>
-                <button type="button" class="block__icon ariaLabel" aria-label="重新查询"
+                <button type="button" class="block__icon block__icon--show ariaLabel" aria-label="重新查询"
                     :disabled="loading" @click="() => runScopedSearch()">
                     <svg :class="{'fn__rotate': loading}"><use href="#iconRefresh" /></svg>
                 </button>
@@ -80,7 +79,7 @@
                 <span role="columnheader">类型</span>
             </div>
             <VirtualMasonryGrid v-if="galleryAssets.length > 0" :key="layoutMode" ref="galleryGrid" :items="galleryAssets"
-                :column-width="columnWidth" :gap="12" id-key="key" :item-height="estimateItemHeight"
+                :column-width="effectiveColumnWidth" :gap="12" id-key="key" :item-height="estimateItemHeight"
                 :mode="layoutMode === 'table' ? 'list' : layoutMode" :managed-by-provider="true"
                 @load-more="loadNextPage">
                 <template #default="{item}">
@@ -134,6 +133,7 @@ import {createFileBrowserEntryOpener} from "./FileBrowser.open";
 import {fileBrowserSelection} from "./FileBrowser.selection";
 import {makeFileBrowserNodeKey} from "./FileBrowser.tree";
 import {resolveAssetURL} from "../../asset/assetUrl";
+import {getAssetThumbnailRequestURL} from "../../asset/assetFormat";
 import {
     FILE_BROWSER_GALLERY_ATTRIBUTES,
     FILE_BROWSER_GALLERY_DEFAULT_ATTRIBUTES,
@@ -172,12 +172,19 @@ const includeSubfolders = ref(true);
 const selectedSubfolderPaths = ref<string[]>([]);
 let scopeRevision = 0;
 const selectedKey = ref("");
-const columnWidth = ref(typeof window !== "undefined" && window.innerWidth < 768 ? 150 : 220);
+const galleryRoot = ref<HTMLElement | null>(null);
+const containerWidth = ref(0);
+const columnWidth = ref(220);
 const galleryViewModes = FILE_BROWSER_GALLERY_VIEW_MODES;
 const layoutMode = ref<FileBrowserGalleryViewMode>("masonry");
 const showPaths = ref(true);
 const selectedAttributes = ref<FileBrowserGalleryAttribute[]>([...FILE_BROWSER_GALLERY_DEFAULT_ATTRIBUTES]);
 const galleryGrid = ref<InstanceType<typeof VirtualMasonryGrid> | null>(null);
+const effectiveColumnWidth = computed(() => {
+    const availableWidth = containerWidth.value - 24;
+    return availableWidth > 0 ? Math.min(columnWidth.value, availableWidth) : columnWidth.value;
+});
+let galleryResizeObserver: ResizeObserver | undefined;
 const loadedAssets = ref<GalleryAsset[]>([]);
 const totalCount = ref(0);
 const nextOffset = ref(0);
@@ -322,7 +329,8 @@ const canGoBack = computed(() => scopeHistoryIndex.value > 0);
 const canGoForward = computed(() => scopeHistoryIndex.value < scopeHistory.value.length - 1);
 // 目录切换必须创建一份空表单，不能依赖旧表单的异步 watch 是否及时触发。
 const searchPanelKey = computed(() => `${props.file.rootID}:${scopePath.value}:${isGlobalResult ? "global" : "directory"}`);
-const hasQuery = computed(() => result.value.totalCount > 0 || loading.value || Boolean(error.value));
+const hasActiveFilters = ref(false);
+const hasQuery = computed(() => hasActiveFilters.value || loading.value || Boolean(error.value));
 const loadedCount = computed(() => loadedAssets.value.length);
 const galleryAssets = computed<GalleryAsset[]>(() => loadedAssets.value);
 const galleryAttributes = FILE_BROWSER_GALLERY_ATTRIBUTES;
@@ -349,7 +357,7 @@ watch(result, applyInitialPage, {flush: "post"});
 
 // 查询结果和卡片尺寸都可能在网格已经挂载后变化；在 DOM 提交后要求现有布局引擎
 // 重新计算，避免只更新卡片数据而留下旧的列坐标或旧的可见范围。
-watch([galleryAssets, columnWidth], () => {
+watch([galleryAssets, effectiveColumnWidth], () => {
     void nextTick(() => galleryGrid.value?.refreshLayout());
 }, {flush: "post"});
 
@@ -391,8 +399,7 @@ async function loadNextPage() {
 }
 
 function thumbnailUrl(asset: FileBrowserAssetResult) {
-    const params = new URLSearchParams({rootID: asset.rootID, path: asset.path, size: "360"});
-    return resolveAssetURL(`/api/s-forge/file-browser/thumbnail?${params.toString()}`);
+    return resolveAssetURL(getAssetThumbnailRequestURL(asset.path, 360, asset.rootID));
 }
 
 function extensionOf(path: string) {
@@ -400,7 +407,7 @@ function extensionOf(path: string) {
     return dot >= 0 ? path.slice(dot).toLowerCase() : "";
 }
 
-function estimateItemHeight(asset: GalleryAsset, width = columnWidth.value) {
+function estimateItemHeight(asset: GalleryAsset, width = effectiveColumnWidth.value) {
     if (layoutMode.value === "table") {
         return 56;
     }
@@ -442,6 +449,9 @@ function scopedRequest(request: FileBrowserSearchRequest): FileBrowserSearchRequ
 
 function runSearch(request: FileBrowserSearchRequest) {
     const scoped = normalizeSearchRequest(scopedRequest(request)) ?? {orderBy: "updated"};
+    hasActiveFilters.value = Boolean(scoped.keyword?.trim() || scoped.tags?.length || scoped.exts?.length ||
+        scoped.palette || scoped.minWidth || scoped.maxWidth || scoped.minHeight || scoped.maxHeight ||
+        scoped.minSize || scoped.maxSize || scoped.minStar || scoped.maxStar);
     currentQuery.value = isGlobalResult ? cloneSearchRequest(scoped) : undefined;
     pageRevision += 1;
     activePageRequest = {...scoped, limit: GALLERY_PAGE_SIZE, offset: 0};
@@ -475,6 +485,7 @@ function clearSearch() {
         orderBy: currentQuery.value?.orderBy ?? "updated",
     } : undefined;
     currentQuery.value = clearedQuery;
+    hasActiveFilters.value = false;
     search.clear();
     runScopedSearch(false);
 }
@@ -610,13 +621,31 @@ async function loadRoots() {
     }
 }
 
+function observeGalleryContainer() {
+    if (!galleryRoot.value || typeof ResizeObserver === "undefined") {
+        return;
+    }
+    galleryResizeObserver = new ResizeObserver(([entry]) => {
+        const width = entry?.contentRect.width ?? 0;
+        if (Number.isFinite(width) && width !== containerWidth.value) {
+            containerWidth.value = Math.max(0, width);
+        }
+    });
+    galleryResizeObserver.observe(galleryRoot.value);
+}
+
 onMounted(async () => {
+    observeGalleryContainer();
     await loadRoots();
     await loadScope();
     runScopedSearch();
 });
 
-onBeforeUnmount(() => search.dispose());
+onBeforeUnmount(() => {
+    search.dispose();
+    galleryResizeObserver?.disconnect();
+    galleryResizeObserver = undefined;
+});
 </script>
 
 <style scoped lang="scss" src="./FileBrowserGalleryTab.scss"></style>

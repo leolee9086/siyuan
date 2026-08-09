@@ -1,5 +1,5 @@
 import {afterEach, describe, expect, it} from "vitest";
-import {getFileBrowserThumbnailURL, resolveAssetURL} from "../../src/asset/assetUrl";
+import {resolveAssetURL} from "../../src/asset/assetUrl";
 
 describe("resolveAssetURL", () => {
     afterEach(() => {
@@ -64,18 +64,8 @@ describe("resolveAssetURL", () => {
             .toBe("file:///D:/dev/page-2.png");
     });
 
-    it("builds a same-root thumbnail fallback for encoded file-browser content", () => {
-        const contentURL = "/api/s-forge/file-browser/content/root-1/.artifacts/中文目录/page%202.png";
-        const thumbnailURL = getFileBrowserThumbnailURL(contentURL, 768);
-        expect(thumbnailURL).toBeTruthy();
-        const parsed = new URL(thumbnailURL!);
-        expect(parsed.pathname).toBe("/api/s-forge/file-browser/thumbnail");
-        expect(parsed.searchParams.get("rootID")).toBe("root-1");
-        expect(parsed.searchParams.get("path")).toBe(".artifacts/中文目录/page 2.png");
-        expect(parsed.searchParams.get("size")).toBe("768");
+    it("fails explicitly for an empty resource address", () => {
+        expect(() => resolveAssetURL(" ")).toThrow("资源地址为空");
     });
 
-    it("does not manufacture a file-browser thumbnail for ordinary asset URLs", () => {
-        expect(getFileBrowserThumbnailURL("/assets/page-2.png")).toBeUndefined();
-    });
 });

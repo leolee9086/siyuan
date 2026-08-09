@@ -37,7 +37,8 @@ function configureMonacoWorker() {
 /** 延迟加载编辑器，避免文件浏览 Dock 初始化时同步增加首屏开销。 */
 export function loadFileBrowserMonaco(): Promise<typeof import("monaco-editor")> {
     configureMonacoWorker();
-    monacoPromise ??= import("monaco-editor");
+    monacoPromise ??= import(/* webpackChunkName: "sforge-monaco-editor" */
+        "monaco-editor/esm/vs/editor/editor.main.js");
     return monacoPromise;
 }
 

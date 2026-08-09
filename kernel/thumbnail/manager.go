@@ -104,22 +104,23 @@ func NewInstance() *Manager {
 // registerProviders 注册所有可用的 Provider
 // 注册顺序决定优先级：先注册的会先尝试
 func (m *Manager) registerProviders() {
-	// 1. Windows Provider (Highest Priority on Windows)
+	// 1. 专用格式 Provider 必须先于 Windows 泛化 Provider，保持参考实现的格式语义。
+	for _, provider := range []Provider{NewSVGProvider(), NewD5MProvider()} {
+		m.providers = append(m.providers, provider)
+		logging.LogInfof("registered thumbnail provider: %s", provider.Name())
+	}
+
+	// 2. Windows Provider (Highest Priority on Windows)
 	//    使用 Windows Shell API，支持系统能预览的所有文件
 	if p := NewWindowsProvider(); p != nil {
 		m.providers = append(m.providers, p)
 		logging.LogInfof("registered thumbnail provider: %s", p.Name())
 	}
 
-	// 2. Go Imaging Provider (图片通用处理)
+	// 3. Go Imaging Provider (图片通用处理)
 	//    纯 Go 实现，支持常见图片格式
 	m.providers = append(m.providers, NewGoImagingProvider())
-	logging.LogInfof("registered thumbnail provider: GoImaging (fallback)")
-
-	// 3. File Icon Provider (最终 fallback)
-	//    对于无法生成缩略图的文件，生成基于扩展名的图标
-	m.providers = append(m.providers, NewFileIconProvider())
-	logging.LogInfof("registered thumbnail provider: FileIcon (fallback)")
+	logging.LogInfof("registered thumbnail provider: GoImaging")
 }
 
 // Get 获取缩略图（使用最大边长）

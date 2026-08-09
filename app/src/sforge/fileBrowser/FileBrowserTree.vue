@@ -18,9 +18,11 @@
 /** 用途：文件树组合边界；使用范围：根列表、递归节点和树级拖拽状态。 */
 import {onBeforeUnmount, ref, watch} from "vue";
 /** 用途：树容器判断、父节点查找和稳定节点状态；使用范围：拖放目标解析。 */
-import {findFileBrowserTreeNode, isFileBrowserContainer} from "./FileBrowser.tree";
+import {isFileBrowserContainer} from "./FileBrowser.tree";
 /** 用途：递归节点视图；使用范围：所有工作空间/Agent 根和后代节点。 */
 import FileBrowserTreeNode from "./FileBrowserTreeNode.vue";
+/** 用途：拖放 MIME 契约；使用范围：树节点移动入口。 */
+import {FILE_BROWSER_DRAG_MIME} from "./FileBrowser.drag";
 /** 用途：树节点契约；使用范围：组件参数和事件。 */
 import type {FileBrowserTreeNode as TreeNode} from "./FileBrowser.types";
 
@@ -115,10 +117,7 @@ function clearExpandTimer() {
 }
 
 function resolveDropTarget(node: TreeNode) {
-    if (isFileBrowserContainer(node)) {
-        return node;
-    }
-    return node.parentKey ? findFileBrowserTreeNode(props.rootNodes, node.parentKey) : undefined;
+    return isFileBrowserContainer(node) ? node : undefined;
 }
 
 function handleDragStart(payload: {event: DragEvent; node: TreeNode}) {
@@ -128,7 +127,7 @@ function handleDragStart(payload: {event: DragEvent; node: TreeNode}) {
     }
     draggingKey.value = node.key;
     event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("application/x-sforge-file", JSON.stringify({
+    event.dataTransfer.setData(FILE_BROWSER_DRAG_MIME, JSON.stringify({
         rootID: node.rootID, path: node.path, kind: node.kind, name: node.name,
     }));
     event.dataTransfer.setData("text/plain", node.path);

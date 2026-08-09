@@ -23,6 +23,7 @@ var (
 	ErrNotDirectory       = errors.New("file browser path is not a directory")
 	ErrNotFile            = errors.New("file browser path is not a file")
 	ErrPathExists         = errors.New("file browser target already exists")
+	ErrRootMutation       = errors.New("file browser root cannot be deleted")
 	ErrInvalidName        = errors.New("file browser name is invalid")
 	ErrWriteDenied        = errors.New("file browser write capability is required")
 	ErrDestinationType    = errors.New("file browser destination has an incompatible type")
@@ -32,6 +33,9 @@ var (
 	ErrPreviewUnsupported = errors.New("file browser preview is not text")
 	ErrPropertiesEmpty    = errors.New("file browser property request is empty")
 	ErrPropertiesTooLarge = errors.New("file browser property request exceeds 100 items")
+	ErrBatchItemsEmpty    = errors.New("file browser batch request is empty")
+	ErrBatchItemsTooLarge = errors.New("file browser batch request exceeds 100 items")
+	ErrBatchDuplicate     = errors.New("file browser batch request contains duplicate paths")
 )
 
 // BindingProvider supplies all persisted task-directory bindings.
@@ -53,6 +57,8 @@ func adaptFileOperationError(err error) error {
 		return ErrRootUnavailable
 	case errors.Is(err, fswalk.ErrStartUnavailable), errors.Is(err, os.ErrNotExist):
 		return ErrPathNotFound
+	case errors.Is(err, fswalk.ErrRootMutation):
+		return ErrRootMutation
 	case errors.Is(err, fswalk.ErrPathTraversal), errors.Is(err, fswalk.ErrDirectoryChangedToReparsePoint):
 		return ErrPathTraversal
 	case errors.Is(err, fswalk.ErrPathComponentNotDirectory):

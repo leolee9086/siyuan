@@ -1,11 +1,14 @@
 package api
 
 import (
+	archivezip "archive/zip"
 	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"image"
 	"image/png"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -13,6 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"unicode/utf16"
 
 	"github.com/gin-gonic/gin"
 	"github.com/siyuan-note/siyuan/kernel/agent"
@@ -242,10 +246,72 @@ func TestFileBrowserMutationOperationsUseRootRelativeContracts(t *testing.T) {
 	if data, err := os.ReadFile(filepath.Join(workspace, "copied", "new name.txt")); err != nil || string(data) != "payload" {
 		t.Fatalf("copied content mismatch: %q err=%v", data, err)
 	}
+	moveResponse := callFileBrowserHandler(t, moveSForgeFileBrowserEntry, "127.0.0.1:6806",
+		`{"sourceRootID":"workspace","sourcePath":"copied/new name.txt","destinationRootID":"workspace","destinationPath":"moved/new name.txt"}`)
+	if moveResponse.Code != 0 || !strings.Contains(string(moveResponse.Data), `"operation":"move"`) ||
+		!strings.Contains(string(moveResponse.Data), `"destinationPath":"moved/new name.txt"`) {
+		t.Fatalf("unexpected move response: %+v", moveResponse)
+	}
+	if data, err := os.ReadFile(filepath.Join(workspace, "moved", "new name.txt")); err != nil || string(data) != "payload" {
+		t.Fatalf("moved content mismatch: %q err=%v", data, err)
+	}
 	conflict := callFileBrowserHandler(t, createSForgeFileBrowserDirectory, "127.0.0.1:6806",
 		`{"rootID":"workspace","path":"source/新目录"}`)
 	if conflict.Code != http.StatusConflict {
 		t.Fatalf("expected create conflict, got %+v", conflict)
+	}
+	deleteResponse := callFileBrowserHandler(t, deleteSForgeFileBrowserEntry, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"moved/new name.txt"}`)
+	if deleteResponse.Code != 0 || !strings.Contains(string(deleteResponse.Data), `"operation":"delete"`) ||
+		!strings.Contains(string(deleteResponse.Data), `"removedFileCount":1`) {
+		t.Fatalf("unexpected delete response: %+v", deleteResponse)
+	}
+	if _, err := os.Stat(filepath.Join(workspace, "moved", "new name.txt")); !os.IsNotExist(err) {
+		t.Fatalf("deleted file remained: %v", err)
+	}
+	rootDelete := callFileBrowserHandler(t, deleteSForgeFileBrowserEntry, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"."}`)
+	if rootDelete.Code != http.StatusBadRequest {
+		t.Fatalf("root deletion status: %+v", rootDelete)
+	}
+}
+
+func TestFileBrowserBatchDeleteReturnsPerItemResults(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	workspace := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(workspace, "tree", "nested"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(workspace, "tree", "nested", "child.txt"), []byte("child"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	originalFactory := newFileBrowserService
+	newFileBrowserService = func() *filebrowser.Service {
+		return filebrowser.NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) { return nil, nil })
+	}
+	t.Cleanup(func() { newFileBrowserService = originalFactory })
+
+	response := callFileBrowserHandler(t, deleteBatchSForgeFileBrowserEntries, "127.0.0.1:6806",
+		`{"items":[{"rootID":"workspace","path":"tree"},{"rootID":"workspace","path":"tree/nested/child.txt"},{"rootID":"workspace","path":"missing.txt"}]}`)
+	if response.Code != 0 {
+		t.Fatalf("batch delete failed: %+v", response)
+	}
+	var result filebrowser.BatchDeleteResult
+	if err := json.Unmarshal(response.Data, &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.SuccessCount != 2 || result.FailureCount != 1 || len(result.Items) != 3 ||
+		result.Items[2].Error == nil || result.Items[2].Error.Code != "path-not-found" {
+		t.Fatalf("unexpected batch result: %+v", result)
+	}
+	if _, err := os.Stat(filepath.Join(workspace, "tree")); !os.IsNotExist(err) {
+		t.Fatalf("batch delete left selected tree: %v", err)
+	}
+
+	duplicate := callFileBrowserHandler(t, deleteBatchSForgeFileBrowserEntries, "127.0.0.1:6806",
+		`{"items":[{"rootID":"workspace","path":"./same.txt"},{"rootID":"workspace","path":"same.txt"}]}`)
+	if duplicate.Code != http.StatusBadRequest {
+		t.Fatalf("duplicate batch should be rejected: %+v", duplicate)
 	}
 }
 
@@ -279,6 +345,122 @@ func TestFileBrowserStatPreviewAndContentRange(t *testing.T) {
 	if disposition := contentResponse.Header().Get("Content-Disposition"); !strings.HasPrefix(disposition, "attachment") {
 		t.Fatalf("text content must download instead of execute: %q", disposition)
 	}
+}
+
+func TestFileBrowserD5AInspectionUsesMigratedDomainPackage(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	workspace := t.TempDir()
+	modelPath := filepath.Join(workspace, "models", "fixture.d5a")
+	if err := os.MkdirAll(filepath.Dir(modelPath), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeFileBrowserD5AFixture(modelPath); err != nil {
+		t.Fatal(err)
+	}
+	originalFactory := newFileBrowserService
+	newFileBrowserService = func() *filebrowser.Service {
+		return filebrowser.NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) { return nil, nil })
+	}
+	t.Cleanup(func() { newFileBrowserService = originalFactory })
+
+	response := callFileBrowserHandler(t, inspectSForgeFileBrowserD5A, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"models/fixture.d5a"}`)
+	if response.Code != 0 {
+		t.Fatalf("D5A inspection failed: %+v", response)
+	}
+	var payload struct {
+		RootID string `json:"rootID"`
+		Path   string `json:"path"`
+		Report struct {
+			Format string `json:"format"`
+			D5A    struct {
+				Variant string `json:"variant"`
+				Bundles []struct {
+					Mesh *struct {
+						Version         uint32 `json:"version"`
+						TriangleCount   int64  `json:"triangleCount"`
+						VertexCount     int64  `json:"vertexCount"`
+						DescriptorCount int    `json:"descriptorCount"`
+					} `json:"mesh"`
+				} `json:"bundles"`
+			} `json:"d5a"`
+		} `json:"report"`
+	}
+	if err := json.Unmarshal(response.Data, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload.RootID != "workspace" || payload.Path != "models/fixture.d5a" ||
+		payload.Report.Format != "d5a" || payload.Report.D5A.Variant != "d5mesh" ||
+		len(payload.Report.D5A.Bundles) != 1 || payload.Report.D5A.Bundles[0].Mesh == nil ||
+		payload.Report.D5A.Bundles[0].Mesh.Version != 11 ||
+		payload.Report.D5A.Bundles[0].Mesh.TriangleCount != 1 ||
+		payload.Report.D5A.Bundles[0].Mesh.VertexCount != 3 {
+		t.Fatalf("unexpected migrated D5A report: %+v", payload)
+	}
+}
+
+func writeFileBrowserD5AFixture(path string) error {
+	var mesh bytes.Buffer
+	writeUint32 := func(value uint32) {
+		var encoded [4]byte
+		binary.LittleEndian.PutUint32(encoded[:], value)
+		_, _ = mesh.Write(encoded[:])
+	}
+	writeFloat32 := func(value float32) { writeUint32(math.Float32bits(value)) }
+	writeUTF16 := func(value string) {
+		units := utf16.Encode([]rune(value))
+		writeUint32(uint32(len(units)))
+		for _, unit := range units {
+			var encoded [2]byte
+			binary.LittleEndian.PutUint16(encoded[:], unit)
+			_, _ = mesh.Write(encoded[:])
+		}
+	}
+	writeUint32(11)
+	writeUTF16(`{"triangleCount":1}`)
+	writeUint32(0)
+	writeUint32(1)
+	writeUTF16("group")
+	writeUTF16("material")
+	for _, value := range []float32{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1} {
+		writeFloat32(value)
+	}
+	writeUint32(1)
+	writeUTF16("group")
+	writeUint32(9)
+	for _, value := range []float32{0, 0, 0, 1, 0, 0, 0, 1, 0} {
+		writeFloat32(value)
+	}
+	writeUint32(9)
+	for range 9 {
+		writeFloat32(0)
+	}
+	writeUint32(6)
+	for _, value := range []float32{0, 0, 1, 0, 0, 1} {
+		writeFloat32(value)
+	}
+	writeUint32(0)
+	writeUint32(3)
+	writeUint32(0)
+	writeUint32(1)
+	writeUint32(2)
+
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	archive := archivezip.NewWriter(file)
+	entry, err := archive.Create("1.d5mesh")
+	if err == nil {
+		_, err = entry.Write(mesh.Bytes())
+	}
+	if closeErr := archive.Close(); err == nil {
+		err = closeErr
+	}
+	if closeErr := file.Close(); err == nil {
+		err = closeErr
+	}
+	return err
 }
 
 func TestFileBrowserImageContentPreservesImageMimeAndBytes(t *testing.T) {

@@ -32,6 +32,11 @@
                 @click="toggleSortDirection">
                 <svg><use :href="sortDirection === 'asc' ? '#iconUp' : '#iconDown'" /></svg>
             </button>
+            <button v-if="selectedActionableNodes.length > 1" type="button"
+                class="block__icon block__icon--show ariaLabel" aria-label="删除已选择项目"
+                :disabled="batchDeleting" @click="deleteSelectedNodes">
+                <svg :class="{'fn__rotate': batchDeleting}"><use href="#iconTrashcan" /></svg>
+            </button>
             <span class="sforge-file-browser__root-count">{{ rootSummary }}</span>
         </div>
 
@@ -53,7 +58,7 @@
                 :focused-key="focusedKey" :opening-key="openingKey"
                 @activate="handleNodeActivate" @toggle="toggleNode" @open="openNode"
                 @retry="refreshNode" @load-more="loadMoreNode" @menu="handleNodeMenu"
-                @keydown="handleNodeKeydown" @restore-expanded="restoreExpanded" />
+                @keydown="handleNodeKeydown" @restore-expanded="restoreExpanded" @drop="handleNodeDrop" />
         </main>
         <footer v-if="selectedNode" class="sforge-file-browser__footer">
             <span class="sforge-file-browser__selection" :title="selectedNodeAbsolutePath">
@@ -68,12 +73,13 @@
         </footer>
         <p v-if="rootsError && rootNodes.length > 0" class="sforge-file-browser__error">{{ rootsError }}</p>
         <p v-if="openError" class="sforge-file-browser__error">{{ openError }}</p>
+        <p v-if="operationError" class="sforge-file-browser__error">{{ operationError }}</p>
     </section>
 </template>
 
 <script setup lang="ts">
 /** 用途：Vue 生命周期、派生状态和 DOM 焦点恢复；使用范围：Dock 挂载和树键盘交互。 */
-import {computed, nextTick, onBeforeUnmount, onMounted} from "vue";
+import {computed, nextTick, onBeforeUnmount, onMounted, ref} from "vue";
 /** 用途：文件浏览器独立树控制器；使用范围：本面板唯一状态入口。 */
 import {useFileBrowser} from "./useFileBrowser";
 /** 用途：文件树组合组件；使用范围：常驻多根递归树和树级交互。 */
@@ -86,10 +92,14 @@ import {createFileBrowserDirectoryOpener, createFileBrowserEntryOpener} from "./
 import {fileBrowserOperationsRepository} from "./FileBrowser.operations.repository";
 import {
     requestFileBrowserCopyDestination,
+    requestFileBrowserConfirmation,
     requestFileBrowserText,
 } from "./FileBrowser.operations.dialog";
+import {fileBrowserSelection} from "./FileBrowser.selection";
 /** 用途：应用全局菜单；使用范围：树节点上下文菜单。 */
 import {showFileBrowserTreeNodeMenu} from "./FileBrowser.menu";
+/** 用途：拖放数据解析；使用范围：树移动入口。 */
+import {FILE_BROWSER_DRAG_MIME, parseFileBrowserDragData} from "./FileBrowser.drag";
 /** 用途：树节点查找和容器判断；使用范围：操作完成后的精确刷新。 */
 import {findFileBrowserTreeNode, getFileBrowserCapabilitiesForPath, isFileBrowserContainer, makeFileBrowserNodeKey} from "./FileBrowser.tree";
 /** 用途：标准消息提示和 HTML 转义；使用范围：操作成功/失败反馈。 */
@@ -111,6 +121,9 @@ const {
     openNode, refreshNode, loadMoreNode, collapseAll, setSort, toggleSortDirection, restoreExpanded,
     handleKey, dispose,
 } = browser;
+const operationError = ref("");
+const movingKey = ref("");
+const batchDeleting = ref(false);
 
 const selectedKeySet = computed<ReadonlySet<string>>(() => new Set(selectedKeys.value));
 
@@ -152,6 +165,7 @@ function handleNodeMenu(payload: {event: MouseEvent; node: TreeNode}) {
         createDirectory: createDirectory,
         rename: renameNode,
         copy: copyNode,
+        delete: deleteNode,
     });
 }
 
@@ -196,12 +210,18 @@ function operationErrorMessage(error: unknown) {
 }
 
 function reportOperationError(error: unknown) {
-    showMessage(escapeHtml(operationErrorMessage(error)), 6000, "error", "sforgeFileBrowserOperationError");
+    operationError.value = operationErrorMessage(error);
+    showMessage(escapeHtml(operationError.value), 6000, "error", "sforgeFileBrowserOperationError");
 }
 
 function canWriteNode(node: TreeNode) {
     return node.root.exists && !node.entry?.restricted && getFileBrowserCapabilitiesForPath(node.root, node.path).write;
 }
+
+const selectedActionableNodes = computed(() => fileBrowserSelection.items.value
+    .map(item => findFileBrowserTreeNode(rootNodes.value, item.key))
+    .filter((node): node is TreeNode => node !== undefined)
+    .filter(node => node.kind !== "root" && canWriteNode(node)));
 
 async function createDirectory(node: TreeNode) {
     if (!canWriteNode(node)) {
@@ -246,7 +266,7 @@ function operationRoots() {
             result.push({
                 id: mount.id, kind: mount.kind, label: mount.label, path: mount.path,
                 permission: mount.permission, capabilities: mount.capabilities,
-                sources: mount.sources, exists: mount.exists,
+                ...(mount.sources ? {sources: mount.sources} : {}), exists: mount.exists,
             });
         }
     }
@@ -280,6 +300,125 @@ async function copyNode(node: TreeNode) {
         showMessage(`已复制：${escapeHtml(destination.path)}（${result.copiedFileCount ?? 0} 个文件）`, 3000);
     } catch (error) {
         reportOperationError(error);
+    }
+}
+
+async function deleteNode(node: TreeNode) {
+    if (node.kind === "root" || !canWriteNode(node)) {
+        return;
+    }
+    const kind = node.kind === "directory" ? "目录及其全部内容" : "文件";
+    const confirmed = await requestFileBrowserConfirmation(
+        "删除文件",
+        `确定删除${kind} <b>${escapeHtml(node.name)}</b> 吗？此操作不可撤销。`,
+    );
+    if (!confirmed) {
+        return;
+    }
+    operationError.value = "";
+    try {
+        const result = await fileBrowserOperationsRepository.delete({rootID: node.rootID, path: node.path});
+        fileBrowserSelection.removeSubtree(node.rootID, node.path);
+        await refreshOperationParent(node.rootID, node.path);
+        showMessage(`已删除：${escapeHtml(node.path)}（${(result.removedFileCount ?? 0)} 个文件）`, 3000);
+    } catch (error) {
+        reportOperationError(error);
+    }
+}
+
+async function deleteSelectedNodes() {
+    const nodes = selectedActionableNodes.value;
+    if (nodes.length < 2 || batchDeleting.value) {
+        return;
+    }
+    const confirmed = await requestFileBrowserConfirmation(
+        "批量删除文件",
+        `确定删除已选择的 ${nodes.length} 项吗？目录及其全部内容也会被删除，此操作不可撤销。`,
+    );
+    if (!confirmed) {
+        return;
+    }
+    operationError.value = "";
+    batchDeleting.value = true;
+    try {
+        const result = await fileBrowserOperationsRepository.deleteBatch({
+            items: nodes.map(node => ({rootID: node.rootID, path: node.path})),
+        });
+        const refreshTargets = new Map<string, TreeNode>();
+        for (const item of result.items) {
+            if (!item.result) {
+                continue;
+            }
+            fileBrowserSelection.removeSubtree(item.request.rootID, item.request.path);
+            addRefreshTarget(refreshTargets, item.request.rootID, parentRootRelativePath(item.request.path));
+        }
+        for (const target of refreshTargets.values()) {
+            await refreshNode(target);
+        }
+        if (result.failureCount > 0) {
+            const failures = result.items.filter(item => item.error).map(item =>
+                `${item.request.path}: ${item.error?.message ?? "批量删除失败"}`,
+            );
+            operationError.value = failures.join("；");
+            showMessage(escapeHtml(operationError.value), 6000, "error", "sforgeFileBrowserBatchDeleteError");
+        } else {
+            showMessage(`已删除 ${result.successCount} 项`, 3000);
+        }
+    } catch (error) {
+        reportOperationError(error);
+    } finally {
+        batchDeleting.value = false;
+    }
+}
+
+function addRefreshTarget(targets: Map<string, TreeNode>, rootID: string, path: string) {
+    const node = findRefreshTarget(rootID, path);
+    if (node && isFileBrowserContainer(node)) {
+        targets.set(node.key, node);
+    }
+}
+
+async function handleNodeDrop(payload: {event: DragEvent; node: TreeNode; target: TreeNode}) {
+    if (movingKey.value) {
+        return;
+    }
+    const source = parseFileBrowserDragData(payload.event.dataTransfer?.getData(FILE_BROWSER_DRAG_MIME));
+    const target = payload.target;
+    if (!source || !isFileBrowserContainer(target) || !target.root.exists || target.entry?.restricted ||
+        !getFileBrowserCapabilitiesForPath(target.root, target.path).write) {
+        reportOperationError(new Error("拖放来源或目标目录不具备移动条件"));
+        return;
+    }
+    const destinationPath = joinRootRelativePath(target.path, source.name);
+    if (source.rootID === target.rootID && source.kind === "directory" &&
+        (destinationPath === source.path || destinationPath.startsWith(`${source.path}/`))) {
+        reportOperationError(new Error("源目录与目标目录存在重叠"));
+        return;
+    }
+    operationError.value = "";
+    movingKey.value = source.rootID + ":" + source.path;
+    try {
+        await fileBrowserOperationsRepository.move({
+            sourceRootID: source.rootID,
+            sourcePath: source.path,
+            destinationRootID: target.rootID,
+            destinationPath,
+        });
+        const refreshTargets = new Map<string, TreeNode>();
+        addRefreshTarget(refreshTargets, source.rootID, parentRootRelativePath(source.path));
+        refreshTargets.set(target.key, target);
+        for (const refreshTarget of refreshTargets.values()) {
+            await refreshNode(refreshTarget);
+        }
+        const movedNode = findRefreshTarget(target.rootID, destinationPath);
+        if (movedNode) {
+            browser.selectNode(movedNode);
+        }
+        showMessage(`已移动：${escapeHtml(destinationPath)}`, 3000);
+    } catch (error) {
+        reportOperationError(error);
+    } finally {
+        movingKey.value = "";
     }
 }
 

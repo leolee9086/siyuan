@@ -87,4 +87,13 @@ func TestMoveCreatesParentsAndRejectsOverlapEscapeAndLinks(t *testing.T) {
 	if err = walker.Move(context.Background(), "target", walker, "destination-link/target"); !errors.Is(err, ErrPathTraversal) {
 		t.Fatalf("linked destination returned %v", err)
 	}
+	if err = walker.Move(context.Background(), "target", walker, "target-copy"); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.MkdirAll(filepath.Join(root, "other"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err = walker.Move(context.Background(), "other", walker, "target-copy"); !errors.Is(err, ErrPathExists) {
+		t.Fatalf("existing destination returned %v", err)
+	}
 }

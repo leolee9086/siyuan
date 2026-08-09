@@ -182,10 +182,13 @@ describe("FileBrowserGalleryTab", () => {
 
         const viewModes = ["瀑布流视图", "网格视图", "对齐视图", "列表视图", "表格视图"];
         for (const label of viewModes) {
-            host?.querySelector<HTMLButtonElement>(`button[aria-label='${label}']`)?.click();
-            await vi.waitFor(() => expect(host?.querySelector<HTMLButtonElement>(
-                `button[aria-label='${label}']`,
-            )?.getAttribute("aria-pressed")).toBe("true"));
+            const viewButton = host?.querySelector<HTMLButtonElement>(`button[aria-label='${label}']`);
+            if (!viewButton) {
+                throw new Error(`missing gallery view mode button: ${label}`);
+            }
+            expect(viewButton.classList.contains("block__icon--show")).toBe(true);
+            viewButton.click();
+            await vi.waitFor(() => expect(viewButton.getAttribute("aria-pressed")).toBe("true"));
         }
         expect(host?.querySelector(".sforge-file-gallery")?.getAttribute("data-layout-mode")).toBe("table");
         expect(host?.querySelector(".sforge-file-gallery-table-header")?.textContent).toContain("名称");
@@ -257,6 +260,26 @@ describe("FileBrowserGalleryTab", () => {
             allRoots: true, limit: 200, offset: 200,
         })));
         await vi.waitFor(() => expect(host?.textContent).toContain("已加载 2 / 2 个文件"));
+    });
+
+    it("distinguishes an empty filtered result from an empty directory", async () => {
+        vi.spyOn(fileBrowserRepository, "listRoots").mockResolvedValue([root]);
+        vi.spyOn(fileBrowserQueryRepository, "search").mockResolvedValue({
+            assets: [], totalCount: 0, pageCount: 0,
+        });
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileBrowserGalleryTab, {
+            app: {openAsset: vi.fn(), openTab: vi.fn(async () => undefined)},
+            file: {
+                rootID: root.id, path: "", name: "全部资源", scope: "global",
+                query: {allRoots: true, tags: ["blue"], orderBy: "updated"},
+            },
+        });
+        app.mount(host);
+
+        await vi.waitFor(() => expect(host?.textContent).toContain("没有匹配资源"));
+        expect(host?.textContent).not.toContain("此目录没有可展示的资源");
     });
 
     it("keeps a tag result source while leaving runtime extension filtering empty", async () => {

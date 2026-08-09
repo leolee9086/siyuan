@@ -1,0 +1,1 @@
+Web assets are copied here by research/build-native-cli.ps1 before compilation.

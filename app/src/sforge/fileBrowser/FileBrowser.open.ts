@@ -5,6 +5,7 @@ import type {AppFacade} from "./open/imports";
 import {FILE_BROWSER_PREVIEW_TAB_TYPE} from "./FileBrowser.preview";
 import {FILE_BROWSER_GALLERY_TAB_TYPE} from "./FileBrowser.gallery.constants";
 import {FILE_BROWSER_EDITOR_TAB_TYPE} from "./FileBrowser.editor.constants";
+import {supportsAssetMainTab} from "../../asset/assetFormat";
 /** 用途：文件统计、目录项和打开动作；使用范围：打开端口契约。 */
 import type {
     FileBrowserEntry,
@@ -14,10 +15,8 @@ import type {
 } from "./FileBrowser.types";
 
 function canUseAssetTab(stat: FileBrowserFileStat) {
-    const extension = stat.entry.extension ?? "";
-    const supportedKind = stat.previewKind === "image" || stat.previewKind === "audio" ||
-        stat.previewKind === "video" || stat.previewKind === "pdf";
-    return supportedKind && Constants.SIYUAN_ASSETS_EXTS.includes(extension);
+    return supportsAssetMainTab(stat.entry.name, stat.mediaType) &&
+        Constants.SIYUAN_ASSETS_EXTS.includes(stat.entry.extension ?? "");
 }
 
 function openRegisteredPreview(app: Pick<AppFacade, "openTab">, stat: FileBrowserFileStat) {

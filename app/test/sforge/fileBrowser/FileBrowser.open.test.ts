@@ -22,6 +22,7 @@ function repository(stat: FileBrowserFileStat): FileBrowserRepository {
         listDirectory: vi.fn(),
         statFile: vi.fn(async () => stat),
         previewText: vi.fn(),
+        inspectD5A: vi.fn(),
         readEditorFile: vi.fn(),
         writeEditorFile: vi.fn(),
     };

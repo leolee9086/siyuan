@@ -141,7 +141,7 @@
     color: var(--b3-theme-error);
 }
 
-@media (max-width: 600px) {
+@container file-gallery (max-width: 600px) {
     .sforge-file-gallery-scope__crumb {
         max-width: 110px;
     }

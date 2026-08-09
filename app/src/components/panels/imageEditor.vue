@@ -68,11 +68,10 @@
     <div class="asset__image-wrapper"
       :style="{ transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`, 'z-index': 0 }"
       ref="imageWrapper">
-      <img v-if="!imageLoadError" :src="currentImageSrc" @load="onImageLoadWithCtx(imageLoadedCtx, centerImage)"
-        @error="handleImageError" ref="imageElement" draggable="false" />
-      <div v-else class="asset__image-error" role="img" aria-label="图片预览不可用">
-        <svg aria-hidden="true"><use href="#iconImage" /></svg>
-        <span>图片预览不可用</span>
+      <img v-if="!imageLoadError && currentImageSrc" :src="currentImageSrc"
+        alt="图片预览" @load="handleImageLoad" @error="handleImageError" ref="imageElement" draggable="false" />
+      <div v-else class="asset__image-error" role="alert">
+        <span>{{ imageSourceError || "原图加载失败" }}</span>
       </div>
     </div>
   </div>
@@ -95,7 +94,7 @@ import { onImageLoadWithCtx } from "./imageEditor.onImageLoad";
 import { centerImageWithCtx, resetZoomWithCtx, setScaleWithCtx, zoomInWithCtx, zoomOutWithCtx } from "./imageEditor.zoom";
 import { createToolbarItems } from "./imageEditor.toolbarItem";
 import { handleWheelWithCtx } from "./imageEditor.wheel";
-import { getFileBrowserThumbnailURL, resolveAssetURL } from "../../asset/assetUrl";
+import { resolveAssetURL } from "../../asset/assetUrl";
 
 // 定义组件属性
 interface Props {
@@ -150,24 +149,36 @@ const imageElement = ref<HTMLImageElement>();
 const originImageElement = ref<HTMLImageElement>();
 
 // 计算图片源地址
-const imageSrc = ref(resolveAssetURL(props.src));
-const imageFallbackSrc = ref(getFileBrowserThumbnailURL(props.src));
-const imageSourceAttempt = ref(0);
+const imageSrc = ref("");
 const imageLoadError = ref(false);
-watch(() => props.src, value => {
-  imageSrc.value = resolveAssetURL(value);
-  imageFallbackSrc.value = getFileBrowserThumbnailURL(value);
-  imageSourceAttempt.value = 0;
-  imageLoadError.value = false;
-});
+const imageSourceError = ref("");
 
-const imageSource = computed(() => imageSourceAttempt.value === 0
-  ? imageSrc.value
-  : imageFallbackSrc.value || imageSrc.value);
+function setImageSource(value: string) {
+  imageLoadError.value = false;
+  imageSourceError.value = "";
+  try {
+    if (!value.trim()) {
+      throw new Error("原图地址为空");
+    }
+    imageSrc.value = resolveAssetURL(value);
+  } catch (error) {
+    imageSrc.value = "";
+    imageSourceError.value = error instanceof Error ? error.message : String(error);
+    imageLoadError.value = true;
+  }
+}
+
+setImageSource(props.src);
 
 // 去雾相关状态
 const showDehazePanel = ref(false);
 const showOriginalImage = ref(false);
+
+watch(() => props.src, value => {
+  setImageSource(value);
+  resetImage();
+  showOriginalImage.value = false;
+});
 
 
 // 计算是否有已处理的图像
@@ -179,19 +190,18 @@ const currentImageSrc = computed(() => {
   if (hasDehazedImage.value && processedImage.value) {
     if (showOriginalImage.value) {
       return imageSrc.value;
-    } else {
-      // 将canvas转换为DataURL
-      return processedImage.value instanceof HTMLCanvasElement ? processedImage.value.toDataURL() : imageSrc.value;
     }
+    // 处理结果只有 Canvas 才能作为处理后图片展示；类型异常必须暴露，不得回到原图伪装成功。
+    return processedImage.value.toDataURL();
   }
-  return imageSource.value;
+  return imageSrc.value;
 });
 
+const handleImageLoad = () => {
+  onImageLoadWithCtx(imageLoadedCtx, centerImage);
+};
+
 const handleImageError = () => {
-  if (imageSourceAttempt.value === 0 && imageFallbackSrc.value) {
-    imageSourceAttempt.value = 1;
-    return;
-  }
   imageLoadError.value = true;
 };
 const imageLoadedCtx = {

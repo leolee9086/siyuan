@@ -59,4 +59,17 @@ describe("shared file browser selection", () => {
         expect(selection.keys.value).toEqual([workspaceNode.key]);
         expect(selection.primaryKey.value).toBe(workspaceNode.key);
     });
+
+    it("removes a deleted subtree while retaining unrelated selections", () => {
+        const selection = createFileBrowserSelectionStore();
+        const makeItem = (path: string) => ({
+            key: JSON.stringify(["workspace", path]), rootID: "workspace", path,
+            kind: "file" as const, name: path.split("/").at(-1) ?? path,
+        });
+        selection.replaceAddress(makeItem("tree/a.txt"));
+        selection.items.value = [...selection.items.value, makeItem("tree/b.txt"), makeItem("other.txt")];
+        selection.removeSubtree("workspace", "tree");
+        expect(selection.items.value.map(item => item.path)).toEqual(["other.txt"]);
+        expect(selection.primaryKey.value).toBe(JSON.stringify(["workspace", "other.txt"]));
+    });
 });

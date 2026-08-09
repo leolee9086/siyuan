@@ -12,20 +12,14 @@ import (
 	"strings"
 	"unicode/utf16"
 	"unicode/utf8"
+
+	"github.com/siyuan-note/siyuan/kernel/assets"
 )
 
 const (
 	defaultPreviewBytes = 64 * 1024
 	maxPreviewBytes     = 1024 * 1024
 )
-
-var textExtensions = map[string]bool{
-	".c": true, ".cc": true, ".cpp": true, ".css": true, ".csv": true, ".go": true,
-	".h": true, ".hpp": true, ".html": true, ".ini": true, ".java": true, ".js": true,
-	".json": true, ".jsx": true, ".log": true, ".md": true, ".mjs": true, ".py": true,
-	".rs": true, ".scss": true, ".sh": true, ".sql": true, ".toml": true, ".ts": true,
-	".tsx": true, ".txt": true, ".vue": true, ".xml": true, ".yaml": true, ".yml": true,
-}
 
 type resolvedFile struct {
 	root     Root
@@ -66,23 +60,7 @@ func detectMediaType(path string) string {
 }
 
 func classifyPreview(mediaType, extension string) PreviewKind {
-	baseType := strings.ToLower(strings.TrimSpace(strings.Split(mediaType, ";")[0]))
-	switch {
-	case extension == ".pdf" || baseType == "application/pdf":
-		return PreviewKindPDF
-	case strings.HasPrefix(baseType, "image/"):
-		return PreviewKindImage
-	case strings.HasPrefix(baseType, "audio/"):
-		return PreviewKindAudio
-	case strings.HasPrefix(baseType, "video/"):
-		return PreviewKindVideo
-	case extension == ".d5a" || extension == ".d5mesh":
-		return PreviewKindD5A
-	case strings.HasPrefix(baseType, "text/") || textExtensions[extension]:
-		return PreviewKindText
-	default:
-		return PreviewKindBinary
-	}
+	return assets.Classify(extension, mediaType).PreviewKind
 }
 
 func statFromResolved(file resolvedFile) StatResult {

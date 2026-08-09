@@ -57,6 +57,7 @@ describe("FileBrowser tree menu", () => {
             createDirectory: vi.fn(async () => undefined),
             rename: vi.fn(async () => undefined),
             copy: vi.fn(async () => undefined),
+            delete: vi.fn(async () => undefined),
         };
         const node = makeNode({kind: "directory", name: "notes", path: "notes", parentKey: "", entry: {
             name: "notes", path: "notes", isDir: true, isSymlink: false, restricted: false,
@@ -65,14 +66,16 @@ describe("FileBrowser tree menu", () => {
 
         showFileBrowserTreeNodeMenu(new MouseEvent("contextmenu", {clientX: 12, clientY: 20}), node, actions);
         const labels = menuState.items.map(item => item.label);
-        expect(labels).toEqual(expect.arrayContaining(["新建目录", "重命名", "复制到..."]));
+        expect(labels).toEqual(expect.arrayContaining(["新建目录", "重命名", "复制到...", "删除"]));
         const item = (label: string) => menuState.items.find(candidate => candidate.label === label);
         await (item("新建目录")?.click as () => Promise<void>)();
         await (item("重命名")?.click as () => Promise<void>)();
         await (item("复制到...")?.click as () => Promise<void>)();
+        await (item("删除")?.click as () => Promise<void>)();
         expect(actions.createDirectory).toHaveBeenCalledWith(node);
         expect(actions.rename).toHaveBeenCalledWith(node);
         expect(actions.copy).toHaveBeenCalledWith(node);
+        expect(actions.delete).toHaveBeenCalledWith(node);
         expect(menuState.popup).toHaveBeenCalledWith({x: 12, y: 20});
     });
 
@@ -90,6 +93,7 @@ describe("FileBrowser tree menu", () => {
         showFileBrowserTreeNodeMenu(new MouseEvent("contextmenu"), node, {
             open: vi.fn(async () => undefined), refresh: vi.fn(async () => undefined),
             createDirectory: vi.fn(async () => undefined), rename: vi.fn(async () => undefined), copy: vi.fn(async () => undefined),
+            delete: vi.fn(async () => undefined),
         });
         const labels = menuState.items.map(item => item.label);
         expect(labels).not.toEqual(expect.arrayContaining(["新建目录", "重命名", "复制到..."]));

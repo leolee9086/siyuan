@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Babylon GLB Verification</title>
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #111416;
+        color: #f5f7f8;
+        font-family: system-ui, sans-serif;
+      }
+
+      #renderCanvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+
+      #status {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        max-width: min(520px, calc(100vw - 24px));
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-radius: 4px;
+        background: rgba(17, 20, 22, 0.9);
+        font-size: 12px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        pointer-events: none;
+      }
+
+      body[data-state="error"] #status {
+        border-color: #e45b5b;
+      }
+    </style>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+  </head>
+  <body data-state="loading">
+    <canvas id="renderCanvas"></canvas>
+    <output id="status">Loading Babylon.js and GLB...</output>
+    <script>
+      const canvas = document.getElementById("renderCanvas");
+      const status = document.getElementById("status");
+      const modelUrl = new URLSearchParams(location.search).get("url");
+
+      function fail(error) {
+        const message = error instanceof Error ? error.stack || error.message : String(error);
+        document.body.dataset.state = "error";
+        status.textContent = `FAILED\n${message}`;
+        window.__babylonVerification = { state: "error", message };
+      }
+
+      async function start() {
+        if (!modelUrl) {
+          throw new Error("Missing ?url=<GLB blob URL>");
+        }
+        if (!window.BABYLON) {
+          throw new Error("Babylon.js did not load");
+        }
+
+        const engine = new BABYLON.Engine(canvas, true, {
+          preserveDrawingBuffer: true,
+          stencil: true,
+        });
+        const scene = new BABYLON.Scene(engine);
+        scene.clearColor = new BABYLON.Color4(0.067, 0.078, 0.086, 1);
+
+        const camera = new BABYLON.ArcRotateCamera(
+          "verification-camera",
+          -Math.PI / 2,
+          Math.PI / 2.35,
+          10,
+          BABYLON.Vector3.Zero(),
+          scene,
+        );
+        camera.attachControl(canvas, true);
+        camera.lowerRadiusLimit = 0.001;
+        camera.wheelPrecision = 30;
+
+        const hemisphere = new BABYLON.HemisphericLight(
+          "hemisphere",
+          new BABYLON.Vector3(0.25, 1, 0.15),
+          scene,
+        );
+        hemisphere.intensity = 1.15;
+
+        const keyLight = new BABYLON.DirectionalLight(
+          "key-light",
+          new BABYLON.Vector3(-0.55, -1, -0.35),
+          scene,
+        );
+        keyLight.intensity = 1.4;
+
+        const startedAt = performance.now();
+        const result = await BABYLON.SceneLoader.ImportMeshAsync(
+          null,
+          "",
+          modelUrl,
+          scene,
+          undefined,
+          ".glb",
+        );
+        const loadMs = performance.now() - startedAt;
+        const renderMeshes = result.meshes.filter(
+          (mesh) => typeof mesh.getTotalVertices === "function" && mesh.getTotalVertices() > 0,
+        );
+        const bounds = scene.getWorldExtends((mesh) => renderMeshes.includes(mesh));
+        const size = bounds.max.subtract(bounds.min);
+        const center = bounds.min.add(size.scale(0.5));
+        const diagonal = Math.max(size.length(), 0.001);
+        camera.setTarget(center);
+        camera.radius = diagonal * 1.25;
+        camera.minZ = Math.max(diagonal / 10000, 0.001);
+        camera.maxZ = Math.max(diagonal * 100, 1000);
+
+        const materialCount = new Set(
+          renderMeshes.map((mesh) => mesh.material).filter(Boolean),
+        ).size;
+        const triangleCount = renderMeshes.reduce((sum, mesh) => {
+          const indexCount = mesh.getTotalIndices();
+          const elementCount = indexCount > 0 ? indexCount : mesh.getTotalVertices();
+          return sum + Math.floor(elementCount / 3);
+        }, 0);
+        const report = {
+          state: "ready",
+          engine: `Babylon.js ${BABYLON.Engine.Version}`,
+          loadMs,
+          meshes: renderMeshes.length,
+          triangles: triangleCount,
+          materials: materialCount,
+          textures: scene.textures.length,
+          bounds: {
+            min: bounds.min.asArray(),
+            max: bounds.max.asArray(),
+          },
+        };
+
+        window.__babylonVerification = report;
+        document.body.dataset.state = "ready";
+        status.textContent = [
+          `${report.engine} | READY`,
+          `${report.triangles.toLocaleString()} triangles | ${report.meshes} meshes`,
+          `${report.materials} materials | ${report.textures} textures | ${loadMs.toFixed(1)} ms`,
+        ].join("\n");
+
+        engine.runRenderLoop(() => scene.render());
+        addEventListener("resize", () => engine.resize());
+      }
+
+      start().catch(fail);
+    </script>
+  </body>
+</html>

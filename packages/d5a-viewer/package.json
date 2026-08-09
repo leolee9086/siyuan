@@ -1,0 +1,62 @@
+{
+  "name": "d5a-viewer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "d5-tool": "dist-cli/d5-tool.mjs"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run build:web && npm run build:cli",
+    "build:web": "tsc -b && vite build",
+    "build:cli": "vite build --config vite.cli.config.ts",
+    "cli": "node dist-cli/d5-tool.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "analyze:mesh": "node research/analyze-d5mesh.mjs",
+    "generate:d5m-templates": "node research/generate-d5m-templates.mjs",
+    "scan:d5m": "node research/scan-d5m-materials.mjs",
+    "select:d5m-samples": "node research/select-d5m-validation-samples.mjs",
+    "verify:cli-d5m": "npm run build:cli && node research/verify-d5m-cli.mjs",
+    "verify:cli-scene": "npm run build:cli && node research/verify-scene-cli.mjs",
+    "verify:cli-convert": "npm run build:cli && node research/verify-scene-cli-convert.mjs",
+    "verify:cli-dxf": "npm run build:cli && node research/verify-dxf-export.mjs",
+    "verify:cli-view": "npm run build && node research/verify-scene-cli-view.mjs && node research/verify-scene-cli-view.mjs C:/Users/al765/Downloads/_1-selection.glb",
+    "verify:batch-scene": "npm run build:cli && node research/verify-scene-batch.mjs",
+    "verify:interrupt-batch-scene": "npm run build:cli && node research/verify-scene-batch-interrupt.mjs",
+    "verify:cli-scene-highpoly": "npm run build:cli && node research/verify-scene-cli-highpoly.mjs",
+    "verify:interrupt-scene": "npm run build:cli && node research/verify-scene-cli-interrupt.mjs",
+    "build:native": "npm run build:web && powershell -NoProfile -ExecutionPolicy Bypass -File research/build-native-cli.ps1",
+    "verify:native": "npm run build:native && powershell -NoProfile -ExecutionPolicy Bypass -File research/verify-native-cli.ps1",
+    "verify:native-convert": "npm run build:native && node research/verify-native-convert.mjs",
+    "verify:d5m-profiles": "npm run build:cli && node research/verify-d5m-profile-matrix.mjs",
+    "verify:batch-d5m": "npm run build:cli && node research/verify-d5m-batch.mjs",
+    "verify:interrupt-d5m": "npm run build:cli && node research/verify-d5m-interrupt.mjs",
+    "verify:serve": "npm run build && node research/verify-cli-serve.mjs",
+    "scan:versions": "node research/scan-d5a-versions.mjs",
+    "check": "npm run test && npm run build"
+  },
+  "dependencies": {
+    "@zip.js/zip.js": "^2.8.11",
+    "gltf-validator": "^2.0.0-dev.3.10",
+    "lucide-react": "^1.27.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "three": "^0.185.1",
+    "utif": "^3.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.185.1",
+    "@vitejs/plugin-react": "^6.0.4",
+    "typescript": "~7.0.2",
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10"
+  }
+}

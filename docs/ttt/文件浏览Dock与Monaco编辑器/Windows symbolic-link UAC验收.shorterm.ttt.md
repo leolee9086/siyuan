@@ -30,3 +30,9 @@
 - [x] `scripts/test-windows-symlink-uac.ps1 -Race`：标准轮、junction 轮和 race 轮退出码均为 `0`，共 `52` 个 `PASS`、`0` 个 `SKIP`。
 - [x] pnpm `app/node_modules/vue` junction 的根入口与 `package.json` 中间入口单独通过，不与 symbolic-link 结果合并。
 - [x] 证据：`.dev-workspace/temp/go-test/windows-symlink-uac-20260807-094056-40312/evidence.json` 与同目录 `test.log`；`processElevated=true`、`strictSymbolicLink=true`、`raceRequested=true`、总退出码 `0`。
+
+## 2026-08-09 临时编译目录清理修正
+
+- [x] Git 历史核对确认 `83780c5354`（2026-08-07）首次引入本入口；每轮 UAC 测试会创建独立的 `go-build` 目录，但原脚本只保留日志/证据，没有删除 `GOTMPDIR` 与 `TEMP` 目录。
+- [x] 脚本现在在测试结束后删除本轮生成的 `go-build`、`temp`，并在 `evidence.json` 写入 `cleanupCompleted` 与 `cleanupErrors`；清理失败会使验收失败，不再静默留下缓存。
+- [x] 现有历史运行目录仅保留 `test.log`、`evidence.json` 和空的旧 `go-build` 目录，共 12 个文件、约 0.77 MB；`.tmp-gocache` 不存在。历史日志和证据不删除，便于追溯。

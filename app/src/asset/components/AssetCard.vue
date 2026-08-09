@@ -1,10 +1,10 @@
 <template>
     <div class="asset-card" :class="{ 'asset-card--selected': isSelected }" @click="handleClick">
-        <div class="asset-card__image" :class="{'asset-card__image--loading': isImage && !imageLoaded}">
-            <img v-if="isImage" :src="imageSource" :alt="item.hName" loading="lazy"
-                :class="{'asset-card__image-placeholder': imageError}" @load="onImageLoad" @error="onImageError" />
-            <div v-if="isImage && imageError" class="asset-card__image-fallback" role="img" aria-label="图片预览不可用">
-                <svg aria-hidden="true"><use href="#iconImage" /></svg>
+        <div class="asset-card__image">
+            <img v-if="isImage && !thumbnailError && !imageError" :src="thumbnailUrl" :alt="item.hName" loading="lazy"
+                @load="onImageLoad" @error="onImageError" />
+            <div v-else-if="isImage" class="asset-card__image-error" role="alert">
+                {{ thumbnailError || imageError || "缩略图加载失败" }}
             </div>
             <div v-if="!isImage" class="asset-card__icon">
                 <svg>
@@ -20,9 +20,9 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { isAssetImage, getAssetThumbnailUrl, getAssetIconHref } from "./AssetCard.utils";
+import {getAssetIconHref, isAssetThumbnail} from "./AssetCard.utils";
 import type { AssetItem } from "./AssetCard.types";
-import { EMPTY_IMAGE_DATA_URL, resolveAssetURL } from "../assetUrl";
+import { resolveAssetURL } from "../assetUrl";
 
 const props = defineProps<{
     item: AssetItem;
@@ -35,17 +35,30 @@ const emit = defineEmits<{
 }>();
 
 const imageHeight = ref(0);
-const imageError = ref(false);
-const imageLoaded = ref(false);
+const imageError = ref("");
+const thumbnailUrl = ref("");
+const thumbnailError = ref("");
 
-const isImage = computed(() => isAssetImage(props.item.path));
-const thumbnailUrl = computed(() => resolveAssetURL(props.item.thumbnailUrl ?? getAssetThumbnailUrl(props.item.path)));
-const imageSource = computed(() => imageError.value ? EMPTY_IMAGE_DATA_URL : thumbnailUrl.value);
+const isImage = computed(() => isAssetThumbnail(props.item.path));
 const iconHref = computed(() => getAssetIconHref(props.item.path));
 
-watch(thumbnailUrl, () => {
-    imageError.value = false;
-    imageLoaded.value = false;
+function resolveThumbnailUrl(value: string | undefined) {
+    thumbnailError.value = "";
+    imageError.value = "";
+    try {
+        if (!value?.trim()) {
+            throw new Error("缩略图地址为空");
+        }
+        thumbnailUrl.value = resolveAssetURL(value);
+    } catch (error) {
+        thumbnailUrl.value = "";
+        thumbnailError.value = error instanceof Error ? error.message : String(error);
+    }
+}
+
+watch(() => props.item.thumbnailUrl, resolveThumbnailUrl, {immediate: true});
+watch(() => props.item.path, () => {
+    imageError.value = "";
 });
 
 /** 图片加载完成 */
@@ -55,14 +68,12 @@ const onImageLoad = (e: Event) => {
     }
     const img = e.target;
     imageHeight.value = img.naturalHeight;
-    imageLoaded.value = true;
     emit("heightChange", img.offsetHeight);
 };
 
 /** 图片加载失败 */
 const onImageError = () => {
-    imageError.value = true;
-    imageLoaded.value = false;
+    imageError.value = "缩略图加载失败";
 };
 
 /** 点击卡片 */

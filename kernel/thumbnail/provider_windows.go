@@ -46,19 +46,16 @@ func (p *WindowsProvider) Generate(filePath string, width, height int) (data []b
 	}
 	defer ole.CoUninitialize()
 
-	// 尝试使用 IShellItemImageFactory 获取缩略图
+	// 只接受 IShellItemImageFactory 返回的真实缩略图。
+	// 失败时必须让后续 Provider 或请求方看到明确错误，不能把文件图标伪装成缩略图。
 	data, err = p.getThumbnailViaShellItem(filePath, width, height)
 	if err == nil && len(data) > 0 {
 		return data, nil
 	}
-
-	// 使用 ExtractAssociatedIcon 获取系统图标
-	data, err = p.getIconViaExtractAssociatedIcon(filePath)
-	if err == nil && len(data) > 0 {
-		return data, nil
+	if err == nil {
+		err = ErrProviderFailed
 	}
-
-	return nil, fmt.Errorf("failed to get thumbnail or icon for %s", filePath)
+	return nil, fmt.Errorf("failed to generate thumbnail for %s: %w", filePath, err)
 }
 
 // getThumbnailViaShellItem 使用 IShellItemImageFactory 获取缩略图
@@ -90,58 +87,6 @@ func (p *WindowsProvider) getThumbnailViaShellItem(filePath string, width, heigh
 	return hBitmapToPNG(hBitmap)
 }
 
-// getIconViaExtractAssociatedIcon 使用 ExtractAssociatedIcon 获取系统图标
-// 对应 .NET 的 Icon.ExtractAssociatedIcon
-func (p *WindowsProvider) getIconViaExtractAssociatedIcon(filePath string) ([]byte, error) {
-	// ExtractAssociatedIconW 需要可写的路径缓冲区和图标索引
-	// HICON ExtractAssociatedIconW(HINSTANCE hInst, LPWSTR pszIconPath, LPWORD piIcon)
-	pathBuffer := make([]uint16, 260)
-	copy(pathBuffer, syscall.StringToUTF16(filePath))
-
-	var iconIndex uint16 = 0
-
-	hIcon, _, _ := procExtractAssociatedIconW.Call(
-		0, // hInst: NULL
-		uintptr(unsafe.Pointer(&pathBuffer[0])),
-		uintptr(unsafe.Pointer(&iconIndex)),
-	)
-
-	if hIcon == 0 {
-		// 尝试使用 ExtractIconExW 提取大图标
-		return p.getIconViaExtractIconEx(filePath)
-	}
-	defer DestroyIcon(hIcon)
-
-	return hIconToPNG(hIcon)
-}
-
-// getIconViaExtractIconEx 使用 ExtractIconExW 获取大图标
-func (p *WindowsProvider) getIconViaExtractIconEx(filePath string) ([]byte, error) {
-	pathPtr, _ := syscall.UTF16PtrFromString(filePath)
-
-	var largeIcon, smallIcon uintptr
-
-	// 获取大图标
-	ret, _, _ := procExtractIconExW.Call(
-		uintptr(unsafe.Pointer(pathPtr)),
-		0, // 第一个图标
-		uintptr(unsafe.Pointer(&largeIcon)),
-		uintptr(unsafe.Pointer(&smallIcon)),
-		1, // 提取 1 个图标
-	)
-
-	if ret == 0 || largeIcon == 0 {
-		return nil, fmt.Errorf("ExtractIconExW failed")
-	}
-
-	if smallIcon != 0 {
-		DestroyIcon(smallIcon)
-	}
-	defer DestroyIcon(largeIcon)
-
-	return hIconToPNG(largeIcon)
-}
-
 // --- Win32 API Definitions ---
 
 var (
@@ -150,15 +95,11 @@ var (
 	modUser32  = syscall.NewLazyDLL("user32.dll")
 
 	procSHCreateItemFromParsingName = modShell32.NewProc("SHCreateItemFromParsingName")
-	procExtractAssociatedIconW      = modShell32.NewProc("ExtractAssociatedIconW")
-	procExtractIconExW              = modShell32.NewProc("ExtractIconExW")
 	procDeleteObject                = modGdi32.NewProc("DeleteObject")
 	procGetDC                       = modUser32.NewProc("GetDC")
 	procReleaseDC                   = modUser32.NewProc("ReleaseDC")
 	procGetDIBits                   = modGdi32.NewProc("GetDIBits")
 	procGetObject                   = modGdi32.NewProc("GetObjectW")
-	procDestroyIcon                 = modUser32.NewProc("DestroyIcon")
-	procGetIconInfo                 = modUser32.NewProc("GetIconInfo")
 )
 
 // SIIGBF flags
@@ -173,14 +114,6 @@ const (
 
 type SIZE struct {
 	cx, cy int32
-}
-
-type ICONINFO struct {
-	FIcon    int32
-	XHotspot uint32
-	YHotspot uint32
-	HbmMask  uintptr
-	HbmColor uintptr
 }
 
 // IShellItem
@@ -225,11 +158,6 @@ func DeleteObject(h HBITMAP) bool {
 	return ret != 0
 }
 
-func DestroyIcon(hIcon uintptr) bool {
-	ret, _, _ := procDestroyIcon.Call(hIcon)
-	return ret != 0
-}
-
 func createResultFromParsingName(path string) (*IShellItem, error) {
 	var item *IShellItem
 	guid := ole.NewGUID("43826d1e-e718-42ee-bc55-a1e261c37bfe")
@@ -253,37 +181,6 @@ func createResultFromParsingName(path string) (*IShellItem, error) {
 // hBitmapToPNG 将 HBITMAP 转换为 PNG
 func hBitmapToPNG(hBitmap HBITMAP) ([]byte, error) {
 	img, err := HBitmapToImage(hBitmap)
-	if err != nil {
-		return nil, err
-	}
-
-	buf := new(bytes.Buffer)
-	if err = png.Encode(buf, img); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-// hIconToPNG 将 HICON 转换为 PNG（保留透明度）
-func hIconToPNG(hIcon uintptr) ([]byte, error) {
-	var iconInfo ICONINFO
-	ret, _, _ := procGetIconInfo.Call(hIcon, uintptr(unsafe.Pointer(&iconInfo)))
-	if ret == 0 {
-		return nil, fmt.Errorf("GetIconInfo failed")
-	}
-
-	if iconInfo.HbmColor != 0 {
-		defer DeleteObject(HBITMAP(iconInfo.HbmColor))
-	}
-	if iconInfo.HbmMask != 0 {
-		defer DeleteObject(HBITMAP(iconInfo.HbmMask))
-	}
-
-	if iconInfo.HbmColor == 0 {
-		return nil, fmt.Errorf("no color bitmap in icon")
-	}
-
-	img, err := HBitmapToImage(HBITMAP(iconInfo.HbmColor))
 	if err != nil {
 		return nil, err
 	}

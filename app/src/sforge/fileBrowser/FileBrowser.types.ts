@@ -97,9 +97,44 @@ export interface FileBrowserCopyRequest {
     destinationPath: string;
 }
 
+/** 移动请求显式区分来源和目标授权根；目标路径包含被移动项名称。 */
+export interface FileBrowserMoveRequest {
+    sourceRootID: string;
+    sourcePath: string;
+    destinationRootID: string;
+    destinationPath: string;
+}
+
+/** 删除一个文件或目录树；根本身不是有效目标。 */
+export interface FileBrowserDeleteRequest extends FileBrowserFileRequest {}
+
+/** 一次有界的多选删除；每一项仍独立携带根内授权地址。 */
+export interface FileBrowserBatchDeleteRequest {
+    items: FileBrowserFileRequest[];
+}
+
+/** 批量操作中单项失败的稳定错误。 */
+export interface FileBrowserOperationFailure {
+    code: string;
+    message: string;
+}
+
+/** 批量删除保留输入项和逐项成功/失败结果。 */
+export interface FileBrowserBatchDeleteItemResult {
+    request: FileBrowserFileRequest;
+    result?: FileBrowserOperationResult;
+    error?: FileBrowserOperationFailure;
+}
+
+export interface FileBrowserBatchDeleteResult {
+    items: FileBrowserBatchDeleteItemResult[];
+    successCount: number;
+    failureCount: number;
+}
+
 /** 文件操作成功包络；不承载绝对物理路径。 */
 export interface FileBrowserOperationResult {
-    operation: "create-directory" | "rename" | "copy";
+    operation: "create-directory" | "rename" | "copy" | "move" | "delete";
     rootID?: string;
     path?: string;
     sourceRootID?: string;
@@ -110,6 +145,8 @@ export interface FileBrowserOperationResult {
     copiedDirectoryCount?: number;
     createdDirectoryCount?: number;
     copiedBytes?: number;
+    removedFileCount?: number;
+    removedDirectoryCount?: number;
 }
 
 /** 根内路径导航使用的稳定面包屑，不携带操作系统绝对路径。 */
@@ -139,6 +176,61 @@ export interface FileBrowserTextPreview {
     text: string;
     encoding: string;
     truncated: boolean;
+}
+
+/** D5A/D5Mesh parser summary used by the file-browser preview surface. */
+export interface FileBrowserD5AMeshSummary {
+    version: number;
+    sourceBytes: number;
+    triangleCount: number;
+    vertexCount: number;
+    descriptorCount: number;
+    geometryGroupCount: number;
+    metadataTriangleCount?: number;
+}
+
+/** One D5Mesh/material bundle discovered inside a D5A container. */
+export interface FileBrowserD5ABundleSummary {
+    id: string;
+    meshEntry: string;
+    infoEntry?: string;
+    status: string;
+    mesh?: FileBrowserD5AMeshSummary;
+    material?: {
+        title: string;
+        infoVersion?: number;
+        materialCount: number;
+        textureReferenceCount: number;
+    };
+    warnings: string[];
+}
+
+/** Versioned structural report from the migrated D5A domain package. */
+export interface FileBrowserD5AInspectionReport {
+    schemaVersion: number;
+    documentKind: string;
+    operation: string;
+    status: string;
+    format: string;
+    elapsedMs: number;
+    warnings: string[];
+    d5a?: {
+        variant: string;
+        entryCount: number;
+        fileEntryCount: number;
+        encryptedEntryCount: number;
+        compressedBytes: number;
+        uncompressedBytes: number;
+        groupInfoEntry?: string;
+        bundles: FileBrowserD5ABundleSummary[];
+    };
+}
+
+/** Root-relative D5A inspection response; absolute paths never cross the API. */
+export interface FileBrowserD5AInspectionResult {
+    rootID: string;
+    path: string;
+    report: FileBrowserD5AInspectionReport;
 }
 
 /** 编码后的本地编辑文档；文本内容来自已授权根的有界快照。 */
@@ -223,6 +315,7 @@ export interface FileBrowserRepository {
     listDirectory(request: FileBrowserListRequest): Promise<FileBrowserDirectoryPage>;
     statFile(request: FileBrowserFileRequest): Promise<FileBrowserFileStat>;
     previewText(request: FileBrowserPreviewRequest): Promise<FileBrowserTextPreview>;
+    inspectD5A(request: FileBrowserFileRequest): Promise<FileBrowserD5AInspectionResult>;
     readEditorFile(request: FileBrowserEditorReadRequest): Promise<FileBrowserEditorDocument>;
     writeEditorFile(request: FileBrowserEditorWriteRequest): Promise<FileBrowserEditorWriteResult>;
 }
@@ -232,6 +325,9 @@ export interface FileBrowserOperationRepository {
     createDirectory(request: FileBrowserCreateDirectoryRequest): Promise<FileBrowserOperationResult>;
     rename(request: FileBrowserRenameRequest): Promise<FileBrowserOperationResult>;
     copy(request: FileBrowserCopyRequest): Promise<FileBrowserOperationResult>;
+    move(request: FileBrowserMoveRequest): Promise<FileBrowserOperationResult>;
+    delete(request: FileBrowserDeleteRequest): Promise<FileBrowserOperationResult>;
+    deleteBatch(request: FileBrowserBatchDeleteRequest): Promise<FileBrowserBatchDeleteResult>;
 }
 
 /** 布局宿主绑定后的统一文件打开动作。 */
@@ -242,6 +338,14 @@ export type FileBrowserDirectoryOpener = (rootID: string, path: string, name: st
 
 /** 递归树节点分类。 */
 export type FileBrowserTreeNodeKind = "root" | "directory" | "file";
+
+/** 文件浏览器拖放载荷；由树/画廊产生，供移动和标签投递解析根内相对地址。 */
+export interface FileBrowserDragData {
+    rootID: string;
+    path: string;
+    kind: Exclude<FileBrowserTreeNodeKind, "root">;
+    name: string;
+}
 
 /** 容器节点的异步子项状态。 */
 export type FileBrowserTreeLoadState = "unloaded" | "loading" | "loaded" | "error";
@@ -309,6 +413,7 @@ export interface FileBrowserSelectionStore {
     replace(node: FileBrowserTreeNode): void;
     replaceAddress(item: FileBrowserSelectionItem): void;
     retainRoots(rootIDs: Set<string>): void;
+    removeSubtree(rootID: string, path: string): void;
     clear(): void;
 }
 

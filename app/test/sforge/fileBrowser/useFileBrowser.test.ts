@@ -59,6 +59,7 @@ function repository(overrides: Partial<FileBrowserRepository> = {}): FileBrowser
         previewText: vi.fn(async request => ({
             stat: await repository().statFile(request), text: "text", encoding: "utf-8", truncated: false,
         })),
+        inspectD5A: vi.fn(),
         ...overrides,
     };
 }

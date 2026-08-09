@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
-  "sourceHead": "a998ed3b66fa431a63e62dbd643133e606c0a92e",
+  "sourceHead": "24a729538dfd0e416040f173306beb8dd92637ef",
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
-  "upstreamTip": "f21c94468511dbc7ba567cd411c7cf58a1b42929",
+  "upstreamTip": "8ebcffa04ce16bab2a3b1b2b9f9b235485918101",
   "semanticVerified": {
     "count": 18,
     "shas": [
@@ -71,7 +71,7 @@
     ]
   },
   "pending": {
-    "count": 1150,
+    "count": 1176,
     "shas": [
       "ab15722b032a53257c3ed6c3f076014335f72abe",
       "5bc3cdc055c2eca1367c0d8180468a5805de3a37",
@@ -1218,15 +1218,41 @@
       "205b69e5bcfe1656df8afaec3fa92cb1fd33e591",
       "b9a100d017985bd1d0721fa55c8d096e839d0ee0",
       "c07cef482a89fc291b27c71f2dfa50fab27f3f60",
+      "719a6927d1c780fd7070babb62337561a9682083",
       "2f7b253902ccee7407c02166ea5b62bf9fb240a9",
       "c9211535bc14e8def2f4f43310b6de2c3049e869",
       "f5cceba601e6d41bf0c04a810e1d11ca0f991bf9",
       "dfd9c4b9ea09c88679a1e71031752435a6a94bc9",
-      "f21c94468511dbc7ba567cd411c7cf58a1b42929"
+      "f21c94468511dbc7ba567cd411c7cf58a1b42929",
+      "86a4f06051a8e89181d73fcb967c125ce297abf8",
+      "d3e6ece437c902ac20dad91b22e9c179e413ca39",
+      "0adb07602460e838b98e5df8569348433a4d8c34",
+      "48142676ef8d23bedecaa3aef6b4e92700ed8c26",
+      "3542530c505f13aa3fbd0343627409ca6c000dd2",
+      "9dd4b4a1fed3e4514a80085ea00933a03d8d38f1",
+      "6c8b00b07ede6f277bff88d5be43ec174fb4a4be",
+      "6ceb9c3007b40cd99dd96ec9e19ef43853dd3248",
+      "892167b0f7b97c3aaa5034653a09328ddbb1a890",
+      "59c8e27964941e73bc5b95150fac09ae4c442eb5",
+      "5a9761f0f97c6219c6abe899c489dbfce5a2ba80",
+      "d025b7677985a93d8c1d4e05c9819465a69d23ae",
+      "0bffce84b1dd38025cb08515adcc070870d5ec49",
+      "dd08975c765e4da3706e1c2828700ac098c9f1ae",
+      "edb53234ae734862b7549cf5b98dc8bb29a0c205",
+      "bc897d582c89b4eddceba9a5c6c178b4cd51db05",
+      "9da8c77a66d3ae37c1d4fe87622923e43acb7682",
+      "97a8b8c7766259cd40c96df37d082dbced9c631d",
+      "821ac1a8dcc0f24bedf564aa2bb99317c15012ba",
+      "4ad26acb57e699b3686c652f78b1112920a25c85",
+      "d2063db7f81b02843bcd23d1364b2e89ab2e4b95",
+      "cc1083dd8f2867a93f907e752c45e918bb0f4601",
+      "0847b93030b051a08460a0573fef693227ce333b",
+      "67662449334bb8bc257997081af3b58b15e223d8",
+      "8ebcffa04ce16bab2a3b1b2b9f9b235485918101"
     ]
   },
   "topologyLag": {
-    "count": 1166,
+    "count": 1192,
     "shas": [
       "484e3782963cae4095bfcd71add5e168fb51d5e3",
       "5437866299dba896b41b356abf4d28f059c9d89c",
@@ -2389,15 +2415,41 @@
       "205b69e5bcfe1656df8afaec3fa92cb1fd33e591",
       "b9a100d017985bd1d0721fa55c8d096e839d0ee0",
       "c07cef482a89fc291b27c71f2dfa50fab27f3f60",
+      "719a6927d1c780fd7070babb62337561a9682083",
       "2f7b253902ccee7407c02166ea5b62bf9fb240a9",
       "c9211535bc14e8def2f4f43310b6de2c3049e869",
       "f5cceba601e6d41bf0c04a810e1d11ca0f991bf9",
       "dfd9c4b9ea09c88679a1e71031752435a6a94bc9",
-      "f21c94468511dbc7ba567cd411c7cf58a1b42929"
+      "f21c94468511dbc7ba567cd411c7cf58a1b42929",
+      "86a4f06051a8e89181d73fcb967c125ce297abf8",
+      "d3e6ece437c902ac20dad91b22e9c179e413ca39",
+      "0adb07602460e838b98e5df8569348433a4d8c34",
+      "48142676ef8d23bedecaa3aef6b4e92700ed8c26",
+      "3542530c505f13aa3fbd0343627409ca6c000dd2",
+      "9dd4b4a1fed3e4514a80085ea00933a03d8d38f1",
+      "6c8b00b07ede6f277bff88d5be43ec174fb4a4be",
+      "6ceb9c3007b40cd99dd96ec9e19ef43853dd3248",
+      "892167b0f7b97c3aaa5034653a09328ddbb1a890",
+      "59c8e27964941e73bc5b95150fac09ae4c442eb5",
+      "5a9761f0f97c6219c6abe899c489dbfce5a2ba80",
+      "d025b7677985a93d8c1d4e05c9819465a69d23ae",
+      "0bffce84b1dd38025cb08515adcc070870d5ec49",
+      "dd08975c765e4da3706e1c2828700ac098c9f1ae",
+      "edb53234ae734862b7549cf5b98dc8bb29a0c205",
+      "bc897d582c89b4eddceba9a5c6c178b4cd51db05",
+      "9da8c77a66d3ae37c1d4fe87622923e43acb7682",
+      "97a8b8c7766259cd40c96df37d082dbced9c631d",
+      "821ac1a8dcc0f24bedf564aa2bb99317c15012ba",
+      "4ad26acb57e699b3686c652f78b1112920a25c85",
+      "d2063db7f81b02843bcd23d1364b2e89ab2e4b95",
+      "cc1083dd8f2867a93f907e752c45e918bb0f4601",
+      "0847b93030b051a08460a0573fef693227ce333b",
+      "67662449334bb8bc257997081af3b58b15e223d8",
+      "8ebcffa04ce16bab2a3b1b2b9f9b235485918101"
     ]
   },
   "reconciliation": {
-    "total": 1168,
+    "total": 1194,
     "stateCounts": {
       "topology-integrated": 2,
       "delivery-integrated": 16,
@@ -2406,7 +2458,7 @@
       "semantic-verified": 0,
       "audit-in-progress": 0,
       "audit-blocked": 0,
-      "audit-pending": 1150
+      "audit-pending": 1176
     },
     "semanticVerifiedPrefix": {
       "count": 6,

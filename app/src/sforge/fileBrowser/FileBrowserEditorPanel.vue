@@ -7,7 +7,53 @@
                 <span :title="file.path">{{ file.path }}</span>
             </div>
             <span v-if="documentData" class="sforge-file-editor__language">{{ documentData.language }}</span>
-            <span v-if="documentData" class="sforge-file-editor__encoding">{{ documentData.encoding }}</span>
+            <label v-if="documentData" class="sforge-file-editor__setting">
+                <span>换行</span>
+                <select v-model="preferences.wordWrap" aria-label="自动换行">
+                    <option value="off">关</option>
+                    <option value="on">开</option>
+                    <option value="wordWrapColumn">列</option>
+                    <option value="bounded">边界</option>
+                </select>
+            </label>
+            <label v-if="documentData" class="sforge-file-editor__setting">
+                <span>Tab</span>
+                <select v-model.number="preferences.tabSize" aria-label="Tab 宽度">
+                    <option v-for="size in [2, 4, 8]" :key="size" :value="size">{{ size }}</option>
+                </select>
+            </label>
+            <label v-if="documentData" class="sforge-file-editor__setting">
+                <span>字号</span>
+                <select v-model.number="preferences.fontSize" aria-label="字体大小">
+                    <option v-for="size in [11, 12, 13, 14, 16, 18]" :key="size" :value="size">{{ size }}</option>
+                </select>
+            </label>
+            <label v-if="documentData" class="sforge-file-editor__setting sforge-file-editor__setting--check">
+                <input v-model="preferences.minimap" type="checkbox" aria-label="缩略图" />
+                <span>缩略图</span>
+            </label>
+            <label v-if="documentData" class="sforge-file-editor__setting sforge-file-editor__setting--check">
+                <input v-model="preferences.autoSave" type="checkbox" aria-label="自动保存" :disabled="documentData.readOnly" />
+                <span>自动保存</span>
+            </label>
+            <label v-if="documentData && preferences.autoSave" class="sforge-file-editor__setting">
+                <span>延迟</span>
+                <select v-model.number="preferences.autoSaveDelay" aria-label="自动保存延迟">
+                    <option :value="500">0.5s</option>
+                    <option :value="1000">1s</option>
+                    <option :value="2000">2s</option>
+                    <option :value="5000">5s</option>
+                </select>
+            </label>
+            <label v-if="documentData" class="sforge-file-editor__setting">
+                <span>编码</span>
+                <select v-model="selectedEncoding" aria-label="文件编码" :disabled="documentData.readOnly">
+                    <option value="utf-8">UTF-8</option>
+                    <option value="utf-8-bom">UTF-8 BOM</option>
+                    <option value="utf-16le">UTF-16 LE</option>
+                    <option value="utf-16be">UTF-16 BE</option>
+                </select>
+            </label>
             <button v-if="documentData && !documentData.readOnly" type="button"
                 class="block__icon ariaLabel" aria-label="保存文件" :disabled="saving || loading || !dirty"
                 @click="saveDocument">
@@ -39,7 +85,7 @@
             </div>
         </div>
         <footer class="sforge-file-editor__footer">
-            <span>{{ statusText }}</span>
+            <span>{{ statusText }}{{ preferences.autoSave && !documentData?.readOnly ? " · 自动保存" : "" }}</span>
             <span v-if="documentData">{{ documentData.size }} bytes · revision {{ documentData.revision.slice(0, 12) }}</span>
         </footer>
     </section>
@@ -53,7 +99,15 @@ import {fileBrowserRepository} from "./FileBrowser.repository";
 /** 用途：延迟加载官方 Monaco 和 worker；使用范围：编辑器宿主初始化。 */
 import {loadFileBrowserMonaco, type FileBrowserMonaco} from "./FileBrowserEditor.monaco";
 /** 用途：编辑页签入口数据；使用范围：组件边界。 */
-import type {FileBrowserEditorDocument, FileBrowserEditorTabData} from "./FileBrowser.types";
+import {
+    loadFileBrowserEditorPreferences,
+    saveFileBrowserEditorPreferences,
+} from "./FileBrowserEditor.preferences";
+import type {
+    FileBrowserEditorDocument,
+    FileBrowserEditorEncoding,
+    FileBrowserEditorTabData,
+} from "./FileBrowser.types";
 
 const props = defineProps<{file: FileBrowserEditorTabData}>();
 const editorHost = ref<HTMLDivElement>();
@@ -64,6 +118,8 @@ const error = ref("");
 const conflict = ref(false);
 const dirty = ref(false);
 const editorReady = ref(false);
+const preferences = ref(loadFileBrowserEditorPreferences());
+const selectedEncoding = ref<FileBrowserEditorEncoding>("utf-8");
 const statusText = computed(() => {
     if (loading.value) {
         return "读取中";
@@ -89,11 +145,22 @@ let monaco: FileBrowserMonaco | undefined;
 let editor: MonacoEditor | undefined;
 let model: MonacoModel | undefined;
 let originalText = "";
+let originalEncoding: FileBrowserEditorEncoding = "utf-8";
 let loadRevision = 0;
+let disposed = false;
 let changeSubscription: {dispose: () => void} | undefined;
 let saveSubscription: {dispose: () => void} | undefined;
+let autoSaveTimer: ReturnType<typeof setTimeout> | undefined;
+
+function clearAutoSaveTimer() {
+    if (autoSaveTimer !== undefined) {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = undefined;
+    }
+}
 
 function disposeEditor() {
+    clearAutoSaveTimer();
     changeSubscription?.dispose();
     saveSubscription?.dispose();
     changeSubscription = undefined;
@@ -111,16 +178,44 @@ function editorURI(document: FileBrowserEditorDocument) {
 }
 
 function updateDirtyState() {
-    dirty.value = Boolean(model && model.getValue() !== originalText);
+    dirty.value = Boolean(model && (model.getValue() !== originalText || selectedEncoding.value !== originalEncoding));
+    scheduleAutoSave();
+}
+
+function applyEditorPreferences() {
+    editor?.updateOptions({
+        wordWrap: preferences.value.wordWrap,
+        tabSize: preferences.value.tabSize,
+        minimap: {enabled: preferences.value.minimap},
+        fontSize: preferences.value.fontSize,
+    });
+}
+
+function scheduleAutoSave() {
+    clearAutoSaveTimer();
+    if (disposed || !preferences.value.autoSave || documentData.value?.readOnly || !dirty.value || saving.value) {
+        return;
+    }
+    const requestRevision = loadRevision;
+    autoSaveTimer = setTimeout(() => {
+        autoSaveTimer = undefined;
+        if (!disposed && requestRevision === loadRevision) {
+            void saveDocument();
+        }
+    }, preferences.value.autoSaveDelay);
+}
+
+function toggleWordWrap() {
+    preferences.value.wordWrap = preferences.value.wordWrap === "off" ? "on" : "off";
 }
 
 async function mountEditor(document: FileBrowserEditorDocument, requestRevision: number) {
     await nextTick();
-    if (requestRevision !== loadRevision || !editorHost.value) {
+    if (disposed || requestRevision !== loadRevision || !editorHost.value) {
         return;
     }
     monaco = await loadFileBrowserMonaco();
-    if (requestRevision !== loadRevision || !editorHost.value) {
+    if (disposed || requestRevision !== loadRevision || !editorHost.value) {
         return;
     }
     model = monaco.editor.createModel(document.text, document.language, monaco.Uri.parse(editorURI(document)));
@@ -129,10 +224,11 @@ async function mountEditor(document: FileBrowserEditorDocument, requestRevision:
         readOnly: document.readOnly,
         automaticLayout: true,
         minimap: {enabled: false},
-        wordWrap: "on",
+        wordWrap: preferences.value.wordWrap,
+        tabSize: preferences.value.tabSize,
+        fontSize: preferences.value.fontSize,
         padding: {top: 12, bottom: 12},
         scrollBeyondLastLine: false,
-        fontSize: 13,
     });
     changeSubscription = model.onDidChangeContent(() => updateDirtyState());
     if (!document.readOnly) {
@@ -143,7 +239,15 @@ async function mountEditor(document: FileBrowserEditorDocument, requestRevision:
             run: () => saveDocument(),
         });
     }
+    editor.addAction({
+        id: "sforge.file-browser.toggle-word-wrap",
+        label: "切换自动换行",
+        keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.KeyZ],
+        contextMenuGroupId: "2_view",
+        run: () => toggleWordWrap(),
+    });
     editorReady.value = true;
+    applyEditorPreferences();
 }
 
 async function loadDocument() {
@@ -154,20 +258,24 @@ async function loadDocument() {
     conflict.value = false;
     dirty.value = false;
     documentData.value = undefined;
+    selectedEncoding.value = "utf-8";
+    originalEncoding = "utf-8";
     try {
         const document = await fileBrowserRepository.readEditorFile({rootID: props.file.rootID, path: props.file.path});
-        if (requestRevision !== loadRevision) {
+        if (disposed || requestRevision !== loadRevision) {
             return;
         }
         documentData.value = document;
         originalText = document.text;
+        selectedEncoding.value = document.encoding;
+        originalEncoding = document.encoding;
         await mountEditor(document, requestRevision);
     } catch (reason) {
-        if (requestRevision === loadRevision) {
+        if (!disposed && requestRevision === loadRevision) {
             error.value = reason instanceof Error ? reason.message : String(reason);
         }
     } finally {
-        if (requestRevision === loadRevision) {
+        if (!disposed && requestRevision === loadRevision) {
             loading.value = false;
         }
     }
@@ -177,21 +285,34 @@ async function saveDocument() {
     if (!documentData.value || documentData.value.readOnly || !model || saving.value || !dirty.value) {
         return;
     }
+    clearAutoSaveTimer();
     saving.value = true;
     error.value = "";
+    const textAtStart = model.getValue();
+    const encodingAtStart = selectedEncoding.value;
+    const saveRevision = loadRevision;
+    let saveSucceeded = false;
     try {
         const saved = await fileBrowserRepository.writeEditorFile({
             rootID: documentData.value.root.id,
             path: documentData.value.entry.path,
-            text: model.getValue(),
-            encoding: documentData.value.encoding,
+            text: textAtStart,
+            encoding: encodingAtStart,
             revision: documentData.value.revision,
         });
+        if (disposed || saveRevision !== loadRevision) {
+            return;
+        }
         documentData.value = {...documentData.value, ...saved};
-        originalText = model.getValue();
-        dirty.value = false;
+        originalText = textAtStart;
+        originalEncoding = encodingAtStart;
+        updateDirtyState();
         conflict.value = false;
+        saveSucceeded = true;
     } catch (reason) {
+        if (disposed || saveRevision !== loadRevision) {
+            return;
+        }
         const message = reason instanceof Error ? reason.message : String(reason);
         if (/changed externally|external|冲突|修改/i.test(message)) {
             conflict.value = true;
@@ -200,12 +321,33 @@ async function saveDocument() {
         }
     } finally {
         saving.value = false;
+        // updateDirtyState runs while saving is true and therefore deliberately
+        // does not schedule a timer. Re-arm only after a successful write when
+        // a local edit arrived while the request was in flight; failures and
+        // conflicts stay visible for an explicit retry instead of looping.
+        if (saveSucceeded && dirty.value) {
+            scheduleAutoSave();
+        }
     }
 }
 
+watch(preferences, value => {
+    saveFileBrowserEditorPreferences(value);
+    applyEditorPreferences();
+    scheduleAutoSave();
+}, {deep: true});
+watch(selectedEncoding, () => updateDirtyState());
 watch(() => `${props.file.rootID}\n${props.file.path}`, () => void loadDocument());
-onMounted(() => void loadDocument());
-onBeforeUnmount(disposeEditor);
+onMounted(() => {
+    disposed = false;
+    void loadDocument();
+});
+onBeforeUnmount(() => {
+    clearAutoSaveTimer();
+    disposed = true;
+    loadRevision += 1;
+    disposeEditor();
+});
 
 defineExpose({loadDocument, saveDocument});
 </script>

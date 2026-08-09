@@ -7,7 +7,12 @@ import type {
     FileBrowserEditorTabData,
     FileBrowserEntry,
     FileBrowserFileStat,
+	FileBrowserD5AInspectionReport,
+	FileBrowserD5AInspectionResult,
+	FileBrowserD5ABundleSummary,
+	FileBrowserD5AMeshSummary,
 	FileBrowserOperationResult,
+	FileBrowserBatchDeleteResult,
     FileBrowserGalleryTabData,
     FileBrowserPermission,
     FileBrowserRoot,
@@ -22,7 +27,7 @@ import type {
 import type {FileBrowserSearchRequest} from "./FileBrowser.query.types";
 
 /** @同步豁免: 类型守卫 */
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null;
 
 /** @同步豁免: 类型守卫 */
@@ -121,13 +126,19 @@ export const isFileBrowserEditorEncoding = (value: unknown): value is FileBrowse
     value === "utf-8" || value === "utf-8-bom" || value === "utf-16le" || value === "utf-16be";
 
 /** @同步豁免: 类型守卫 */
-const isEditorDocumentShape = (value: unknown): value is FileBrowserEditorDocument | FileBrowserEditorWriteResult =>
+const hasEditorDocumentFields = (value: unknown): value is Record<string, unknown> =>
     isRecord(value) && isFileBrowserRoot(value.root) && isFileBrowserEntry(value.entry) &&
     value.previewKind === "text" && typeof value.contentURL === "string" &&
     isFileBrowserEditorEncoding(value.encoding) && typeof value.size === "number" &&
     Number.isFinite(value.size) && value.size >= 0 && typeof value.updated === "number" &&
     Number.isFinite(value.updated) && typeof value.revision === "string" &&
     typeof value.readOnly === "boolean" && typeof value.language === "string";
+
+const isEditorDocumentShape = (value: unknown): value is FileBrowserEditorDocument =>
+    hasEditorDocumentFields(value) && typeof value.text === "string";
+
+const isEditorWriteResultShape = (value: unknown): value is FileBrowserEditorWriteResult =>
+    hasEditorDocumentFields(value);
 
 /** 严格校验编辑器读取响应。 */
 export function parseFileBrowserEditorDocument(value: unknown): FileBrowserEditorDocument {
@@ -139,7 +150,7 @@ export function parseFileBrowserEditorDocument(value: unknown): FileBrowserEdito
 
 /** 严格校验编辑器保存响应。 */
 export function parseFileBrowserEditorWriteResult(value: unknown): FileBrowserEditorWriteResult {
-    if (!isEditorDocumentShape(value)) {
+    if (!isEditorWriteResultShape(value)) {
         throw new Error("文件编辑器保存响应格式错误");
     }
     return value;
@@ -230,10 +241,68 @@ export function parseFileBrowserTextPreview(value: unknown): FileBrowserTextPrev
     };
 }
 
+function isFiniteNumber(value: unknown): value is number {
+    return typeof value === "number" && Number.isFinite(value);
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+    return isFiniteNumber(value) && Number.isInteger(value) && value >= 0;
+}
+
+function isD5MeshSummary(value: unknown): value is FileBrowserD5AMeshSummary {
+    return isRecord(value) && isFiniteNumber(value.version) && isFiniteNumber(value.sourceBytes) &&
+        isFiniteNumber(value.triangleCount) && isFiniteNumber(value.vertexCount) &&
+        isFiniteNumber(value.descriptorCount) && isFiniteNumber(value.geometryGroupCount) &&
+        (value.metadataTriangleCount === undefined || isFiniteNumber(value.metadataTriangleCount));
+}
+
+function isD5BundleSummary(value: unknown): value is FileBrowserD5ABundleSummary {
+    if (!isRecord(value) || typeof value.id !== "string" || typeof value.meshEntry !== "string" ||
+        (value.infoEntry !== undefined && typeof value.infoEntry !== "string") || typeof value.status !== "string" ||
+        !Array.isArray(value.warnings) || !value.warnings.every(item => typeof item === "string") ||
+        (value.mesh !== undefined && !isD5MeshSummary(value.mesh))) {
+        return false;
+    }
+    if (value.material === undefined) {
+        return true;
+    }
+    return isRecord(value.material) && typeof value.material.title === "string" &&
+        (value.material.infoVersion === undefined || isFiniteNumber(value.material.infoVersion)) &&
+        isFiniteNumber(value.material.materialCount) && isFiniteNumber(value.material.textureReferenceCount);
+}
+
+function isD5InspectionReport(value: unknown): value is FileBrowserD5AInspectionReport {
+    if (!isRecord(value) || !isFiniteNumber(value.schemaVersion) || typeof value.documentKind !== "string" ||
+        typeof value.operation !== "string" || typeof value.status !== "string" || typeof value.format !== "string" ||
+        !isFiniteNumber(value.elapsedMs) || !Array.isArray(value.warnings) ||
+        !value.warnings.every(item => typeof item === "string")) {
+        return false;
+    }
+    if (value.d5a === undefined) {
+        return true;
+    }
+    return isRecord(value.d5a) && typeof value.d5a.variant === "string" &&
+        isFiniteNumber(value.d5a.entryCount) && isFiniteNumber(value.d5a.fileEntryCount) &&
+        isFiniteNumber(value.d5a.encryptedEntryCount) && isFiniteNumber(value.d5a.compressedBytes) &&
+        isFiniteNumber(value.d5a.uncompressedBytes) &&
+        (value.d5a.groupInfoEntry === undefined || typeof value.d5a.groupInfoEntry === "string") &&
+        Array.isArray(value.d5a.bundles) && value.d5a.bundles.every(isD5BundleSummary);
+}
+
+/** 校验迁移 D5A 包的结构报告，拒绝把任意 JSON 直接渲染进预览页。 */
+export function parseFileBrowserD5AInspection(value: unknown): FileBrowserD5AInspectionResult {
+    if (!isRecord(value) || typeof value.rootID !== "string" || typeof value.path !== "string" ||
+        !isD5InspectionReport(value.report)) {
+        throw new Error("D5A 结构报告响应格式错误");
+    }
+    return {rootID: value.rootID, path: value.path, report: value.report};
+}
+
 /** 把文件操作成功响应收窄为不含绝对路径的稳定包络。 */
 export function parseFileBrowserOperationResult(value: unknown): FileBrowserOperationResult {
     if (!isRecord(value) ||
-        (value.operation !== "create-directory" && value.operation !== "rename" && value.operation !== "copy")) {
+        (value.operation !== "create-directory" && value.operation !== "rename" && value.operation !== "copy" &&
+            value.operation !== "move" && value.operation !== "delete")) {
         throw new Error("文件操作响应格式错误");
     }
     const stringFields = ["rootID", "path", "sourceRootID", "sourcePath", "destinationRootID", "destinationPath"] as const;
@@ -242,7 +311,8 @@ export function parseFileBrowserOperationResult(value: unknown): FileBrowserOper
             throw new Error(`文件操作响应格式错误：${field} 应为字符串`);
         }
     }
-    const numberFields = ["copiedFileCount", "copiedDirectoryCount", "createdDirectoryCount", "copiedBytes"] as const;
+    const numberFields = ["copiedFileCount", "copiedDirectoryCount", "createdDirectoryCount", "copiedBytes",
+        "removedFileCount", "removedDirectoryCount"] as const;
     for (const field of numberFields) {
         if (value[field] !== undefined && (typeof value[field] !== "number" || !Number.isFinite(value[field]) || value[field] < 0)) {
             throw new Error(`文件操作响应格式错误：${field} 应为非负有限数字`);
@@ -260,5 +330,46 @@ export function parseFileBrowserOperationResult(value: unknown): FileBrowserOper
         ...(typeof value.copiedDirectoryCount === "number" ? {copiedDirectoryCount: value.copiedDirectoryCount} : {}),
         ...(typeof value.createdDirectoryCount === "number" ? {createdDirectoryCount: value.createdDirectoryCount} : {}),
         ...(typeof value.copiedBytes === "number" ? {copiedBytes: value.copiedBytes} : {}),
+        ...(typeof value.removedFileCount === "number" ? {removedFileCount: value.removedFileCount} : {}),
+        ...(typeof value.removedDirectoryCount === "number" ? {removedDirectoryCount: value.removedDirectoryCount} : {}),
+    };
+}
+
+/** 校验批量删除的逐项结果，避免把服务端任意 JSON 交给选择状态。 */
+export function parseFileBrowserBatchDeleteResult(value: unknown): FileBrowserBatchDeleteResult {
+    if (!isRecord(value) || !Array.isArray(value.items) || !isNonNegativeInteger(value.successCount) ||
+        !isNonNegativeInteger(value.failureCount) || value.successCount + value.failureCount !== value.items.length) {
+        throw new Error("批量删除响应格式错误");
+    }
+    const items = value.items.map(item => {
+        if (!isRecord(item) || !isRecord(item.request) || typeof item.request.rootID !== "string" ||
+            typeof item.request.path !== "string" || (item.result === undefined && item.error === undefined) ||
+            (item.result !== undefined && item.error !== undefined)) {
+            throw new Error("批量删除响应格式错误");
+        }
+        let result: FileBrowserOperationResult | undefined;
+        if (item.result !== undefined) {
+            result = parseFileBrowserOperationResult(item.result);
+            if (result.operation !== "delete") {
+                throw new Error("批量删除响应格式错误：操作类型错误");
+            }
+        }
+        let error: {code: string; message: string} | undefined;
+        if (item.error !== undefined) {
+            if (!isRecord(item.error) || typeof item.error.code !== "string" || typeof item.error.message !== "string") {
+                throw new Error("批量删除响应格式错误：错误项格式错误");
+            }
+            error = {code: item.error.code, message: item.error.message};
+        }
+        return {
+            request: {rootID: item.request.rootID, path: item.request.path},
+            ...(result ? {result} : {}),
+            ...(error ? {error} : {}),
+        };
+    });
+    return {
+        items,
+        successCount: value.successCount,
+        failureCount: value.failureCount,
     };
 }

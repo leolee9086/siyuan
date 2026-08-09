@@ -3,7 +3,6 @@ package filebrowser
 import (
 	"context"
 	"errors"
-	"path/filepath"
 
 	"github.com/siyuan-note/siyuan/kernel/fswalk"
 )
@@ -32,4 +31,6 @@ func readDirectorySnapshot(directory string) ([]directorySnapshotEntry, error) {
 func boundedIOWorkers(jobCount int) int { return fswalk.RecommendedWorkers(jobCount) }
 
 // resolvePathTarget 属于授权根解析阶段；进入 fswalk.New 后仅使用相对路径接口。
-func resolvePathTarget(path string) (string, error) { return filepath.EvalSymlinks(path) }
+// 解析实现统一由 fswalk 提供，避免 Windows 下 filepath.EvalSymlinks 与
+// 原生目录句柄行为不一致。
+func resolvePathTarget(path string) (string, error) { return fswalk.ResolvePathTarget(path) }

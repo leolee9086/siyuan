@@ -33,14 +33,17 @@ function getAssetBaseURL() {
     const documentBase = typeof document !== "undefined" ? document.baseURI : "";
     const baseElement = typeof document !== "undefined" ? document.getElementById("baseURL") : null;
     const configuredBase = baseElement?.getAttribute("href")?.trim() || "";
-    const fallback = documentBase || (typeof window !== "undefined" ? window.location.origin : "http://localhost");
+    const runtimeBase = documentBase || (typeof window !== "undefined" ? window.location.origin : "");
+    if (!runtimeBase) {
+        throw new Error("资源 URL 缺少运行时基地址");
+    }
     if (!configuredBase) {
-        return fallback;
+        return runtimeBase;
     }
     try {
-        return new URL(configuredBase, fallback).href;
-    } catch {
-        return fallback;
+        return new URL(configuredBase, runtimeBase).href;
+    } catch (error) {
+        throw new Error(`资源基地址无效: ${configuredBase}`, {cause: error});
     }
 }
 
@@ -58,9 +61,15 @@ function getApplicationOrigin() {
     const base = getAssetBaseURL();
     try {
         const origin = new URL(base).origin;
-        return origin && origin !== "null" ? origin : base;
-    } catch {
-        return base;
+        if (!origin || origin === "null") {
+            throw new Error("资源 URL 缺少有效应用 origin");
+        }
+        return origin;
+    } catch (error) {
+        if (error instanceof Error && error.message === "资源 URL 缺少有效应用 origin") {
+            throw error;
+        }
+        throw new Error(`资源基地址缺少有效应用 origin: ${base}`, {cause: error});
     }
 }
 
@@ -96,19 +105,13 @@ function normalizeLegacyFileBrowserPath(value: string) {
 }
 
 /**
- * SACAssetsManager 使用的透明像素占位；图片地址异步切换或失效时保持卡片尺寸稳定。
- */
-export const EMPTY_IMAGE_DATA_URL =
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAgAB/ax5LIAAAAAASUVORK5CYII=";
-
-/**
  * 将资源标识解析为可直接交给浏览器的 URL。
  * @同步豁免: 需要绝对同步的DOM访问 - 图片/媒体元素在渲染时必须立即取得 src，异步化会导致首帧使用错误地址。
  */
 export function resolveAssetURL(value: string) {
     const trimmed = value.trim();
     if (!trimmed) {
-        return value;
+        throw new Error("资源地址为空");
     }
     // Windows 路径的盘符冒号不是 URL scheme；桌面端仍需把它转换为合法 file URL。
     if (isWindowsAbsolutePath(trimmed)) {
@@ -131,71 +134,13 @@ export function resolveAssetURL(value: string) {
     if (trimmed.startsWith("/")) {
         try {
             return new URL(trimmed, `${getApplicationOrigin().replace(/\/$/, "")}/`).href;
-        } catch {
-            return value;
+        } catch (error) {
+            throw new Error(`资源地址无效: ${value}`, {cause: error});
         }
     }
     try {
         return new URL(value, getAssetBaseURL()).href;
-    } catch {
-        return value;
+    } catch (error) {
+        throw new Error(`资源地址无效: ${value}`, {cause: error});
     }
-}
-
-/**
- * 作用：解码内容 URL 的一个路径段。
- * 意图：兼容中文、空格和旧页签中的不完整百分号编码，同时保留不可解码输入供后续校验。
- * 调用时机：解析文件浏览器内容地址以构造同根缩略图请求时。
- */
-function decodeAssetPathSegment(value: string) {
-    try {
-        return decodeURIComponent(value);
-    } catch {
-        return value;
-    }
-}
-
-/**
- * 从文件浏览器内容地址提取授权根和根内路径。
- * 意图：图片查看器回退到缩略图时仍使用同一根边界，不把本地绝对路径暴露给前端。
- */
-function parseFileBrowserContentURL(value: string) {
-    const resolved = resolveAssetURL(value);
-    try {
-        const parsed = new URL(resolved, getApplicationOrigin());
-        if (parsed.origin !== getApplicationOrigin()) {
-            return undefined;
-        }
-        const prefix = "/api/s-forge/file-browser/content/";
-        if (!parsed.pathname.startsWith(prefix)) {
-            return undefined;
-        }
-        const segments = parsed.pathname.slice(prefix.length).split("/").filter(Boolean);
-        if (segments.length < 2) {
-            return undefined;
-        }
-        const rootID = decodeAssetPathSegment(segments.shift() ?? "");
-        const path = segments.map(decodeAssetPathSegment).join("/");
-        return rootID && path ? {rootID, path} : undefined;
-    } catch {
-        return undefined;
-    }
-}
-
-/**
- * 为文件浏览器的原图内容地址生成同源缩略图地址。
- * 参考 SACAssetsManager：原图用于大图查看，缩略图仅用于加载失败或尺寸受限的回退路径。
- * @同步豁免: 性能考虑 - 图片元素渲染期间必须立即取得稳定的 src，异步返回会产生首帧空地址和布局抖动。
- */
-export function getFileBrowserThumbnailURL(value: string, size = 1024) {
-    const file = parseFileBrowserContentURL(value);
-    if (!file) {
-        return undefined;
-    }
-    const params = new URLSearchParams({
-        rootID: file.rootID,
-        path: file.path,
-        size: String(Math.max(1, Math.round(size))),
-    });
-    return resolveAssetURL(`/api/s-forge/file-browser/thumbnail?${params.toString()}`);
 }

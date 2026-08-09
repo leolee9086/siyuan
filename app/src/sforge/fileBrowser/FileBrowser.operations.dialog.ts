@@ -1,5 +1,6 @@
 /** 用途：复用应用标准 Dialog；使用范围：文件树写操作的输入边界。 */
 import {Dialog} from "../../dialog";
+import {confirmDialog} from "../../dialog/confirmDialog";
 /** 用途：防止路径和根名称进入 innerHTML；使用范围：操作对话框文案。 */
 import {escapeAttr, escapeHtml} from "../../util/DOM/escape";
 import type {FileBrowserRoot} from "./FileBrowser.types";
@@ -14,6 +15,20 @@ interface TextDialogOptions {
     label: string;
     value?: string;
     placeholder?: string;
+}
+
+/** 使用应用统一的破坏性确认框，并把取消/关闭转换为明确的 false。 */
+export function requestFileBrowserConfirmation(title: string, text: string): Promise<boolean> {
+    return new Promise(resolve => {
+        let settled = false;
+        const settle = (value: boolean) => {
+            if (!settled) {
+                settled = true;
+                resolve(value);
+            }
+        };
+        confirmDialog(title, text, () => settle(true), () => settle(false), true);
+    });
 }
 
 function resolveDialogInput(dialog: Dialog, selector: string) {

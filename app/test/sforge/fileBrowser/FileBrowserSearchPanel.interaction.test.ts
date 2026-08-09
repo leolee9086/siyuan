@@ -19,6 +19,24 @@ afterEach(() => {
 });
 
 describe("FileBrowserSearchPanel", () => {
+    it("keeps advanced color controls out of the layout until color filtering is enabled", async () => {
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileBrowserSearchPanel, {
+            roots: [root], loading: false, error: "", onSearch: vi.fn(),
+        });
+        app.mount(host);
+
+        expect(host.querySelector(".sforge-file-search__color-line")).toBeNull();
+        expect(host.querySelector(".sforge-file-search__facet-rainbow")).toBeTruthy();
+        const colorFacet = host.querySelector<HTMLButtonElement>("button[aria-label='颜色筛选']");
+        expect(colorFacet?.getAttribute("aria-expanded")).toBe("false");
+        colorFacet?.click();
+        await vi.waitFor(() => expect(host?.querySelector(".sforge-file-search__color-line")).toBeTruthy());
+        expect(host.querySelector(".sforge-file-search__color-picker")).toBeTruthy();
+        expect(colorFacet?.getAttribute("aria-expanded")).toBe("true");
+    });
+
     it("emits tag, RGB tolerance, palette ratio and circular Hue filters", async () => {
         const search = vi.fn();
         host = document.createElement("div");
@@ -40,7 +58,8 @@ describe("FileBrowserSearchPanel", () => {
         };
         setInput("input[type='search']", "hero");
         setInput("input[aria-label='标签筛选']", "red, blue");
-        input("input[aria-label='启用颜色检索']")?.click();
+        host.querySelector<HTMLButtonElement>("button[aria-label='颜色筛选']")?.click();
+        await vi.waitFor(() => expect(host?.querySelector(".sforge-file-search__color-line")).toBeTruthy());
         setInput("input[aria-label='RGB 目标颜色']", "#ff0080");
         setInput("input[aria-label='颜色容差']", "12");
         setInput("input[aria-label='最小调色板比例']", "0.5");

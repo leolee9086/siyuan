@@ -2,6 +2,7 @@ import {afterEach, describe, expect, it, vi} from "vitest";
 import {createApp, nextTick, type App as VueApp} from "vue";
 import FileBrowserPanel from "../../../src/sforge/fileBrowser/FileBrowserPanel.vue";
 import {fileBrowserRepository} from "../../../src/sforge/fileBrowser/FileBrowser.repository";
+import {fileBrowserOperationsRepository} from "../../../src/sforge/fileBrowser/FileBrowser.operations.repository";
 import {fileBrowserSelection} from "../../../src/sforge/fileBrowser/FileBrowser.selection";
 import type {
     FileBrowserDirectoryPage,
@@ -135,5 +136,59 @@ describe("file browser panel interaction", () => {
             ?.dispatchEvent(new MouseEvent("click", {bubbles: true}));
         await nextTick();
         expect(host.querySelectorAll("[role='group']")).toHaveLength(0);
+    });
+
+    it("moves a dropped file into a directory and refreshes both sides", async () => {
+        let moved = false;
+        vi.spyOn(fileBrowserRepository, "listRoots").mockResolvedValue([workspace]);
+        const listDirectory = vi.spyOn(fileBrowserRepository, "listDirectory").mockImplementation(async request => {
+            const entries: FileBrowserEntry[] = request.path === ""
+                ? [
+                    {name: "target", path: "target", isDir: true, isSymlink: false, restricted: false,
+                        hidden: false, size: 0, updated: 1, childFileCount: moved ? 1 : 0,
+                        childDirectoryCount: 0, childCountKnown: false},
+                    ...(!moved ? [{name: "source.txt", path: "source.txt", isDir: false, isSymlink: false,
+                        restricted: false, hidden: false, size: 7, updated: 1, extension: ".txt"}] : []),
+                ]
+                : moved ? [{name: "source.txt", path: "target/source.txt", isDir: false, isSymlink: false,
+                    restricted: false, hidden: false, size: 7, updated: 1, extension: ".txt"}] : [];
+            return {
+                root: workspace, path: request.path, entries, total: entries.length,
+                fileCount: entries.filter(entry => !entry.isDir).length,
+                directoryCount: entries.filter(entry => entry.isDir).length,
+                offset: 0, limit: 200, hasMore: false,
+            };
+        });
+        const move = vi.spyOn(fileBrowserOperationsRepository, "move").mockImplementation(async request => {
+            moved = true;
+            return {operation: "move", ...request};
+        });
+        const openTab = vi.fn(async () => undefined);
+        host = document.createElement("div");
+        document.body.append(host);
+        mountedApp = createApp(FileBrowserPanel, {app: {openAsset: vi.fn(), openTab}});
+        mountedApp.mount(host);
+
+        await vi.waitFor(() => expect(host?.textContent).toContain("source.txt"));
+        const targetRow = Array.from(host.querySelectorAll<HTMLElement>("[role='treeitem']"))
+            .find(row => row.textContent?.includes("target"));
+        expect(targetRow).toBeDefined();
+        targetRow?.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+        await vi.waitFor(() => expect(listDirectory).toHaveBeenCalledWith(expect.objectContaining({path: "target"})));
+        const dataTransfer = {
+            getData: vi.fn(() => JSON.stringify({rootID: "workspace", path: "source.txt", kind: "file", name: "source.txt"})),
+        };
+        const drop = new Event("drop", {bubbles: true, cancelable: true});
+        Object.defineProperty(drop, "dataTransfer", {value: dataTransfer});
+        targetRow?.dispatchEvent(drop);
+
+        await vi.waitFor(() => expect(move).toHaveBeenCalledWith({
+            sourceRootID: "workspace", sourcePath: "source.txt",
+            destinationRootID: "workspace", destinationPath: "target/source.txt",
+        }));
+        await vi.waitFor(() => expect(listDirectory.mock.calls.filter(([request]) => request.path === "target")).toHaveLength(2));
+        expect(Array.from(host.querySelectorAll<HTMLElement>("[role='treeitem']"))
+            .some(row => row.getAttribute("title")?.startsWith("target/source.txt"))).toBe(true);
+        expect(host.querySelector(".sforge-file-browser__error")?.textContent ?? "").not.toContain("移动");
     });
 });

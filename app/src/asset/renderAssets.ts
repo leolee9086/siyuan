@@ -32,6 +32,28 @@ const isTextFile = (ext: string) => {
 const getPreviewThumbnailURL = (pathString: string, size: number) =>
     resolveAssetURL(`/api/s-forge/thumbnail?path=${encodeURIComponent(pathString)}&size=${size}`);
 
+let previewImageErrorHandlerInstalled = false;
+
+function ensurePreviewImageErrorHandler() {
+    if (previewImageErrorHandlerInstalled || typeof document === "undefined") {
+        return;
+    }
+    document.addEventListener("error", event => {
+        const target = event.target;
+        if (!(target instanceof HTMLImageElement) || !target.hasAttribute("data-sforge-preview-image")) {
+            return;
+        }
+        const error = document.createElement("span");
+        error.setAttribute("role", "alert");
+        error.style.color = "var(--b3-theme-error)";
+        error.textContent = target.getAttribute("data-sforge-preview-image") === "thumbnail"
+            ? "缩略图加载失败"
+            : "资源预览加载失败";
+        target.replaceWith(error);
+    }, true);
+    previewImageErrorHandlerInstalled = true;
+}
+
 /**
  * 渲染资源预览 HTML
  * 
@@ -51,6 +73,7 @@ export const renderAssetsPreview = (pathString: string) => {
     if (!pathString) {
         return "";
     }
+    ensurePreviewImageErrorHandler();
     const type = pathPosix().extname(pathString).toLowerCase();
 
     // 图片：使用缩略图 API + 元信息面板
@@ -63,7 +86,7 @@ export const renderAssetsPreview = (pathString: string) => {
         loadAssetMetaPreview(pathString, metaId);
 
         return `<div style="display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%; overflow: auto;">
-            <img style="max-height: 200px; max-width: 100%; object-fit: contain;" src="${thumbnailUrl}" data-original="${pathString}">
+            <img style="max-height: 200px; max-width: 100%; object-fit: contain;" src="${thumbnailUrl}" data-original="${pathString}" data-sforge-preview-image="thumbnail" alt="${escapeHtml(pathPosix().basename(pathString))}">
             <div id="${metaId}" style="width: 100%; margin-top: 8px; font-size: 12px;"></div>
         </div>`;
     }
@@ -94,7 +117,7 @@ export const renderAssetsPreview = (pathString: string) => {
     // 其他文件：使用缩略图 API 获取文件图标
     const thumbnailUrl = getPreviewThumbnailURL(pathString, 256);
     return `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
-        <img style="max-width: 128px; max-height: 128px;" src="${thumbnailUrl}">
+        <img style="max-width: 128px; max-height: 128px;" src="${thumbnailUrl}" data-sforge-preview-image="thumbnail" alt="${escapeHtml(pathPosix().basename(pathString))}">
         <div style="margin-top: 8px; color: var(--b3-theme-on-surface); font-size: 12px; word-break: break-all; text-align: center; max-width: 100%;">
             ${escapeHtml(pathPosix().basename(pathString))}
         </div>
@@ -161,10 +184,10 @@ const fetchAssetMeta = async (path: string) => {
 
 /** 确保获取完整的素材元数据（如果缺失则尝试修复） */
 const ensureAssetMeta = async (path: string) => {
-    // 1. 获取现有元数据
+    // 1. 获取现有元数据；不存在时继续走真实提取流程，不构造空对象。
     const getResult = await fetchAssetMeta(path);
-    let meta = getResult.data;
-    const metaMissing = !meta?.width || !meta?.fileSize;
+    let meta = getResult.code === 0 && getResult.data ? getResult.data : undefined;
+    const metaMissing = !meta || meta.width === undefined || meta.fileSize === undefined;
     const palettes = meta?.palettes;
 
     // 2. 如果数据完整，直接返回
@@ -179,20 +202,25 @@ const ensureAssetMeta = async (path: string) => {
         body: JSON.stringify({ path, colorCount: 8 }),
     });
     const extractResult = await extractResponse.json();
-
-    // 4. 如果是修复了元数据，重新获取完整信息
-    if (metaMissing && extractResult.code === 0) {
-        const refreshResult = await fetchAssetMeta(path);
-        meta = refreshResult.code === 0 ? refreshResult.data : meta;
+    if (extractResult.code !== 0) {
+        throw new Error(extractResult.msg || "素材调色板提取失败");
     }
 
-    // 确保 meta 对象存在以便后续使用
+    // 4. 如果是修复了元数据，重新获取完整信息
+    if (metaMissing || !meta?.palettes?.length) {
+        const refreshResult = await fetchAssetMeta(path);
+        if (refreshResult.code !== 0 || !refreshResult.data) {
+            throw new Error(refreshResult.msg || "素材元数据读取失败");
+        }
+        meta = refreshResult.data;
+    }
+
     if (!meta) {
-        meta = {};
+        throw new Error("素材元数据为空");
     }
 
     // 使用新提取的调色板（如果 meta 中还没有）
-    if (extractResult.code === 0 && (!meta.palettes || meta.palettes.length === 0)) {
+    if (!meta.palettes?.length && extractResult.data?.palettes?.length) {
         meta.palettes = extractResult.data?.palettes;
     }
 
@@ -251,8 +279,11 @@ const loadAssetMetaPreview = async (path: string, elementId: string) => {
 
         element.innerHTML = infoRows.join("");
         element.addEventListener("click", handlePaletteClick);
-    } catch {
-        // 静默失败，不显示错误
+    } catch (error) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = `<div style="color: var(--b3-theme-error);">元数据加载失败: ${escapeHtml(String(error))}</div>`;
+        }
     }
 };
 

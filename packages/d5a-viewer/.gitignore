@@ -1,0 +1,10 @@
+node_modules/
+.artifacts/
+dist/
+dist-cli/
+release/
+native/web/**/*.map
+coverage/
+fixtures/private/
+research/output/
+*.log

@@ -81,6 +81,7 @@ require (
 	github.com/siyuan-note/logging v0.0.0-20260513050044-06b8e04d5490
 	github.com/siyuan-note/riff v0.0.0-20251022131846-228528e70754
 	github.com/siyuan-note/siyuan/packages/agentqueue v0.0.0
+	github.com/siyuan-note/siyuan/packages/d5a-viewer/native v0.0.0
 	github.com/siyuan-note/siyuan/packages/websearch v0.0.0
 	github.com/smallnest/chanx v1.2.0
 	github.com/soheilhy/cmux v0.1.5
@@ -252,6 +253,8 @@ replace github.com/leolee9086/string-metrics-damerau-levenshtein => ../packages/
 replace github.com/siyuan-note/siyuan/packages/websearch => ../packages/websearch
 
 replace github.com/siyuan-note/siyuan/packages/agentqueue => ../packages/agentqueue
+
+replace github.com/siyuan-note/siyuan/packages/d5a-viewer/native => ../packages/d5a-viewer/native
 
 replace s-forge.local/chatseqtrie => ../packages/chatseqtrie
 

@@ -99,6 +99,35 @@ describe("file properties panel tag interactions", () => {
             .toBe(`${window.location.origin}/api/s-forge/file-browser/content/workspace/nested/page-2.png`);
     });
 
+    it("keeps the original source after failure and reports an explicit error", async () => {
+        const image = imageItem("nested/page-2.png");
+        const repository: FilePropertiesRepository = {
+            inspect: vi.fn(async () => inspectResult([image])),
+            update: vi.fn(async () => ({items: [image], successCount: 1, failureCount: 0}) satisfies FilePropertiesUpdateResult),
+        };
+        const tagRepository: FileTagDefinitionsRepository = {
+            get: vi.fn(async () => ({revision: "tag-revision-1", items: []})),
+            update: vi.fn(async request => ({revision: "tag-revision-2", items: request.items})),
+        };
+        const selection = createFileBrowserSelectionStore();
+        selection.replace(node("nested/page-2.png"));
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FilePropertiesPanel, {repository, selection, tagRepository});
+        app.mount(host);
+
+        await vi.waitFor(() => expect(host?.querySelector("img")).not.toBeNull());
+        const imageElement = host.querySelector<HTMLImageElement>("img");
+        const originalSource = imageElement?.src;
+        imageElement?.dispatchEvent(new Event("error"));
+        await nextTick();
+
+        expect(imageElement?.src).toBe(originalSource);
+        expect(host.querySelector("img")).toBeNull();
+        expect(host.querySelector(".sforge-file-properties__image-error")?.textContent).toContain("原图加载失败");
+        expect(host.querySelector(".sforge-file-properties__image-error")?.textContent).not.toContain("缩略图");
+    });
+
     it("switches to per-file rows and sends root-aware remove/add/color updates", async () => {
         const first = item("one.md", ["Review"]);
         const second = item("two.md", ["Review", "Blue"]);

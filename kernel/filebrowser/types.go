@@ -1,5 +1,7 @@
 package filebrowser
 
+import "github.com/siyuan-note/siyuan/kernel/assets"
+
 import (
 	"runtime"
 	"strings"
@@ -118,17 +120,17 @@ type Entry struct {
 }
 
 // PreviewKind selects the existing frontend surface used to inspect a file.
-type PreviewKind string
+type PreviewKind = assets.PreviewKind
 
 const (
-	PreviewKindDirectory PreviewKind = "directory"
-	PreviewKindImage     PreviewKind = "image"
-	PreviewKindAudio     PreviewKind = "audio"
-	PreviewKindVideo     PreviewKind = "video"
-	PreviewKindPDF       PreviewKind = "pdf"
-	PreviewKindText      PreviewKind = "text"
-	PreviewKindD5A       PreviewKind = "d5a"
-	PreviewKindBinary    PreviewKind = "binary"
+	PreviewKindDirectory = assets.PreviewKindDirectory
+	PreviewKindImage     = assets.PreviewKindImage
+	PreviewKindAudio     = assets.PreviewKindAudio
+	PreviewKindVideo     = assets.PreviewKindVideo
+	PreviewKindPDF       = assets.PreviewKindPDF
+	PreviewKindText      = assets.PreviewKindText
+	PreviewKindD5A       = assets.PreviewKindD5A
+	PreviewKindBinary    = assets.PreviewKindBinary
 )
 
 // FileRequest addresses one file relative to an authorized root.
@@ -158,6 +160,51 @@ type CopyRequest struct {
 	DestinationPath   string `json:"destinationPath"`
 }
 
+// MoveRequest keeps source and destination authorization scopes explicit.
+// DestinationPath is the complete target path, including the moved entry name.
+type MoveRequest struct {
+	SourceRootID      string `json:"sourceRootID"`
+	SourcePath        string `json:"sourcePath"`
+	DestinationRootID string `json:"destinationRootID"`
+	DestinationPath   string `json:"destinationPath"`
+}
+
+// DeleteRequest addresses one file or directory tree relative to an
+// authorized root. The root itself is never a valid deletion target.
+type DeleteRequest struct {
+	RootID string `json:"rootID"`
+	Path   string `json:"path"`
+}
+
+// BatchDeleteRequest describes independent authorized deletion targets. The
+// service preserves input order in the response while executing descendants
+// before their selected parents.
+type BatchDeleteRequest struct {
+	Items []FileRequest `json:"items"`
+}
+
+// OperationFailure is the stable per-item error envelope used by batch
+// operations. It deliberately contains no physical path.
+type OperationFailure struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+// BatchDeleteItemResult retains the input address even when one item fails.
+type BatchDeleteItemResult struct {
+	Request FileRequest          `json:"request"`
+	Result  *FileOperationResult `json:"result,omitempty"`
+	Error   *OperationFailure    `json:"error,omitempty"`
+}
+
+// BatchDeleteResult is a partial-success report; a failed item never hides
+// successful items that were already processed.
+type BatchDeleteResult struct {
+	Items        []BatchDeleteItemResult `json:"items"`
+	SuccessCount int                     `json:"successCount"`
+	FailureCount int                     `json:"failureCount"`
+}
+
 // FileOperationResult reports only root-relative identities and counts.
 type FileOperationResult struct {
 	Operation             string `json:"operation"`
@@ -171,6 +218,8 @@ type FileOperationResult struct {
 	CopiedDirectoryCount  int    `json:"copiedDirectoryCount,omitempty"`
 	CreatedDirectoryCount int    `json:"createdDirectoryCount,omitempty"`
 	CopiedBytes           int64  `json:"copiedBytes,omitempty"`
+	RemovedFileCount      int    `json:"removedFileCount,omitempty"`
+	RemovedDirectoryCount int    `json:"removedDirectoryCount,omitempty"`
 }
 
 // StatResult describes a validated file and its frontend opening target.

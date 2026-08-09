@@ -9,7 +9,7 @@
 | 参考 | 当前证据基线 | 用途 |
 | --- | --- | --- |
 | S-Forge | `multipleAI`，工作树起点 `git status --short --branch` 为干净且领先远端 16 个提交 | 复用既有 Dock、工作空间、任务目录、页签、文件树和资源元数据能力 |
-| SACAssetsManager | `94c8534a7790bb3f991105a82a42863a04557f1b`，完整参考检出 `D:\dev\SACAssetsManager-ref` 共 951 个提交 | 审计最完备的浏览、遍历、缩略图、标签、颜色、筛选、选择、拖放、菜单和文件操作语义 |
+| SACAssetsManager | 完整参考检出 `D:\dev\SACAssetsManager-02e3b4d47aa4414bd397a94d7daa1747a3cb45e6`，共 951 个提交；detached 工作树为 `02e3b4d4`，`master/origin/master` 为 `94c8534a` | 审计最完备的浏览、遍历、缩略图、标签、颜色、筛选、选择、拖放、菜单和文件操作语义 |
 | siyuan-plugin-monaco-editor | `edce237dab4ef807be3b8647087543bcb87d1ca7`，`D:\dev\.references\siyuan-plugin-monaco-editor` 共 1521 个提交 | 审计文件资源管理器、块/历史/快照/收集箱/代码片段/网络文件编辑、Vditor、差异查看和设置功能 |
 
 ## 复用边界
@@ -35,7 +35,7 @@
 - 支持目录展开、分页/流式子项、面包屑、刷新、文件统计、文本/图片/PDF/音视频/D5A 等已有预览入口和双击打开。
 - 验收：工作空间和至少两个绑定目录可同时浏览；路径遍历、越权根和失效 capability 被拒绝；重启后根集合可恢复。
 
-**当前事实（部分实现）**：根聚合、节点级懒加载树源码、单层分页列表、只读内容接口和有界并发递归遍历已进入工作区。此前以 S-Forge 自身 `filepath.Walk` 为基线的性能结论已撤回；SACAssetsManager 最终 `fdirModified`、`fast-glob`、stock `fdir` 和常见 Go walker 已接入独立小规模校验工具，但完整 `D:\` 验收和目录遍历边界矩阵仍未完成。文件树已拆出独立 `FileBrowserTree.vue`，真实 DOM 挂载测试证明工作空间/Agent 根、递归层级、懒加载、折叠和目录双击打开 `sforge-file-gallery` 页签；真实瀑布流挂载测试证明查询范围、`VirtualMasonryGrid`/`AssetCard` 卡片投影、共享选择和文件打开端口。这里的结构是“侧边栏树 Dock + 独立文件标签 Dock + 独立瀑布流 Tab”，标签树不再嵌入任务文件树，树 Dock 不渲染查询结果卡片。扩展名筛选、颜色/RGB/HSL/调色板查询、卡片尺寸和属性列投影已经接线并有挂载测试；面包屑、递归开关和子目录包含选择已接入 `listDirectory` 与后端范围查询。目录画廊筛选状态已按 `SACAssetsManager-ref@94c8534a` 对齐：空扩展名显示占位而不伪装成 `.bmp`；带路径页签忽略历史 query，全根结果清空保留范围但清空扩展名/标签/颜色，当前查询与初始页签 query 分离，刷新不再恢复旧 `.tmp`；无标签/颜色/尺寸/星级门槛的默认查询通过 `filebrowser.ScanContext` 枚举授权根中的未索引文件，标签/调色板等元数据门槛继续走 `assetmeta`，证据见 `标签结果打开与颜色检索.shorterm.ttt.md`。桌面运行界面、TabRegistry 真实布局恢复、实际根媒体加载和大结果滚动仍缺证据，因此 M1 保持未完成。参考画廊的表格模式、框选多选、拖放批处理、外部索引入口和完整目录操作仍待实现。文件属性 Dock 已接入共享选择端口、批量属性、星级、注释、图片轮播、聚合/逐文件标签和标签树；SAC 标签删除/拖放/Ctrl 笔记搜索、来源入口和完整目录动作仍待实现。
+**当前事实（部分实现）**：根聚合、节点级懒加载树源码、单层分页列表、只读内容接口和有界并发递归遍历已进入工作区。此前以 S-Forge 自身 `filepath.Walk` 为基线的性能结论已撤回；SACAssetsManager 最终 `fdirModified`、`fast-glob`、stock `fdir` 和常见 Go walker 已接入独立小规模校验工具，但完整 `D:\` 验收和目录遍历边界矩阵仍未完成。文件树已拆出独立 `FileBrowserTree.vue`，真实 DOM 挂载测试证明工作空间/Agent 根、递归层级、懒加载、折叠和目录双击打开 `sforge-file-gallery` 页签；真实瀑布流挂载测试证明查询范围、`VirtualMasonryGrid`/`AssetCard` 卡片投影、共享选择和文件打开端口。这里的结构是“侧边栏树 Dock + 独立文件标签 Dock + 独立瀑布流 Tab”，标签树不再嵌入任务文件树，树 Dock 不渲染查询结果卡片。扩展名筛选、颜色/RGB/HSL/调色板查询、卡片尺寸和属性列投影已经接线并有挂载测试；面包屑、递归开关和子目录包含选择已接入 `listDirectory` 与后端范围查询。目录画廊筛选状态已按 `SACAssetsManager-02e3b4d47aa4414bd397a94d7daa1747a3cb45e6@94c8534a` 对齐：空扩展名显示占位而不伪装成 `.bmp`；带路径页签忽略历史 query，全根结果清空保留范围但清空扩展名/标签/颜色，当前查询与初始页签 query 分离，刷新不再恢复旧 `.tmp`；无标签/颜色/尺寸/星级门槛的默认查询通过 `filebrowser.ScanContext` 枚举授权根中的未索引文件，标签/调色板等元数据门槛继续走 `assetmeta`，证据见 `标签结果打开与颜色检索.shorterm.ttt.md`。桌面运行界面、TabRegistry 真实布局恢复、实际根媒体加载和大结果滚动仍缺证据，因此 M1 保持未完成。参考画廊的表格模式、框选多选、拖放批处理、外部索引入口和完整目录操作仍待实现。文件属性 Dock 已接入共享选择端口、批量属性、星级、注释、图片轮播、聚合/逐文件标签和标签树；SAC 标签删除/拖放/Ctrl 笔记搜索、来源入口和完整目录动作仍待实现。
 
 ### M2：完整浏览与检索（可用版 2）
 
@@ -49,7 +49,7 @@
 
 ### M3：文件操作与增量同步（可用版 3）
 
-> 基础操作切片已完成并归档：[`archive/文件操作基础切片.shorterm.ttt.md`](archive/文件操作基础切片.shorterm.ttt.md)。移动、删除、批量操作、拖放移动和监听增量更新仍属于本里程碑后续切片。
+> 基础操作切片已完成并归档：[`archive/文件操作基础切片.shorterm.ttt.md`](archive/文件操作基础切片.shorterm.ttt.md)。移动和删除切片已完成；批量操作、拖放批处理、监听增量更新和下载/打包仍属于本里程碑后续切片。
 
 - 支持新建、重命名、移动、复制、删除、批量操作、拖放上传/移动、下载/打包、剪贴板路径、外部打开和撤销/失败回滚提示。
 - 按 root capability 权限控制读写/命令操作，接入文件监听、增量索引、缩略图缓存和取消任务；只读目录不显示或不执行写操作。
@@ -84,7 +84,7 @@
 - [ ] **M1：只读根与文件树 Dock**（见 [`文件浏览Dock前端.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/文件浏览Dock前端.shorterm.ttt.md)）
 - [ ] **M1.1：文件树组合与交互修正**（见 [`文件树修正.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/文件树修正.shorterm.ttt.md)）
 - [ ] **M2：浏览模式、标签和颜色检索**
-- [~] **M3：受控文件操作、监听和索引增量更新**（基础操作切片已归档，后续操作见本里程碑剩余条目）
+- [~] **M3：受控文件操作、监听和索引增量更新**（移动/删除切片已完成，批量与监听增量仍待实现）
 - [ ] **M4：Monaco 文件编辑与预览**（见 [`Monaco文件编辑与预览.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/Monaco文件编辑与预览.shorterm.ttt.md)）
 
 ### M4.1 当前切片
@@ -283,3 +283,138 @@
 - [x] 证据：`pnpm exec vitest run test/asset/assetUrl.test.ts test/asset/AssetCard.interaction.test.ts`（2 个文件、9 个用例）；文件浏览打开、画廊、预览和属性交互测试（4 个文件、14 个用例）；`pnpm run typecheck:protyle-contract`；`pnpm run lint:file -- src/asset/assetUrl.ts src/components/panels/imageEditor.vue --show-all`；`git diff --check`。
 - [x] 边界覆盖中文目录、空格文件名、旧构建页签地址和普通资产 URL；真实 6806 页面仍验证 `page-2.png` 原图为 `200/image/png/1241×1754`，缩略图为同源受控响应。
 - [ ] 未强制制造损坏文件来替换当前用户页签；最终失败态由组件状态逻辑和 URL 单元测试覆盖，真实成功路径已在桌面页面复核。
+
+## 2026-08-08 图片预览与属性 Dock 二级回退补强（已完成）
+
+- [x] 文件预览页签与文件属性 Dock 统一采用“原图 -> 同 rootID 缩略图 -> 应用占位”的失败处理链；地址变化、选择变化和轮播切换都会清除旧失败状态。
+- [x] 图片编辑器切换回原图时改用当前有效图片源，不会在原图失败后绕过缩略图回退再次请求损坏地址。
+- [x] 新增预览页签与属性 Dock 的两阶段失败事件测试，验证第一次失败确实切换 `/api/s-forge/file-browser/thumbnail`，第二次失败才显示占位。
+- [x] 验证：图片/属性专项 4 个文件、14 个用例通过；`pnpm run typecheck:protyle-contract`、目标 lint、`pnpm run dev:once`、`git diff --check` 通过。
+- [x] 构建后 6806 真实页面复核：`page-2.png` 的受控原图地址仍返回 `200 image/png`，自然尺寸 `1241 × 1754`；没有静态构建目录前缀或破图标。
+
+## 2026-08-08 中心图片页签回归补强（已完成）
+
+- [x] 新增 `app/test/asset/ImageEditor.interaction.test.ts`，真实挂载中心图片页签并验证旧静态构建前缀归一化、原图失败后的同根缩略图回退，以及二次失败时的应用占位。
+- [x] 图片/文件浏览专项回归为 5 个文件、15 个用例；`pnpm run typecheck:protyle-contract`、目标 lint、`pnpm run dev:once` 和改动文件 `git diff --check` 均通过。
+- [x] 构建后强制重载 `6806` 页面复核截图中的 `page-2.png`：内容接口 `200 image/png`，`currentSrc` 为应用根受控 URL，`naturalWidth=1241`、`naturalHeight=1754`，失败占位数量为 `0`。
+
+证据已回写并保留在归档子 TTT：[`archive/图片失败回退适配.shorterm.ttt.md`](archive/图片失败回退适配.shorterm.ttt.md)。
+
+## 2026-08-08 构建后图片现场复核（本轮）
+
+- [x] `pnpm run dev:once` 后强制刷新 6806，按截图路径重新打开 `page-2.png`；图片内容正常显示。
+- [x] 现场 `currentSrc` 为应用根受控 `file-browser/content` 地址，`complete=true`、自然尺寸 `1241 × 1754`；直接响应为 `200/image/png/276560` 字节。
+- [x] 旧 `/stage/build/desktop/api/...` 应用壳地址未再出现；图片、预览页签、属性 Dock 的原图/缩略图回退链与 `SACAssetsManager` 的受控原图/缩略图职责保持一致。
+
+## 2026-08-08 当前工作区构建复核（已完成）
+
+- [x] `pnpm run dev:once` 当前工作区全目标构建成功，包含 app、desktop、mobile、magi、protyle、agent、bazaar 和 export 目标。
+- [x] 6806 原图接口返回 `200 image/png`、`276560` 字节；同根缩略图接口返回 `200 image/png`、`227011` 字节，均未命中静态构建目录。
+- [x] 图片专项 5 个文件、15 个用例，`pnpm run typecheck:protyle-contract`、目标 lint 与 `git diff --check` 均通过。
+
+## 2026-08-08 文件树拖放移动里程碑（已完成）
+
+- [x] 文件树已有的递归拖放事件现在贯通 `filebrowser.Move`、API `/operations/move`、前端操作仓储和 `FileBrowserPanel`；拖放只接受 `application/x-sforge-file`，目标严格为目录/根。
+- [x] Move 契约固定为 `sourceRootID/sourcePath` 与 `destinationRootID/destinationPath`，来源按浏览能力、目标按最具体挂载写能力授权；根本身、目标冲突、重叠、越界、链接和只读挂载均由领域/Walker 守卫。
+- [x] 成功后刷新来源父目录和目标目录，展开状态由原节点协调保留，选择定位到移动后的根内地址；错误通过现有消息入口和 Panel 状态呈现。
+- [x] 证据：`go test ./fswalk ./filebrowser ./api -count=1`；前端文件浏览专项 11 个文件、34 个用例；`pnpm run typecheck:protyle-contract`；`git diff --check`。
+- [x] 详细记录已归档至 [`archive/文件树拖放移动.shorterm.ttt.md`](archive/文件树拖放移动.shorterm.ttt.md)。
+
+## 2026-08-08 图片显示适配最终复核
+
+- [x] 对照 `SACAssetsManager` 的原图优先、受控缩略图回退和透明占位策略，文件浏览器图片入口统一通过 `resolveAssetURL`，旧静态构建前缀也会归一化到应用根 API。
+- [x] 图片/文件浏览专项 7 个文件、25 个用例，Go `thumbnail/api/filebrowser/filequery` 聚焦测试，`typecheck:protyle-contract`、`pnpm run dev:once`、`git diff --check` 均通过。
+- [x] 6806 当前页签现场验证 `page-2.png` 为 `200 image/png`，`naturalWidth=1241`、`naturalHeight=1754`、失败占位数量为 `0`；同根缩略图接口也返回 `200 image/png`。
+- [x] 图片失败适配记录继续保存在归档子 TTT：[`archive/图片失败回退适配.shorterm.ttt.md`](archive/图片失败回退适配.shorterm.ttt.md)。
+
+## 2026-08-08 用户截图路径现场复验（已完成）
+
+- [x] 重新执行 `pnpm run dev:once`，桌面目标产物构建成功（`main.44e656cac4b357e1f67f.js`）。
+- [x] 在 `http://127.0.0.1:6806/stage/build/desktop/` 按用户截图路径展开目录并双击 `page-2.png`；页面图片元素实际 `currentSrc` 为应用根 `/api/s-forge/file-browser/content/root-ebc8c460379294ef/.artifacts/passive-income/guide-render/page-2.png`，`complete=true`、自然尺寸 `1241 × 1754`，`broken=false`。
+- [x] 直接接口复核原图为 `200 image/png / 276560` 字节，同根缩略图为 `200 image/png / 227011` 字节；没有请求 `/stage/build/desktop/api/...`，截图中的浏览器破图状态已消除。
+
+## 2026-08-09 图片加载稳定性补强（本轮）
+
+- [x] 图片中心页签按 `SACAssetsManager` 的加载顺序补齐稳定占位：图片解码完成前隐藏原生 `<img>`，避免 `text/plain` 或损坏响应短暂显示浏览器破图图标；成功后再居中并启用交互。
+- [x] 原图 -> 同 rootID 缩略图 -> 应用占位的状态在文件切换时完整重置；无有效回退地址时使用透明像素占位，不产生空 `src` 请求。
+- [x] 新增 `ImageEditor.interaction.test.ts` 的稳定布局回归，覆盖加载前占位和加载后解除隐藏；旧构建前缀、首次失败回退、二次失败占位测试继续保留。
+- [x] 证据：`pnpm exec vitest --run test/asset/ImageEditor.interaction.test.ts test/sforge/fileBrowser/FileBrowserPreviewPanel.interaction.test.ts`（2 个文件、4 个用例）；`pnpm run typecheck:protyle-contract`；`pnpm run dev:once` 全目标构建成功；`git diff --check`。
+- [x] 6806 真实页面复核：`page-2.png` 请求仍为应用根 `/api/s-forge/file-browser/content/...`，`complete=true`、自然尺寸 `1241 x 1754`，加载占位已移除且无失败占位。
+
+## 2026-08-09 原图/缩略图来源隔离修正（当前有效）
+
+> 说明：本节覆盖并纠正本文件及归档子 TTT 中此前关于“失败回退、透明像素、图标占位”的实现记录；历史记录保留用于审计，不代表当前行为。
+
+- [x] 原图入口（图片编辑器、文件预览页签、文件属性 Dock）始终只使用解析后的 `file-browser/content` 原图地址；原图加载失败后不再请求缩略图或任何其他图片源。
+- [x] 缩略图入口（资源瀑布流卡片、文件画廊表格行）始终只使用传入的 `thumbnailUrl`；缩略图加载失败后不替换为透明像素、图标或原图。
+- [x] 删除 `EMPTY_IMAGE_DATA_URL`、`getFileBrowserThumbnailURL` 及所有失败后的自动切换状态；加载失败统一呈现明确的错误文字。
+- [x] 删除图片加载遮罩和图片失败图标伪占位；失败状态不伪造成功，也不制造第二个图片请求。
+- [x] 专项回归：6 个 Vitest 文件、16 个用例通过；全量 `pnpm run typecheck` 仍有仓库既有错误，相关 `assetUrl.ts` 返回类型错误已修复。
+- [x] 文件浏览全套回归：29 个文件、90 个用例通过；输出中的 `localhost:3000` 404 属于未启动的独立接口，不是图片入口的替换请求。
+- [x] `pnpm run typecheck:protyle-contract`、`pnpm run dev:once` 和 `git diff --check` 通过；全量类型检查剩余错误集中在既有文件及既有 Vue 属性类型规则。
+
+## 2026-08-09 图片来源契约再次收紧（当前有效）
+
+> 本节是对本文件及归档记录中所有“回退、占位、透明像素”描述的当前实现覆盖；历史条目保留作为审计轨迹，不代表现行行为。
+
+- [x] `AssetItem.thumbnailUrl` 改为必填。`AssetCard` 不再根据 `path` 猜测或生成第二个缩略图地址；旧资源选择对话框在组装结果时显式构造自己的缩略图入口。
+- [x] 原图入口（图片编辑器、文件预览页签、属性 Dock）只解析并渲染原图 `file-browser/content` 地址；处理结果类型异常不再回到原图，空地址、解析错误和加载错误分别显示明确错误。
+- [x] 缩略图入口（资产卡片、文件画廊表格行、旧 `renderAssetsPreview`）只渲染其传入或该业务明确构造的缩略图地址；缩略图失败不替换为原图、透明像素或图标。
+- [x] `resolveAssetURL` 删除 `http://localhost` 运行时伪基址和无效地址原样返回逻辑；空地址、无有效基址和解析错误抛出可观察错误。
+- [x] 旧资源预览为图片错误安装捕获监听并渲染错误文本；资产元数据读取/提取失败不再静默吞掉，也不再构造空元数据对象。
+- [x] 回归证据：图片与文件浏览专项 36 个 Vitest 文件、113 个用例通过（来源隔离窄回归 6 个文件、18 个用例）；`pnpm run typecheck:protyle-contract`、目标 lint、`pnpm run dev:once`、`git diff --check` 通过。
+- [x] 全量 `pnpm run typecheck` 仍由仓库既有诊断失败；本轮未新增资源来源契约错误，既有 Vue `xlink:href` 等诊断不在本轮范围内。
+
+## 2026-08-09 失败状态显式化补强（当前有效）
+
+- [x] `AssetMasonryDialog` 检索失败不再清空结果并显示“暂无内容”；保留已有结果或显示明确错误文本，并提供真实重试入口。
+- [x] 缩略图服务不再注册 `FileIconProvider`；Windows Shell 缩略图生成失败时不再返回文件图标，避免把图标伪装成缩略图。缩略图生成失败由 API 显式返回失败状态。
+- [x] 回归证据：`pnpm exec vitest --run test/asset/AssetMasonryDialog.interaction.test.ts test/asset/AssetCard.interaction.test.ts`（2 个文件、3 个用例）；`go test ./thumbnail ./api -count=1`；此前图片/文件浏览专项回归保持通过。
+- [ ] 真实桌面窗口中故障图片和不支持格式的 404 错误展示仍待 M1/M2 现场验收；不以图标、透明像素或空结果替代错误。
+
+## 2026-08-09 Windows 根解析统一修正（当前有效）
+
+- [x] 定位 `filebrowser` API 的 `Access is denied`：领域层重复使用
+  `filepath.EvalSymlinks`，与 Windows `fswalk` 原生句柄解析的行为不一致；失败发生在
+  根校验阶段，不是目录为空，也不是缩略图响应替换。
+- [x] 新增 `fswalk.ResolvePathTarget` 作为统一平台解析契约，`filebrowser` 不再维护第二份
+  路径目标解析实现；目录根、文件入口和挂载根均复用同一 Windows API 路径。
+- [x] 证据：`go test ./filebrowser -count=1`；`go test ./api -run
+  'TestFileBrowserRootsAndListUseRootRelativePaths|TestFileBrowserThumbnailResponsePreservesProviderMime'
+  -count=1 -v`；`go test ./fswalk -run 'TestReadDirectoryReturnsMetadata|TestWalkStableAndBounded' -count=1`，全部通过。
+- [ ] D 盘大规模枚举、完整目录边界矩阵和桌面真实根恢复仍未完成；本修正不扩大为性能验收结论。
+
+## 2026-08-09 颜色筛选与画廊模式选择器修正（当前有效）
+
+- [x] 颜色筛选条件行只在高级颜色条件启用后挂载；颜色入口和 RGB 取色器均使用独立的圆形彩虹边框，原生 `input[type=color]` 仍是唯一真实颜色输入，禁用态显示明确的不可用状态。
+- [x] 画廊布局模式不再依赖图标按钮的悬浮提示；改为带当前值、键盘可操作的紧凑 `布局模式` 选择器，继续驱动现有 `masonry/grid/justified/list/table` 布局引擎和表格行投影。
+- [x] 修正颜色条件行异步挂载后的交互测试等待，并将空结果测试改为验证实际保留的标签来源条件；不以失效扩展名作为伪筛选证据。
+- [x] `pnpm exec vitest --run test/sforge/fileBrowser/FileBrowserSearchPanel.interaction.test.ts test/sforge/fileBrowser/FileBrowserGalleryTab.interaction.test.ts --reporter=dot`：2 个文件、15 个用例通过。
+- [ ] 尚待在真实桌面页签复核彩虹环在明暗主题下的对比度、窄 Dock 下布局选择器的宽度，以及全量文件浏览专项回归。
+
+## 2026-08-09 视图模式选择器参考行为纠正（当前有效）
+
+> 覆盖上一节中“文字下拉框”的临时实现记录；历史内容保留，当前源码以本节为准。
+
+- [x] 画廊顶栏使用参考项目同类的图标分段按钮组，不再使用原生文字下拉框；按钮直接切换五种已接入布局投影。
+- [x] 模式按钮提供当前激活态、可访问名称、悬浮提示和原生键盘触发；容器响应式仍以 Dock 容器宽度为边界。
+- [x] 聚焦挂载回归覆盖五种模式切换并验证表格标题投影；`FileBrowserGalleryTab` 9 个用例通过。
+- [x] `pnpm exec vitest --run test/sforge/fileBrowser --reporter=dot`：29 个文件、92 个用例通过；`pnpm run dev:once` 全目标构建成功；`pnpm run typecheck:protyle-contract` 和 `git diff --check` 通过。
+- [x] 构建后真实桌面页验证五个按钮可见（计算 `opacity=1`），并完成表格/瀑布流现场切换；大结果滚动和布局恢复仍保留为未完成验收项。
+
+## 2026-08-09 文件删除与确认切片（已完成）
+
+- [x] `filebrowser.Service.Delete` 复用 `fswalk.Walker.RemoveTree`，保留根保护、链接预检、普通文件限制、授权挂载和取消语义；返回删除文件/目录计数。
+- [x] Kernel 接入 `POST /api/s-forge/file-browser/operations/delete`，删除请求只携带 `rootID` 与根内相对路径；根删除返回 `400`，越权/链接和只读路径继续按现有错误映射拒绝。
+- [x] 文件树菜单按最具体挂载 capability 显示删除；Panel 使用统一破坏性确认框，成功后刷新父目录、清理共享选择子树并显示实际计数，失败保留明确错误。
+- [x] 证据：`go test ./filebrowser -count=1`、`go test ./api -run TestFileBrowserMutationOperationsUseRootRelativeContracts -count=1`、`pnpm exec vitest --run test/sforge/fileBrowser --reporter=dot`（30 个文件、97 个用例，含真实 Panel 删除确认）、`pnpm run typecheck:protyle-contract`、`git diff --check`。
+- [x] 子 TTT 已移入 [`archive/文件删除与确认.shorterm.ttt.md`](archive/文件删除与确认.shorterm.ttt.md)，保留原始实现轨迹。
+
+## 2026-08-09 批量文件删除切片（已完成）
+
+- [x] 在单项删除契约之外新增独立 `BatchDeleteRequest/BatchDeleteResult`；每项仍只携带 `rootID` 与根内相对路径，限制 1-100 项，规范化重复地址在写入前拒绝。
+- [x] 后端按根分组、路径深度降序执行 `fswalk.Walker.RemoveTree`，父子同时选中时先处理子项；响应按输入顺序保留每项成功结果或稳定错误码，部分失败不伪装为整体成功。
+- [x] 文件树工具栏接入共享选择端口和统一确认框；只提交具备最具体写 capability 的非根节点，成功项清理选择并刷新受影响父目录，失败项保留并显示后端消息。
+- [x] 修复 `FileBrowserEditor.preferences.ts` 末尾裸 `\\n` 导致的 P0 解析错误；文件浏览全量转换恢复。
+- [x] 证据：`go test ./filebrowser -count=1`；`go test ./api -run 'TestFileBrowser(BatchDelete|MutationOperations)' -count=1 -v`；`pnpm exec vitest --run test/sforge/fileBrowser --reporter=dot`（30 个文件、98 个用例）；`pnpm run typecheck:protyle-contract`；文件浏览范围 typecheck 无新增诊断；`git diff --cached --check`。
+- [x] 子 TTT 已移入 [`archive/批量文件操作.shorterm.ttt.md`](archive/批量文件操作.shorterm.ttt.md)，保留契约和证据；批量复制/移动、拖放批处理、进度取消和监听增量仍保持未完成状态。

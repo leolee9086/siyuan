@@ -50,7 +50,7 @@ describe("FileBrowserGalleryTableRow", () => {
         expect(open).toHaveBeenCalledWith(asset);
     });
 
-    it("replaces a failed thumbnail with the image icon", async () => {
+    it("reports a failed thumbnail without replacing it with an icon", async () => {
         host = document.createElement("div");
         document.body.append(host);
         app = createApp(FileBrowserGalleryTableRow, {
@@ -59,11 +59,15 @@ describe("FileBrowserGalleryTableRow", () => {
         });
         app.mount(host);
 
-        host.querySelector<HTMLImageElement>(".sforge-file-gallery-table-row__preview img")
-            ?.dispatchEvent(new Event("error"));
+        const image = host.querySelector<HTMLImageElement>(".sforge-file-gallery-table-row__preview img");
+        const thumbnailSource = image?.src;
+        image?.dispatchEvent(new Event("error"));
         await new Promise(resolve => setTimeout(resolve, 0));
 
+        expect(image?.src).toBe(thumbnailSource);
         expect(host.querySelector(".sforge-file-gallery-table-row__preview img")).toBeNull();
-        expect(host.querySelector(".sforge-file-gallery-table-row__preview svg")).toBeTruthy();
+        expect(host.querySelector(".sforge-file-gallery-table-row__preview svg")).toBeNull();
+        expect(host.querySelector(".sforge-file-gallery-table-row__image-error")?.textContent)
+            .toContain("缩略图加载失败");
     });
 });

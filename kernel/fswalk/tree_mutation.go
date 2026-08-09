@@ -144,9 +144,7 @@ func (w *Walker) Move(ctx context.Context, sourceRelative string, destination *W
 		if linkLike {
 			return ErrPathTraversal
 		}
-		if existing.IsDir() != source.info.IsDir() {
-			return ErrCopyDestinationType
-		}
+		return ErrPathExists
 	} else if !os.IsNotExist(statErr) {
 		return statErr
 	}

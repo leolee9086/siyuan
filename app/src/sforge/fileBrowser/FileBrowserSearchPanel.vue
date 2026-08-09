@@ -40,8 +40,10 @@
 
             <div class="sforge-file-search__facet-line" aria-label="快速筛选">
                 <button type="button" class="sforge-file-search__facet" :class="{'is-active': colorEnabled}"
-                    aria-label="颜色筛选" @click="toggleColorFilter">
-                    <span class="sforge-file-search__facet-swatch" :style="{backgroundColor: color}" />
+                    aria-label="颜色筛选" :aria-expanded="colorEnabled" @click="toggleColorFilter">
+                    <span class="sforge-file-search__facet-rainbow" aria-hidden="true">
+                        <span class="sforge-file-search__facet-swatch" :style="{backgroundColor: color}" />
+                    </span>
                     <span>颜色</span>
                 </button>
                 <button type="button" class="sforge-file-search__facet" :class="{'is-active': Boolean(tagsText.trim())}"
@@ -59,12 +61,15 @@
                 </select>
             </div>
 
-            <div class="sforge-file-search__color-line" :class="{'is-active': colorEnabled}">
+            <div v-if="colorEnabled" class="sforge-file-search__color-line is-active" aria-label="颜色检索条件">
                 <label class="sforge-file-search__check">
                     <input v-model="colorEnabled" type="checkbox" aria-label="启用颜色检索" />
                     <span>颜色条件</span>
                 </label>
-                <input ref="colorInput" v-model="color" type="color" aria-label="RGB 目标颜色" :disabled="!colorEnabled" />
+                <span class="sforge-file-search__color-picker" :class="{'is-disabled': !colorEnabled}">
+                    <input ref="colorInput" v-model="color" type="color" aria-label="RGB 目标颜色"
+                        :disabled="!colorEnabled" />
+                </span>
                 <label class="sforge-file-search__number">
                     <span>容差</span>
                     <input v-model="tolerance" type="number" min="0" max="442" step="1" aria-label="颜色容差"
@@ -487,12 +492,24 @@ onBeforeUnmount(cancelScheduledExtensionSubmit);
     outline: none;
 }
 
-.sforge-file-search__facet-swatch {
-    width: 14px;
-    height: 14px;
-    border: 1px solid var(--b3-border-color);
+.sforge-file-search__facet-rainbow {
+    display: inline-flex;
+    width: 17px;
+    height: 17px;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
     border-radius: 50%;
-    box-shadow: inset 0 0 0 2px var(--b3-theme-background);
+    background: conic-gradient(#ff3b30, #ffcc00, #34c759, #00c7be, #007aff, #af52de, #ff2d55, #ff3b30);
+    box-sizing: border-box;
+}
+
+.sforge-file-search__facet-swatch {
+    width: 100%;
+    height: 100%;
+    border: 1px solid var(--b3-theme-background);
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--b3-border-color) 70%, transparent);
 }
 
 .sforge-file-search__facet-spacer {
@@ -510,19 +527,49 @@ onBeforeUnmount(cancelScheduledExtensionSubmit);
     min-height: 30px;
     padding-top: 4px;
     border-top: 1px solid color-mix(in srgb, var(--b3-border-color) 65%, transparent);
-    opacity: .72;
 }
 
-.sforge-file-search__color-line.is-active {
-    opacity: 1;
-}
-
-.sforge-file-search__color-line input[type="color"] {
-    width: 28px;
-    height: 28px;
+.sforge-file-search__color-picker {
+    display: inline-flex;
+    width: 30px;
+    height: 30px;
+    flex: none;
+    align-items: center;
+    justify-content: center;
     padding: 2px;
-    border: 1px solid var(--b3-border-color);
-    border-radius: 4px;
+    border-radius: 50%;
+    background: conic-gradient(from -28deg, #ff3b30, #ff9500, #ffcc00, #34c759, #00c7be,
+        #007aff, #5856d6, #af52de, #ff2d55, #ff3b30);
+    box-sizing: border-box;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--b3-border-color) 75%, transparent);
+}
+
+.sforge-file-search__color-picker input[type="color"] {
+    width: 100%;
+    height: 100%;
+    padding: 2px;
+    border: 2px solid var(--b3-theme-background);
+    border-radius: 50%;
+    background: transparent;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+.sforge-file-search__color-picker input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.sforge-file-search__color-picker input[type="color"]::-webkit-color-swatch {
+    border: 0;
+    border-radius: 50%;
+}
+
+.sforge-file-search__color-picker.is-disabled {
+    opacity: .62;
+}
+
+.sforge-file-search__color-picker input[type="color"]:disabled {
+    cursor: not-allowed;
 }
 
 .sforge-file-search__check {
@@ -562,7 +609,7 @@ onBeforeUnmount(cancelScheduledExtensionSubmit);
     overflow-wrap: anywhere;
 }
 
-@media (max-width: 720px) {
+@container file-gallery (max-width: 720px) {
     .sforge-file-search__scope-line > .b3-text-field {
         flex-basis: 140px;
     }
@@ -572,7 +619,7 @@ onBeforeUnmount(cancelScheduledExtensionSubmit);
     }
 }
 
-@media (max-width: 520px) {
+@container file-gallery (max-width: 520px) {
     .sforge-file-search__primary {
         flex-wrap: wrap;
     }

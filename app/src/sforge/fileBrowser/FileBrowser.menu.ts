@@ -11,6 +11,7 @@ export interface FileBrowserTreeMenuActions {
     createDirectory?(node: FileBrowserTreeNode): Promise<void>;
     rename?(node: FileBrowserTreeNode): Promise<void>;
     copy?(node: FileBrowserTreeNode): Promise<void>;
+    delete?(node: FileBrowserTreeNode): Promise<void>;
 }
 
 /** 使用应用唯一菜单展示当前树切片已经具有真实业务链的动作。 */
@@ -56,6 +57,15 @@ export function showFileBrowserTreeNodeMenu(
             label: "复制到...",
             icon: "iconCopy",
             click: () => void actions.copy?.(node),
+        });
+    }
+    if (writable && node.kind !== "root" && actions.delete) {
+        menu.addItem({type: "separator"});
+        menu.addItem({
+            id: "delete",
+            label: "删除",
+            icon: "iconTrashcan",
+            click: () => void actions.delete?.(node),
         });
     }
     if (isFileBrowserContainer(node)) {

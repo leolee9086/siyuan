@@ -77,7 +77,8 @@
     "genForgeI18nTypes": "node ./scripts/forgeI18n.generateTypes.js",
     "check:siyuan-types": "node ./scripts/check-siyuan-types.mjs",
     "update:siyuan-types": "pnpm update --latest siyuan && pnpm run check:siyuan-types",
-    "migrate:files": "node scripts/migrate-files.mjs"
+    "migrate:files": "node scripts/migrate-files.mjs",
+    "verify:d5a-migration": "node scripts/verify-d5a-migration.mjs"
   },
   "keywords": [
     "markdown",

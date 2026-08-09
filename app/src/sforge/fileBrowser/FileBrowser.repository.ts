@@ -6,6 +6,7 @@ import {
     parseFileBrowserEditorDocument,
     parseFileBrowserEditorWriteResult,
     parseFileBrowserFileStat,
+    parseFileBrowserD5AInspection,
     parseFileBrowserRoots,
     parseFileBrowserTextPreview,
 } from "./FileBrowser.guards";
@@ -25,6 +26,7 @@ const STAT_ENDPOINT = "/api/s-forge/file-browser/stat";
 const PREVIEW_ENDPOINT = "/api/s-forge/file-browser/preview";
 const EDITOR_READ_ENDPOINT = "/api/s-forge/file-browser/editor/read";
 const EDITOR_WRITE_ENDPOINT = "/api/s-forge/file-browser/editor/write";
+const D5A_INSPECT_ENDPOINT = "/api/s-forge/file-browser/d5a/inspect";
 
 /** 在进入领域层前统一解释思源 API 包络。 */
 export function requireFileBrowserResponseData(response: IWebSocketData, operation: string): unknown {
@@ -73,6 +75,16 @@ export async function previewFileBrowserText(request: FileBrowserPreviewRequest)
     return preview;
 }
 
+/** 读取迁移 D5A 领域包生成的真实结构报告。 */
+export async function inspectFileBrowserD5A(request: FileBrowserFileRequest) {
+    const response = await fetchSyncPost(D5A_INSPECT_ENDPOINT, request);
+    const result = parseFileBrowserD5AInspection(requireFileBrowserResponseData(response, "读取 D5A 结构"));
+    if (result.rootID !== request.rootID || result.path !== request.path) {
+        throw new Error("D5A 结构响应与请求地址不一致");
+    }
+    return result;
+}
+
 /** 读取本地编辑器快照；响应仍通过统一 API 包络和领域守卫。 */
 export async function readFileBrowserEditor(request: FileBrowserEditorReadRequest) {
     const response = await fetchSyncPost(EDITOR_READ_ENDPOINT, request);
@@ -99,6 +111,7 @@ export const fileBrowserRepository: FileBrowserRepository = {
     listDirectory: listFileBrowserDirectory,
     statFile: statFileBrowserFile,
     previewText: previewFileBrowserText,
+    inspectD5A: inspectFileBrowserD5A,
     readEditorFile: readFileBrowserEditor,
     writeEditorFile: writeFileBrowserEditor,
 };

@@ -36,9 +36,17 @@
                 <div v-else-if="isLoading" class="asset-masonry-dialog__loading">
                     <img src="/stage/loading-pure.svg" style="width: 64px; height: 64px;" />
                 </div>
+                <div v-else-if="searchError" class="asset-masonry-dialog__error" role="alert">
+                    <span>{{ searchError }}</span>
+                    <button type="button" class="b3-button b3-button--text" @click="searchAssets">重试</button>
+                </div>
                 <div v-else class="asset-masonry-dialog__empty">
                     {{ i18n.emptyContent || '暂无内容' }}
                 </div>
+            </div>
+            <div v-if="searchError && assets.length > 0" class="asset-masonry-dialog__error" role="alert">
+                <span>{{ searchError }}</span>
+                <button type="button" class="b3-button b3-button--text" @click="searchAssets">重试</button>
             </div>
         </div>
 
@@ -53,11 +61,8 @@ import AssetCard from "./AssetCard.vue";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { 搜索素材元数据, type SearchAssetMetaParams } from "../../data/kernelAPI/sforgeAssetMeta";
 import { pathPosix } from "../../util/file/pathName";
-
-interface AssetItem {
-    hName: string;
-    path: string;
-}
+import type {AssetItem} from "./AssetCard.types";
+import {ASSET_IMAGE_EXTENSIONS, getAssetThumbnailUrl, isAssetImage} from "./AssetCard.utils";
 
 interface AssetMeta {
     width?: number;
@@ -82,6 +87,7 @@ const searchKey = ref("");
 const assets = ref<AssetItem[]>([]);
 const selectedAsset = ref<AssetItem | null>(null);
 const isLoading = ref(true);
+const searchError = ref("");
 const currentFilters = ref<SearchAssetMetaParams>({
     limit: 200,
     offset: 0,
@@ -108,7 +114,7 @@ const estimateItemHeight = (item: AssetItem, colWidth: number) => {
     // 对于图片，假设平均宽高比为 4:3
     // 对于非图片，返回固定高度
     const ext = item.path.split(".").pop()?.toLowerCase() || "";
-    if (["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico"].includes(ext)) {
+    if (isAssetImage(item.path)) {
         return Math.round(colWidth * 0.75); // 4:3 比例
     }
     return 120; // 非图片固定高度
@@ -118,6 +124,7 @@ const estimateItemHeight = (item: AssetItem, colWidth: number) => {
 /** 搜索素材 */
 const searchAssets = async () => {
     isLoading.value = true;
+    searchError.value = "";
     try {
         const params: SearchAssetMetaParams = {
             ...currentFilters.value,
@@ -126,13 +133,17 @@ const searchAssets = async () => {
 
         const result = await 搜索素材元数据(params);
 
-        assets.value = (result?.assets || []).map(meta => ({
+        if (!result || !Array.isArray(result.assets)) {
+            throw new Error("素材检索响应缺少 assets 数组");
+        }
+        assets.value = result.assets.map(meta => ({
             path: meta.path,
-            hName: meta.name || pathPosix().basename(meta.path)
+            hName: meta.name || pathPosix().basename(meta.path),
+            thumbnailUrl: getAssetThumbnailUrl(meta.path),
         }));
     } catch (error) {
         console.error("搜索素材失败:", error);
-        assets.value = [];
+        searchError.value = error instanceof Error ? error.message : String(error);
     } finally {
         isLoading.value = false;
     }
@@ -181,7 +192,7 @@ const showTypeFilter = (e: MouseEvent) => {
     });
     menu.addItem({
         label: i18n.value.image || "图片",
-        click: () => updateType(i18n.value.image || "图片", [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".ico"])
+        click: () => updateType(i18n.value.image || "图片", ASSET_IMAGE_EXTENSIONS.map(ext => `.${ext}`))
     });
     menu.addItem({
         label: "音视频",

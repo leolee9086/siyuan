@@ -115,6 +115,23 @@ $ExitCode = 0
 if ($SymbolicLinkExitCode -ne 0 -or $Skipped.Count -ne 0 -or $JunctionExitCode -ne 0 -or $RaceExitCode -ne 0) {
     $ExitCode = 1
 }
+$CleanupErrors = @()
+foreach ($GeneratedPath in @($TempPath, $GoTempPath)) {
+    if (-not (Test-Path -LiteralPath $GeneratedPath)) {
+        continue
+    }
+    try {
+        Remove-Item -LiteralPath $GeneratedPath -Recurse -Force -ErrorAction Stop
+        if (Test-Path -LiteralPath $GeneratedPath) {
+            $CleanupErrors += "temporary path still exists: $GeneratedPath"
+        }
+    } catch {
+        $CleanupErrors += "failed to remove temporary path $GeneratedPath`: $($_.Exception.Message)"
+    }
+}
+if ($CleanupErrors.Count -ne 0) {
+    $ExitCode = 1
+}
 $Evidence = [ordered]@{
     startedAt = $StartedAt.ToString("o")
     finishedAt = (Get-Date).ToString("o")
@@ -129,6 +146,8 @@ $Evidence = [ordered]@{
     junctionExitCode = $JunctionExitCode
     raceRequested = [bool]$Race
     raceExitCode = $RaceExitCode
+    cleanupCompleted = ($CleanupErrors.Count -eq 0)
+    cleanupErrors = $CleanupErrors
     exitCode = $ExitCode
 }
 $Evidence | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $EvidencePath

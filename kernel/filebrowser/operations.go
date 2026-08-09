@@ -127,3 +127,53 @@ func (s *Service) Copy(ctx context.Context, request CopyRequest) (FileOperationR
 		CreatedDirectoryCount: result.CreatedDirectoryCount, CopiedBytes: result.CopiedBytes,
 	}, nil
 }
+
+// Move transfers one file or directory entry between authorized roots. The
+// deep Walker owns link checks, overlap detection, parent creation and the
+// filesystem rename; this layer only composes authorization scopes.
+func (s *Service) Move(ctx context.Context, request MoveRequest) (FileOperationResult, error) {
+	sourceRoot, sourceWalker, sourcePath, err := s.operationRoot(request.SourceRootID, request.SourcePath, false)
+	if err != nil {
+		return FileOperationResult{}, operationError(err)
+	}
+	if sourcePath == "" {
+		return FileOperationResult{}, ErrInvalidName
+	}
+	destinationRoot, destinationWalker, destinationPath, err := s.operationRoot(
+		request.DestinationRootID, request.DestinationPath, true)
+	if err != nil {
+		return FileOperationResult{}, operationError(err)
+	}
+	if destinationPath == "" {
+		return FileOperationResult{}, ErrInvalidName
+	}
+	if err = sourceWalker.Move(ctx, sourcePath, destinationWalker, destinationPath); err != nil {
+		return FileOperationResult{}, operationError(err)
+	}
+	return FileOperationResult{
+		Operation: "move", SourceRootID: sourceRoot.ID, SourcePath: sourcePath,
+		DestinationRootID: destinationRoot.ID, DestinationPath: destinationPath,
+	}, nil
+}
+
+// Delete removes one authorized file or directory tree. The Walker performs
+// a complete preflight so a linked or unsupported descendant cannot leave a
+// partially deleted tree behind.
+func (s *Service) Delete(ctx context.Context, request DeleteRequest) (FileOperationResult, error) {
+	root, walker, path, err := s.operationRoot(request.RootID, request.Path, true)
+	if err != nil {
+		return FileOperationResult{}, operationError(err)
+	}
+	if path == "" {
+		return FileOperationResult{}, ErrRootMutation
+	}
+	result, err := walker.RemoveTree(ctx, path)
+	if err != nil {
+		return FileOperationResult{}, operationError(err)
+	}
+	return FileOperationResult{
+		Operation: "delete", RootID: root.ID, Path: path,
+		RemovedFileCount: result.RemovedFileCount,
+		RemovedDirectoryCount: result.RemovedDirectoryCount,
+	}, nil
+}

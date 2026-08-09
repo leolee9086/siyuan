@@ -74,10 +74,11 @@
     object-fit: contain;
 }
 
-.sforge-file-properties__file-icon {
-    width: 48px;
-    height: 48px;
-    color: var(--b3-theme-on-surface-light);
+.sforge-file-properties__image-error {
+    padding: 16px;
+    color: var(--b3-theme-error);
+    font-size: 12px;
+    text-align: center;
 }
 
 .sforge-file-properties__counter {

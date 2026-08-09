@@ -111,4 +111,92 @@ describe("file browser repository", () => {
             2, "/api/s-forge/file-browser/preview", {...request, maxBytes: 1024},
         );
     });
+
+    it("reads a validated D5A inspection report through the root-relative endpoint", async () => {
+        network.fetchSyncPost.mockResolvedValue({
+            code: 0,
+            msg: "",
+            data: {
+                rootID: "workspace",
+                path: "models/sample.d5a",
+                report: {
+                    schemaVersion: 1,
+                    documentKind: "d5a-inspection",
+                    operation: "inspect",
+                    status: "ok",
+                    format: "d5a",
+                    elapsedMs: 3,
+                    warnings: [],
+                    d5a: {
+                        variant: "archive",
+                        entryCount: 2,
+                        fileEntryCount: 2,
+                        encryptedEntryCount: 0,
+                        compressedBytes: 128,
+                        uncompressedBytes: 256,
+                        bundles: [{
+                            id: "bundle-1",
+                            meshEntry: "model.d5mesh",
+                            status: "ok",
+                            mesh: {
+                                version: 11,
+                                sourceBytes: 256,
+                                triangleCount: 4,
+                                vertexCount: 12,
+                                descriptorCount: 1,
+                                geometryGroupCount: 1,
+                            },
+                            warnings: [],
+                        }],
+                    },
+                },
+            },
+        });
+        const {inspectFileBrowserD5A} = await import(
+            "../../../src/sforge/fileBrowser/FileBrowser.repository"
+        );
+        const request = {rootID: "workspace", path: "models/sample.d5a"};
+
+        await expect(inspectFileBrowserD5A(request)).resolves.toMatchObject({
+            rootID: request.rootID,
+            path: request.path,
+            report: {format: "d5a", d5a: {bundles: [{mesh: {version: 11}}]}},
+        });
+        expect(network.fetchSyncPost).toHaveBeenCalledWith(
+            "/api/s-forge/file-browser/d5a/inspect", request,
+        );
+    });
+
+    it("rejects malformed D5A reports and responses for another file", async () => {
+        const {inspectFileBrowserD5A} = await import(
+            "../../../src/sforge/fileBrowser/FileBrowser.repository"
+        );
+        const request = {rootID: "workspace", path: "models/sample.d5a"};
+
+        network.fetchSyncPost.mockResolvedValueOnce({
+            code: 0,
+            msg: "",
+            data: {rootID: "workspace", path: request.path, report: {format: "d5a"}},
+        });
+        await expect(inspectFileBrowserD5A(request)).rejects.toThrow("D5A 结构报告响应格式错误");
+
+        network.fetchSyncPost.mockResolvedValueOnce({
+            code: 0,
+            msg: "",
+            data: {
+                rootID: "workspace",
+                path: "models/other.d5a",
+                report: {
+                    schemaVersion: 1,
+                    documentKind: "d5a-inspection",
+                    operation: "inspect",
+                    status: "ok",
+                    format: "d5a",
+                    elapsedMs: 0,
+                    warnings: [],
+                },
+            },
+        });
+        await expect(inspectFileBrowserD5A(request)).rejects.toThrow("D5A 结构响应与请求地址不一致");
+    });
 });

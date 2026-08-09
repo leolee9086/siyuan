@@ -135,6 +135,100 @@ func TestCopySupportsCrossRootAtomicWorkflowAndRejectsLinks(t *testing.T) {
 	}
 }
 
+func TestMoveSupportsCrossRootWorkflowAndRejectsBoundaries(t *testing.T) {
+	workspace := t.TempDir()
+	external := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(workspace, "source", "nested"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(workspace, "source", "nested", "中文 file.txt"), []byte("payload"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) {
+		return map[string]*agent.TaskDirectoryBinding{
+			"session": {Directories: []*agent.TaskDirectoryGrant{{
+				ID: "external", Path: external, Name: "external",
+				Permission: agent.TaskDirectoryPermissionReadWrite,
+			}}},
+		}, nil
+	})
+	roots, err := service.ListRoots()
+	if err != nil {
+		t.Fatal(err)
+	}
+	externalID := ""
+	for _, root := range roots {
+		if filepath.Clean(root.Path) == filepath.Clean(external) {
+			externalID = root.ID
+		}
+	}
+	if externalID == "" {
+		t.Fatalf("external root not listed: %+v", roots)
+	}
+	result, err := service.Move(context.Background(), MoveRequest{
+		SourceRootID: "workspace", SourcePath: "source",
+		DestinationRootID: externalID, DestinationPath: "moved/source",
+	})
+	if err != nil || result.Operation != "move" || result.DestinationPath != "moved/source" {
+		t.Fatalf("unexpected move result: %+v err=%v", result, err)
+	}
+	if data, readErr := os.ReadFile(filepath.Join(external, "moved", "source", "nested", "中文 file.txt")); readErr != nil || string(data) != "payload" {
+		t.Fatalf("moved content mismatch: %q err=%v", data, readErr)
+	}
+	if _, statErr := os.Stat(filepath.Join(workspace, "source")); !os.IsNotExist(statErr) {
+		t.Fatalf("source remained after move: %v", statErr)
+	}
+	if _, err = service.Move(context.Background(), MoveRequest{
+		SourceRootID: externalID, SourcePath: "moved/source",
+		DestinationRootID: externalID, DestinationPath: "moved/source/nested/again",
+	}); !errors.Is(err, ErrPathOverlap) {
+		t.Fatalf("overlapping move returned %v", err)
+	}
+	_, err = service.Move(context.Background(), MoveRequest{
+		SourceRootID: "workspace", SourcePath: "missing",
+		DestinationRootID: externalID, DestinationPath: "missing",
+	})
+	if !errors.Is(err, ErrPathNotFound) {
+		t.Fatalf("missing source returned %v", err)
+	}
+}
+
+func TestDeleteRemovesFilesAndDirectoriesWithoutCrossingLinks(t *testing.T) {
+	workspace := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(workspace, "tree", "nested"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(workspace, "tree", "nested", "a.txt"), []byte("payload"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) { return nil, nil })
+	result, err := service.Delete(context.Background(), DeleteRequest{RootID: "workspace", Path: "tree"})
+	if err != nil || result.Operation != "delete" || result.RemovedFileCount != 1 || result.RemovedDirectoryCount != 2 {
+		t.Fatalf("unexpected delete result: %+v err=%v", result, err)
+	}
+	if _, statErr := os.Stat(filepath.Join(workspace, "tree")); !os.IsNotExist(statErr) {
+		t.Fatalf("deleted tree remained: %v", statErr)
+	}
+	if _, err = service.Delete(context.Background(), DeleteRequest{RootID: "workspace", Path: "."}); !errors.Is(err, ErrRootMutation) {
+		t.Fatalf("root deletion returned %v", err)
+	}
+
+	if err := os.Mkdir(filepath.Join(workspace, "linked-tree"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	outside := t.TempDir()
+	if err := os.WriteFile(filepath.Join(outside, "outside.txt"), []byte("outside"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	symlinkfixture.Create(t, filepath.Join(outside, "outside.txt"), filepath.Join(workspace, "linked-tree", "outside-link.txt"))
+	if _, err = service.Delete(context.Background(), DeleteRequest{RootID: "workspace", Path: "linked-tree"}); !errors.Is(err, ErrPathTraversal) {
+		t.Fatalf("linked deletion returned %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(outside, "outside.txt")); statErr != nil {
+		t.Fatalf("outside target changed: %v", statErr)
+	}
+}
+
 func TestFileOperationsHonorCancellation(t *testing.T) {
 	workspace := t.TempDir()
 	service := NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) { return nil, nil })

@@ -17,7 +17,6 @@
 package thumbnail
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -28,6 +27,15 @@ func TestDetectContentTypeUsesActualThumbnailBytes(t *testing.T) {
 	}
 	if got := detectContentType([]byte("<svg viewBox=\"0 0 1 1\"></svg>")); got != "image/svg+xml" {
 		t.Fatalf("SVG bytes must be served as image/svg+xml, got %q", got)
+	}
+}
+
+func TestManagerDoesNotRegisterIconAsThumbnailProvider(t *testing.T) {
+	m := NewInstance()
+	for _, provider := range m.providers {
+		if provider.Name() == "FileIcon" {
+			t.Fatal("file icons must not be returned from the thumbnail service")
+		}
 	}
 }
 
@@ -61,94 +69,5 @@ func TestGoImagingProvider_CanHandle(t *testing.T) {
 				t.Errorf("CanHandle(%q) = %v, want %v", tt.filePath, got, tt.want)
 			}
 		})
-	}
-}
-
-// TestFileIconProvider_CanHandle 测试 FileIconProvider 总是返回 true
-func TestFileIconProvider_CanHandle(t *testing.T) {
-	p := NewFileIconProvider()
-
-	tests := []string{
-		"/path/to/file.pdf",
-		"/path/to/file.docx",
-		"/path/to/file.mp4",
-		"/path/to/file",
-		"/path/to/.hidden",
-	}
-
-	for _, filePath := range tests {
-		if !p.CanHandle(filePath) {
-			t.Errorf("FileIconProvider.CanHandle(%q) should always return true", filePath)
-		}
-	}
-}
-
-// TestFileIconProvider_Generate 测试文件图标生成
-func TestFileIconProvider_Generate(t *testing.T) {
-	p := NewFileIconProvider()
-
-	tests := []struct {
-		name    string
-		ext     string
-		wantSVG bool
-	}{
-		{"pdf file", "/path/to/file.pdf", true},
-		{"docx file", "/path/to/file.docx", true},
-		{"unknown ext", "/path/to/file.xyz", true},
-		{"long extension", "/path/to/file.verylongext", true},
-		{"no extension", "/path/to/file", true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			data, err := p.Generate(tt.ext, 256, 256)
-			if err != nil {
-				t.Errorf("Generate() error = %v", err)
-				return
-			}
-			if tt.wantSVG && !strings.Contains(string(data), "<svg") {
-				t.Errorf("Generate() should return SVG data")
-			}
-		})
-	}
-}
-
-// TestFileIconProvider_ExtensionColors 测试扩展名颜色
-func TestFileIconProvider_ExtensionColors(t *testing.T) {
-	tests := []struct {
-		ext       string
-		wantColor string
-	}{
-		{"pdf", "#E53935"},
-		{"docx", "#2B579A"},
-		{"unknown", "#546E7A"}, // 默认颜色
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.ext, func(t *testing.T) {
-			color := getColorForExtension(tt.ext)
-			if color != tt.wantColor {
-				t.Errorf("getColorForExtension(%q) = %v, want %v", tt.ext, color, tt.wantColor)
-			}
-		})
-	}
-}
-
-// TestGenerateFileIconSVG 测试 SVG 生成的有效性
-func TestGenerateFileIconSVG(t *testing.T) {
-	svg := generateFileIconSVG("PDF", 512, 512)
-
-	// 检查是否包含必要的 SVG 元素
-	checks := []string{
-		`<svg`,
-		`viewBox="0 0 512 512"`,
-		`PDF`,
-		`</svg>`,
-	}
-
-	for _, check := range checks {
-		if !strings.Contains(svg, check) {
-			t.Errorf("SVG should contain %q", check)
-		}
 	}
 }

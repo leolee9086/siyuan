@@ -37,6 +37,7 @@ import {FILE_BROWSER_GALLERY_DEFAULT_ATTRIBUTES} from "./FileBrowser.gallery.con
 import type {AssetItem} from "../../asset/components/AssetCard.types";
 import type {FileBrowserGalleryAttribute} from "./FileBrowser.gallery.constants";
 import type {FileBrowserAssetResult} from "./FileBrowser.query.types";
+import {FILE_BROWSER_DRAG_MIME} from "./FileBrowser.drag";
 
 const props = defineProps<{
     asset: FileBrowserAssetResult;
@@ -69,7 +70,7 @@ function handleDragStart(event: DragEvent) {
         return;
     }
     event.dataTransfer.effectAllowed = "copy";
-    event.dataTransfer.setData("application/x-sforge-file", JSON.stringify({
+    event.dataTransfer.setData(FILE_BROWSER_DRAG_MIME, JSON.stringify({
         rootID: props.asset.rootID, path: props.asset.path, kind: "file", name: assetName.value,
     }));
     event.dataTransfer.setData("text/plain", props.asset.path);

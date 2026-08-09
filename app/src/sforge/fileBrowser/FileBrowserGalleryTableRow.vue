@@ -3,9 +3,11 @@
         role="row" tabindex="0" @click="emit('select', asset)" @dblclick.stop="emit('open', asset)"
         @keydown.enter.stop="emit('open', asset)">
         <div class="sforge-file-gallery-table-row__preview" role="cell">
-            <img v-if="isImage && !imageError" :src="thumbnailUrl" :alt="assetName" loading="lazy"
+            <img v-if="isImage && !thumbnailError && !imageError" :src="thumbnailUrl" :alt="assetName" loading="lazy"
                 @error="imageError = true" />
-            <svg v-else-if="isImage" aria-hidden="true"><use href="#iconImage" /></svg>
+            <span v-else-if="isImage" class="sforge-file-gallery-table-row__image-error" role="alert">
+                {{ thumbnailError || "缩略图加载失败" }}
+            </span>
             <svg v-else aria-hidden="true"><use :href="iconHref" /></svg>
         </div>
         <span class="sforge-file-gallery-table-row__name" role="cell" :title="assetName">{{ assetName }}</span>
@@ -22,7 +24,7 @@
 
 <script setup lang="ts">
 import {computed, ref, watch} from "vue";
-import {isAssetImage, getAssetIconHref} from "../../asset/components/AssetCard.utils";
+import {getAssetIconHref, isAssetThumbnail} from "../../asset/assetFormat";
 import {resolveAssetURL} from "../../asset/assetUrl";
 import type {FileBrowserAssetResult} from "./FileBrowser.query.types";
 
@@ -38,14 +40,27 @@ const emit = defineEmits<{
 }>();
 
 const assetName = computed(() => props.asset.name || props.asset.path.split("/").at(-1) || props.asset.path);
-const isImage = computed(() => isAssetImage(props.asset.path));
-const thumbnailUrl = computed(() => resolveAssetURL(props.thumbnailUrl));
+const isImage = computed(() => isAssetThumbnail(props.asset.path));
+const thumbnailUrl = ref("");
+const thumbnailError = ref("");
 const iconHref = computed(() => getAssetIconHref(props.asset.path));
 const imageError = ref(false);
 
-watch(thumbnailUrl, () => {
+function setThumbnailUrl(value: string) {
+    thumbnailUrl.value = "";
+    thumbnailError.value = "";
     imageError.value = false;
-});
+    try {
+        if (!value.trim()) {
+            throw new Error("缩略图地址为空");
+        }
+        thumbnailUrl.value = resolveAssetURL(value);
+    } catch (reason) {
+        thumbnailError.value = reason instanceof Error ? reason.message : String(reason);
+    }
+}
+
+watch(() => props.thumbnailUrl, setThumbnailUrl, {immediate: true});
 const dimensions = computed(() => props.asset.width > 0 && props.asset.height > 0 ?
     `${props.asset.width} x ${props.asset.height}` : "-");
 const extension = computed(() => {
@@ -112,6 +127,14 @@ function formatBytes(value: number) {
     fill: var(--b3-theme-on-surface);
 }
 
+.sforge-file-gallery-table-row__image-error {
+    padding: 4px;
+    color: var(--b3-theme-error);
+    font-size: 10px;
+    line-height: 1.2;
+    text-align: center;
+}
+
 .sforge-file-gallery-table-row__name,
 .sforge-file-gallery-table-row__path,
 .sforge-file-gallery-table-row__value {
@@ -148,7 +171,7 @@ function formatBytes(value: number) {
     font-size: 11px;
 }
 
-@media (max-width: 900px) {
+@container file-gallery (max-width: 900px) {
     .sforge-file-gallery-table-row {
         grid-template-columns: 48px minmax(120px, 1fr) minmax(100px, 1.2fr) minmax(100px, 1fr) 80px;
     }

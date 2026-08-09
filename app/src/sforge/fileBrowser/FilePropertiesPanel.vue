@@ -36,9 +36,13 @@
                         <svg><use href="#iconLeft" /></svg>
                     </button>
                     <div class="sforge-file-properties__preview-frame">
-                        <img v-if="currentImage && !currentImageError" :src="currentImageURL"
-                            :alt="currentImage.properties?.entry.name" @error="currentImageError = true">
-                        <svg v-else class="sforge-file-properties__file-icon"><use href="#iconFile" /></svg>
+                        <img v-if="currentImage && !currentImageError && currentImageURL && !currentImageURLError" :src="currentImageURL"
+                            :alt="currentImage.properties?.entry.name" @error="handleImageError">
+                        <span v-else-if="currentImageError" class="sforge-file-properties__image-error"
+                            role="alert">原图加载失败</span>
+                        <span v-else-if="currentImageURLError" class="sforge-file-properties__image-error"
+                            role="alert">{{ currentImageURLError }}</span>
+                        <span v-else class="sforge-file-properties__image-error">没有可预览的图片</span>
                     </div>
                     <button v-if="imageItems.length > 1" type="button" class="block__icon ariaLabel"
                         aria-label="下一张" @click="showNextImage">
@@ -131,10 +135,19 @@ const currentImageError = ref(false);
 
 const imageItems = computed(() => availableItems.value.filter(item => item.properties?.previewKind === "image"));
 const currentImage = computed(() => imageItems.value[imageIndex.value] ?? imageItems.value[0]);
-const currentImageURL = computed(() => {
+const currentImageResolution = computed(() => {
     const contentURL = currentImage.value?.properties?.contentURL;
-    return contentURL ? resolveAssetURL(contentURL) : "";
+    if (!contentURL?.trim()) {
+        return {url: "", error: currentImage.value ? "原图地址为空" : ""};
+    }
+    try {
+        return {url: resolveAssetURL(contentURL), error: ""};
+    } catch (reason) {
+        return {url: "", error: reason instanceof Error ? reason.message : String(reason)};
+    }
 });
+const currentImageURL = computed(() => currentImageResolution.value.url);
+const currentImageURLError = computed(() => currentImageResolution.value.error);
 const nameLabel = computed(() => {
     const names = availableItems.value.map(item => item.properties?.entry.name).filter((name): name is string => Boolean(name));
     if (names.length === 0) {
@@ -212,6 +225,10 @@ function formatDateAggregate(getter: (item: FilePropertiesItem) => number | unde
 
 function showPreviousImage() {
     imageIndex.value = imageItems.value.length === 0 ? 0 : (imageIndex.value - 1 + imageItems.value.length) % imageItems.value.length;
+}
+
+function handleImageError() {
+    currentImageError.value = true;
 }
 
 function showNextImage() {

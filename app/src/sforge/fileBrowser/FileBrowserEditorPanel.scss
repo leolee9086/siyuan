@@ -13,6 +13,7 @@
     min-height: 48px;
     flex: none;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
     padding: 7px 10px;
     border-bottom: 1px solid var(--b3-border-color);
@@ -28,7 +29,7 @@
 .sforge-file-editor__identity {
     display: flex;
     min-width: 0;
-    flex: 1;
+    flex: 1 1 180px;
     flex-direction: column;
     gap: 2px;
 }
@@ -47,6 +48,7 @@
 .sforge-file-editor__identity span,
 .sforge-file-editor__language,
 .sforge-file-editor__encoding,
+.sforge-file-editor__setting,
 .sforge-file-editor__footer {
     color: var(--b3-theme-on-surface);
     font-family: var(--b3-font-family-code);
@@ -58,6 +60,29 @@
     flex: none;
     padding: 2px 5px;
     border: 1px solid var(--b3-border-color);
+}
+
+.sforge-file-editor__setting {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.sforge-file-editor__setting select {
+    max-width: 112px;
+    height: 26px;
+    padding: 2px 5px;
+    border: 1px solid var(--b3-border-color);
+    border-radius: var(--b3-border-radius);
+    color: var(--b3-theme-on-background);
+    background: var(--b3-select-background);
+    font: inherit;
+}
+
+.sforge-file-editor__setting--check input {
+    margin: 0;
 }
 
 .sforge-file-editor__content {

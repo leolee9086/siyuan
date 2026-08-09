@@ -20,6 +20,18 @@ describe("file browser operation repository", () => {
             .mockResolvedValueOnce({code: 0, msg: "", data: {
                 operation: "copy", sourceRootID: "workspace", sourcePath: "a.txt",
                 destinationRootID: "agent", destinationPath: "b.txt", copiedFileCount: 1,
+            }})
+            .mockResolvedValueOnce({code: 0, msg: "", data: {
+                operation: "move", sourceRootID: "workspace", sourcePath: "b.txt",
+                destinationRootID: "agent", destinationPath: "moved/b.txt",
+            }})
+            .mockResolvedValueOnce({code: 0, msg: "", data: {
+                operation: "delete", rootID: "workspace", path: "moved/b.txt", removedFileCount: 1,
+            }})
+            .mockResolvedValueOnce({code: 0, msg: "", data: {
+                items: [{request: {rootID: "workspace", path: "a.txt"}, result: {
+                    operation: "delete", rootID: "workspace", path: "a.txt", removedFileCount: 1,
+                }}], successCount: 1, failureCount: 0,
             }});
         const {fileBrowserOperationsRepository} = await import(
             "../../../src/sforge/fileBrowser/FileBrowser.operations.repository"
@@ -33,6 +45,15 @@ describe("file browser operation repository", () => {
             sourceRootID: "workspace", sourcePath: "a.txt", destinationRootID: "agent", destinationPath: "b.txt",
         })).resolves.toMatchObject({operation: "copy", copiedFileCount: 1});
 
+        await expect(fileBrowserOperationsRepository.move({
+            sourceRootID: "workspace", sourcePath: "b.txt", destinationRootID: "agent", destinationPath: "moved/b.txt",
+        })).resolves.toMatchObject({operation: "move", destinationPath: "moved/b.txt"});
+
+        await expect(fileBrowserOperationsRepository.delete({rootID: "workspace", path: "moved/b.txt"}))
+            .resolves.toMatchObject({operation: "delete", removedFileCount: 1});
+        await expect(fileBrowserOperationsRepository.deleteBatch({items: [{rootID: "workspace", path: "a.txt"}]}))
+            .resolves.toMatchObject({successCount: 1, failureCount: 0});
+
         expect(network.fetchSyncPost).toHaveBeenNthCalledWith(
             1, "/api/s-forge/file-browser/operations/create-directory", {rootID: "workspace", path: "new"},
         );
@@ -42,6 +63,19 @@ describe("file browser operation repository", () => {
         expect(network.fetchSyncPost).toHaveBeenNthCalledWith(
             3, "/api/s-forge/file-browser/operations/copy", {
                 sourceRootID: "workspace", sourcePath: "a.txt", destinationRootID: "agent", destinationPath: "b.txt",
+            },
+        );
+        expect(network.fetchSyncPost).toHaveBeenNthCalledWith(
+            4, "/api/s-forge/file-browser/operations/move", {
+                sourceRootID: "workspace", sourcePath: "b.txt", destinationRootID: "agent", destinationPath: "moved/b.txt",
+            },
+        );
+        expect(network.fetchSyncPost).toHaveBeenNthCalledWith(
+            5, "/api/s-forge/file-browser/operations/delete", {rootID: "workspace", path: "moved/b.txt"},
+        );
+        expect(network.fetchSyncPost).toHaveBeenNthCalledWith(
+            6, "/api/s-forge/file-browser/operations/delete-batch", {
+                items: [{rootID: "workspace", path: "a.txt"}],
             },
         );
     });

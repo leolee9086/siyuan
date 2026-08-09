@@ -118,6 +118,18 @@ function retainSelectionRoots(state: SelectionState, commit: SelectionCommit, ro
     commit(next, primary, anchor);
 }
 
+function removeSelectionSubtree(state: SelectionState, commit: SelectionCommit, rootID: string, path: string) {
+    const normalized = path.trim().replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
+    const prefix = normalized ? `${normalized}/` : "";
+    const next = state.items.value.filter(item =>
+        item.rootID !== rootID || (item.path !== normalized && !item.path.startsWith(prefix)),
+    );
+    const primary = next.some(item => item.key === state.primaryKey.value)
+        ? state.primaryKey.value : (next.at(-1)?.key ?? "");
+    const anchor = next.some(item => item.key === state.anchorKey.value) ? state.anchorKey.value : primary;
+    commit(next, primary, anchor);
+}
+
 function createSelectionActions(state: SelectionState) {
     const commit = createSelectionCommit(state);
     return {
@@ -129,6 +141,7 @@ function createSelectionActions(state: SelectionState) {
         replace: (node: FileBrowserTreeNode) => replaceSelection(commit, node),
         replaceAddress: (item: FileBrowserSelectionItem) => replaceAddressSelection(commit, item),
         retainRoots: (rootIDs: Set<string>) => retainSelectionRoots(state, commit, rootIDs),
+        removeSubtree: (rootID: string, path: string) => removeSelectionSubtree(state, commit, rootID, path),
         clear: () => commit([], "", ""),
     };
 }
