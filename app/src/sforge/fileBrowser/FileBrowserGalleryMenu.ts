@@ -8,6 +8,7 @@ import type {FileBrowserRoot} from "./FileBrowser.types";
 
 export interface FileBrowserGalleryMenuActions {
     open(asset: FileBrowserAssetResult): Promise<void> | void;
+    createAgentTask?(asset: FileBrowserAssetResult): Promise<void> | void;
     openSourceNote?(asset: FileBrowserAssetResult): Promise<void> | void;
     openContainingFolder?(asset: FileBrowserAssetResult, root: FileBrowserRoot): Promise<void> | void;
     openDefault?(asset: FileBrowserAssetResult, root: FileBrowserRoot): Promise<void> | void;
@@ -58,6 +59,15 @@ export function showFileBrowserGalleryItemMenu(
         icon: "iconOpen",
         click: () => void actions.open(asset),
     });
+
+    if (actions.createAgentTask) {
+        menu.addItem({
+            id: "createAgentTask",
+            label: "在 Agent 面板新建任务",
+            icon: "iconSparkles",
+            click: () => void actions.createAgentTask?.(asset),
+        });
+    }
 
     if (asset.boundBlockId?.trim() && actions.openSourceNote) {
         menu.addItem({

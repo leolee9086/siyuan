@@ -49,7 +49,7 @@
                 <div class="sforge-file-gallery__attribute-control">
                     <span>显示属性</span>
                     <FileBrowserMultiSelect v-model="selectedAttributes" :options="galleryAttributeKeys"
-                        :option-labels="galleryAttributeLabels" placeholder="属性" aria-label="显示属性" />
+                        :option-labels="galleryAttributeLabels" placeholder="属性" ariaLabel="显示属性" />
                 </div>
             </div>
         </header>
@@ -66,41 +66,43 @@
 
         <main ref="galleryContent" class="sforge-file-gallery__content" @mousedown.left="startMarquee"
             @dragover.prevent="handleGalleryDragOver" @drop.prevent="handleGalleryDrop">
-            <div v-if="galleryDisplayState === 'ready' && layoutMode === 'table'" class="sforge-file-gallery-table-header"
-                role="row" aria-label="表格列标题">
-                <span role="columnheader">预览</span>
-                <span role="columnheader">名称</span>
-                <span role="columnheader">路径</span>
-                <span role="columnheader">标签</span>
-                <span role="columnheader">尺寸</span>
-                <span role="columnheader">大小</span>
-                <span role="columnheader">类型</span>
-            </div>
-            <VirtualMasonryGrid v-if="galleryDisplayState === 'ready'" :key="layoutMode" ref="galleryGrid" :items="galleryAssets"
-                :column-width="effectiveColumnWidth" :gap="12" id-key="key" :item-height="estimateItemHeight"
-                :mode="layoutMode === 'table' ? 'list' : layoutMode" :managed-by-provider="true"
-                @load-more="loadNextPage">
-                <template #default="{item, index}">
-                    <FileBrowserGalleryTableRow v-if="layoutMode === 'table'" :asset="item"
-                        :index="index" :drag-items="dragItemsFor(item)" :thumbnail-url="thumbnailUrl(item)"
-                        :selected="isAssetSelected(item)" @select-with-event="selectAsset" @open="openAsset"
-                        @keydown="handleAssetKeydown" @menu="openGalleryMenu" />
-                    <FileBrowserGalleryCard v-else :asset="item" :thumbnail-url="thumbnailUrl(item)"
-                        :index="index" :drag-items="dragItemsFor(item)" :selected="isAssetSelected(item)"
-                        :show-path="showPaths"
-                        :display-attributes="selectedAttributes"
-                        @select-with-event="selectAsset" @open="openAsset" @keydown="handleAssetKeydown"
-                        @menu="openGalleryMenu" />
-                </template>
-            </VirtualMasonryGrid>
-            <div v-if="galleryDisplayState === 'ready' && marquee.active" class="sforge-file-gallery__selection-box" :style="marqueeStyle"
-                aria-hidden="true" />
+            <template v-if="galleryDisplayState === 'ready'">
+                <div v-if="layoutMode === 'table'" class="sforge-file-gallery-table-header"
+                    role="row" aria-label="表格列标题">
+                    <span role="columnheader">预览</span>
+                    <span role="columnheader">名称</span>
+                    <span role="columnheader">路径</span>
+                    <span role="columnheader">标签</span>
+                    <span role="columnheader">尺寸</span>
+                    <span role="columnheader">大小</span>
+                    <span role="columnheader">类型</span>
+                </div>
+                <VirtualMasonryGrid :key="layoutMode" ref="galleryGrid" :items="galleryAssets"
+                    :column-width="effectiveColumnWidth" :gap="12" id-key="key" :item-height="estimateItemHeight"
+                    :mode="layoutMode === 'table' ? 'list' : layoutMode" :managed-by-provider="true"
+                    @load-more="loadNextPage">
+                    <template #default="{item, index}">
+                        <FileBrowserGalleryTableRow v-if="layoutMode === 'table'" :asset="item"
+                            :index="index" :drag-items="dragItemsFor(item)" :thumbnail-url="thumbnailUrl(item)"
+                            :selected="isAssetSelected(item)" @select-with-event="selectAsset" @open="openAsset"
+                            @keydown="handleAssetKeydown" @menu="openGalleryMenu" />
+                        <FileBrowserGalleryCard v-else :asset="item" :thumbnail-url="thumbnailUrl(item)"
+                            :index="index" :drag-items="dragItemsFor(item)" :selected="isAssetSelected(item)"
+                            :show-path="showPaths"
+                            :display-attributes="selectedAttributes"
+                            @select-with-event="selectAsset" @open="openAsset" @keydown="handleAssetKeydown"
+                            @menu="openGalleryMenu" />
+                    </template>
+                </VirtualMasonryGrid>
+                <div v-if="marquee.active" class="sforge-file-gallery__selection-box" :style="marqueeStyle"
+                    aria-hidden="true" />
+            </template>
             <div v-else-if="galleryDisplayState === 'loading'" class="sforge-file-gallery__state">
                 <svg class="fn__rotate"><use href="#iconRefresh" /></svg>
                 <span>正在读取资源</span>
             </div>
             <div v-else-if="galleryDisplayState === 'error'" class="sforge-file-gallery__state sforge-file-gallery__state--error">
-                <span>{{ rootsError || error }}</span>
+                <span>{{ rootsError || error || galleryResult.error }}</span>
                 <button type="button" class="b3-button b3-button--text" @click="() => runScopedSearch()">重试</button>
             </div>
             <div v-else-if="galleryDisplayState === 'empty'" class="sforge-file-gallery__state">
@@ -139,6 +141,7 @@ import {createFileBrowserDirectoryOpener, createFileBrowserEntryOpener} from "./
 import {fileBrowserSelection} from "./FileBrowser.selection";
 import {FILE_BROWSER_DRAG_MIME, parseFileBrowserDragData} from "./FileBrowser.drag";
 import {getFileBrowserCapabilitiesForPath, makeFileBrowserNodeKey} from "./FileBrowser.tree";
+import {createFileBrowserAgentFileTask} from "./FileBrowserAgentActions";
 import {
     openFileBrowserGalleryAssetContainingFolder,
     openFileBrowserGalleryAssetDefault,
@@ -147,6 +150,7 @@ import {
 } from "./FileBrowserGalleryMenu";
 import {resolveAssetURL} from "../../asset/assetUrl";
 import {getAssetThumbnailRequestURL} from "../../asset/assetFormat";
+import {isElectron} from "../../platform";
 import {showMessage} from "../../dialog/message";
 import {escapeHtml} from "../../util/DOM/escape";
 import {
@@ -227,16 +231,35 @@ const effectiveColumnWidth = computed(() => {
     return availableWidth > 0 ? Math.min(columnWidth.value, availableWidth) : columnWidth.value;
 });
 let galleryResizeObserver: ResizeObserver | undefined;
-const loadedAssets = ref<GalleryAsset[]>([]);
-const totalCount = ref(0);
-const nextOffset = ref(0);
-const loadingMore = ref(false);
-const pageError = ref("");
-const exhausted = ref(false);
+type GalleryResultPhase = "loading" | "ready" | "empty" | "error";
+
+interface GalleryResultState {
+    phase: GalleryResultPhase;
+    assets: GalleryAsset[];
+    totalCount: number;
+    nextOffset: number;
+    loadingMore: boolean;
+    exhausted: boolean;
+    error: string;
+    pageError: string;
+}
+
+// 结果数组、总数、分页游标和显示阶段必须作为一个提交单元更新。
+// 分开维护这些 ref 会让旧卡片与空态在异步刷新窗口中同时出现。
+const galleryResult = ref<GalleryResultState>({
+    phase: "loading",
+    assets: [],
+    totalCount: 0,
+    nextOffset: 0,
+    loadingMore: false,
+    exhausted: false,
+    error: "",
+    pageError: "",
+});
 let pageRevision = 0;
 let activePageRequest: FileBrowserSearchRequest | undefined;
 const search = useFileBrowserSearch(fileBrowserQueryRepository);
-const {result, loading, error} = search;
+const {loading, error} = search;
 const openEntry = createFileBrowserEntryOpener(props.app, fileBrowserRepository);
 const openDirectory = createFileBrowserDirectoryOpener(props.app);
 
@@ -374,22 +397,28 @@ const canGoForward = computed(() => scopeHistoryIndex.value < scopeHistory.value
 const searchPanelKey = computed(() => `${props.file.rootID}:${scopePath.value}:${isGlobalResult ? "global" : "directory"}`);
 const hasActiveFilters = ref(false);
 const hasQuery = computed(() => hasActiveFilters.value);
-const loadedCount = computed(() => loadedAssets.value.length);
-const galleryAssets = computed<GalleryAsset[]>(() => loadedAssets.value);
-type GalleryDisplayState = "loading" | "error" | "empty" | "ready";
-const galleryDisplayState = computed<GalleryDisplayState>(() => {
-    if (loading.value || rootsLoading.value) {
+const loadedCount = computed(() => galleryResult.value.assets.length);
+const totalCount = computed(() => galleryResult.value.totalCount);
+const loadingMore = computed(() => galleryResult.value.loadingMore);
+const pageError = computed(() => galleryResult.value.pageError);
+const galleryAssets = computed<GalleryAsset[]>(() => galleryResult.value.assets);
+const galleryDisplayState = computed<GalleryResultPhase>(() => {
+    if (rootsLoading.value || galleryResult.value.phase === "loading") {
         return "loading";
     }
-    if (rootsError.value || error.value) {
+    if (rootsError.value || galleryResult.value.phase === "error") {
         return "error";
     }
-    return galleryAssets.value.length > 0 ? "ready" : "empty";
+    return galleryResult.value.phase;
 });
 const galleryAttributes = FILE_BROWSER_GALLERY_ATTRIBUTES;
 const galleryAttributeKeys = galleryAttributes.map(attribute => attribute.key);
 const galleryAttributeLabels = Object.fromEntries(galleryAttributes.map(attribute => [attribute.key, attribute.label]));
-const availableExtensions = computed(() => loadedAssets.value.map(asset => extensionOf(asset.name || asset.path)));
+const availableExtensions = computed(() => galleryResult.value.assets.map(asset => extensionOf(asset.name || asset.path)));
+
+function setPageError(message: string) {
+    galleryResult.value = {...galleryResult.value, pageError: message};
+}
 
 function toGalleryAssets(assets: FileBrowserAssetResult[]) {
     return assets.map(asset => ({
@@ -401,14 +430,18 @@ function toGalleryAssets(assets: FileBrowserAssetResult[]) {
 function applyInitialPage(next: FileBrowserSearchResult) {
     const sourceLimit = activePageRequest?.limit ?? GALLERY_PAGE_SIZE;
     const sourceOffset = activePageRequest?.offset ?? 0;
-    loadedAssets.value = toGalleryAssets(next.assets);
-    totalCount.value = next.totalCount;
-    nextOffset.value = sourceOffset + Math.max(sourceLimit, next.assets.length);
-    exhausted.value = next.assets.length === 0 || loadedAssets.value.length >= next.totalCount;
-    pageError.value = "";
+    const assets = toGalleryAssets(next.assets);
+    galleryResult.value = {
+        phase: assets.length > 0 ? "ready" : "empty",
+        assets,
+        totalCount: next.totalCount,
+        nextOffset: sourceOffset + Math.max(sourceLimit, assets.length),
+        loadingMore: false,
+        exhausted: assets.length === 0 || assets.length >= next.totalCount,
+        error: "",
+        pageError: "",
+    };
 }
-
-watch(result, applyInitialPage, {flush: "post"});
 
 // 查询结果和卡片尺寸都可能在网格已经挂载后变化；在 DOM 提交后要求现有布局引擎
 // 重新计算，避免只更新卡片数据而留下旧的列坐标或旧的可见范围。
@@ -417,38 +450,50 @@ watch([galleryAssets, effectiveColumnWidth], () => {
 }, {flush: "post"});
 
 async function loadNextPage() {
-    if (loadingMore.value || exhausted.value || !activePageRequest || loadedCount.value >= totalCount.value) {
+    if (galleryResult.value.loadingMore || galleryResult.value.exhausted || !activePageRequest ||
+        loadedCount.value >= totalCount.value) {
         return;
     }
     const revision = pageRevision;
     const request: FileBrowserSearchRequest = {
         ...cloneSearchRequest(activePageRequest),
         limit: GALLERY_PAGE_SIZE,
-        offset: nextOffset.value,
+        offset: galleryResult.value.nextOffset,
     };
-    loadingMore.value = true;
-    pageError.value = "";
+    galleryResult.value = {...galleryResult.value, loadingMore: true, pageError: ""};
     try {
         const page = await fileBrowserQueryRepository.search(request);
         if (revision !== pageRevision) {
             return;
         }
-        const existing = new Map(loadedAssets.value.map(asset => [asset.key, asset]));
+        const existing = new Map(galleryResult.value.assets.map(asset => [asset.key, asset]));
         for (const asset of toGalleryAssets(page.assets)) {
             existing.set(asset.key, asset);
         }
-        loadedAssets.value = [...existing.values()];
-        totalCount.value = page.totalCount;
-        nextOffset.value += GALLERY_PAGE_SIZE;
-        exhausted.value = page.assets.length === 0 || loadedAssets.value.length >= page.totalCount ||
-            nextOffset.value >= page.totalCount;
+        const assets = [...existing.values()];
+        const nextOffset = galleryResult.value.nextOffset + GALLERY_PAGE_SIZE;
+        galleryResult.value = {
+            ...galleryResult.value,
+            phase: assets.length > 0 ? "ready" : "empty",
+            assets,
+            totalCount: page.totalCount,
+            nextOffset,
+            loadingMore: false,
+            exhausted: page.assets.length === 0 || assets.length >= page.totalCount || nextOffset >= page.totalCount,
+            error: "",
+            pageError: "",
+        };
     } catch (reason) {
         if (revision === pageRevision) {
-            pageError.value = reason instanceof Error ? reason.message : String(reason);
+            galleryResult.value = {
+                ...galleryResult.value,
+                loadingMore: false,
+                pageError: reason instanceof Error ? reason.message : String(reason),
+            };
         }
     } finally {
-        if (revision === pageRevision) {
-            loadingMore.value = false;
+        if (revision === pageRevision && galleryResult.value.loadingMore) {
+            galleryResult.value = {...galleryResult.value, loadingMore: false};
         }
     }
 }
@@ -510,16 +555,29 @@ function runSearch(request: FileBrowserSearchRequest) {
     currentQuery.value = isGlobalResult ? cloneSearchRequest(scoped) : undefined;
     pageRevision += 1;
     activePageRequest = {...scoped, limit: GALLERY_PAGE_SIZE, offset: 0};
-    loadedAssets.value = [];
-    totalCount.value = 0;
-    nextOffset.value = 0;
-    loadingMore.value = false;
-    exhausted.value = false;
-    pageError.value = "";
+    galleryResult.value = {
+        phase: "loading",
+        assets: [],
+        totalCount: 0,
+        nextOffset: 0,
+        loadingMore: false,
+        exhausted: false,
+        error: "",
+        pageError: "",
+    };
     const revision = pageRevision;
     void search.search(activePageRequest).then(next => {
         if (next && revision === pageRevision) {
             applyInitialPage(next);
+            return;
+        }
+        if (revision === pageRevision) {
+            galleryResult.value = {
+                ...galleryResult.value,
+                phase: "error",
+                error: error.value || "文件查询失败",
+                pageError: "",
+            };
         }
     });
 }
@@ -820,12 +878,12 @@ async function handleGalleryDrop(event: DragEvent) {
         return;
     }
     if (isGlobalResult) {
-        pageError.value = "全局资源结果没有唯一的目录目标，请从目录页签执行移动";
+        setPageError("全局资源结果没有唯一的目录目标，请从目录页签执行移动");
         return;
     }
     const targetRoot = scopeRoot.value;
     if (!targetRoot || !targetRoot.exists || !getFileBrowserCapabilitiesForPath(targetRoot, scopePath.value).write) {
-        pageError.value = "当前目录不可写，无法接收拖放项目";
+        setPageError("当前目录不可写，无法接收拖放项目");
         return;
     }
     const sources = source.items ?? [source];
@@ -860,10 +918,10 @@ async function handleGalleryDrop(event: DragEvent) {
         await loadScope();
         runScopedSearch(false);
         if (dropError) {
-            pageError.value = dropError;
+            setPageError(dropError);
         }
     } catch (reason) {
-        pageError.value = reason instanceof Error ? reason.message : String(reason);
+        setPageError(reason instanceof Error ? reason.message : String(reason));
     }
 }
 
@@ -903,7 +961,7 @@ async function openSourceNote(asset: FileBrowserAssetResult) {
 async function deleteAsset(asset: FileBrowserAssetResult) {
     const root = resolveAssetRoot(asset);
     if (!root || !root.exists || !getFileBrowserCapabilitiesForPath(root, asset.path).write) {
-        pageError.value = "资源根当前不可写";
+        setPageError("资源根当前不可写");
         return;
     }
     const confirmed = await requestFileBrowserConfirmation(
@@ -917,28 +975,52 @@ async function deleteAsset(asset: FileBrowserAssetResult) {
         const result = await fileBrowserOperationsRepository.delete({rootID: asset.rootID, path: asset.path});
         fileBrowserSelection.removeSubtree(asset.rootID, asset.path);
         const removedCount = Math.max(1, result.removedFileCount ?? 1);
-        loadedAssets.value = loadedAssets.value.filter(item => item.key !== makeFileBrowserNodeKey(asset.rootID, asset.path));
-        totalCount.value = Math.max(0, totalCount.value - removedCount);
-        nextOffset.value = Math.max(loadedAssets.value.length, nextOffset.value - removedCount);
-        exhausted.value = loadedAssets.value.length >= totalCount.value;
+        const assets = galleryResult.value.assets.filter(item =>
+            item.key !== makeFileBrowserNodeKey(asset.rootID, asset.path));
+        const nextTotalCount = Math.max(0, galleryResult.value.totalCount - removedCount);
+        const nextOffset = Math.max(assets.length, galleryResult.value.nextOffset - removedCount);
+        galleryResult.value = {
+            ...galleryResult.value,
+            phase: assets.length > 0 ? "ready" : "empty",
+            assets,
+            totalCount: nextTotalCount,
+            nextOffset,
+            exhausted: assets.length >= nextTotalCount,
+            pageError: "",
+        };
         showMessage(`已删除：${escapeHtml(asset.path)}`, 3000);
     } catch (reason) {
-        pageError.value = reason instanceof Error ? reason.message : String(reason);
+        setPageError(reason instanceof Error ? reason.message : String(reason));
     }
 }
 
 function openGalleryMenu(asset: FileBrowserAssetResult, event: MouseEvent) {
     const root = resolveAssetRoot(asset);
     if (!root) {
-        pageError.value = "资源根不存在";
+        setPageError("资源根不存在");
         return;
     }
     selectAsset(asset);
     showFileBrowserGalleryItemMenu(event, asset, root, thumbnailUrl(asset), {
         open: openAsset,
+        createAgentTask: async item => {
+            try {
+                const stat = await fileBrowserRepository.statFile({rootID: item.rootID, path: item.path});
+                await createFileBrowserAgentFileTask({
+                    name: item.name,
+                    contentURL: stat.contentURL,
+                    mediaType: stat.mediaType,
+                });
+                showMessage(`已在 Agent 面板创建附件任务：${item.name}`, 3000);
+            } catch (reason) {
+                setPageError(reason instanceof Error ? reason.message : String(reason));
+            }
+        },
         openSourceNote,
-        openDefault: openFileBrowserGalleryAssetDefault,
-        openContainingFolder: openFileBrowserGalleryAssetContainingFolder,
+        ...(isElectron ? {
+            openDefault: openFileBrowserGalleryAssetDefault,
+            openContainingFolder: openFileBrowserGalleryAssetContainingFolder,
+        } : {}),
         openDirectory: async item => openDirectory(item.rootID, parentRelativePath(item.path),
             basename(parentRelativePath(item.path)) || root.label),
         openProperties: item => showFileBrowserGalleryProperties(item, () => selectAsset(item)),

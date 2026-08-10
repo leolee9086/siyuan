@@ -10,9 +10,11 @@ const {
     inspectKernelUpdate,
     isSupervisorUnreachableError,
     probeSupervisor,
+    resolveForgeInterfaceMode,
     resolveForgeStartup,
     runCommitRuntimeHookInstaller,
     synchronizeExistingSupervisor,
+    waitForSupervisorReady,
 } = require("../scripts/forge-start");
 const {
     ForgeRuntimeSupervisor,
@@ -104,6 +106,8 @@ test("Existing Supervisor performs a verified hot replacement for Kernel changes
         return {
             ok: true,
             json: async () => ({
+                lifecycle: "ready",
+                ready: true,
                 activeVersion: {revision: "new-revision"},
                 job: statusCalls === 1 ?
                     {id: "restart-1", state: "running", phase: "go_test_core"} :
@@ -120,6 +124,7 @@ test("Existing Supervisor performs a verified hot replacement for Kernel changes
         run: async (_executable, args) => args.includes("status") ? "" : args.includes("rev-parse") ?
             "new-revision\n" : "kernel/api/agent.go\n",
         wait: async () => undefined,
+        probeKernelImpl: async () => true,
         report: (message) => reports.push(message),
     });
 
@@ -149,6 +154,8 @@ test("Existing Supervisor client attaches to an already-running hot replacement 
             return {
                 ok: true,
                 json: async () => ({
+                    lifecycle: "ready",
+                    ready: true,
                     activeVersion: {revision: "new-revision"},
                     job: {id: "restart-existing", state: "completed", phase: "completed"},
                 }),
@@ -157,6 +164,7 @@ test("Existing Supervisor client attaches to an already-running hot replacement 
         run: async (_executable, args) => args.includes("status") ? "" : args.includes("rev-parse") ?
             "new-revision\n" : "kernel/api/agent.go\n",
         wait: async () => undefined,
+        probeKernelImpl: async () => true,
         report: (message) => reports.push(message),
     });
 
@@ -207,10 +215,13 @@ test("Forge startup reuses an authenticated Supervisor for the same workspace", 
             ok: true,
             json: async () => ({
                 mode: "forge-source-supervisor",
+                lifecycle: "ready",
+                ready: true,
                 processId: ownership.processId,
                 repoRoot: root,
                 workspace,
                 port: ownership.port,
+                activeVersion: {revision: "active-revision"},
             }),
         };
     };
@@ -221,10 +232,71 @@ test("Forge startup reuses an authenticated Supervisor for the same workspace", 
         fetchImpl,
         discoverKernels: async () => assert.fail("authenticated reuse must not scan Kernel processes"),
         portAvailable: async () => assert.fail("authenticated reuse must not scan ports"),
+        probeKernelImpl: async (port) => {
+            assert.equal(port, 6806);
+            return true;
+        },
     });
 
     assert.equal(startup.kind, "reuse");
     assert.equal(startup.port, 6806);
+});
+
+test("Forge interface selection keeps Electron and browser modes independent", () => {
+    assert.equal(resolveForgeInterfaceMode(["node", "forge-start.js"]), "electron");
+    assert.equal(resolveForgeInterfaceMode(["node", "forge-start.js", "--browser"]), "browser");
+    assert.equal(resolveForgeInterfaceMode(["node", "forge-start.js", "--no-browser"]), "none");
+    assert.throws(() => resolveForgeInterfaceMode(["--browser", "--no-browser"]), /mutually exclusive/);
+});
+
+test("Forge startup waits for Supervisor and Kernel readiness instead of accepting a listening control port", async () => {
+    const ownership = {controlURL: "http://127.0.0.1:19785", cliToken: "owned-cli-token", port: 6806};
+    let statusCalls = 0;
+    let clock = 0;
+    let kernelProbes = 0;
+    const ready = await waitForSupervisorReady({
+        ownership,
+        status: {lifecycle: "initializing", ready: false, activeVersion: null},
+        fetchImpl: async () => {
+            statusCalls += 1;
+            return {
+                ok: true,
+                json: async () => statusCalls === 1 ?
+                    {lifecycle: "recovering", ready: false, activeVersion: null} :
+                    {lifecycle: "ready", ready: true, activeVersion: {revision: "active-revision"}},
+            };
+        },
+        wait: async (milliseconds) => {
+            clock += milliseconds;
+        },
+        now: () => clock,
+        timeoutMs: 2_000,
+        probeKernelImpl: async (port) => {
+            kernelProbes += 1;
+            assert.equal(port, 6806);
+        },
+    });
+
+    assert.equal(ready.lifecycle, "ready");
+    assert.equal(statusCalls, 2);
+    assert.equal(kernelProbes, 1);
+});
+
+test("Forge startup stops waiting when Supervisor readiness reaches its deadline", async () => {
+    let clock = 0;
+    await assert.rejects(waitForSupervisorReady({
+        ownership: {controlURL: "http://127.0.0.1:19785", cliToken: "owned-cli-token", port: 6806},
+        status: {lifecycle: "initializing", ready: false, activeVersion: null},
+        fetchImpl: async () => ({
+            ok: true,
+            json: async () => ({lifecycle: "initializing", ready: false, activeVersion: null}),
+        }),
+        wait: async (milliseconds) => {
+            clock += milliseconds;
+        },
+        now: () => clock,
+        timeoutMs: 1_000,
+    }), /did not become ready within 1000ms/);
 });
 
 test("Supervisor probe preserves the network cause for readiness diagnostics", async () => {
@@ -371,6 +443,20 @@ const createSupervisor = (overrides = {}) => {
     fs.mkdirSync(supervisor.jobsDir, {recursive: true});
     return supervisor;
 };
+
+test("Supervisor status distinguishes a listening control plane from a ready Kernel", () => {
+    const supervisor = createSupervisor();
+    const initializing = supervisor.status();
+    assert.equal(initializing.lifecycle, "initializing");
+    assert.equal(initializing.ready, false);
+
+    supervisor.activeVersion = {id: "active", revision: "a".repeat(40)};
+    supervisor.kernelProcess = {exitCode: null};
+    supervisor.lifecycle = "ready";
+    const ready = supervisor.status();
+    assert.equal(ready.lifecycle, "ready");
+    assert.equal(ready.ready, true);
+});
 
 test("Supervisor runtime ownership is exclusive and released only by its owner", () => {
     const supervisor = createSupervisor();

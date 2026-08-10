@@ -151,6 +151,7 @@ describe("file properties panel tag interactions", () => {
             get: vi.fn(async () => ({revision: "tag-revision-1", items: [{name: "Review", color: "#112233"}]})),
             update: vi.fn(async request => ({revision: "tag-revision-2", items: request.items})),
         };
+        const openTagResults = vi.fn(async () => undefined);
         const selection = createFileBrowserSelectionStore();
         const firstNode = node("one.md");
         const secondNode = node("two.md");
@@ -158,13 +159,15 @@ describe("file properties panel tag interactions", () => {
         selection.select(secondNode, [firstNode, secondNode], {toggle: true, range: false});
         host = document.createElement("div");
         document.body.append(host);
-        app = createApp(FilePropertiesPanel, {repository, selection, tagRepository});
+        app = createApp(FilePropertiesPanel, {repository, selection, tagRepository, openTagResults});
         app.mount(host);
 
         await vi.waitFor(() => expect(host?.textContent).toContain("Review (2)"));
         const reviewChip = Array.from(host?.querySelectorAll<HTMLElement>(".sforge-file-tags__chips .b3-chip") ?? [])
             .find(element => element.textContent?.includes("Review"));
         expect(reviewChip?.style.backgroundColor).toBe("#112233");
+        host?.querySelector<HTMLButtonElement>("[aria-label='打开标签 Review']")?.click();
+        expect(openTagResults).toHaveBeenCalledWith("Review");
         host?.querySelector<HTMLElement>("[aria-label='逐文件标签']")
             ?.dispatchEvent(new MouseEvent("click", {bubbles: true}));
         await nextTick();

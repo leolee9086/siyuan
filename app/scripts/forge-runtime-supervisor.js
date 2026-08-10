@@ -255,9 +255,13 @@ class ForgeRuntimeSupervisor {
         this.expectedKernelExit = false;
         this.pendingProtectedApproval = undefined;
         this.ownsRuntime = false;
+        this.lifecycle = "initializing";
+        this.lifecycleError = "";
     }
 
     async initialize() {
+        this.lifecycle = "initializing";
+        this.lifecycleError = "";
         const restartPolicy = this.loadRestartPolicy();
         fs.mkdirSync(this.versionsDir, {recursive: true});
         fs.mkdirSync(this.jobsDir, {recursive: true});
@@ -270,10 +274,16 @@ class ForgeRuntimeSupervisor {
             await this.launchAndRequireHealthy(version, !this.noBrowser);
             this.markVersionState(version, "healthy");
             this.activeVersion = version;
+            this.lifecycle = "ready";
             this.persistState();
             this.cleanupVersions();
             return this.status();
         } catch (error) {
+            this.lifecycle = "failed";
+            this.lifecycleError = this.describeError(error);
+            if (this.ownsRuntime) {
+                this.persistState();
+            }
             await this.terminateKernelProcess();
             await this.close();
             throw error;
@@ -297,6 +307,10 @@ class ForgeRuntimeSupervisor {
 
     async close() {
         this.closing = true;
+        if (this.lifecycle !== "failed") {
+            this.lifecycle = "closing";
+            this.lifecycleError = "";
+        }
         if (this.controlServer) {
             await new Promise((resolve) => this.controlServer.close(resolve));
         }
@@ -304,8 +318,12 @@ class ForgeRuntimeSupervisor {
     }
 
     status() {
+        const kernelRunning = Boolean(this.kernelProcess && this.kernelProcess.exitCode == null);
         return {
             mode: "forge-source-supervisor",
+            lifecycle: this.lifecycle,
+            ready: this.lifecycle === "ready" && Boolean(this.activeVersion) && kernelRunning,
+            lifecycleError: this.lifecycleError || null,
             processId: process.pid,
             repoRoot: this.repoRoot,
             workspace: this.workspace,
@@ -646,6 +664,9 @@ class ForgeRuntimeSupervisor {
             throw new Error("cannot switch without an active version");
         }
         this.switching = true;
+        this.lifecycle = "restarting";
+        this.lifecycleError = "";
+        this.persistState();
         try {
             await this.requestGracefulKernelShutdown(job, candidate);
             await this.waitForKernelExit(30_000);
@@ -653,6 +674,7 @@ class ForgeRuntimeSupervisor {
                 await this.launchAndRequireHealthy(candidate, false);
                 this.markVersionState(candidate, "healthy");
                 this.activeVersion = candidate;
+                this.lifecycle = "ready";
                 this.persistState();
                 this.writeJobLog(`candidate promoted: ${candidate.id}`);
             } catch (candidateError) {
@@ -678,6 +700,7 @@ class ForgeRuntimeSupervisor {
                 try {
                     await this.launchAndRequireHealthy(previous, false);
                     this.activeVersion = previous;
+                    this.lifecycle = "ready";
                     this.persistState();
                     this.updateIncident(incident, {
                         state: "recovered",
@@ -686,6 +709,9 @@ class ForgeRuntimeSupervisor {
                     }, `previous version restored: ${previous.id}`);
                 } catch (recoveryError) {
                     const recoveryMessage = this.describeError(recoveryError);
+                    this.lifecycle = "failed";
+                    this.lifecycleError = recoveryMessage;
+                    this.persistState();
                     this.updateIncident(incident, {
                         state: "unrecovered",
                         outcome: "previous-version-restore-failed",
@@ -698,6 +724,11 @@ class ForgeRuntimeSupervisor {
             }
         } finally {
             this.switching = false;
+            if (this.lifecycle === "restarting" && this.kernelProcess && this.kernelProcess.exitCode == null) {
+                this.lifecycle = "ready";
+                this.lifecycleError = "";
+                this.persistState();
+            }
         }
     }
 
@@ -723,9 +754,16 @@ class ForgeRuntimeSupervisor {
             }
             if (!this.switching && !expected) {
                 if (code === 0 && signal === null) {
+                    this.lifecycle = "closing";
+                    this.lifecycleError = "";
                     console.log("[forge] kernel exited normally; stopping Forge supervisor");
                     void this.close();
                     return;
+                }
+                this.lifecycle = this.activeVersion ? "recovering" : "failed";
+                this.lifecycleError = `Kernel exited unexpectedly: code=${code}, signal=${signal || "none"}`;
+                if (this.ownsRuntime) {
+                    this.persistState();
                 }
                 console.error(`[forge] kernel exited unexpectedly: code=${code}, signal=${signal}`);
                 void this.recoverActiveVersionAfterUnexpectedExit(version, incident);
@@ -740,6 +778,9 @@ class ForgeRuntimeSupervisor {
             return;
         }
         this.recovering = true;
+        this.lifecycle = "recovering";
+        this.lifecycleError = "";
+        this.persistState();
         try {
             for (let attempt = 1; attempt <= 3; attempt += 1) {
                 if (this.closing || this.switching || this.kernelProcess) {
@@ -758,6 +799,9 @@ class ForgeRuntimeSupervisor {
                     console.error(`[forge] restoring active kernel version ${this.activeVersion.id}, attempt ${attempt}/3`);
                     await this.launchAndRequireHealthy(this.activeVersion, false);
                     console.log(`[forge] active kernel version restored: ${this.activeVersion.id}`);
+                    this.lifecycle = "ready";
+                    this.lifecycleError = "";
+                    this.persistState();
                     attemptRecord.result = "recovered";
                     attemptRecord.finishedAt = this.now().toISOString();
                     if (incident) {
@@ -785,6 +829,9 @@ class ForgeRuntimeSupervisor {
                 }
             }
             console.error(`[forge] active kernel version ${this.activeVersion.id} could not be restored after 3 attempts`);
+            this.lifecycle = "failed";
+            this.lifecycleError = "active Kernel recovery was exhausted after 3 attempts";
+            this.persistState();
             if (incident) {
                 this.updateIncident(incident, {
                     state: "unrecovered",

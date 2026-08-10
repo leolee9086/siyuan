@@ -44,6 +44,19 @@ export async function bindAgentTaskDirectory(requestHeaders: AgentRequestHeaders
     return requireAgentAPIData<TaskDirectoryBinding>(response, "Bind agent task directory");
 }
 
+/** Bind a root-relative file-browser directory through the Kernel boundary. */
+export async function bindFileBrowserAgentTaskDirectory(
+    requestHeaders: AgentRequestHeaders,
+    input: Readonly<{id: string; rootID: string; path: string}>,
+) {
+    const response = await fetchSyncPost(
+        "/api/s-forge/file-browser/agent-bind",
+        {sessionID: input.id, rootID: input.rootID, path: input.path},
+        requestHeaders({scope: "app"}),
+    );
+    return requireAgentAPIData<TaskDirectoryBinding>(response, "Bind file-browser Agent task directory");
+}
+
 /** 添加带有明确权限的附加任务目录。 */
 export async function addAgentTaskDirectory(
     requestHeaders: AgentRequestHeaders,

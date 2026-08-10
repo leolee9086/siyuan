@@ -30,7 +30,7 @@ describe("FileTagTreeDock", () => {
             custom: {
                 title: "标签: blue", icon: "iconTags", id: "sforge-file-gallery",
                 data: {
-                    rootID: "workspace", path: "", name: "标签: blue", scope: "global",
+                    rootID: "global", path: "", name: "标签: blue", scope: "global",
                     query: {allRoots: true, tags: ["blue"], matchAllTags: true, orderBy: "updated"},
                 },
             },

@@ -16,6 +16,7 @@ import {registerFileBrowserPreviewTab} from "./FileBrowser.preview";
 import {registerFileBrowserGalleryTab} from "./FileBrowser.gallery";
 /** 用途：注册本地文本编辑页签；使用范围：文件树打开和布局恢复。 */
 import {registerFileBrowserEditorTab} from "./FileBrowser.editor";
+import {openFileBrowserTagResults} from "./FileBrowserTagNavigation";
 /** 用途：应用和页签宿主类型；使用范围：Dock 工厂参数。 */
 import type {AppFacade, CustomDomain, Tab} from "./dock/imports";
 /** 用途：文件浏览领域的 Dock 身份；使用范围：模型工厂和布局注册。 */
@@ -64,7 +65,8 @@ function initFilePropertiesDock(custom: CustomDomain) {
     custom.element.classList.add("fn__flex-column", "sforge-file-properties-dock");
     const vueApp = createVueComponentLoader(custom.element, {
         components: {FilePropertiesPanel},
-        template: "<FilePropertiesPanel />",
+        data: {openTagResults: (tag: string) => openFileBrowserTagResults(custom.app, tag)},
+        template: "<FilePropertiesPanel :open-tag-results=\"openTagResults\" />",
     });
     custom.destroy = () => vueApp.unmount();
 }

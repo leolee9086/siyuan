@@ -2,6 +2,10 @@
 import type {AgentChatSessionPorts} from "../AgentChat.runtime.types";
 /** 导出会话端口接口。 */
 export type {AgentChatSessionPorts};
+/** 用途：约束新建任务的空会话快照；使用范围：任务创建流程。 */
+import type {AgentSession} from "../../session/AgentSession.types";
+/** 导出会话快照类型。 */
+export type {AgentSession};
 
 /** 用途：创建可观察修订状态；使用范围：会话组合根。 */
 import {createAgentSessionRevisionState} from "../../session/AgentSession.revisions";
@@ -25,6 +29,8 @@ import {canBindAgentTaskDirectories} from "../../task-directory/AgentTaskDirecto
 import {listAgentTaskDirectories} from "../../task-directory/AgentTaskDirectory.repository";
 /** 用途：绑定主目录；使用范围：taskDirectories 端口。 */
 import {bindAgentTaskDirectory} from "../../task-directory/AgentTaskDirectory.repository";
+/** 用途：绑定文件浏览根内目录；使用范围：Agent 新建任务；解耦评估：服务端完成根解析和授权。 */
+import {bindFileBrowserAgentTaskDirectory} from "../../task-directory/AgentTaskDirectory.repository";
 /** 用途：添加目录；使用范围：taskDirectories 端口。 */
 import {addAgentTaskDirectory} from "../../task-directory/AgentTaskDirectory.repository";
 /** 用途：解除目录；使用范围：taskDirectories 端口。 */
@@ -72,6 +78,8 @@ export {canBindAgentTaskDirectories};
 export {listAgentTaskDirectories};
 /** 导出主目录绑定实现。 */
 export {bindAgentTaskDirectory};
+/** 导出文件浏览目录绑定实现。 */
+export {bindFileBrowserAgentTaskDirectory};
 /** 导出附加目录实现。 */
 export {addAgentTaskDirectory};
 /** 导出目录解除实现。 */

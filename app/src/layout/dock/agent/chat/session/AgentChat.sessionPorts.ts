@@ -22,6 +22,8 @@ import {canBindAgentTaskDirectories} from "./imports";
 import {listAgentTaskDirectories} from "./imports";
 /** 用途：装配主目录绑定；使用范围：taskDirectories 端口；解耦评估：命令实现只在组合根绑定。 */
 import {bindAgentTaskDirectory} from "./imports";
+/** 用途：绑定文件浏览根内目录；使用范围：Agent 新建任务。 */
+import {bindFileBrowserAgentTaskDirectory} from "./imports";
 /** 用途：装配附加目录绑定；使用范围：taskDirectories 端口；解耦评估：命令实现只在组合根绑定。 */
 import {addAgentTaskDirectory} from "./imports";
 /** 用途：装配目录解除；使用范围：taskDirectories 端口；解耦评估：命令实现只在组合根绑定。 */
@@ -149,6 +151,7 @@ function createTaskDirectoryRepository(requestHeaders: AgentChatSessionPorts["re
         canBindTaskDirectories: canBindAgentTaskDirectories.bind(null, requestHeaders),
         listTaskDirectories: listAgentTaskDirectories.bind(null, requestHeaders),
         bindTaskDirectory: bindAgentTaskDirectory.bind(null, requestHeaders),
+        bindFileBrowserTaskDirectory: bindFileBrowserAgentTaskDirectory.bind(null, requestHeaders),
         addTaskDirectory: addAgentTaskDirectory.bind(null, requestHeaders),
         unbindTaskDirectory: unbindAgentTaskDirectory.bind(null, requestHeaders),
     } satisfies AgentChatSessionPorts["taskDirectories"];

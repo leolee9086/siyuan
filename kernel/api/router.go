@@ -712,6 +712,7 @@ func ServeAPI(ginServer *gin.Engine) {
 
 	// S-Forge File Browser
 	ginServer.Handle("POST", "/api/s-forge/file-browser/roots", model.CheckAuth, model.CheckAdminRole, getSForgeFileBrowserRoots)
+	ginServer.Handle("POST", "/api/s-forge/file-browser/agent-bind", model.CheckAuth, model.CheckAdminRole, bindSForgeFileBrowserAgentTaskDirectory)
 	ginServer.Handle("POST", "/api/s-forge/file-browser/list", model.CheckAuth, model.CheckAdminRole, listSForgeFileBrowserDirectory)
 	ginServer.Handle("POST", "/api/s-forge/file-browser/walk", model.CheckAuth, model.CheckAdminRole, walkSForgeFileBrowserDirectory)
 	ginServer.Handle("POST", "/api/s-forge/file-browser/operations/create-directory", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, createSForgeFileBrowserDirectory)

@@ -5,7 +5,6 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strings"
 
@@ -42,11 +41,11 @@ type forgeRuntimeShutdownRequest struct {
 func forgeRuntimeStatus(c *gin.Context) {
 	ret := util.NewResult()
 	defer c.JSON(http.StatusOK, ret)
-	if !requireForgeRuntimeWebUI(c, ret) {
-		return
-	}
 	if !util.IsForgeMode() {
 		ret.Data = forgeRuntimeStatusData{Available: false}
+		return
+	}
+	if !requireForgeRuntimeWebUI(c, ret) {
 		return
 	}
 	payload, err := forgeRuntimeCallSupervisor(http.MethodGet, "/status", nil)
@@ -122,7 +121,7 @@ func requireForgeRuntimeMutation(c *gin.Context, ret *util.Result) bool {
 }
 
 // requireForgeRuntimeWebUI 将人工主界面控制面与通用 API Token、插件 JWT 和
-// Agent 工具通道分开。Supervisor 凭据始终只由 Kernel 进程持有。
+// Agent 工具通道分开。设备来源只依据服务端观察到的连接地址，不信任请求头。
 func requireForgeRuntimeWebUI(c *gin.Context, ret *util.Result) bool {
 	if !isAgentKernelDeviceRequest(c) {
 		ret.Code = -1
@@ -134,11 +133,6 @@ func requireForgeRuntimeWebUI(c *gin.Context, ret *util.Result) bool {
 		ret.Msg = "Forge Runtime WebUI 控制不接受 API Token、插件 JWT 或 BasicAuth，请使用已登录的主界面"
 		return false
 	}
-	if !isForgeRuntimeSameOriginRequest(c) {
-		ret.Code = -1
-		ret.Msg = "Forge Runtime 控制仅接受同源主界面请求"
-		return false
-	}
 	contentType, _, err := mime.ParseMediaType(c.GetHeader("Content-Type"))
 	if err != nil || !strings.EqualFold(contentType, "application/json") {
 		ret.Code = -1
@@ -146,23 +140,6 @@ func requireForgeRuntimeWebUI(c *gin.Context, ret *util.Result) bool {
 		return false
 	}
 	return true
-}
-
-func isForgeRuntimeSameOriginRequest(c *gin.Context) bool {
-	if c == nil || c.Request == nil {
-		return false
-	}
-	origin, err := url.Parse(strings.TrimSpace(c.GetHeader("Origin")))
-	if err != nil || (origin.Scheme != "http" && origin.Scheme != "https") || origin.User != nil ||
-		origin.Host == "" || origin.Path != "" || origin.RawQuery != "" || origin.Fragment != "" {
-		return false
-	}
-	requestScheme := "http"
-	if c.Request.TLS != nil {
-		requestScheme = "https"
-	}
-	return strings.EqualFold(origin.Scheme, requestScheme) &&
-		strings.EqualFold(origin.Host, strings.TrimSpace(c.Request.Host))
 }
 
 func forwardForgeRuntimeRequest(ret *util.Result, endpoint string, body any) {

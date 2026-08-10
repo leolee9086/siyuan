@@ -55,6 +55,10 @@ export type {PanelMenuItem};
 import type {AgentChatRuntime} from "../../AgentChat.runtime.types";
 /** 导出聊天运行时状态类型。 */
 export type {AgentChatRuntime};
+/** 用途：约束新建任务快照；使用范围：任务创建流程。 */
+import type {AgentSession} from "../../../session/AgentSession.types";
+/** 导出会话快照类型。 */
+export type {AgentSession};
 
 /** 用途：判断编辑器是否有内容；使用范围：上传链接插入前的换行处理。 */
 import {hasComposerInput} from "../../ui/feedback/AgentChat.streamingState";

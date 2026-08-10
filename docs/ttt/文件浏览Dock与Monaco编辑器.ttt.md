@@ -470,3 +470,26 @@
 - [x] 修复截图中的资源卡片与“此目录没有可展示的资源”并存问题；真实资源出现时空提示和“没有匹配资源”均不挂载。
 - [x] 证据：`pnpm exec vitest run --config vitest.config.ts test/sforge/fileBrowser/FileBrowserGalleryTab.interaction.test.ts --reporter=verbose`，10/10 通过；改动范围未触及提交门禁。
 - [ ] 真实桌面窗口与大结果分页的 A 级状态验收仍未完成，不能用本地挂载测试替代。
+
+## 2026-08-10 画廊结果阶段原子提交（本轮完成逻辑切片）
+
+- [x] 首屏查询从延迟 `watch(result)` 改为当前请求返回值直接提交，新增 revision 校验和显式结果阶段，避免查询完成与资源数组更新之间出现错误空态。
+- [x] 内容区使用单一 `ready` 分支挂载表头、`VirtualMasonryGrid` 和框选层；只有 `loading/error/empty` 时才挂载对应状态提示，资源和“此目录没有可展示的资源”在 DOM 层互斥。
+- [x] 属性列选择器按 `FileBrowserMultiSelect` 的 `ariaLabel` 公开属性传值，修正该页签的 Vue 属性契约诊断。
+- [x] 新增刷新竞态回归，并补充资源结果无状态节点断言；画廊专项 11 个用例、文件浏览目录 110 个用例通过。
+- [x] `pnpm run dev:once`（全目标）成功，`git diff --check` 通过；前端 lint 仍保留既有 P0+ 基线问题，未扩大本轮范围。
+- [ ] A 级桌面窗口仍需验证真实 TabRegistry 生命周期、失败重试、分页继续读取和 D 盘大结果，不以 C 级挂载证据宣称完成。
+
+## 2026-08-10 属性 Dock 标签结果导航（本轮完成逻辑切片）
+
+- [x] 属性 Dock 聚合/逐文件标签均可打开共享全根标签画廊；标签树和属性 Dock 复用 `FileBrowserTagNavigation.ts`，不再分别拼装页签数据。
+- [x] 标签结果使用稳定 `rootID: global`、`scope: global`、`allRoots: true` 和 `matchAllTags: true`，不把工作空间根 ID 当作所有根的占位。
+- [x] 证据：标签树与属性 Dock 聚焦交互通过；文件浏览专项 31 个文件、110 个用例通过；`git diff --check` 通过。
+- [ ] 标签颜色检索、来源/所在笔记、目录动作、Monaco 全覆盖和真实桌面布局仍登记为未完成里程碑。
+
+## 2026-08-10 画廊结果状态统一（本轮完成逻辑切片）
+
+- [x] 将资源数组、总数、分页游标、继续读取标记、错误和 `loading/ready/empty/error` 阶段收拢为单一 `galleryResult` 状态对象；首屏、分页追加、删除和失败路径都通过完整对象提交，不再让多个独立 `ref` 产生中间矛盾状态。
+- [x] 保持内容区唯一 `ready` 分支：有资源时只挂载现有 `VirtualMasonryGrid`，无资源时只挂载空状态；最后一项删除后阶段显式切换为 `empty`，分页追加失败保留已有资源并只显示页尾错误。
+- [x] 证据：`pnpm exec vitest run --config vitest.config.ts test/sforge/fileBrowser --reporter=dot`（31 个文件、110 个用例）；`pnpm run typecheck:protyle-contract`；`pnpm run dev:once`（全目标构建）；`git diff --check`。
+- [ ] 真实桌面页签仍需复核旧 Tab 实例销毁、刷新期间状态切换、分页末页和删除最后资源的现场 DOM；本轮 C 级挂载与构建证据不替代 A 级验收。

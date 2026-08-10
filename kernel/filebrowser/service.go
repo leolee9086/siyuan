@@ -24,6 +24,7 @@ var (
 	ErrNotFile            = errors.New("file browser path is not a file")
 	ErrPathExists         = errors.New("file browser target already exists")
 	ErrRootMutation       = errors.New("file browser root cannot be deleted")
+	ErrAgentRootRequired  = errors.New("file browser path is not inside an Agent task-directory root")
 	ErrInvalidName        = errors.New("file browser name is invalid")
 	ErrWriteDenied        = errors.New("file browser write capability is required")
 	ErrDestinationType    = errors.New("file browser destination has an incompatible type")
@@ -422,6 +423,27 @@ func (s *Service) ValidateRootPath(rootID, relative string) (Root, string, strin
 		err = ErrNotDirectory
 	}
 	return root, abs, normalized, err
+}
+
+// ValidateAgentTaskDirectoryPath resolves a root-relative directory only when
+// the address belongs to an existing Agent task-directory root or mount. The
+// workspace root remains browseable but is not implicitly elevated into an
+// Agent capability.
+func (s *Service) ValidateAgentTaskDirectoryPath(rootID, relative string) (Root, string, string, error) {
+	root, abs, normalized, err := s.ValidateRootPath(rootID, relative)
+	if err != nil {
+		return Root{}, "", "", err
+	}
+	if root.Kind == RootKindAgent {
+		return root, abs, normalized, nil
+	}
+	for _, mount := range root.Mounts {
+		if mount.Kind != RootKindAgent || !sameOrWithin(mount.Path, abs) {
+			continue
+		}
+		return mount.AsRoot(), abs, normalized, nil
+	}
+	return Root{}, "", "", ErrAgentRootRequired
 }
 
 // ValidateFilePath resolves a root-relative regular file without exposing path joining to callers.

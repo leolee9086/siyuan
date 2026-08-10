@@ -104,6 +104,11 @@ import {
 import {fileBrowserSelection} from "./FileBrowser.selection";
 /** 用途：应用全局菜单；使用范围：树节点上下文菜单。 */
 import {showFileBrowserTreeNodeMenu} from "./FileBrowser.menu";
+import {
+    canCreateFileBrowserAgentDirectory,
+    createFileBrowserAgentDirectoryTask,
+    createFileBrowserAgentFileTask,
+} from "./FileBrowserAgentActions";
 /** 用途：拖放数据解析；使用范围：树移动入口。 */
 import {FILE_BROWSER_DRAG_MIME, parseFileBrowserDragData} from "./FileBrowser.drag";
 /** 用途：树节点查找和容器判断；使用范围：操作完成后的精确刷新。 */
@@ -171,12 +176,39 @@ function handleNodeMenu(payload: {event: MouseEvent; node: TreeNode}) {
     browser.selectNode(payload.node);
     showFileBrowserTreeNodeMenu(payload.event, payload.node, {
         open: openNode,
+        canCreateAgentTask: node => node.kind === "file" ||
+            canCreateFileBrowserAgentDirectory(node.root, node.path),
+        createAgentTask: createAgentTaskFromNode,
         refresh: refreshNode,
         createDirectory: createDirectory,
         rename: renameNode,
         copy: copyNode,
         delete: deleteNode,
     });
+}
+
+async function createAgentTaskFromNode(node: TreeNode) {
+    try {
+        if (node.kind === "file") {
+            const stat = await fileBrowserRepository.statFile({rootID: node.rootID, path: node.path});
+            await createFileBrowserAgentFileTask({
+                name: node.name,
+                contentURL: stat.contentURL,
+                mediaType: stat.mediaType,
+            });
+            showMessage(`已在 Agent 面板创建附件任务：${node.name}`, 3000);
+            return;
+        }
+        await createFileBrowserAgentDirectoryTask({
+            root: node.root,
+            rootID: node.rootID,
+            path: node.path,
+            title: node.name,
+        });
+        showMessage(`已在 Agent 面板创建目录任务：${node.name}`, 3000);
+    } catch (reason) {
+        operationError.value = reason instanceof Error ? reason.message : String(reason);
+    }
 }
 
 function joinRootRelativePath(parent: string, name: string) {

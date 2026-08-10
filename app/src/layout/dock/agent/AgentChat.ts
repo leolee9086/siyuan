@@ -32,6 +32,8 @@ import {refreshSessions} from "./chat/ui/lifecycle/AgentChat.facade";
 import {restoreSessionById} from "./chat/ui/lifecycle/AgentChat.facade";
 /** 用途：写入输入草稿；使用范围：公开门面；解耦评估：门面仅转发显式运行时。 */
 import {setDraft} from "./chat/ui/lifecycle/AgentChat.facade";
+/** 用途：创建文件浏览器目录任务；使用范围：Agent 面板公开门面。 */
+import {createTaskFromDirectory, createTaskFromFiles} from "./chat/session/files/AgentChat.taskCreation";
 /** 用途：配置浮窗关闭能力；使用范围：公开门面；解耦评估：显式回调保存在公开状态。 */
 import {setFloatingCopyOptions} from "./chat/ui/lifecycle/AgentChat.facade";
 /** 用途：把会话加载到浮窗副本；使用范围：副本初始化；解耦评估：函数显式接收独立副本和会话。 */
@@ -310,6 +312,20 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> implements Agen
     /** 写入输入草稿并按参数决定是否聚焦。 @显式返回类型原因 公开异步命令固定为 Promise<void>，与面板控制器协议一致。 */
     public async setDraft(text: string, focus = true): Promise<void> {
         return setDraft(this, text, focus);
+    }
+
+    /** 创建并切换到一个绑定文件浏览器目录的新 native Agent 会话。 */
+    public async createTaskFromDirectory(input: {
+        rootID: string;
+        path: string;
+        title?: string;
+    }): Promise<void> {
+        return createTaskFromDirectory(this, input);
+    }
+
+    /** 创建并切换到一个带真实文件附件草稿的新 native Agent 会话。 */
+    public async createTaskFromFiles(files: File[], title?: string): Promise<void> {
+        return createTaskFromFiles(this, files, title);
     }
 
     /** 切换到指定会话并等待界面恢复完成。 @显式返回类型原因 公开异步命令固定为 Promise<void>，防止内部结果成为调用契约。 */

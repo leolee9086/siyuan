@@ -27,6 +27,16 @@ const result: FileBrowserSearchResult = {
 let app: VueApp<Element> | undefined;
 let host: HTMLDivElement | undefined;
 
+function deferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (reason?: unknown) => void;
+    const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+        resolve = resolvePromise;
+        reject = rejectPromise;
+    });
+    return {promise, resolve, reject};
+}
+
 afterEach(() => {
     app?.unmount();
     host?.remove();
@@ -94,6 +104,7 @@ describe("FileBrowserGalleryTab", () => {
         await vi.waitFor(() => expect(host?.textContent).toContain("hero.png"));
         expect(host?.textContent).not.toContain("此目录没有可展示的资源");
         expect(host?.textContent).not.toContain("没有匹配资源");
+        expect(host?.querySelectorAll(".sforge-file-gallery__state")).toHaveLength(0);
         expect(host?.querySelector(".virtual-masonry-grid-wrapper")).toBeTruthy();
         expect(host?.textContent).toContain("sub");
         expect(host?.textContent).toContain("2 文件 / 1 目录");
@@ -202,6 +213,40 @@ describe("FileBrowserGalleryTab", () => {
         }
         expect(host?.querySelector(".sforge-file-gallery")?.getAttribute("data-layout-mode")).toBe("table");
         expect(host?.querySelector(".sforge-file-gallery-table-header")?.textContent).toContain("名称");
+    });
+
+    it("keeps the result surface and empty state mutually exclusive during refresh", async () => {
+        vi.spyOn(fileBrowserRepository, "listRoots").mockResolvedValue([root]);
+        const first = deferred<FileBrowserSearchResult>();
+        const second = deferred<FileBrowserSearchResult>();
+        const search = vi.spyOn(fileBrowserQueryRepository, "search")
+            .mockImplementationOnce(() => first.promise)
+            .mockImplementationOnce(() => second.promise);
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileBrowserGalleryTab, {
+            app: {openAsset: vi.fn(), openTab: vi.fn(async () => undefined)},
+            file: {rootID: root.id, path: "", name: "全部资源", scope: "global"},
+        });
+        app.mount(host);
+
+        await vi.waitFor(() => expect(host?.querySelector(".sforge-file-gallery__state")?.textContent)
+            .toContain("正在读取资源"));
+        expect(host?.querySelector(".virtual-masonry-grid-wrapper")).toBeNull();
+
+        first.resolve(result);
+        await vi.waitFor(() => expect(host?.querySelector(".virtual-masonry-grid-wrapper")).toBeTruthy());
+        expect(host?.querySelectorAll(".sforge-file-gallery__state")).toHaveLength(0);
+
+        host?.querySelector<HTMLButtonElement>("button[aria-label='重新查询']")?.click();
+        await vi.waitFor(() => expect(host?.querySelector(".sforge-file-gallery__state")?.textContent)
+            .toContain("正在读取资源"));
+        expect(host?.querySelector(".virtual-masonry-grid-wrapper")).toBeNull();
+
+        second.resolve(result);
+        await vi.waitFor(() => expect(host?.querySelector(".virtual-masonry-grid-wrapper")).toBeTruthy());
+        expect(host?.querySelectorAll(".sforge-file-gallery__state")).toHaveLength(0);
+        expect(search).toHaveBeenCalledTimes(2);
     });
 
     it("opens a tag result without replacing it with the directory scope", async () => {

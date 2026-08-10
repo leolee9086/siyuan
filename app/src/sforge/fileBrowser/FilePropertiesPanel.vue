@@ -67,7 +67,7 @@
                 <FilePropertiesTagSection :aggregate-tags="aggregateTags" :file-tags="fileTags"
                     :mode="tagViewMode" :loading="tagDefinitionsLoading" :saving="saving"
                     :error="tagDefinitionsError" @update:mode="updateTagViewMode"
-                    @add="addTag" @remove="removeTag" @color="setTagColor" />
+                    @add="addTag" @remove="removeTag" @color="setTagColor" @open="openTagResults" />
 
                 <section class="sforge-file-properties__section">
                     <div class="sforge-file-properties__label">评分</div>
@@ -122,6 +122,7 @@ const props = defineProps<{
     repository?: FilePropertiesRepository;
     selection?: FileBrowserSelectionStore;
     tagRepository?: FileTagDefinitionsRepository;
+    openTagResults?: (tag: string) => void | Promise<void>;
 }>();
 const controller = useFileProperties(props.repository, props.selection, props.tagRepository);
 const {
@@ -259,6 +260,10 @@ function handlePreviewWheel(event: WheelEvent) {
 
 function updateTagViewMode(mode: FileTagViewMode) {
     tagViewMode.value = mode;
+}
+
+function openTagResults(tag: string) {
+    void props.openTagResults?.(tag);
 }
 
 function clearSelection() {

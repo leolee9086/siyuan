@@ -17,6 +17,12 @@ export interface AgentChatDomain<
     getConversation(): AgentPanelConversation;
     refreshSessions(): Promise<void>;
     setDraft(text: string, focus?: boolean): Promise<void>;
+    createTaskFromDirectory(input: Readonly<{
+        rootID: string;
+        path: string;
+        title?: string;
+    }>): Promise<void>;
+    createTaskFromFiles(files: File[], title?: string): Promise<void>;
     openConversation(conversation: AgentPanelConversation): Promise<void>;
     setFloatingCopyOptions(options?: {onClose?: () => void}): void;
     setCloseHandler(handler: () => void): void;

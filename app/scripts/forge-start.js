@@ -8,6 +8,9 @@ const {openForgeInterface} = require("./forge-electron-launcher");
 
 const repoRoot = path.resolve(__dirname, "../..");
 const SUPERVISOR_UNREACHABLE_ERROR = "FORGE_SUPERVISOR_UNREACHABLE";
+const DEFAULT_SUPERVISOR_REQUEST_TIMEOUT_MS = 5_000;
+const DEFAULT_SUPERVISOR_READY_TIMEOUT_MS = 3 * 60 * 1_000;
+const DEFAULT_RESTART_WAIT_TIMEOUT_MS = 15 * 60 * 1_000;
 
 const runCommitRuntimeHookInstaller = (root, run = execFileSync) => run(
     process.execPath,
@@ -42,6 +45,15 @@ const createForgeRuntimeOptions = (root, port, noBrowser) => ({
     workspace: path.resolve(root, ".dev-workspace"),
     noBrowser,
 });
+
+const resolveForgeInterfaceMode = (argv = process.argv) => {
+    const browser = argv.includes("--browser");
+    const disabled = argv.includes("--no-browser");
+    if (browser && disabled) {
+        throw new Error("--browser and --no-browser are mutually exclusive");
+    }
+    return browser ? "browser" : disabled ? "none" : "electron";
+};
 
 const execFileOutput = (executable, args) => new Promise((resolve, reject) => {
     execFile(executable, args, {encoding: "utf8", windowsHide: true, maxBuffer: 4 * 1024 * 1024}, (error, stdout, stderr) => {
@@ -160,7 +172,7 @@ const quarantineStaleOwnership = (runtimeDir, expectedToken) => {
     fs.renameSync(ownershipPath, path.join(runtimeDir, `supervisor.stale-${timestamp}.json`));
 };
 
-const probeSupervisor = async (ownership, fetchImpl) => {
+const probeSupervisor = async (ownership, fetchImpl, platform = process.platform) => {
     if (ownership?.schemaVersion !== 1 || !ownership.controlURL || !ownership.cliToken) {
         throw new Error("Forge runtime ownership descriptor is incomplete");
     }
@@ -184,9 +196,9 @@ const probeSupervisor = async (ownership, fetchImpl) => {
     const matches = status.mode === "forge-source-supervisor" &&
         status.processId === ownership.processId &&
         typeof status.repoRoot === "string" &&
-        path.resolve(status.repoRoot) === path.resolve(ownership.repoRoot) &&
+        samePath(status.repoRoot, ownership.repoRoot, platform) &&
         typeof status.workspace === "string" &&
-        path.resolve(status.workspace) === path.resolve(ownership.workspace) &&
+        samePath(status.workspace, ownership.workspace, platform) &&
         Number(status.port) === Number(ownership.port);
     if (!matches) {
         throw new Error("Forge Supervisor descriptor does not match the responding process");
@@ -197,13 +209,15 @@ const probeSupervisor = async (ownership, fetchImpl) => {
 const isSupervisorUnreachableError = (error) => error?.code === SUPERVISOR_UNREACHABLE_ERROR;
 
 const callSupervisor = async (ownership, route, fetchImpl, init = {}) => {
+    const {timeoutMs = DEFAULT_SUPERVISOR_REQUEST_TIMEOUT_MS, ...requestInit} = init;
     const response = await fetchImpl(`${ownership.controlURL}${route}`, {
-        ...init,
+        ...requestInit,
         headers: {
             "Content-Type": "application/json",
             [SUPERVISOR_TOKEN_HEADER]: ownership.cliToken,
-            ...init.headers,
+            ...requestInit.headers,
         },
+        signal: requestInit.signal || AbortSignal.timeout(timeoutMs),
     });
     const payload = await response.json();
     if (!response.ok) {
@@ -213,6 +227,43 @@ const callSupervisor = async (ownership, route, fetchImpl, init = {}) => {
         throw error;
     }
     return payload;
+};
+
+const isSupervisorReady = (status) => {
+    if (!status || !status.activeVersion?.revision) {
+        return false;
+    }
+    if (typeof status.lifecycle === "string") {
+        return status.lifecycle === "ready" && status.ready !== false;
+    }
+    return true;
+};
+
+const waitForSupervisorReady = async ({
+    ownership,
+    status,
+    fetchImpl = globalThis.fetch.bind(globalThis),
+    wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+    now = Date.now,
+    timeoutMs = DEFAULT_SUPERVISOR_READY_TIMEOUT_MS,
+    probeKernelImpl = probeKernel,
+}) => {
+    const deadline = now() + timeoutMs;
+    let current = status;
+    while (true) {
+        if (isSupervisorReady(current)) {
+            await probeKernelImpl(Number(ownership.port), fetchImpl);
+            return current;
+        }
+        if (["failed", "closing"].includes(current?.lifecycle)) {
+            throw new Error(`Forge Supervisor entered ${current.lifecycle}: ${current.lifecycleError || "no detail reported"}`);
+        }
+        if (now() >= deadline) {
+            throw new Error(`Forge Supervisor did not become ready within ${timeoutMs}ms (lifecycle=${current?.lifecycle || "legacy-unknown"})`);
+        }
+        await wait(500);
+        current = await callSupervisor(ownership, "/status", fetchImpl);
+    }
 };
 
 const inspectCommittedKernelUpdate = async (root, activeRevision, run = execFileOutput) => {
@@ -243,6 +294,9 @@ const synchronizeExistingSupervisor = async ({
     fetchImpl = globalThis.fetch.bind(globalThis),
     run = execFileOutput,
     wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+    now = Date.now,
+    timeoutMs = DEFAULT_RESTART_WAIT_TIMEOUT_MS,
+    probeKernelImpl = probeKernel,
     report = console.log,
 }) => {
     const update = await inspectKernelUpdate(root, status.activeVersion?.revision, run);
@@ -270,7 +324,11 @@ const synchronizeExistingSupervisor = async ({
         throw new Error("Supervisor accepted restart without returning a job identifier");
     }
     let lastPhase = "";
+    const deadline = now() + timeoutMs;
     while (true) {
+        if (now() >= deadline) {
+            throw new Error(`Kernel hot replacement did not finish within ${timeoutMs}ms (job=${jobID}, phase=${lastPhase || "unknown"})`);
+        }
         const current = await callSupervisor(ownership, "/status", fetchImpl);
         const job = current.job;
         if (!job || job.id !== jobID) {
@@ -284,6 +342,10 @@ const synchronizeExistingSupervisor = async ({
             if (current.activeVersion?.revision !== update.revision) {
                 throw new Error(`Kernel hot replacement completed at unexpected revision ${current.activeVersion?.revision || "unknown"}`);
             }
+            if (!isSupervisorReady(current)) {
+                throw new Error(`Kernel hot replacement completed while Supervisor lifecycle is ${current.lifecycle || "not-ready"}`);
+            }
+            await probeKernelImpl(Number(ownership.port), fetchImpl);
             report(`[forge] Kernel hot replacement completed at revision ${update.revision}`);
             return {kind: "restarted", revision: update.revision, job};
         }
@@ -325,16 +387,30 @@ const resolveForgeStartup = async ({
     processAlive = isProcessAlive,
     quarantineOwnership = quarantineStaleOwnership,
     discoverKernels = discoverForgeKernels,
+    wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+    now = Date.now,
+    supervisorReadyTimeoutMs = DEFAULT_SUPERVISOR_READY_TIMEOUT_MS,
+    platform = process.platform,
+    probeKernelImpl = probeKernel,
 }) => {
     const workspace = path.resolve(root, ".dev-workspace");
     if (ownership) {
-        if (path.resolve(ownership.repoRoot || "") !== path.resolve(root) ||
-            path.resolve(ownership.workspace || "") !== workspace) {
+        if (!samePath(ownership.repoRoot, root, platform) ||
+            !samePath(ownership.workspace, workspace, platform)) {
             throw new Error("Forge runtime ownership points to a different repository or workspace");
         }
         try {
-            const status = await probeSupervisor(ownership, fetchImpl);
-            return {kind: "reuse", port: Number(ownership.port), ownership, status};
+            const status = await probeSupervisor(ownership, fetchImpl, platform);
+            const readyStatus = await waitForSupervisorReady({
+                ownership,
+                status,
+                fetchImpl,
+                wait,
+                now,
+                timeoutMs: supervisorReadyTimeoutMs,
+                probeKernelImpl,
+            });
+            return {kind: "reuse", port: Number(ownership.port), ownership, status: readyStatus};
         } catch (error) {
             if (processAlive(ownership.processId)) {
                 throw new Error(`${error.message}; owner process ${ownership.processId} is still running`);
@@ -367,7 +443,7 @@ const main = async () => {
     runCommitRuntimeHookInstaller(repoRoot);
     const requestedPortArg = process.argv.find((argument) => argument.startsWith("--port="));
     const requestedPort = Number(requestedPortArg ? requestedPortArg.split("=")[1] : "6806");
-    const noBrowser = process.argv.includes("--no-browser");
+    const interfaceMode = resolveForgeInterfaceMode(process.argv);
     if (!isValidPort(requestedPort)) {
         throw new Error(`invalid --port value: ${requestedPortArg || requestedPort}`);
     }
@@ -379,7 +455,7 @@ const main = async () => {
             ownership: startup.ownership,
             status: startup.status,
         });
-        await openForgeInterface({root: repoRoot, port: startup.port, disabled: noBrowser});
+        await openForgeInterface({root: repoRoot, port: startup.port, mode: interfaceMode});
         return;
     }
     if (startup.kind === "reuse-legacy") {
@@ -410,7 +486,7 @@ const main = async () => {
     };
     process.once("SIGINT", () => void stop());
     process.once("SIGTERM", () => void stop());
-    await openForgeInterface({root: repoRoot, port, disabled: noBrowser});
+    await openForgeInterface({root: repoRoot, port, mode: interfaceMode});
 };
 
 if (require.main === module) {
@@ -439,5 +515,7 @@ module.exports = {
     readOwnership,
     resolveForgeStartup,
     runCommitRuntimeHookInstaller,
+    resolveForgeInterfaceMode,
     synchronizeExistingSupervisor,
+    waitForSupervisorReady,
 };

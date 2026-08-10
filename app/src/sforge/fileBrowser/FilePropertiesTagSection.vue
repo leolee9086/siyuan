@@ -23,7 +23,10 @@
             <div v-if="aggregateTags.length > 0" class="b3-chips sforge-file-tags__chips">
                 <span v-for="tag in aggregateTags" :key="tag.name" class="b3-chip b3-chip--middle"
                     :style="{backgroundColor: tag.color, color: tag.foreground}">
-                    <span>{{ tag.name }} ({{ tag.count }})</span>
+                    <button type="button" class="sforge-file-tags__tag-open"
+                        :aria-label="`打开标签 ${tag.name}`" @click="emit('open', tag.name)">
+                        {{ tag.name }} ({{ tag.count }})
+                    </button>
                     <input class="sforge-file-tags__color" type="color" :value="tag.color"
                         :aria-label="`设置标签 ${tag.name} 的颜色`" :disabled="loading" @click.stop
                         @change="updateColor(tag.name, $event)">
@@ -42,7 +45,10 @@
                     <div v-if="file.tags.length > 0" class="b3-chips sforge-file-tags__chips">
                         <span v-for="tag in file.tags" :key="tag.name" class="b3-chip b3-chip--middle"
                             :style="{backgroundColor: tag.color, color: tag.foreground}">
-                            <span>{{ tag.name }}</span>
+                            <button type="button" class="sforge-file-tags__tag-open"
+                                :aria-label="`打开标签 ${tag.name}`" @click="emit('open', tag.name)">
+                                {{ tag.name }}
+                            </button>
                             <input class="sforge-file-tags__color" type="color" :value="tag.color"
                                 :aria-label="`设置标签 ${tag.name} 的颜色`" :disabled="loading" @click.stop
                                 @change="updateColor(tag.name, $event)">
@@ -95,6 +101,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
     "update:mode": [mode: FileTagViewMode];
+    open: [tag: string];
     add: [tag: string, request?: FileBrowserFileRequest];
     remove: [tag: string, request?: FileBrowserFileRequest];
     color: [name: string, color: string];

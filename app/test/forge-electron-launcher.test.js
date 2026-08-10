@@ -6,8 +6,12 @@ const test = require("node:test");
 const {EventEmitter} = require("node:events");
 const {
     browserLaunchCommand,
+    FORGE_LAUNCH_ACK_HEADER,
+    FORGE_LAUNCH_ACK_TOKEN_ENV,
+    FORGE_LAUNCH_ACK_URL_ENV,
     launchElectronMain,
     observeChildStartup,
+    openForgeBrowserInterface,
     openForgeInterface,
     resolveElectronLaunch,
 } = require("../scripts/forge-electron-launcher");
@@ -17,12 +21,12 @@ const {
     commandArgument,
     isValidKernelPort,
     resolveAttachKernelArgument,
+    sameWorkspacePath,
     shouldSpawnKernel,
 } = require("../electron/forge-kernel-attach");
 const {isProtectedRestartPath, validateRestartPolicy} = require("../scripts/forge-runtime-supervisor");
 
 const temporaryRoot = () => fs.mkdtempSync(path.join(os.tmpdir(), "s-forge-electron-launcher-"));
-
 const createLaunchFixture = () => {
     const root = temporaryRoot();
     const appRoot = path.join(root, "app");
@@ -81,11 +85,21 @@ test("Electron launch passes exact external Kernel ownership arguments", async (
         workspace: "D:/repo/.dev-workspace",
         port: 6810,
         env: {TEST_ENV: "present"},
-        startupGraceMs: 0,
+        readyTimeoutMs: 1_000,
         reportError: (message) => lateErrors.push(message),
         spawnImpl: (command, args, options) => {
             spawned = {command, args, options};
-            queueMicrotask(() => child.emit("spawn"));
+            queueMicrotask(() => {
+                child.emit("spawn");
+                void fetch(options.env[FORGE_LAUNCH_ACK_URL_ENV], {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        [FORGE_LAUNCH_ACK_HEADER]: options.env[FORGE_LAUNCH_ACK_TOKEN_ENV],
+                    },
+                    body: JSON.stringify({state: "ready", disposition: "created", port: 6810}),
+                });
+            });
             return child;
         },
     });
@@ -109,8 +123,8 @@ test("Electron launch passes exact external Kernel ownership arguments", async (
     assert.equal(lateErrors.some((message) => message.includes("code=9")), true);
 });
 
-test("Electron startup distinguishes forwarding, process errors, and early crashes", async (t) => {
-    await t.test("clean early exit means an existing instance accepted the request", async () => {
+test("Generic child observation distinguishes forwarding, process errors, and early crashes", async (t) => {
+    await t.test("clean early exit remains forwarding only for generic launchers", async () => {
         const child = createChild();
         const resultPromise = observeChildStartup(child, "Electron", 100);
         queueMicrotask(() => child.emit("exit", 0, null));
@@ -140,10 +154,25 @@ test("Electron startup distinguishes forwarding, process errors, and early crash
     });
 });
 
-test("Forge UI falls back to the system browser after Electron launch failure", async () => {
+test("Electron clean exit is not accepted without a matching renderer-ready acknowledgement", async () => {
+    const child = createChild();
+    const launching = launchElectronMain({
+        launch: {executable: "electron.exe", entry: "D:/repo/app/electron/main.js", appRoot: "D:/repo/app"},
+        workspace: "D:/repo/.dev-workspace",
+        port: 6810,
+        readyTimeoutMs: 20,
+        spawnImpl: () => {
+            queueMicrotask(() => child.emit("exit", 0, null));
+            return child;
+        },
+    });
+    await assert.rejects(launching, /did not confirm readiness/);
+});
+
+test("Electron launch failure does not start the independent browser interface", async () => {
     const reports = [];
     const errors = [];
-    let browserURL;
+    let browserLaunches = 0;
     const result = await openForgeInterface({
         root: "D:/repo",
         port: 6807,
@@ -153,20 +182,32 @@ test("Forge UI falls back to the system browser after Electron launch failure", 
             assert.equal(port, 6807);
             throw new Error("renderer exited");
         },
-        launchBrowser: async ({url}) => {
-            browserURL = url;
-        },
+        launchBrowser: async () => { browserLaunches += 1; },
         report: (message) => reports.push(message),
         reportError: (message) => errors.push(message),
     });
 
-    assert.equal(result.kind, "browser");
-    assert.equal(browserURL, "http://127.0.0.1:6807/");
+    assert.equal(result.kind, "electron-error");
+    assert.equal(result.url, "http://127.0.0.1:6807/");
+    assert.equal(browserLaunches, 0);
     assert.equal(errors.some((message) => message.includes("renderer exited")), true);
-    assert.equal(reports.some((message) => message.includes("browser fallback")), true);
+    assert.equal(errors.some((message) => message.includes("Electron main interface launch failed")), true);
 });
 
-test("Forge UI respects explicit headless mode without probing launchers", async () => {
+test("Independent browser interface opens the same complete main URL without probing Electron", async () => {
+    let browserURL;
+    const result = await openForgeBrowserInterface({
+        port: 6806,
+        resolveElectron: () => assert.fail("browser interface must not probe Electron"),
+        launchBrowser: async ({url}) => { browserURL = url; },
+        report: () => undefined,
+    });
+
+    assert.deepEqual(result, {kind: "browser", url: "http://127.0.0.1:6806/"});
+    assert.equal(browserURL, "http://127.0.0.1:6806/");
+});
+
+test("Forge UI respects explicit no-interface mode without probing launchers", async () => {
     const result = await openForgeInterface({
         root: "D:/repo",
         port: 6806,
@@ -178,7 +219,7 @@ test("Forge UI respects explicit headless mode without probing launchers", async
     assert.deepEqual(result, {kind: "disabled", url: "http://127.0.0.1:6806/"});
 });
 
-test("Forge UI keeps the runtime active when both automatic launch paths fail", async () => {
+test("Forge UI keeps the runtime active when the Electron interface fails", async () => {
     const errors = [];
     const result = await openForgeInterface({
         root: "D:/repo",
@@ -186,20 +227,16 @@ test("Forge UI keeps the runtime active when both automatic launch paths fail", 
         resolveElectron: () => {
             throw new Error("preflight exploded");
         },
-        launchBrowser: async () => {
-            throw new Error("browser command missing");
-        },
         report: () => undefined,
         reportError: (message) => errors.push(message),
     });
 
-    assert.equal(result.kind, "manual");
+    assert.equal(result.kind, "electron-error");
     assert.equal(result.url, "http://127.0.0.1:6808/");
-    assert.equal(errors.some((message) => message.includes("browser command missing")), true);
-    assert.equal(errors.some((message) => message.includes("http://127.0.0.1:6808/")), true);
+    assert.equal(errors.some((message) => message.includes("preflight exploded")), true);
 });
 
-test("Browser fallback commands preserve the exact local URL", () => {
+test("Independent browser commands preserve the exact local URL", () => {
     const url = "http://127.0.0.1:6809/";
     assert.deepEqual(browserLaunchCommand(url, "win32"), {
         command: "rundll32.exe",
@@ -245,6 +282,25 @@ test("External Kernel attach arguments are exact and never spawn a duplicate Ker
     assert.equal(canReuseWorkspaceWindow({attachKernel: true, requestedPort: "6806", currentPort: 6806}), true);
     assert.equal(canReuseWorkspaceWindow({attachKernel: true, requestedPort: "6807", currentPort: 6806}), false);
     assert.equal(canReuseWorkspaceWindow({attachKernel: false, requestedPort: "6807", currentPort: 6806}), true);
+    assert.equal(sameWorkspacePath("D:/Repo/Workspace", "d:/repo/workspace", "win32"), true);
+    assert.equal(canReuseWorkspaceWindow({
+        attachKernel: true,
+        requestedPort: "6806",
+        currentPort: 6806,
+        requestedWorkspace: "D:/Repo/Workspace",
+        currentWorkspace: "d:/repo/workspace",
+        windowURL: "https://127.0.0.1:6806/stage/build/app/?v=1",
+        platform: "win32",
+    }), true);
+    assert.equal(canReuseWorkspaceWindow({
+        attachKernel: true,
+        requestedPort: "6806",
+        currentPort: 6806,
+        requestedWorkspace: "D:/Repo/Workspace",
+        currentWorkspace: "d:/repo/workspace",
+        windowURL: "https://127.0.0.1:6807/stage/build/app/?v=1",
+        platform: "win32",
+    }), false);
 });
 
 test("Forge restart policy protects the Electron launcher and its boundary tests", () => {

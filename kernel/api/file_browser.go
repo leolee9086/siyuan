@@ -11,6 +11,7 @@ import (
 
 	"github.com/88250/gulu"
 	"github.com/gin-gonic/gin"
+	"github.com/siyuan-note/siyuan/kernel/agent"
 	"github.com/siyuan-note/siyuan/kernel/assetmeta"
 	"github.com/siyuan-note/siyuan/kernel/filebrowser"
 	"github.com/siyuan-note/siyuan/kernel/fileproperties"
@@ -57,6 +58,59 @@ func getSForgeFileBrowserRoots(c *gin.Context) {
 		return
 	}
 	ret.Data = roots
+}
+
+type sForgeFileBrowserAgentBindRequest struct {
+	SessionID string `json:"sessionID"`
+	RootID    string `json:"rootID"`
+	Path      string `json:"path"`
+}
+
+// bindSForgeFileBrowserAgentTaskDirectory keeps file-browser addresses root-relative
+// while reusing the Agent owner and task-directory capability checks.
+func bindSForgeFileBrowserAgentTaskDirectory(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+	if !requireLocalFileBrowser(c, ret) {
+		return
+	}
+	var request sForgeFileBrowserAgentBindRequest
+	if !decodeFileBrowserRequest(c, ret, &request) {
+		return
+	}
+	if request.SessionID == "" || request.RootID == "" {
+		ret.Code = http.StatusBadRequest
+		ret.Msg = "sessionID and rootID are required"
+		return
+	}
+	ownerAuth, _, ok := requireAgentSessionAccess(c, request.SessionID)
+	if !ok {
+		return
+	}
+	if ownerAuth == nil {
+		ret.Code = http.StatusForbidden
+		ret.Msg = "verified guardian identity is required"
+		return
+	}
+	if isAgentSessionRunning(request.SessionID) {
+		ret.Code = http.StatusConflict
+		ret.Msg = "task directory cannot be changed while the agent session is running"
+		return
+	}
+	_, absolutePath, _, err := newFileBrowserService().ValidateAgentTaskDirectoryPath(request.RootID, request.Path)
+	if err != nil {
+		ret.Code = fileBrowserErrorCode(err)
+		ret.Msg = err.Error()
+		return
+	}
+	binding, err := agent.BindTaskDirectory(request.SessionID, absolutePath, ownerAuth.IdentityID)
+	if err != nil {
+		ret.Code = http.StatusBadRequest
+		ret.Msg = err.Error()
+		return
+	}
+	broadcastAgentSessionChanged(c.GetHeader("X-SiYuan-App-ID"), request.SessionID, "update")
+	ret.Data = binding.Redacted()
 }
 
 func listSForgeFileBrowserDirectory(c *gin.Context) {
@@ -593,7 +647,7 @@ func fileBrowserErrorCode(err error) int {
 	case errors.Is(err, filebrowser.ErrRootNotFound), errors.Is(err, filebrowser.ErrPathNotFound):
 		return http.StatusNotFound
 	case errors.Is(err, filebrowser.ErrPathTraversal), errors.Is(err, filebrowser.ErrWriteDenied),
-		errors.Is(err, filebrowser.ErrSymlinkRestricted):
+		errors.Is(err, filebrowser.ErrSymlinkRestricted), errors.Is(err, filebrowser.ErrAgentRootRequired):
 		return http.StatusForbidden
 	case errors.Is(err, filebrowser.ErrPathExists), errors.Is(err, filebrowser.ErrPathOverlap):
 		return http.StatusConflict

@@ -121,6 +121,14 @@
 - [x] 接入 `/api/s-forge/file-browser/tag-definitions` 和 `/set`；`go test ./api -run 'TestFileBrowser(TagDefinitions|Roots|Walk|Stat)' -count=1` 通过，覆盖本机门禁、完整快照解码和 400/409/503 映射。
 - [x] 接入前端仓储、展示模型、逐文件界面和组件交互验证；`pnpm exec vitest --run test/sforge/fileBrowser` 为 13 个文件、33 个用例通过，目标严格类型诊断为 0，新增/修改文件 P0 lint 为 0。
 
+## 2026-08-10 标签结果导航切片（已完成本轮逻辑）
+
+- [x] 属性 Dock 的聚合标签和逐文件标签均提供真实“打开标签”动作，不再只有展示文本；动作通过 `openTagResults` 宿主端口发出。
+- [x] 标签树与属性 Dock 共用 `FileBrowserTagNavigation.ts`，统一创建 `sforge-file-gallery` 全根标签查询页签，使用 `rootID: global` 和 `allRoots: true`，不再复制 `workspace` 根假设。
+- [x] 保留现有 `assetmeta` 标签索引、定义快照和元数据批量写入策略，导航只消费标签名称，不直接读写后端存储。
+- [x] 证据：`FileTagTreeDock.interaction.test.ts`、`FilePropertiesPanel.interaction.test.ts`（2 个文件、4 个用例）；`pnpm exec vitest run --config vitest.config.ts test/sforge/fileBrowser --reporter=dot`（31 个文件、110 个用例）；`git diff --check` 通过。
+- [ ] 标签颜色检索、来源/所在笔记入口、目录动作和桌面 Dock 现场验收仍未完成；本切片不扩大为属性 Dock 全量完成结论。
+
 ## 完成条件
 
 - [ ] SACAssetsManager 属性面板所有真实可工作行为都有 S-Forge 等价实现和证据；参考缺陷被修复而非复制。

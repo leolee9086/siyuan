@@ -15,7 +15,6 @@ import {
     getForgeProtectedApprovalKey,
 } from "../../src/sforge/forgeRuntime/types";
 import type {ForgeRuntimeRestartResponse, ForgeRuntimeStatusData} from "../../src/sforge/forgeRuntime/types";
-
 const version = {
     id: "version-1",
     revision: "revision-1",

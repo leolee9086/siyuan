@@ -7,6 +7,8 @@ import type {FileBrowserTreeNode} from "./FileBrowser.types";
 
 export interface FileBrowserTreeMenuActions {
     open(node: FileBrowserTreeNode): Promise<void>;
+    createAgentTask?(node: FileBrowserTreeNode): Promise<void>;
+    canCreateAgentTask?(node: FileBrowserTreeNode): boolean;
     refresh(node: FileBrowserTreeNode, recursive?: boolean): Promise<void>;
     createDirectory?(node: FileBrowserTreeNode): Promise<void>;
     rename?(node: FileBrowserTreeNode): Promise<void>;
@@ -28,6 +30,15 @@ export function showFileBrowserTreeNodeMenu(
         icon: isFileBrowserContainer(node) ? "iconFolder" : "iconOpen",
         click: () => void actions.open(node),
     });
+    if (actions.createAgentTask && node.kind !== "root" &&
+        (node.kind === "file" || actions.canCreateAgentTask?.(node) === true)) {
+        menu.addItem({
+            id: "createAgentTask",
+            label: "在 Agent 面板新建任务",
+            icon: "iconSparkles",
+            click: () => void actions.createAgentTask?.(node),
+        });
+    }
     const capabilities = getFileBrowserCapabilitiesForPath(node.root, node.path);
     const writable = node.root.exists && !node.entry?.restricted && capabilities.write;
     if (writable && isFileBrowserContainer(node) && actions.createDirectory) {

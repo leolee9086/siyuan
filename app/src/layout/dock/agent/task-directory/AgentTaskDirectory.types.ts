@@ -31,6 +31,12 @@ export interface AgentTaskDirectoryRepository {
     canBindTaskDirectories(): Promise<boolean>;
     listTaskDirectories(id: string): Promise<TaskDirectoryBinding | null>;
     bindTaskDirectory(id: string, path: string): Promise<TaskDirectoryBinding>;
+    /** Bind a directory already exposed by the file browser without sending an absolute path. */
+    bindFileBrowserTaskDirectory?(input: Readonly<{
+        id: string;
+        rootID: string;
+        path: string;
+    }>): Promise<TaskDirectoryBinding>;
     addTaskDirectory(input: Readonly<{
         id: string;
         path: string;

@@ -9,7 +9,6 @@ import type {
     ForgeRuntimeRestartResponse,
     ForgeRuntimeStatusData,
 } from "./types";
-
 const forgeRuntimeWebUIHeaders = {"Content-Type": "application/json"};
 
 const requireSuccessfulResponse = (response: IWebSocketData, operation: string) => {

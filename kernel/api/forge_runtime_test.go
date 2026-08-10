@@ -144,7 +144,7 @@ func TestForgeRuntimeWebUIMutationsForwardOnlyValidatedRequests(t *testing.T) {
 	}
 }
 
-func TestForgeRuntimeWebUIRejectsNonUIAuthenticationAndCrossOriginRequests(t *testing.T) {
+func TestForgeRuntimeWebUIRejectsNonUIAuthenticationAndRemoteSources(t *testing.T) {
 	previousMode := util.Mode
 	previousCall := forgeRuntimeCallSupervisor
 	t.Cleanup(func() {
@@ -173,15 +173,6 @@ func TestForgeRuntimeWebUIRejectsNonUIAuthenticationAndCrossOriginRequests(t *te
 			query.Set("token", "workspace-token")
 			request.URL.RawQuery = query.Encode()
 		}},
-		{name: "cross origin", mutate: func(request *http.Request) {
-			request.Header.Set("Origin", "http://localhost:6807")
-		}},
-		{name: "cross scheme origin", mutate: func(request *http.Request) {
-			request.Header.Set("Origin", "https://localhost:6806")
-		}},
-		{name: "missing origin", mutate: func(request *http.Request) {
-			request.Header.Del("Origin")
-		}},
 		{name: "non JSON", mutate: func(request *http.Request) {
 			request.Header.Set("Content-Type", "text/plain")
 		}},
@@ -203,6 +194,40 @@ func TestForgeRuntimeWebUIRejectsNonUIAuthenticationAndCrossOriginRequests(t *te
 	}
 	if callCount != 0 {
 		t.Fatalf("non-UI requests reached Supervisor %d time(s)", callCount)
+	}
+}
+
+func TestForgeRuntimeWebUIAuthorizationUsesConnectionSourceNotOrigin(t *testing.T) {
+	previousMode := util.Mode
+	previousCall := forgeRuntimeCallSupervisor
+	t.Cleanup(func() {
+		util.Mode = previousMode
+		forgeRuntimeCallSupervisor = previousCall
+	})
+	util.Mode = util.ModeForge
+	callCount := 0
+	forgeRuntimeCallSupervisor = func(method, endpoint string, body any) (json.RawMessage, error) {
+		callCount++
+		return json.RawMessage(`{"accepted":true}`), nil
+	}
+
+	for _, origin := range []string{"", "https://attacker.example", "null"} {
+		recorder := httptest.NewRecorder()
+		context, _ := gin.CreateTestContext(recorder)
+		context.Request = newForgeRuntimeWebUIRequest(http.MethodPost,
+			"/api/s-forge/forge/runtime/restart", `{"reason":"capability verified"}`, "127.0.0.1:54321")
+		if origin == "" {
+			context.Request.Header.Del("Origin")
+		} else {
+			context.Request.Header.Set("Origin", origin)
+		}
+		forgeRuntimeRestart(context)
+		if result := decodeForgeRuntimeResult(t, recorder); result.Code != 0 {
+			t.Fatalf("same-device request was rejected for origin %q: %+v", origin, result)
+		}
+	}
+	if callCount != 3 {
+		t.Fatalf("same-device requests reached Supervisor %d times", callCount)
 	}
 }
 
