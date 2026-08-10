@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const {execFile, execFileSync} = require("child_process");
 const {ForgeRuntimeSupervisor, SUPERVISOR_TOKEN_HEADER, isKernelRuntimePath, parseLines} = require("./forge-runtime-supervisor");
+const {openForgeInterface} = require("./forge-electron-launcher");
 
 const repoRoot = path.resolve(__dirname, "../..");
 const SUPERVISOR_UNREACHABLE_ERROR = "FORGE_SUPERVISOR_UNREACHABLE";
@@ -378,6 +379,7 @@ const main = async () => {
             ownership: startup.ownership,
             status: startup.status,
         });
+        await openForgeInterface({root: repoRoot, port: startup.port, disabled: noBrowser});
         return;
     }
     if (startup.kind === "reuse-legacy") {
@@ -387,7 +389,8 @@ const main = async () => {
     if (port !== requestedPort) {
         console.log(`[forge] selected available port ${port}`);
     }
-    const supervisor = new ForgeRuntimeSupervisor(createForgeRuntimeOptions(repoRoot, port, noBrowser));
+    // forge-start owns desktop presentation so the Kernel never races it by opening a browser.
+    const supervisor = new ForgeRuntimeSupervisor(createForgeRuntimeOptions(repoRoot, port, true));
     await supervisor.initialize();
     console.log(`[forge] supervisor ready on port ${port}`);
 
@@ -407,6 +410,7 @@ const main = async () => {
     };
     process.once("SIGINT", () => void stop());
     process.once("SIGTERM", () => void stop());
+    await openForgeInterface({root: repoRoot, port, disabled: noBrowser});
 };
 
 if (require.main === module) {

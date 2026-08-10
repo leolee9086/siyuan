@@ -40,6 +40,13 @@ const fs = require("fs");
 const gNet = require("net");
 const childProcess = require("child_process");
 const remote = require("@electron/remote/main");
+const {
+    assertAttachedKernelOptions,
+    canReuseWorkspaceWindow,
+    commandArgument,
+    resolveAttachKernelArgument,
+    shouldSpawnKernel,
+} = require("./forge-kernel-attach");
 
 process.noAsar = true;
 const appDir = path.dirname(app.getAppPath());
@@ -147,7 +154,7 @@ if (!app.isPackaged) {
 
 for (let i = argStart; i < process.argv.length; i++) {
     let arg = process.argv[i];
-    if (arg.startsWith("--workspace=") || arg.startsWith("--openAsHidden") || arg.startsWith("--port=") || arg.startsWith("--safe-mode=") || arg.startsWith("--lang=") || arg.startsWith("siyuan://")) {
+    if (arg.startsWith("--workspace=") || arg.startsWith("--openAsHidden") || arg.startsWith("--port=") || arg.startsWith("--safe-mode=") || arg.startsWith("--lang=") || arg.startsWith("--attach-kernel=") || arg.startsWith("siyuan://")) {
         // 跳过内置参数
         if (arg.startsWith("--openAsHidden")) {
             openAsHidden = true;
@@ -160,8 +167,12 @@ for (let i = argStart; i < process.argv.length; i++) {
     writeLog("command line switch [" + arg + "]");
 }
 
+// 解析命令行参数，参数需以 `name=value` 形式传入 https://github.com/siyuan-note/siyuan/issues/14748
+const getArg = (name) => commandArgument(process.argv, name);
+const attachKernelArgument = resolveAttachKernelArgument(process.argv);
+
 try {
-    firstOpen = !fs.existsSync(path.join(confDir, "workspace.json"));
+    firstOpen = !getArg("--workspace") && !fs.existsSync(path.join(confDir, "workspace.json"));
     if (!fs.existsSync(confDir)) {
         fs.mkdirSync(confDir, {mode: 0o755, recursive: true});
     }
@@ -170,15 +181,6 @@ try {
     require("electron").dialog.showErrorBox("创建配置目录失败 Failed to create config directory", "思源需要在用户家目录下创建配置文件夹（~/.config/siyuan），请确保该路径具有写入权限。\n\nSiYuan needs to create a configuration folder (~/.config/siyuan) in the user's home directory. Please make sure that the path has write permissions.");
     app.exit();
 }
-
-// 解析命令行参数，参数需以 `name=value` 形式传入 https://github.com/siyuan-note/siyuan/issues/14748
-const getArg = (name) => {
-    for (let i = 0; i < process.argv.length; i++) {
-        if (process.argv[i].startsWith(name)) {
-            return process.argv[i].split("=")[1];
-        }
-    }
-};
 
 // 检测上次打开的工作空间是否丢失 https://github.com/siyuan-note/siyuan/issues/14748
 let lastWorkspaceMissing = false;
@@ -1199,8 +1201,16 @@ const createOrShowMagiWindow = (mainWindow) => {
     magiWindows.set(mainWindow.id, magiWindow);
 };
 
-const initKernel = (workspace, port, lang, safeMode) => {
+const initKernel = (workspace, port, lang, safeMode, attachKernel = false) => {
     return new Promise(async (resolve) => {
+        try {
+            assertAttachedKernelOptions({attachKernel, workspace, port});
+        } catch (error) {
+            writeLog("invalid attached Kernel options: " + error.message);
+            showErrorWindow("连接开发内核失败", "Failed to attach development Kernel", `<div>${error.message}</div>`);
+            resolve(false);
+            return;
+        }
         bootWindow = new BrowserWindow({
             show: false,
             width: Math.floor(screen.getPrimaryDisplay().size.width / 2),
@@ -1226,14 +1236,16 @@ const initKernel = (workspace, port, lang, safeMode) => {
 
         const kernelName = "win32" === process.platform ? "SiYuan-Kernel.exe" : "SiYuan-Kernel";
         const kernelPath = path.join(appDir, "kernel", kernelName);
-        if (!fs.existsSync(kernelPath)) {
+        if (!attachKernel && !fs.existsSync(kernelPath)) {
             showErrorWindow("内核程序丢失", "Kernel program is missing", `<div>内核程序丢失，请重新安装思源，并将思源内核程序加入杀毒软件信任列表。</div><div>The kernel program is not found, please reinstall SiYuan and add SiYuan Kernel prgram into the trust list of your antivirus software.</div><div><i>${kernelPath}</i></div>`);
             bootWindow.destroy();
             resolve(false);
             return;
         }
 
-        if (!isDevEnv || workspaces.length > 0) {
+        if (attachKernel) {
+            kernelPort = port;
+        } else if (!isDevEnv || workspaces.length > 0) {
             if (port && "" !== port) {
                 kernelPort = port;
             } else {
@@ -1262,6 +1274,7 @@ const initKernel = (workspace, port, lang, safeMode) => {
             return;
         }
         const currentKernelPort = kernelPort;
+        const spawnKernel = shouldSpawnKernel({attachKernel, isDevEnv, workspaceCount: workspaces.length});
         const cmds = ["serve", "--port", currentKernelPort, "--wd", appDir, "--attach-ui"];
         if (isDevEnv) {
             cmds.push("--mode", "forge");
@@ -1275,9 +1288,11 @@ const initKernel = (workspace, port, lang, safeMode) => {
         if (safeMode) {
             cmds.push("--safe-mode", "true");
         }
-        let cmd = `ui version [${appVer}], booting kernel [${kernelPath} ${cmds.join(" ")}]`;
+        const kernelAction = attachKernel ? "attaching to externally managed kernel" :
+            spawnKernel ? "booting kernel" : "using development kernel";
+        let cmd = `ui version [${appVer}], ${kernelAction} [${kernelPath} ${cmds.join(" ")}]`;
         writeLog(cmd);
-        if (!isDevEnv || workspaces.length > 0) {
+        if (spawnKernel) {
             const kernelProcess = childProcess.spawn(kernelPath, cmds, {
                 detached: false, // 桌面端内核进程不再以游离模式拉起 https://github.com/siyuan-note/siyuan/issues/6336
                 stdio: "ignore",
@@ -1351,7 +1366,7 @@ const initKernel = (workspace, port, lang, safeMode) => {
 
         if (0 === apiData.code) {
             writeLog("got kernel version [" + apiData.data + "]");
-            if (!isDevEnv && apiData.data !== appVer) {
+            if (!attachKernel && !isDevEnv && apiData.data !== appVer) {
                 writeLog(`kernel [${apiData.data}] is running, shutdown it now and then start kernel [${appVer}]`);
                 requestKernelExit(currentKernelPort);
                 bootWindow.destroy();
@@ -1368,7 +1383,9 @@ const initKernel = (workspace, port, lang, safeMode) => {
                         showErrorWindow("启动超时", "Boot timeout",
                             "<div>内核启动超时，请查看 工作空间/temp/siyuan.log 获取详细报错信息，或尝试重启思源。</div>" +
                             "<div>Kernel boot timed out. Please check workspace/temp/siyuan.log for details, or try restarting SiYuan.</div>");
-                        requestKernelExit(currentKernelPort);
+                        if (!attachKernel) {
+                            requestKernelExit(currentKernelPort);
+                        }
                         bootWindow.destroy();
                         resolve(false);
                         progressing = true;
@@ -1387,7 +1404,9 @@ const initKernel = (workspace, port, lang, safeMode) => {
                         }
                     } catch (e) {
                         writeLog("get boot progress failed: " + e.message);
-                        requestKernelExit(currentKernelPort);
+                        if (!attachKernel) {
+                            requestKernelExit(currentKernelPort);
+                        }
                         bootWindow.destroy();
                         resolve(false);
                         progressing = true;
@@ -1410,6 +1429,12 @@ app.whenReady().then(() => {
             callback(-3); // default Chromium handling
         }
     });
+
+    if (attachKernelArgument.error) {
+        writeLog("invalid attach Kernel argument: " + attachKernelArgument.error);
+        showErrorWindow("连接开发内核失败", "Failed to attach development Kernel", `<div>${attachKernelArgument.error}</div>`);
+        return;
+    }
 
     // 渲染进程崩溃监听，只有工作空间主窗口的非预期崩溃才会触发安全模式。
     app.on("render-process-gone", (event, webContents, details) => {
@@ -2118,7 +2143,7 @@ app.whenReady().then(() => {
             });
             firstOpenWindow.destroy();
         });
-    } else if (appCrashInfo) {
+    } else if (appCrashInfo && !attachKernelArgument.enabled) {
         // 上次工作空间渲染进程崩溃，弹出安全模式选择窗口。
         const safeModeWindow = new BrowserWindow({
             width: Math.floor(screen.getPrimaryDisplay().size.width * 0.55),
@@ -2228,7 +2253,7 @@ app.whenReady().then(() => {
         if (lang) {
             writeLog("got arg [--lang=" + lang + "]");
         }
-        initKernel(workspace, port, lang, safeMode).then((startedKernelPort) => {
+        initKernel(workspace, port, lang, safeMode, attachKernelArgument.enabled).then((startedKernelPort) => {
             if (startedKernelPort) {
                 initMainWindow(startedKernelPort);
             }
@@ -2316,28 +2341,50 @@ app.on("second-instance", (event, argv) => {
         writeLog("ignored second instance while installing update");
         return;
     }
-    let workspace = argv.find((arg) => arg.startsWith("--workspace="));
+    const secondAttachKernelArgument = resolveAttachKernelArgument(argv);
+    if (secondAttachKernelArgument.error) {
+        writeLog("invalid second-instance attach Kernel argument: " + secondAttachKernelArgument.error);
+        showErrorWindow("连接开发内核失败", "Failed to attach development Kernel", `<div>${secondAttachKernelArgument.error}</div>`);
+        return;
+    }
+    let workspace = commandArgument(argv, "--workspace");
     if (workspace) {
-        workspace = workspace.split("=")[1];
         writeLog("got second-instance arg [--workspace=" + workspace + "]");
     }
-    let port = argv.find((arg) => arg.startsWith("--port="));
+    let port = commandArgument(argv, "--port");
     if (port) {
-        port = port.split("=")[1];
         writeLog("got second-instance arg [--port=" + port + "]");
     } else {
         port = 0;
     }
-    let lang = argv.find((arg) => arg.startsWith("--lang="));
+    let lang = commandArgument(argv, "--lang");
     if (lang) {
-        lang = lang.split("=")[1];
         writeLog("got second-instance arg [--lang=" + lang + "]");
     } else {
         lang = "";
     }
+    try {
+        assertAttachedKernelOptions({
+            attachKernel: secondAttachKernelArgument.enabled,
+            workspace,
+            port,
+        });
+    } catch (error) {
+        writeLog("invalid second-instance attached Kernel options: " + error.message);
+        showErrorWindow("连接开发内核失败", "Failed to attach development Kernel", `<div>${error.message}</div>`);
+        return;
+    }
     const foundWorkspace = workspaces.find(item => {
         if (item.browserWindow && !item.browserWindow.isDestroyed()) {
             if (workspace && workspace === item.workspaceDir) {
+                if (!canReuseWorkspaceWindow({
+                    attachKernel: secondAttachKernelArgument.enabled,
+                    requestedPort: port,
+                    currentPort: item.port,
+                })) {
+                    writeLog(`workspace window port changed [current=${item.port}, requested=${port}], attaching a new window`);
+                    return false;
+                }
                 showWindow(item.browserWindow);
                 return true;
             }
@@ -2347,7 +2394,7 @@ app.on("second-instance", (event, argv) => {
         return;
     }
     if (workspace) {
-        initKernel(workspace, port, lang).then((startedKernelPort) => {
+        initKernel(workspace, port, lang, false, secondAttachKernelArgument.enabled).then((startedKernelPort) => {
             if (startedKernelPort) {
                 initMainWindow(startedKernelPort);
             }

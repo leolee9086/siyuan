@@ -92,6 +92,8 @@ describe("FileBrowserGalleryTab", () => {
         expect(host?.querySelector<HTMLInputElement>("input[aria-label='关键词']")?.value).toBe("");
         expect(host?.querySelector(".sforge-file-search .sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
         await vi.waitFor(() => expect(host?.textContent).toContain("hero.png"));
+        expect(host?.textContent).not.toContain("此目录没有可展示的资源");
+        expect(host?.textContent).not.toContain("没有匹配资源");
         expect(host?.querySelector(".virtual-masonry-grid-wrapper")).toBeTruthy();
         expect(host?.textContent).toContain("sub");
         expect(host?.textContent).toContain("2 文件 / 1 目录");

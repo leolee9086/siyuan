@@ -66,7 +66,7 @@
 
         <main ref="galleryContent" class="sforge-file-gallery__content" @mousedown.left="startMarquee"
             @dragover.prevent="handleGalleryDragOver" @drop.prevent="handleGalleryDrop">
-            <div v-if="layoutMode === 'table' && galleryAssets.length > 0" class="sforge-file-gallery-table-header"
+            <div v-if="galleryDisplayState === 'ready' && layoutMode === 'table'" class="sforge-file-gallery-table-header"
                 role="row" aria-label="表格列标题">
                 <span role="columnheader">预览</span>
                 <span role="columnheader">名称</span>
@@ -76,7 +76,7 @@
                 <span role="columnheader">大小</span>
                 <span role="columnheader">类型</span>
             </div>
-            <VirtualMasonryGrid v-if="galleryAssets.length > 0" :key="layoutMode" ref="galleryGrid" :items="galleryAssets"
+            <VirtualMasonryGrid v-if="galleryDisplayState === 'ready'" :key="layoutMode" ref="galleryGrid" :items="galleryAssets"
                 :column-width="effectiveColumnWidth" :gap="12" id-key="key" :item-height="estimateItemHeight"
                 :mode="layoutMode === 'table' ? 'list' : layoutMode" :managed-by-provider="true"
                 @load-more="loadNextPage">
@@ -93,17 +93,17 @@
                         @menu="openGalleryMenu" />
                 </template>
             </VirtualMasonryGrid>
-            <div v-if="marquee.active" class="sforge-file-gallery__selection-box" :style="marqueeStyle"
+            <div v-if="galleryDisplayState === 'ready' && marquee.active" class="sforge-file-gallery__selection-box" :style="marqueeStyle"
                 aria-hidden="true" />
-            <div v-else-if="loading || rootsLoading" class="sforge-file-gallery__state">
+            <div v-else-if="galleryDisplayState === 'loading'" class="sforge-file-gallery__state">
                 <svg class="fn__rotate"><use href="#iconRefresh" /></svg>
                 <span>正在读取资源</span>
             </div>
-            <div v-else-if="rootsError || error" class="sforge-file-gallery__state sforge-file-gallery__state--error">
+            <div v-else-if="galleryDisplayState === 'error'" class="sforge-file-gallery__state sforge-file-gallery__state--error">
                 <span>{{ rootsError || error }}</span>
                 <button type="button" class="b3-button b3-button--text" @click="() => runScopedSearch()">重试</button>
             </div>
-            <div v-else class="sforge-file-gallery__state">
+            <div v-else-if="galleryDisplayState === 'empty'" class="sforge-file-gallery__state">
                 <svg><use href="#iconAssets" /></svg>
                 <span>{{ hasQuery ? "没有匹配资源" : "此目录没有可展示的资源" }}</span>
             </div>
@@ -373,9 +373,19 @@ const canGoForward = computed(() => scopeHistoryIndex.value < scopeHistory.value
 // 目录切换必须创建一份空表单，不能依赖旧表单的异步 watch 是否及时触发。
 const searchPanelKey = computed(() => `${props.file.rootID}:${scopePath.value}:${isGlobalResult ? "global" : "directory"}`);
 const hasActiveFilters = ref(false);
-const hasQuery = computed(() => hasActiveFilters.value || loading.value || Boolean(error.value));
+const hasQuery = computed(() => hasActiveFilters.value);
 const loadedCount = computed(() => loadedAssets.value.length);
 const galleryAssets = computed<GalleryAsset[]>(() => loadedAssets.value);
+type GalleryDisplayState = "loading" | "error" | "empty" | "ready";
+const galleryDisplayState = computed<GalleryDisplayState>(() => {
+    if (loading.value || rootsLoading.value) {
+        return "loading";
+    }
+    if (rootsError.value || error.value) {
+        return "error";
+    }
+    return galleryAssets.value.length > 0 ? "ready" : "empty";
+});
 const galleryAttributes = FILE_BROWSER_GALLERY_ATTRIBUTES;
 const galleryAttributeKeys = galleryAttributes.map(attribute => attribute.key);
 const galleryAttributeLabels = Object.fromEntries(galleryAttributes.map(attribute => [attribute.key, attribute.label]));

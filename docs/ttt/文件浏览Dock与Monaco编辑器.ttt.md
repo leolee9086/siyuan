@@ -463,3 +463,10 @@
 - [x] 卡片与表格行的拖放载荷会在当前可见选择超过一项时携带多个根内地址；目录画廊接入现有单项 `move`/批量 `moveBatch` 仓储，部分失败保留服务端错误并刷新范围，未添加万能写入接口。
 - [x] 证据：选择、表格行和画廊专项 3 个测试文件、17 个用例通过；`pnpm run typecheck:protyle-contract`、`git diff --check` 通过。联网环境变量按要求使用 `http://127.0.0.1:7890`。
 - [ ] 真实桌面窗口的多列框选命中、虚拟滚动远端焦点、目录拖放冲突提示和批量移动现场验收仍未完成；当前挂载测试不替代桌面验收。
+
+## 2026-08-10 画廊互斥显示状态修正（本轮完成逻辑切片）
+
+- [x] `FileBrowserGalleryTab.vue` 使用单一 `galleryDisplayState` 管理 `loading/error/empty/ready`，资源网格和状态提示不再由互不排斥的模板条件同时渲染。
+- [x] 修复截图中的资源卡片与“此目录没有可展示的资源”并存问题；真实资源出现时空提示和“没有匹配资源”均不挂载。
+- [x] 证据：`pnpm exec vitest run --config vitest.config.ts test/sforge/fileBrowser/FileBrowserGalleryTab.interaction.test.ts --reporter=verbose`，10/10 通过；改动范围未触及提交门禁。
+- [ ] 真实桌面窗口与大结果分页的 A 级状态验收仍未完成，不能用本地挂载测试替代。
