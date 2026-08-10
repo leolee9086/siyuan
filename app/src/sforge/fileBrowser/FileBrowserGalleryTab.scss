@@ -188,6 +188,15 @@
     overflow: hidden;
 }
 
+/* ready/empty/loading 由单一结果状态互斥挂载；ready 根节点负责完整回收虚拟网格。 */
+.sforge-file-gallery__ready-surface {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+}
+
 .sforge-file-gallery__selection-box {
     position: fixed;
     z-index: 5;
@@ -218,7 +227,7 @@
     white-space: nowrap;
 }
 
-.sforge-file-gallery__content > :deep(.virtual-masonry-grid-wrapper) {
+.sforge-file-gallery__ready-surface > :deep(.virtual-masonry-grid-wrapper) {
     width: 100%;
     height: auto;
     min-width: 0;

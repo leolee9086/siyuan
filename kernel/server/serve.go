@@ -575,7 +575,8 @@ func serveAppearance(ginServer *gin.Engine) {
 				c.Redirect(302, location.String())
 				return
 			} else if "false" == siyuanDesktopMode.Value {
-				location.Path = "/stage/build/mobile/"
+				// S-forge: 移动模式默认打开 agent-app 独立界面
+				location.Path = "/stage/build/agent-app/"
 				c.Redirect(302, location.String())
 				return
 			}
@@ -593,7 +594,8 @@ func serveAppearance(ginServer *gin.Engine) {
 			}
 			ua := useragent.New(userAgentHeader)
 			if ua.Mobile() {
-				location.Path = "/stage/build/mobile/"
+				// S-forge: 移动端默认打开 agent-app 独立界面
+				location.Path = "/stage/build/agent-app/"
 			} else {
 				location.Path = "/stage/build/desktop/"
 			}

@@ -974,6 +974,7 @@ class ForgeRuntimeSupervisor {
         this.writeJobLog(`run: ${command} ${args.join(" ")}`);
         return this.command(command, args, {
             cwd,
+            env: this.kernelEnvironment(),
             onOutput: (output, isError) => this.writeJobLog(`${isError ? "stderr" : "stdout"}: ${output.trimEnd()}`),
         });
     }

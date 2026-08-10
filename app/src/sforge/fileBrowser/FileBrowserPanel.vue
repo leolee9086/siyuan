@@ -180,6 +180,7 @@ function handleNodeMenu(payload: {event: MouseEvent; node: TreeNode}) {
             canCreateFileBrowserAgentDirectory(node.root, node.path),
         createAgentTask: createAgentTaskFromNode,
         refresh: refreshNode,
+        createFile: createFile,
         createDirectory: createDirectory,
         rename: renameNode,
         copy: copyNode,
@@ -287,6 +288,24 @@ async function createDirectory(node: TreeNode) {
         await fileBrowserOperationsRepository.createDirectory({rootID: node.rootID, path});
         await refreshNode(node);
         showMessage(`已创建目录：${escapeHtml(path)}`, 3000);
+    } catch (error) {
+        reportOperationError(error);
+    }
+}
+
+async function createFile(node: TreeNode) {
+    if (!canWriteNode(node)) {
+        return;
+    }
+    const name = await requestFileBrowserText({title: "新建文件", label: "文件名称", placeholder: "例如：说明.md"});
+    if (!name) {
+        return;
+    }
+    const path = joinRootRelativePath(node.path, name);
+    try {
+        await fileBrowserOperationsRepository.createFile({rootID: node.rootID, path});
+        await refreshNode(node);
+        showMessage(`已创建文件：${escapeHtml(path)}`, 3000);
     } catch (error) {
         reportOperationError(error);
     }

@@ -493,3 +493,26 @@
 - [x] 保持内容区唯一 `ready` 分支：有资源时只挂载现有 `VirtualMasonryGrid`，无资源时只挂载空状态；最后一项删除后阶段显式切换为 `empty`，分页追加失败保留已有资源并只显示页尾错误。
 - [x] 证据：`pnpm exec vitest run --config vitest.config.ts test/sforge/fileBrowser --reporter=dot`（31 个文件、110 个用例）；`pnpm run typecheck:protyle-contract`；`pnpm run dev:once`（全目标构建）；`git diff --check`。
 - [ ] 真实桌面页签仍需复核旧 Tab 实例销毁、刷新期间状态切换、分页末页和删除最后资源的现场 DOM；本轮 C 级挂载与构建证据不替代 A 级验收。
+
+## 2026-08-10 画廊空态不变量加固（本轮完成逻辑切片）
+
+- [x] `galleryDisplayState` 以统一结果对象中的资源数组作为 `ready/empty` 最终事实来源；即使阶段字段未来发生漂移，只要仍有资源就不会挂载“此目录没有可展示的资源”。
+- [x] 前端仓储测试区分“缺少 data 字段”的包络错误与“data: undefined”的响应格式错误，避免用错误夹具掩盖真实契约。
+- [x] 证据：画廊专项 11 个用例、文件浏览目录 31 个文件/111 个用例通过；`pnpm run typecheck:protyle-contract`、`pnpm run dev:once`、`git diff --check` 通过。
+- [ ] 真实桌面 Tab 生命周期、旧实例销毁和刷新期间 DOM 仍需 A 级现场验收。
+
+## 2026-08-10 画廊状态归约与旧网格卸载（本轮完成逻辑切片）
+
+- [x] 新增 `FileBrowserGalleryState.ts`，把首屏结果、分页追加、资源数组、总数、游标、页级错误和 `loading/ready/empty/error` 阶段集中到可测试的状态归约；查询页签不再同时消费独立 `useFileBrowserSearch.loading/error` 状态。
+- [x] ready 内容改为带稳定 key 的单一根节点；状态切换时先完整卸载 `VirtualMasonryGrid`，再挂载加载/错误/空态，避免旧卡片 DOM 与“此目录没有可展示的资源”并存。
+- [x] 分页空页保留已经加载的资源并维持 `ready`，只有首屏完成且资源数组确实为空时才进入 `empty`；筛选刷新先提交统一 loading 状态，旧请求按 revision 丢弃。
+- [x] 回归证据：画廊交互测试 12 个用例、状态归约测试 3 个用例；文件浏览专项 32 个测试文件、115 个用例；`pnpm run typecheck:protyle-contract`；`git diff --check`。
+- [ ] 真实桌面页签重复初始化/销毁、刷新期间 DOM、分页末页和大结果滚动仍需 A 级现场复核；本轮测试只覆盖 Vue 挂载和状态归约契约。
+
+## 2026-08-10 画廊宿主单实例销毁竞态修正（本轮完成逻辑切片）
+
+- [x] 画廊宿主按 DOM 容器维护唯一活动 Vue 挂载；同一容器重复初始化时先卸载旧实例，再挂载当前实例。
+- [x] 旧实例收到延迟 `destroy` 时只结束自身生命周期，不再对同一容器执行第二次 `unmount`，避免清空新实例的资源网格并遗留“此目录没有可展示的资源”。
+- [x] 空态分支增加 `galleryDisplayState === "empty" && galleryAssets.length === 0` 不变量；资源数组非空时不会进入空态，异常阶段显示显式错误和重试入口。
+- [x] 新增同容器重复初始化/旧销毁回归：`FileBrowserGallery.mount.test.ts`；文件浏览专项 33 个测试文件、117 个用例通过；`pnpm run typecheck:protyle-contract` 通过；目标范围 `git diff --check` 通过。
+- [ ] 真实桌面页签重复初始化来源、热更新与布局恢复现场仍需 A 级窗口复核；专项挂载测试不替代桌面验收。

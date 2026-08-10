@@ -197,6 +197,30 @@ func createSForgeFileBrowserDirectory(c *gin.Context) {
 	ret.Data = result
 }
 
+func createSForgeFileBrowserFile(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+	if !requireLocalFileBrowser(c, ret) {
+		return
+	}
+	var request filebrowser.CreateFileRequest
+	if !decodeFileBrowserRequest(c, ret, &request) {
+		return
+	}
+	if request.RootID == "" || request.Path == "" {
+		ret.Code = http.StatusBadRequest
+		ret.Msg = "rootID and path are required"
+		return
+	}
+	result, err := newFileBrowserService().CreateFile(c.Request.Context(), request)
+	if err != nil {
+		ret.Code = fileBrowserErrorCode(err)
+		ret.Msg = err.Error()
+		return
+	}
+	ret.Data = result
+}
+
 func renameSForgeFileBrowserEntry(c *gin.Context) {
 	ret := gulu.Ret.NewResult()
 	defer c.JSON(http.StatusOK, ret)

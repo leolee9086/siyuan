@@ -54,6 +54,7 @@ describe("FileBrowser tree menu", () => {
         const actions = {
             open: vi.fn(async () => undefined),
             refresh: vi.fn(async () => undefined),
+            createFile: vi.fn(async () => undefined),
             createDirectory: vi.fn(async () => undefined),
             rename: vi.fn(async () => undefined),
             copy: vi.fn(async () => undefined),
@@ -66,12 +67,19 @@ describe("FileBrowser tree menu", () => {
 
         showFileBrowserTreeNodeMenu(new MouseEvent("contextmenu", {clientX: 12, clientY: 20}), node, actions);
         const labels = menuState.items.map(item => item.label);
-        expect(labels).toEqual(expect.arrayContaining(["新建目录", "重命名", "复制到...", "删除"]));
+        expect(labels).toEqual(expect.arrayContaining(["新建", "重命名", "复制到...", "删除"]));
+        const createMenu = menuState.items.find(item => item.label === "新建") as {
+            submenu?: Array<Record<string, unknown>>;
+        } | undefined;
+        expect(createMenu?.submenu?.map(item => item.label)).toEqual(["新建文件", "新建目录"]);
         const item = (label: string) => menuState.items.find(candidate => candidate.label === label);
-        await (item("新建目录")?.click as () => Promise<void>)();
+        const submenuItem = (label: string) => createMenu?.submenu?.find(candidate => candidate.label === label);
+        await (submenuItem("新建文件")?.click as () => Promise<void>)();
+        await (submenuItem("新建目录")?.click as () => Promise<void>)();
         await (item("重命名")?.click as () => Promise<void>)();
         await (item("复制到...")?.click as () => Promise<void>)();
         await (item("删除")?.click as () => Promise<void>)();
+        expect(actions.createFile).toHaveBeenCalledWith(node);
         expect(actions.createDirectory).toHaveBeenCalledWith(node);
         expect(actions.rename).toHaveBeenCalledWith(node);
         expect(actions.copy).toHaveBeenCalledWith(node);
@@ -92,10 +100,11 @@ describe("FileBrowser tree menu", () => {
         const node = makeNode({root: readOnlyRoot, path: "readonly/a.txt", rootID: root.id});
         showFileBrowserTreeNodeMenu(new MouseEvent("contextmenu"), node, {
             open: vi.fn(async () => undefined), refresh: vi.fn(async () => undefined),
-            createDirectory: vi.fn(async () => undefined), rename: vi.fn(async () => undefined), copy: vi.fn(async () => undefined),
+            createFile: vi.fn(async () => undefined), createDirectory: vi.fn(async () => undefined),
+            rename: vi.fn(async () => undefined), copy: vi.fn(async () => undefined),
             delete: vi.fn(async () => undefined),
         });
         const labels = menuState.items.map(item => item.label);
-        expect(labels).not.toEqual(expect.arrayContaining(["新建目录", "重命名", "复制到..."]));
+        expect(labels).not.toEqual(expect.arrayContaining(["新建", "重命名", "复制到..."]));
     });
 });

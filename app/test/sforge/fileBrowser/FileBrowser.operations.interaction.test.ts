@@ -7,6 +7,7 @@ import type {FileBrowserDirectoryPage, FileBrowserRoot} from "../../../src/sforg
 
 const operationState = vi.hoisted(() => ({
     items: [] as Array<Record<string, unknown>>,
+    createFile: vi.fn(),
     createDirectory: vi.fn(),
     rename: vi.fn(),
     copy: vi.fn(),
@@ -19,6 +20,7 @@ const operationState = vi.hoisted(() => ({
 
 vi.mock("../../../src/sforge/fileBrowser/FileBrowser.operations.repository", () => ({
     fileBrowserOperationsRepository: {
+        createFile: operationState.createFile,
         createDirectory: operationState.createDirectory,
         rename: operationState.rename,
         copy: operationState.copy,
@@ -79,6 +81,7 @@ afterEach(() => {
 describe("file browser tree write operations", () => {
     beforeEach(() => {
         operationState.items = [];
+        operationState.createFile.mockReset().mockResolvedValue({operation: "create-file"});
         operationState.createDirectory.mockReset().mockResolvedValue({operation: "create-directory"});
         operationState.rename.mockReset().mockResolvedValue({operation: "rename"});
         operationState.copy.mockReset().mockResolvedValue({operation: "copy", copiedFileCount: 1});
@@ -110,8 +113,12 @@ describe("file browser tree write operations", () => {
         const notesMenu = notesRow()?.querySelector<HTMLButtonElement>("button[aria-label='更多']");
         expect(notesMenu).toBeTruthy();
         notesMenu?.click();
-        expect(operationState.items.map(item => item.label)).toContain("新建目录");
-        await (operationState.items.find(item => item.label === "新建目录")?.click as () => Promise<void>)();
+        const createMenu = operationState.items.find(item => item.label === "新建") as {
+            submenu?: Array<Record<string, unknown>>;
+        } | undefined;
+        const createDirectoryItem = createMenu?.submenu?.find(item => item.label === "新建目录");
+        expect(createMenu?.submenu?.map(item => item.label)).toEqual(["新建文件", "新建目录"]);
+        await (createDirectoryItem?.click as () => Promise<void>)();
         await vi.waitFor(() => expect(operationState.createDirectory).toHaveBeenCalledWith({
             rootID: "workspace", path: "notes/new folder",
         }));

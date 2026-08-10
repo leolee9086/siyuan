@@ -11,6 +11,7 @@ import {parseFileBrowserBatchMoveResult} from "./FileBrowser.operation.guards";
 /** 用途：请求/响应契约；使用范围：菜单和树控制器。 */
 import type {
     FileBrowserCopyRequest,
+    FileBrowserCreateFileRequest,
     FileBrowserBatchDeleteRequest,
     FileBrowserCreateDirectoryRequest,
     FileBrowserDeleteRequest,
@@ -25,6 +26,7 @@ import type {
 import {requireFileBrowserResponseData} from "./FileBrowser.repository";
 
 const CREATE_DIRECTORY_ENDPOINT = "/api/s-forge/file-browser/operations/create-directory";
+const CREATE_FILE_ENDPOINT = "/api/s-forge/file-browser/operations/create-file";
 const RENAME_ENDPOINT = "/api/s-forge/file-browser/operations/rename";
 const COPY_ENDPOINT = "/api/s-forge/file-browser/operations/copy";
 const MOVE_ENDPOINT = "/api/s-forge/file-browser/operations/move";
@@ -56,6 +58,8 @@ async function runBatchMove(request: FileBrowserBatchMoveRequest): Promise<FileB
 export const fileBrowserOperationsRepository: FileBrowserOperationRepository = {
     createDirectory: (request: FileBrowserCreateDirectoryRequest) =>
         runOperation(CREATE_DIRECTORY_ENDPOINT, request, "新建目录"),
+    createFile: (request: FileBrowserCreateFileRequest) =>
+        runOperation(CREATE_FILE_ENDPOINT, request, "新建文件"),
     rename: (request: FileBrowserRenameRequest) => runOperation(RENAME_ENDPOINT, request, "重命名"),
     copy: (request: FileBrowserCopyRequest) => runOperation(COPY_ENDPOINT, request, "复制文件"),
     move: (request: FileBrowserMoveRequest) => runOperation(MOVE_ENDPOINT, request, "移动文件"),

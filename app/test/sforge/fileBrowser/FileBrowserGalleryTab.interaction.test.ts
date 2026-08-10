@@ -249,6 +249,37 @@ describe("FileBrowserGalleryTab", () => {
         expect(search).toHaveBeenCalledTimes(2);
     });
 
+    it("unmounts the ready surface before showing an empty refresh result", async () => {
+        vi.spyOn(fileBrowserRepository, "listRoots").mockResolvedValue([root]);
+        const first = deferred<FileBrowserSearchResult>();
+        const second = deferred<FileBrowserSearchResult>();
+        const search = vi.spyOn(fileBrowserQueryRepository, "search")
+            .mockImplementationOnce(() => first.promise)
+            .mockImplementationOnce(() => second.promise);
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileBrowserGalleryTab, {
+            app: {openAsset: vi.fn(), openTab: vi.fn(async () => undefined)},
+            file: {rootID: root.id, path: "", name: "全部资源", scope: "global"},
+        });
+        app.mount(host);
+
+        first.resolve(result);
+        await vi.waitFor(() => expect(host?.querySelector(".sforge-file-gallery__ready-surface")).toBeTruthy());
+        host?.querySelector<HTMLButtonElement>("button[aria-label='重新查询']")?.click();
+        await vi.waitFor(() => expect(host?.querySelector(".sforge-file-gallery__state")?.textContent)
+            .toContain("正在读取资源"));
+        expect(host?.querySelector(".sforge-file-gallery__ready-surface")).toBeNull();
+
+        second.resolve({assets: [], totalCount: 0, pageCount: 0});
+        await vi.waitFor(() => expect(host?.querySelector(".sforge-file-gallery__state")?.textContent)
+            .toContain("此目录没有可展示的资源"));
+        expect(host?.querySelector(".sforge-file-gallery__ready-surface")).toBeNull();
+        expect(host?.querySelectorAll(".sforge-file-gallery__state")).toHaveLength(1);
+        expect(host?.textContent).toContain("已加载 0 / 0 个文件");
+        expect(search).toHaveBeenCalledTimes(2);
+    });
+
     it("opens a tag result without replacing it with the directory scope", async () => {
         vi.spyOn(fileBrowserRepository, "listRoots").mockResolvedValue([root]);
         const search = vi.spyOn(fileBrowserQueryRepository, "search").mockResolvedValue(result);

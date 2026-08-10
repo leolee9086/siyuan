@@ -82,6 +82,12 @@ export interface FileBrowserCreateDirectoryRequest {
     path: string;
 }
 
+/** 新建空文件请求，path 始终是目标相对路径。 */
+export interface FileBrowserCreateFileRequest {
+    rootID: string;
+    path: string;
+}
+
 /** 同父目录重命名请求。 */
 export interface FileBrowserRenameRequest {
     rootID: string;
@@ -157,7 +163,7 @@ export interface FileBrowserBatchOperationResult {
 
 /** 文件操作成功包络；不承载绝对物理路径。 */
 export interface FileBrowserOperationResult {
-    operation: "create-directory" | "rename" | "copy" | "move" | "delete";
+    operation: "create-directory" | "create-file" | "rename" | "copy" | "move" | "delete";
     rootID?: string;
     path?: string;
     sourceRootID?: string;
@@ -346,6 +352,7 @@ export interface FileBrowserRepository {
 /** 文件树菜单使用的独立写操作仓储，不把写入混入只读浏览仓储。 */
 export interface FileBrowserOperationRepository {
     createDirectory(request: FileBrowserCreateDirectoryRequest): Promise<FileBrowserOperationResult>;
+    createFile(request: FileBrowserCreateFileRequest): Promise<FileBrowserOperationResult>;
     rename(request: FileBrowserRenameRequest): Promise<FileBrowserOperationResult>;
     copy(request: FileBrowserCopyRequest): Promise<FileBrowserOperationResult>;
     move(request: FileBrowserMoveRequest): Promise<FileBrowserOperationResult>;

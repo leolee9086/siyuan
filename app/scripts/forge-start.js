@@ -5,7 +5,6 @@ const path = require("path");
 const {execFile, execFileSync} = require("child_process");
 const {ForgeRuntimeSupervisor, SUPERVISOR_TOKEN_HEADER, isKernelRuntimePath, parseLines} = require("./forge-runtime-supervisor");
 const {openForgeInterface} = require("./forge-electron-launcher");
-
 const repoRoot = path.resolve(__dirname, "../..");
 const SUPERVISOR_UNREACHABLE_ERROR = "FORGE_SUPERVISOR_UNREACHABLE";
 const DEFAULT_SUPERVISOR_REQUEST_TIMEOUT_MS = 5_000;
@@ -394,15 +393,17 @@ const resolveForgeStartup = async ({
     probeKernelImpl = probeKernel,
 }) => {
     const workspace = path.resolve(root, ".dev-workspace");
-    if (ownership) {
-        if (!samePath(ownership.repoRoot, root, platform) ||
-            !samePath(ownership.workspace, workspace, platform)) {
+    const activeRuntimeDir = runtimeDir;
+    const activeOwnership = ownership;
+    if (activeOwnership) {
+        if (!samePath(activeOwnership.repoRoot, root, platform) ||
+            !samePath(activeOwnership.workspace, workspace, platform)) {
             throw new Error("Forge runtime ownership points to a different repository or workspace");
         }
         try {
-            const status = await probeSupervisor(ownership, fetchImpl, platform);
+            const status = await probeSupervisor(activeOwnership, fetchImpl, platform);
             const readyStatus = await waitForSupervisorReady({
-                ownership,
+                ownership: activeOwnership,
                 status,
                 fetchImpl,
                 wait,
@@ -410,12 +411,12 @@ const resolveForgeStartup = async ({
                 timeoutMs: supervisorReadyTimeoutMs,
                 probeKernelImpl,
             });
-            return {kind: "reuse", port: Number(ownership.port), ownership, status: readyStatus};
+            return {kind: "reuse", port: Number(activeOwnership.port), ownership: activeOwnership, status: readyStatus};
         } catch (error) {
-            if (processAlive(ownership.processId)) {
-                throw new Error(`${error.message}; owner process ${ownership.processId} is still running`);
+            if (processAlive(activeOwnership.processId)) {
+                throw new Error(`${error.message}; owner process ${activeOwnership.processId} is still running`);
             }
-            quarantineOwnership(runtimeDir, ownership.cliToken);
+            quarantineOwnership(activeRuntimeDir, activeOwnership.cliToken);
         }
     }
 

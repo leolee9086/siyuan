@@ -75,3 +75,26 @@ body {
         padding-bottom: max(8px, env(safe-area-inset-bottom));
     }
 }
+
+#agent-standalone-open-note {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    z-index: 999;
+    padding: 6px 12px;
+    border: 1px solid var(--b3-border-color);
+    border-radius: 6px;
+    background: var(--b3-theme-surface);
+    color: var(--b3-theme-on-surface);
+    font-size: 13px;
+    line-height: 1.5;
+    text-decoration: none;
+    box-shadow: var(--b3-dialog-shadow);
+    opacity: 0.85;
+    transition: opacity 0.2s ease;
+}
+
+#agent-standalone-open-note:hover,
+#agent-standalone-open-note:focus-visible {
+    opacity: 1;
+}

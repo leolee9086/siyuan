@@ -21,6 +21,7 @@ const {
     commandArgument,
     isValidKernelPort,
     resolveAttachKernelArgument,
+    resolveForgeLaunchContext,
     sameWorkspacePath,
     shouldSpawnKernel,
 } = require("../electron/forge-kernel-attach");
@@ -123,6 +124,22 @@ test("Electron launch passes exact external Kernel ownership arguments", async (
     assert.equal(lateErrors.some((message) => message.includes("code=9")), true);
 });
 
+test("Electron launch acknowledgement context is loopback-only and separate from UI URLs", () => {
+    const context = resolveForgeLaunchContext({
+        [FORGE_LAUNCH_ACK_URL_ENV]: "http://127.0.0.1:49152/ready",
+        [FORGE_LAUNCH_ACK_TOKEN_ENV]: "b".repeat(64),
+    });
+    assert.equal(context.error, undefined);
+    assert.deepEqual(context.acknowledgement, {
+        url: "http://127.0.0.1:49152/ready",
+        token: "b".repeat(64),
+    });
+    assert.match(resolveForgeLaunchContext({
+        [FORGE_LAUNCH_ACK_URL_ENV]: "http://example.com:49152/ready",
+        [FORGE_LAUNCH_ACK_TOKEN_ENV]: "b".repeat(64),
+    }).error, /exact loopback/);
+});
+
 test("Generic child observation distinguishes forwarding, process errors, and early crashes", async (t) => {
     await t.test("clean early exit remains forwarding only for generic launchers", async () => {
         const child = createChild();
@@ -167,6 +184,37 @@ test("Electron clean exit is not accepted without a matching renderer-ready ackn
         },
     });
     await assert.rejects(launching, /did not confirm readiness/);
+});
+
+test("Electron launch rejection keeps observing the still-running child", async () => {
+    const child = createChild();
+    const lateErrors = [];
+    const launching = launchElectronMain({
+        launch: {executable: "electron.exe", entry: "D:/repo/app/electron/main.js", appRoot: "D:/repo/app"},
+        workspace: "D:/repo/.dev-workspace",
+        port: 6810,
+        readyTimeoutMs: 1_000,
+        reportError: (message) => lateErrors.push(message),
+        spawnImpl: (_command, _args, options) => {
+            queueMicrotask(() => {
+                void fetch(options.env[FORGE_LAUNCH_ACK_URL_ENV], {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        [FORGE_LAUNCH_ACK_HEADER]: options.env[FORGE_LAUNCH_ACK_TOKEN_ENV],
+                    },
+                    body: JSON.stringify({state: "rejected", reason: "renderer failed"}),
+                });
+            });
+            return child;
+        },
+    });
+    await assert.rejects(launching, /renderer failed/);
+
+    child.emit("error", new Error("late renderer process error"));
+    child.emit("exit", 9, null);
+    assert.equal(lateErrors.some((message) => message.includes("late renderer process error")), true);
+    assert.equal(lateErrors.some((message) => message.includes("code=9")), true);
 });
 
 test("Electron launch failure does not start the independent browser interface", async () => {

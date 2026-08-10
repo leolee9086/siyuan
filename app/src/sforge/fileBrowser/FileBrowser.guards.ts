@@ -296,7 +296,7 @@ export function parseFileBrowserD5AInspection(value: unknown): FileBrowserD5AIns
 /** 把文件操作成功响应收窄为不含绝对路径的稳定包络。 */
 export function parseFileBrowserOperationResult(value: unknown): FileBrowserOperationResult {
     if (!isRecord(value) ||
-        (value.operation !== "create-directory" && value.operation !== "rename" && value.operation !== "copy" &&
+        (value.operation !== "create-directory" && value.operation !== "create-file" && value.operation !== "rename" && value.operation !== "copy" &&
             value.operation !== "move" && value.operation !== "delete")) {
         throw new Error("文件操作响应格式错误");
     }

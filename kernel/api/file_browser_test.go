@@ -204,6 +204,94 @@ func TestFileBrowserEditorReadWriteHandlersUseRevisionAndEncodingContract(t *tes
 	}
 }
 
+func TestFileBrowserEditorHandlersRoundTripAllDeclaredEncodings(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	workspace := t.TempDir()
+	originalFactory := newFileBrowserService
+	newFileBrowserService = func() *filebrowser.Service {
+		return filebrowser.NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) {
+			return nil, nil
+		})
+	}
+	t.Cleanup(func() { newFileBrowserService = originalFactory })
+
+	fixtures := []struct {
+		name     string
+		encoding string
+	}{
+		{name: "utf8.txt", encoding: "utf-8"},
+		{name: "utf8-bom.txt", encoding: "utf-8-bom"},
+		{name: "utf16le.txt", encoding: "utf-16le"},
+		{name: "utf16be.txt", encoding: "utf-16be"},
+	}
+	for _, fixture := range fixtures {
+		t.Run(fixture.encoding, func(t *testing.T) {
+			path := filepath.Join(workspace, fixture.name)
+			if err := os.WriteFile(path, []byte("first"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			read := callFileBrowserHandler(t, readSForgeFileBrowserEditor, "127.0.0.1:6806",
+				`{"rootID":"workspace","path":"`+fixture.name+`"}`)
+			if read.Code != 0 {
+				t.Fatalf("editor read failed: %+v", read)
+			}
+			var document filebrowser.EditorDocument
+			if err := json.Unmarshal(read.Data, &document); err != nil {
+				t.Fatal(err)
+			}
+			body := `{"rootID":"workspace","path":"` + fixture.name + `","text":"second 中文","encoding":"` +
+				fixture.encoding + `","revision":"` + document.Revision + `"}`
+			write := callFileBrowserHandler(t, writeSForgeFileBrowserEditor, "127.0.0.1:6806", body)
+			if write.Code != 0 {
+				t.Fatalf("editor write failed: %+v", write)
+			}
+			var result filebrowser.EditorWriteResult
+			if err := json.Unmarshal(write.Data, &result); err != nil {
+				t.Fatal(err)
+			}
+			if result.Encoding != fixture.encoding || result.Revision == document.Revision || result.Entry.Path != fixture.name {
+				t.Fatalf("unexpected write result: %+v", result)
+			}
+			readBack := callFileBrowserHandler(t, readSForgeFileBrowserEditor, "127.0.0.1:6806",
+				`{"rootID":"workspace","path":"`+fixture.name+`"}`)
+			if readBack.Code != 0 || !strings.Contains(string(readBack.Data), `"text":"second 中文"`) {
+				t.Fatalf("round-trip read failed: %+v", readBack)
+			}
+		})
+	}
+}
+
+func TestFileBrowserEditorHandlersRejectMalformedRequestsAndEnvelopes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	workspace := t.TempDir()
+	if err := os.WriteFile(filepath.Join(workspace, "note.txt"), []byte("note"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	originalFactory := newFileBrowserService
+	newFileBrowserService = func() *filebrowser.Service {
+		return filebrowser.NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) { return nil, nil })
+	}
+	t.Cleanup(func() { newFileBrowserService = originalFactory })
+
+	for _, request := range []string{
+		`{}`,
+		`{"rootID":"workspace"}`,
+		`{"path":"note.txt"}`,
+	} {
+		if response := callFileBrowserHandler(t, readSForgeFileBrowserEditor, "127.0.0.1:6806", request); response.Code != http.StatusBadRequest {
+			t.Fatalf("malformed read request %s returned %+v", request, response)
+		}
+	}
+	if response := callFileBrowserHandler(t, readSForgeFileBrowserEditor, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"missing.txt"}`); response.Code != http.StatusNotFound || response.Data == nil {
+		t.Fatalf("missing read response: %+v", response)
+	}
+	if response := callFileBrowserHandler(t, writeSForgeFileBrowserEditor, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"note.txt","text":"changed","encoding":"utf-8","revision":"missing"}`); response.Code != http.StatusConflict {
+		t.Fatalf("stale write response: %+v", response)
+	}
+}
+
 func TestFileBrowserEditorHandlersRejectBinaryAndRemoteRequests(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	remote := callFileBrowserHandler(t, readSForgeFileBrowserEditor, "203.0.113.10:6806",
@@ -307,6 +395,14 @@ func TestFileBrowserMutationOperationsUseRootRelativeContracts(t *testing.T) {
 		`{"rootID":"workspace","path":"source/新目录"}`)
 	if create.Code != 0 || !strings.Contains(string(create.Data), `"operation":"create-directory"`) {
 		t.Fatalf("unexpected create response: %+v", create)
+	}
+	createFile := callFileBrowserHandler(t, createSForgeFileBrowserFile, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"source/empty.md"}`)
+	if createFile.Code != 0 || !strings.Contains(string(createFile.Data), `"operation":"create-file"`) {
+		t.Fatalf("unexpected create file response: %+v", createFile)
+	}
+	if data, err := os.ReadFile(filepath.Join(workspace, "source", "empty.md")); err != nil || len(data) != 0 {
+		t.Fatalf("created file content mismatch: %q err=%v", data, err)
 	}
 	rename := callFileBrowserHandler(t, renameSForgeFileBrowserEntry, "127.0.0.1:6806",
 		`{"rootID":"workspace","path":"source/old name.txt","newName":"new name.txt"}`)

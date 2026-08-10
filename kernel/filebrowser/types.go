@@ -145,6 +145,12 @@ type CreateDirectoryRequest struct {
 	Path   string `json:"path"`
 }
 
+// CreateFileRequest addresses one new empty file inside an authorized root.
+type CreateFileRequest struct {
+	RootID string `json:"rootID"`
+	Path   string `json:"path"`
+}
+
 // RenameRequest changes an entry's final name while keeping its parent path.
 type RenameRequest struct {
 	RootID  string `json:"rootID"`

@@ -434,6 +434,7 @@ const createSupervisor = (overrides = {}) => {
     );
     const supervisor = new ForgeRuntimeSupervisor({
         repoRoot,
+        runtimeDir: path.join(repoRoot, "runtime"),
         port: 6806,
         workspace: path.join(repoRoot, "workspace"),
         token: "test-supervisor-token",

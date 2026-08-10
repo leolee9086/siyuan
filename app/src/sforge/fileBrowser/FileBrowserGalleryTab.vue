@@ -66,7 +66,8 @@
 
         <main ref="galleryContent" class="sforge-file-gallery__content" @mousedown.left="startMarquee"
             @dragover.prevent="handleGalleryDragOver" @drop.prevent="handleGalleryDrop">
-            <template v-if="galleryDisplayState === 'ready'">
+            <div v-if="galleryDisplayState === 'ready'" key="gallery-ready"
+                class="sforge-file-gallery__ready-surface">
                 <div v-if="layoutMode === 'table'" class="sforge-file-gallery-table-header"
                     role="row" aria-label="表格列标题">
                     <span role="columnheader">预览</span>
@@ -96,18 +97,25 @@
                 </VirtualMasonryGrid>
                 <div v-if="marquee.active" class="sforge-file-gallery__selection-box" :style="marqueeStyle"
                     aria-hidden="true" />
-            </template>
-            <div v-else-if="galleryDisplayState === 'loading'" class="sforge-file-gallery__state">
+            </div>
+            <div v-else-if="galleryDisplayState === 'loading'" key="gallery-loading" class="sforge-file-gallery__state">
                 <svg class="fn__rotate"><use href="#iconRefresh" /></svg>
                 <span>正在读取资源</span>
             </div>
-            <div v-else-if="galleryDisplayState === 'error'" class="sforge-file-gallery__state sforge-file-gallery__state--error">
+            <div v-else-if="galleryDisplayState === 'error'" key="gallery-error"
+                class="sforge-file-gallery__state sforge-file-gallery__state--error">
                 <span>{{ rootsError || error || galleryResult.error }}</span>
                 <button type="button" class="b3-button b3-button--text" @click="() => runScopedSearch()">重试</button>
             </div>
-            <div v-else-if="galleryDisplayState === 'empty'" class="sforge-file-gallery__state">
+            <div v-else-if="galleryDisplayState === 'empty' && galleryAssets.length === 0" key="gallery-empty"
+                class="sforge-file-gallery__state">
                 <svg><use href="#iconAssets" /></svg>
                 <span>{{ hasQuery ? "没有匹配资源" : "此目录没有可展示的资源" }}</span>
+            </div>
+            <div v-else key="gallery-invalid-state"
+                class="sforge-file-gallery__state sforge-file-gallery__state--error">
+                <span>资源状态异常，结果未加载</span>
+                <button type="button" class="b3-button b3-button--text" @click="() => runScopedSearch()">重试</button>
             </div>
         </main>
 
@@ -136,7 +144,6 @@ import {fileBrowserRepository} from "./FileBrowser.repository";
 import {fileBrowserQueryRepository} from "./FileBrowser.query.repository";
 import {fileBrowserOperationsRepository} from "./FileBrowser.operations.repository";
 import {requestFileBrowserConfirmation} from "./FileBrowser.operations.dialog";
-import {useFileBrowserSearch} from "./useFileBrowserSearch";
 import {createFileBrowserDirectoryOpener, createFileBrowserEntryOpener} from "./FileBrowser.open";
 import {fileBrowserSelection} from "./FileBrowser.selection";
 import {FILE_BROWSER_DRAG_MIME, parseFileBrowserDragData} from "./FileBrowser.drag";
@@ -169,13 +176,17 @@ import type {
 import type {
     FileBrowserAssetResult,
     FileBrowserSearchRequest,
-    FileBrowserSearchResult,
 } from "./FileBrowser.query.types";
 import type {FileBrowserGalleryAttribute, FileBrowserGalleryViewMode} from "./FileBrowser.gallery.constants";
-
-interface GalleryAsset extends FileBrowserAssetResult {
-    key: string;
-}
+import {
+    appendFileBrowserGalleryPage,
+    applyFileBrowserGalleryInitialPage,
+    createFileBrowserGalleryResult,
+    deriveFileBrowserGalleryDisplayState,
+    type FileBrowserGalleryAsset,
+    type FileBrowserGalleryPhase,
+    type FileBrowserGalleryResultState,
+} from "./FileBrowserGalleryState";
 
 const GALLERY_PAGE_SIZE = 200;
 
@@ -231,35 +242,12 @@ const effectiveColumnWidth = computed(() => {
     return availableWidth > 0 ? Math.min(columnWidth.value, availableWidth) : columnWidth.value;
 });
 let galleryResizeObserver: ResizeObserver | undefined;
-type GalleryResultPhase = "loading" | "ready" | "empty" | "error";
-
-interface GalleryResultState {
-    phase: GalleryResultPhase;
-    assets: GalleryAsset[];
-    totalCount: number;
-    nextOffset: number;
-    loadingMore: boolean;
-    exhausted: boolean;
-    error: string;
-    pageError: string;
-}
 
 // 结果数组、总数、分页游标和显示阶段必须作为一个提交单元更新。
 // 分开维护这些 ref 会让旧卡片与空态在异步刷新窗口中同时出现。
-const galleryResult = ref<GalleryResultState>({
-    phase: "loading",
-    assets: [],
-    totalCount: 0,
-    nextOffset: 0,
-    loadingMore: false,
-    exhausted: false,
-    error: "",
-    pageError: "",
-});
+const galleryResult = ref<FileBrowserGalleryResultState>(createFileBrowserGalleryResult());
 let pageRevision = 0;
 let activePageRequest: FileBrowserSearchRequest | undefined;
-const search = useFileBrowserSearch(fileBrowserQueryRepository);
-const {loading, error} = search;
 const openEntry = createFileBrowserEntryOpener(props.app, fileBrowserRepository);
 const openDirectory = createFileBrowserDirectoryOpener(props.app);
 
@@ -399,18 +387,16 @@ const hasActiveFilters = ref(false);
 const hasQuery = computed(() => hasActiveFilters.value);
 const loadedCount = computed(() => galleryResult.value.assets.length);
 const totalCount = computed(() => galleryResult.value.totalCount);
+const loading = computed(() => galleryResult.value.phase === "loading");
+const error = computed(() => galleryResult.value.error);
 const loadingMore = computed(() => galleryResult.value.loadingMore);
 const pageError = computed(() => galleryResult.value.pageError);
-const galleryAssets = computed<GalleryAsset[]>(() => galleryResult.value.assets);
-const galleryDisplayState = computed<GalleryResultPhase>(() => {
-    if (rootsLoading.value || galleryResult.value.phase === "loading") {
-        return "loading";
-    }
-    if (rootsError.value || galleryResult.value.phase === "error") {
-        return "error";
-    }
-    return galleryResult.value.phase;
-});
+const galleryAssets = computed<FileBrowserGalleryAsset[]>(() => galleryResult.value.assets);
+const galleryDisplayState = computed<FileBrowserGalleryPhase>(() => deriveFileBrowserGalleryDisplayState(
+    galleryResult.value,
+    rootsLoading.value,
+    rootsError.value,
+));
 const galleryAttributes = FILE_BROWSER_GALLERY_ATTRIBUTES;
 const galleryAttributeKeys = galleryAttributes.map(attribute => attribute.key);
 const galleryAttributeLabels = Object.fromEntries(galleryAttributes.map(attribute => [attribute.key, attribute.label]));
@@ -418,29 +404,6 @@ const availableExtensions = computed(() => galleryResult.value.assets.map(asset 
 
 function setPageError(message: string) {
     galleryResult.value = {...galleryResult.value, pageError: message};
-}
-
-function toGalleryAssets(assets: FileBrowserAssetResult[]) {
-    return assets.map(asset => ({
-        ...asset,
-        key: makeFileBrowserNodeKey(asset.rootID, asset.path),
-    }));
-}
-
-function applyInitialPage(next: FileBrowserSearchResult) {
-    const sourceLimit = activePageRequest?.limit ?? GALLERY_PAGE_SIZE;
-    const sourceOffset = activePageRequest?.offset ?? 0;
-    const assets = toGalleryAssets(next.assets);
-    galleryResult.value = {
-        phase: assets.length > 0 ? "ready" : "empty",
-        assets,
-        totalCount: next.totalCount,
-        nextOffset: sourceOffset + Math.max(sourceLimit, assets.length),
-        loadingMore: false,
-        exhausted: assets.length === 0 || assets.length >= next.totalCount,
-        error: "",
-        pageError: "",
-    };
 }
 
 // 查询结果和卡片尺寸都可能在网格已经挂载后变化；在 DOM 提交后要求现有布局引擎
@@ -466,23 +429,12 @@ async function loadNextPage() {
         if (revision !== pageRevision) {
             return;
         }
-        const existing = new Map(galleryResult.value.assets.map(asset => [asset.key, asset]));
-        for (const asset of toGalleryAssets(page.assets)) {
-            existing.set(asset.key, asset);
-        }
-        const assets = [...existing.values()];
-        const nextOffset = galleryResult.value.nextOffset + GALLERY_PAGE_SIZE;
-        galleryResult.value = {
-            ...galleryResult.value,
-            phase: assets.length > 0 ? "ready" : "empty",
-            assets,
-            totalCount: page.totalCount,
-            nextOffset,
-            loadingMore: false,
-            exhausted: page.assets.length === 0 || assets.length >= page.totalCount || nextOffset >= page.totalCount,
-            error: "",
-            pageError: "",
-        };
+        galleryResult.value = appendFileBrowserGalleryPage(
+            galleryResult.value,
+            page,
+            GALLERY_PAGE_SIZE,
+            asset => makeFileBrowserNodeKey(asset.rootID, asset.path),
+        );
     } catch (reason) {
         if (revision === pageRevision) {
             galleryResult.value = {
@@ -507,7 +459,7 @@ function extensionOf(path: string) {
     return dot >= 0 ? path.slice(dot).toLowerCase() : "";
 }
 
-function estimateItemHeight(asset: GalleryAsset, width = effectiveColumnWidth.value) {
+function estimateItemHeight(asset: FileBrowserGalleryAsset, width = effectiveColumnWidth.value) {
     if (layoutMode.value === "table") {
         return 56;
     }
@@ -554,31 +506,30 @@ function runSearch(request: FileBrowserSearchRequest) {
         scoped.minSize || scoped.maxSize || scoped.minStar || scoped.maxStar);
     currentQuery.value = isGlobalResult ? cloneSearchRequest(scoped) : undefined;
     pageRevision += 1;
-    activePageRequest = {...scoped, limit: GALLERY_PAGE_SIZE, offset: 0};
-    galleryResult.value = {
-        phase: "loading",
-        assets: [],
-        totalCount: 0,
-        nextOffset: 0,
-        loadingMore: false,
-        exhausted: false,
-        error: "",
-        pageError: "",
-    };
+    const pageRequest: FileBrowserSearchRequest = {...scoped, limit: GALLERY_PAGE_SIZE, offset: 0};
+    activePageRequest = pageRequest;
+    galleryResult.value = createFileBrowserGalleryResult();
     const revision = pageRevision;
-    void search.search(activePageRequest).then(next => {
-        if (next && revision === pageRevision) {
-            applyInitialPage(next);
+    void fileBrowserQueryRepository.search(pageRequest).then(next => {
+        if (revision !== pageRevision) {
             return;
         }
-        if (revision === pageRevision) {
-            galleryResult.value = {
-                ...galleryResult.value,
-                phase: "error",
-                error: error.value || "文件查询失败",
-                pageError: "",
-            };
+        galleryResult.value = applyFileBrowserGalleryInitialPage(
+            next,
+            pageRequest,
+            GALLERY_PAGE_SIZE,
+            asset => makeFileBrowserNodeKey(asset.rootID, asset.path),
+        );
+    }).catch(reason => {
+        if (revision !== pageRevision) {
+            return;
         }
+        galleryResult.value = {
+            ...galleryResult.value,
+            phase: "error",
+            error: reason instanceof Error ? reason.message : String(reason),
+            pageError: "",
+        };
     });
 }
 
@@ -599,7 +550,6 @@ function clearSearch() {
     } : undefined;
     currentQuery.value = clearedQuery;
     hasActiveFilters.value = false;
-    search.clear();
     runScopedSearch(false);
 }
 
@@ -727,7 +677,7 @@ function gallerySelectionItems() {
     return galleryAssets.value.map(selectionItemForAsset);
 }
 
-function isAssetSelected(asset: GalleryAsset) {
+function isAssetSelected(asset: FileBrowserGalleryAsset) {
     return fileBrowserSelection.items.value.some(item => item.key === asset.key);
 }
 
@@ -738,7 +688,7 @@ function selectAsset(asset: FileBrowserAssetResult, event?: MouseEvent | Keyboar
     fileBrowserSelection.selectAddress(item, gallerySelectionItems(), {toggle, range});
 }
 
-function dragItemsFor(asset: GalleryAsset): readonly FileBrowserDragItem[] {
+function dragItemsFor(asset: FileBrowserGalleryAsset): readonly FileBrowserDragItem[] {
     const visibleKeys = new Set(galleryAssets.value.map(item => item.key));
     const selected = fileBrowserSelection.items.value.filter(item => visibleKeys.has(item.key) && item.kind === "file");
     const current = selectionItemForAsset(asset);
@@ -1067,7 +1017,6 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-    search.dispose();
     galleryResizeObserver?.disconnect();
     galleryResizeObserver = undefined;
     window.removeEventListener("mousemove", updateMarquee);

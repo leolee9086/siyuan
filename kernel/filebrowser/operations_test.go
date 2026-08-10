@@ -53,6 +53,33 @@ func TestCreateDirectoryAndRenameUseRootRelativeContracts(t *testing.T) {
 	}
 }
 
+func TestCreateFileUsesRootRelativeContractAndPreservesExistingEntries(t *testing.T) {
+	workspace := t.TempDir()
+	if err := os.Mkdir(filepath.Join(workspace, "notes"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) { return nil, nil })
+	created, err := service.CreateFile(context.Background(), CreateFileRequest{
+		RootID: "workspace", Path: "notes/empty.md",
+	})
+	if err != nil || created.Operation != "create-file" || created.Path != "notes/empty.md" {
+		t.Fatalf("unexpected create file result: %+v err=%v", created, err)
+	}
+	if data, readErr := os.ReadFile(filepath.Join(workspace, "notes", "empty.md")); readErr != nil || len(data) != 0 {
+		t.Fatalf("created file content mismatch: %q err=%v", data, readErr)
+	}
+	if _, err = service.CreateFile(context.Background(), CreateFileRequest{
+		RootID: "workspace", Path: "notes/empty.md",
+	}); !errors.Is(err, ErrPathExists) {
+		t.Fatalf("existing file returned %v", err)
+	}
+	if _, err = service.CreateFile(context.Background(), CreateFileRequest{
+		RootID: "workspace", Path: "missing/empty.md",
+	}); !errors.Is(err, ErrPathNotFound) {
+		t.Fatalf("missing parent returned %v", err)
+	}
+}
+
 func TestFileOperationsHonorReadOnlyChildMount(t *testing.T) {
 	workspace := t.TempDir()
 	child := filepath.Join(workspace, "agent-task")

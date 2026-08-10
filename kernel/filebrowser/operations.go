@@ -82,6 +82,22 @@ func (s *Service) CreateDirectory(ctx context.Context, request CreateDirectoryRe
 	return FileOperationResult{Operation: "create-directory", RootID: root.ID, Path: path}, nil
 }
 
+// CreateFile creates one empty file without implicitly creating parent
+// directories or replacing an existing entry.
+func (s *Service) CreateFile(ctx context.Context, request CreateFileRequest) (FileOperationResult, error) {
+	root, walker, path, err := s.operationRoot(request.RootID, request.Path, true)
+	if err != nil {
+		return FileOperationResult{}, operationError(err)
+	}
+	if path == "" {
+		return FileOperationResult{}, ErrInvalidName
+	}
+	if err = walker.CreateFile(ctx, path); err != nil {
+		return FileOperationResult{}, operationError(err)
+	}
+	return FileOperationResult{Operation: "create-file", RootID: root.ID, Path: path}, nil
+}
+
 // Rename changes only the final name, keeping the source parent stable.
 func (s *Service) Rename(ctx context.Context, request RenameRequest) (FileOperationResult, error) {
 	root, walker, sourcePath, err := s.operationRoot(request.RootID, request.Path, true)
@@ -173,7 +189,7 @@ func (s *Service) Delete(ctx context.Context, request DeleteRequest) (FileOperat
 	}
 	return FileOperationResult{
 		Operation: "delete", RootID: root.ID, Path: path,
-		RemovedFileCount: result.RemovedFileCount,
+		RemovedFileCount:      result.RemovedFileCount,
 		RemovedDirectoryCount: result.RemovedDirectoryCount,
 	}, nil
 }

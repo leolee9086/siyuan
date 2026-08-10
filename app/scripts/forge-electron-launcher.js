@@ -106,7 +106,16 @@ const createLaunchAcknowledgement = async ({
         url: `http://127.0.0.1:${address.port}/ready`,
         token,
         wait: () => acknowledgement,
-        close: () => new Promise((resolve) => server.close(resolve)),
+        close: () => {
+            finish(resolveAcknowledgement, {state: "rejected", reason: "Electron launch acknowledgement channel closed"});
+            return new Promise((resolve) => {
+                if (!server.listening) {
+                    resolve();
+                    return;
+                }
+                server.close(() => resolve());
+            });
+        },
     };
 };
 
@@ -244,37 +253,60 @@ const launchElectronMain = async ({
             stdio: "inherit",
             windowsHide: false,
         });
+        if (!child || typeof child.once !== "function") {
+            throw new Error("Electron launcher returned an invalid child process");
+        }
     } catch (error) {
         await ready.close();
         throw new Error(`Electron process could not be created: ${error.message}`, {cause: error});
     }
     let exited = false;
-    const processFailure = new Promise((_, reject) => {
-        child.once("error", (error) => reject(new Error(`Electron process error: ${error.message}`, {cause: error})));
-        child.once("exit", (code, signal) => {
-            exited = true;
-            if (code !== 0 || signal) {
-                reject(new Error(`Electron exited before the main interface was ready: code=${code ?? "null"}, signal=${signal || "none"}`));
-            }
-        });
-    });
-    let acknowledgement;
-    try {
-        acknowledgement = await Promise.race([ready.wait(), processFailure]);
-    } finally {
-        await ready.close();
-    }
-    if (acknowledgement.state === "rejected") {
-        throw new Error(`Electron rejected the main interface request: ${acknowledgement.reason || "no reason reported"}`);
-    }
-    if (!exited) {
+    let onProcessError;
+    let onProcessExit;
+    let postStartupObserved = false;
+    const observeAfterStartup = () => {
+        if (postStartupObserved || exited || typeof child.on !== "function") {
+            return;
+        }
+        postStartupObserved = true;
         child.on("error", (error) => reportError(`[forge] Electron process error after startup: ${error.message}`));
         child.on("exit", (code, signal) => {
             if (code !== 0 || signal) {
                 reportError(`[forge] Electron exited after startup: code=${code ?? "null"}, signal=${signal || "none"}`);
             }
         });
+    };
+    const processFailure = new Promise((_, reject) => {
+        onProcessError = (error) => reject(new Error(`Electron process error: ${error.message}`, {cause: error}));
+        onProcessExit = (code, signal) => {
+            exited = true;
+            if (code !== 0 || signal) {
+                reject(new Error(`Electron exited before the main interface was ready: code=${code ?? "null"}, signal=${signal || "none"}`));
+            }
+        };
+        child.once("error", onProcessError);
+        child.once("exit", onProcessExit);
+    });
+    let acknowledgement;
+    let launchAccepted = false;
+    try {
+        acknowledgement = await Promise.race([ready.wait(), processFailure]);
+        if (!acknowledgement || !["ready", "rejected"].includes(acknowledgement.state)) {
+            throw new Error("Electron launch acknowledgement has an invalid state");
+        }
+        if (acknowledgement.state === "rejected") {
+            throw new Error(`Electron rejected the main interface request: ${acknowledgement.reason || "no reason reported"}`);
+        }
+        launchAccepted = true;
+    } finally {
+        child.removeListener?.("error", onProcessError);
+        child.removeListener?.("exit", onProcessExit);
+        if (!launchAccepted) {
+            observeAfterStartup();
+        }
+        await ready.close();
     }
+    observeAfterStartup();
     child.unref?.();
     return {
         child,

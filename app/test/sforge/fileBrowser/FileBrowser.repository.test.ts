@@ -250,4 +250,68 @@ describe("file browser repository", () => {
         network.fetchSyncPost.mockResolvedValueOnce({code: 0, msg: "", data: {...writeResult, root: {...workspaceRoot, id: "other"}}});
         await expect(writeFileBrowserEditor(writeRequest)).rejects.toThrow("编辑器保存响应与请求地址不一致");
     });
+
+    it("preserves every declared editor encoding and exposes envelope failures", async () => {
+        const {readFileBrowserEditor, writeFileBrowserEditor} = await import(
+            "../../../src/sforge/fileBrowser/FileBrowser.repository"
+        );
+        const entry = {
+            name: "guide.txt", path: "docs/guide.txt", isDir: false, isSymlink: false,
+            restricted: false, hidden: false, size: 8, updated: 100, extension: ".txt",
+        };
+        const encodings = ["utf-8", "utf-8-bom", "utf-16le", "utf-16be"] as const;
+        for (const encoding of encodings) {
+            const document = {
+                root: workspaceRoot,
+                entry,
+                previewKind: "text" as const,
+                contentURL: "/api/s-forge/file-browser/content/workspace/docs/guide.txt",
+                text: "文本",
+                encoding,
+                size: 8,
+                updated: 100,
+                revision: `revision-${encoding}`,
+                readOnly: false,
+                language: "plaintext",
+            };
+            network.fetchSyncPost.mockResolvedValueOnce({code: 0, msg: "", data: document});
+            await expect(readFileBrowserEditor({rootID: "workspace", path: entry.path})).resolves.toMatchObject({encoding});
+            const writeResult = {...document};
+            delete (writeResult as {text?: string}).text;
+            writeResult.revision = `${document.revision}-next`;
+            network.fetchSyncPost.mockResolvedValueOnce({code: 0, msg: "", data: writeResult});
+            await expect(writeFileBrowserEditor({
+                rootID: "workspace", path: entry.path, text: "更新", encoding,
+                revision: document.revision,
+            })).resolves.toMatchObject({encoding, revision: `${document.revision}-next`});
+        }
+
+        network.fetchSyncPost.mockResolvedValueOnce({code: 409, msg: "revision conflict"});
+        await expect(readFileBrowserEditor({rootID: "workspace", path: entry.path})).rejects.toThrow("revision conflict");
+        // 缺少 data 字段才是包络层缺失；data: undefined 属于已存在字段的格式错误。
+        network.fetchSyncPost.mockResolvedValueOnce({code: 0, msg: ""});
+        await expect(writeFileBrowserEditor({
+            rootID: "workspace", path: entry.path, text: "更新", encoding: "utf-8", revision: "revision",
+        })).rejects.toThrow("保存编辑器文档未返回数据");
+        network.fetchSyncPost.mockResolvedValueOnce({code: 0, msg: "", data: {
+            ...documentForEditorRepositoryTest(entry), text: undefined,
+        }});
+        await expect(readFileBrowserEditor({rootID: "workspace", path: entry.path}))
+            .rejects.toThrow("文件编辑器文档响应格式错误");
+    });
 });
+
+function documentForEditorRepositoryTest(entry: {name: string; path: string}) {
+    return {
+        root: workspaceRoot,
+        entry: {...entry, isDir: false, isSymlink: false, restricted: false, hidden: false, size: 8, updated: 100, extension: ".txt"},
+        previewKind: "text" as const,
+        contentURL: "/api/s-forge/file-browser/content/workspace/docs/guide.txt",
+        encoding: "utf-8" as const,
+        size: 8,
+        updated: 100,
+        revision: "revision",
+        readOnly: false,
+        language: "plaintext",
+    };
+}

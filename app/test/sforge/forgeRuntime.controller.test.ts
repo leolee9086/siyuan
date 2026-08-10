@@ -89,9 +89,9 @@ describe("Forge Runtime WebUI client", () => {
     });
 
     it("surfaces Kernel API failures", async () => {
-        network.fetchSyncPost.mockResolvedValue({code: -1, msg: "same-origin WebUI required", data: null});
+        network.fetchSyncPost.mockResolvedValue({code: -1, msg: "same-device WebUI required", data: null});
 
-        await expect(new ForgeRuntimeClient().getStatus()).rejects.toThrow("same-origin WebUI required");
+        await expect(new ForgeRuntimeClient().getStatus()).rejects.toThrow("same-device WebUI required");
     });
 });
 

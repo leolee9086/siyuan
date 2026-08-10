@@ -2,6 +2,7 @@ package fswalk
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -100,4 +101,40 @@ func (w *Walker) WriteFileContent(ctx context.Context, relative string, content 
 		return statErr
 	}
 	return w.writeAtomic(ctx, absolute, content, mode)
+}
+
+// WriteFileStream atomically writes a reader into a bound regular file while
+// keeping the stream and temporary file inside the Walker boundary. Existing
+// regular files may be replaced; links and non-regular entries are rejected.
+func (w *Walker) WriteFileStream(ctx context.Context, relative string, reader io.Reader) (int64, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	if reader == nil {
+		return 0, io.ErrUnexpectedEOF
+	}
+	absolute, _, err := w.boundPath(ctx, relative, true)
+	if err != nil {
+		return 0, err
+	}
+	if _, err = w.ensureBoundDirectory(ctx, filepath.Dir(absolute), 0755); err != nil {
+		return 0, err
+	}
+	mode := os.FileMode(0644)
+	if existing, statErr := os.Lstat(absolute); statErr == nil {
+		linkLike, linkErr := pathComponentIsLinkLike(absolute, existing)
+		if linkErr != nil {
+			return 0, linkErr
+		}
+		if linkLike {
+			return 0, ErrPathTraversal
+		}
+		if !existing.Mode().IsRegular() {
+			return 0, ErrNotRegularFile
+		}
+		mode = existing.Mode()
+	} else if !os.IsNotExist(statErr) {
+		return 0, statErr
+	}
+	return w.writeAtomicReader(ctx, absolute, reader, mode)
 }

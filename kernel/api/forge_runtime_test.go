@@ -62,6 +62,13 @@ func TestForgeRuntimeWebUIStatusRequiresKernelDeviceAndForgeMode(t *testing.T) {
 	}
 
 	util.Mode = util.ModeProd
+	remoteUnavailableRecorder := httptest.NewRecorder()
+	remoteUnavailableContext, _ := gin.CreateTestContext(remoteUnavailableRecorder)
+	remoteUnavailableContext.Request = newForgeRuntimeWebUIRequest(http.MethodPost, "/api/s-forge/forge/runtime/status", "", "203.0.113.8:54321")
+	forgeRuntimeStatus(remoteUnavailableContext)
+	if result := decodeForgeRuntimeResult(t, remoteUnavailableRecorder); result.Code == 0 || callCount != 1 {
+		t.Fatalf("remote non-Forge status bypassed the device boundary: result=%+v calls=%d", result, callCount)
+	}
 	unavailableRecorder := httptest.NewRecorder()
 	unavailableContext, _ := gin.CreateTestContext(unavailableRecorder)
 	unavailableContext.Request = newForgeRuntimeWebUIRequest(http.MethodPost, "/api/s-forge/forge/runtime/status", "", "127.0.0.1:54321")
@@ -130,6 +137,7 @@ func TestForgeRuntimeWebUIMutationsForwardOnlyValidatedRequests(t *testing.T) {
 	remoteRecorder := httptest.NewRecorder()
 	remoteContext, _ := gin.CreateTestContext(remoteRecorder)
 	remoteContext.Request = newForgeRuntimeWebUIRequest(http.MethodPost, "/api/s-forge/forge/runtime/restart", `{"reason":"remote"}`, "203.0.113.8:54321")
+	remoteContext.Request.Header.Set("X-Forwarded-For", "127.0.0.1")
 	forgeRuntimeRestart(remoteContext)
 	if result := decodeForgeRuntimeResult(t, remoteRecorder); result.Code == 0 || len(forwarded) != 3 {
 		t.Fatalf("remote restart was forwarded: result=%+v requests=%+v", result, forwarded)
@@ -197,7 +205,7 @@ func TestForgeRuntimeWebUIRejectsNonUIAuthenticationAndRemoteSources(t *testing.
 	}
 }
 
-func TestForgeRuntimeWebUIAuthorizationUsesConnectionSourceNotOrigin(t *testing.T) {
+func TestForgeRuntimeWebUIAuthorizationUsesConnectionSourceNotSpoofableHeaders(t *testing.T) {
 	previousMode := util.Mode
 	previousCall := forgeRuntimeCallSupervisor
 	t.Cleanup(func() {
@@ -211,22 +219,41 @@ func TestForgeRuntimeWebUIAuthorizationUsesConnectionSourceNotOrigin(t *testing.
 		return json.RawMessage(`{"accepted":true}`), nil
 	}
 
-	for _, origin := range []string{"", "https://attacker.example", "null"} {
-		recorder := httptest.NewRecorder()
-		context, _ := gin.CreateTestContext(recorder)
-		context.Request = newForgeRuntimeWebUIRequest(http.MethodPost,
-			"/api/s-forge/forge/runtime/restart", `{"reason":"capability verified"}`, "127.0.0.1:54321")
-		if origin == "" {
-			context.Request.Header.Del("Origin")
-		} else {
-			context.Request.Header.Set("Origin", origin)
-		}
-		forgeRuntimeRestart(context)
-		if result := decodeForgeRuntimeResult(t, recorder); result.Code != 0 {
-			t.Fatalf("same-device request was rejected for origin %q: %+v", origin, result)
-		}
+	tests := []struct {
+		name   string
+		mutate func(*http.Request)
+	}{
+		{name: "missing origin", mutate: func(request *http.Request) {
+			request.Header.Del("Origin")
+		}},
+		{name: "cross origin", mutate: func(request *http.Request) {
+			request.Header.Set("Origin", "https://attacker.example")
+		}},
+		{name: "cross referer", mutate: func(request *http.Request) {
+			request.Header.Set("Referer", "https://attacker.example/forge")
+		}},
+		{name: "spoofed browser metadata", mutate: func(request *http.Request) {
+			request.Host = "attacker.example:443"
+			request.Header.Set("Origin", "null")
+			request.Header.Set("Referer", "https://attacker.example/forge")
+			request.Header.Set("User-Agent", "attacker-client")
+			request.Header.Set("X-Forwarded-For", "203.0.113.8")
+		}},
 	}
-	if callCount != 3 {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			context, _ := gin.CreateTestContext(recorder)
+			context.Request = newForgeRuntimeWebUIRequest(http.MethodPost,
+				"/api/s-forge/forge/runtime/restart", `{"reason":"capability verified"}`, "127.0.0.1:54321")
+			test.mutate(context.Request)
+			forgeRuntimeRestart(context)
+			if result := decodeForgeRuntimeResult(t, recorder); result.Code != 0 {
+				t.Fatalf("same-device request was rejected for spoofable headers: %+v", result)
+			}
+		})
+	}
+	if callCount != len(tests) {
 		t.Fatalf("same-device requests reached Supervisor %d times", callCount)
 	}
 }

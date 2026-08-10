@@ -41,11 +41,11 @@ type forgeRuntimeShutdownRequest struct {
 func forgeRuntimeStatus(c *gin.Context) {
 	ret := util.NewResult()
 	defer c.JSON(http.StatusOK, ret)
-	if !util.IsForgeMode() {
-		ret.Data = forgeRuntimeStatusData{Available: false}
+	if !requireForgeRuntimeWebUI(c, ret) {
 		return
 	}
-	if !requireForgeRuntimeWebUI(c, ret) {
+	if !util.IsForgeMode() {
+		ret.Data = forgeRuntimeStatusData{Available: false}
 		return
 	}
 	payload, err := forgeRuntimeCallSupervisor(http.MethodGet, "/status", nil)

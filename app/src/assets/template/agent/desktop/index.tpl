@@ -8,5 +8,6 @@
 </head>
 <body>
 <main id="agent-panel"></main>
+<a id="agent-standalone-open-note" href="/stage/build/mobile/" title="打开笔记界面">打开笔记界面</a>
 </body>
 </html>

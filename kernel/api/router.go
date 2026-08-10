@@ -716,6 +716,7 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/s-forge/file-browser/list", model.CheckAuth, model.CheckAdminRole, listSForgeFileBrowserDirectory)
 	ginServer.Handle("POST", "/api/s-forge/file-browser/walk", model.CheckAuth, model.CheckAdminRole, walkSForgeFileBrowserDirectory)
 	ginServer.Handle("POST", "/api/s-forge/file-browser/operations/create-directory", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, createSForgeFileBrowserDirectory)
+	ginServer.Handle("POST", "/api/s-forge/file-browser/operations/create-file", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, createSForgeFileBrowserFile)
 	ginServer.Handle("POST", "/api/s-forge/file-browser/operations/rename", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, renameSForgeFileBrowserEntry)
 	ginServer.Handle("POST", "/api/s-forge/file-browser/operations/copy", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, copySForgeFileBrowserEntry)
 	ginServer.Handle("POST", "/api/s-forge/file-browser/operations/move", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, moveSForgeFileBrowserEntry)

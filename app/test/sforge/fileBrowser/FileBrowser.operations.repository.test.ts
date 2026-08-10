@@ -13,6 +13,21 @@ describe("file browser operation repository", () => {
         vi.clearAllMocks();
     });
 
+    it("creates an empty file through its own operation endpoint", async () => {
+        network.fetchSyncPost.mockResolvedValue({
+            code: 0, msg: "", data: {operation: "create-file", rootID: "workspace", path: "notes/new.md"},
+        });
+        const {fileBrowserOperationsRepository} = await import(
+            "../../../src/sforge/fileBrowser/FileBrowser.operations.repository"
+        );
+
+        await expect(fileBrowserOperationsRepository.createFile({rootID: "workspace", path: "notes/new.md"}))
+            .resolves.toMatchObject({operation: "create-file", path: "notes/new.md"});
+        expect(network.fetchSyncPost).toHaveBeenCalledWith(
+            "/api/s-forge/file-browser/operations/create-file", {rootID: "workspace", path: "notes/new.md"},
+        );
+    });
+
     it("keeps operation endpoints and root-relative payloads separate", async () => {
         network.fetchSyncPost
             .mockResolvedValueOnce({code: 0, msg: "", data: {operation: "create-directory", rootID: "workspace", path: "new"}})
