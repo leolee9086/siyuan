@@ -19,6 +19,16 @@ function selectionItem(node: FileBrowserTreeNode): FileBrowserSelectionItem {
     return {key: node.key, rootID: node.rootID, path: node.path, kind: node.kind, name: node.name};
 }
 
+function addressItem(item: FileBrowserSelectionItem): FileBrowserSelectionItem {
+    return {
+        key: item.key,
+        rootID: item.rootID,
+        path: item.path,
+        kind: item.kind,
+        name: item.name,
+    };
+}
+
 function sameSelection(left: FileBrowserSelectionItem[], right: FileBrowserSelectionItem[]) {
     return left.length === right.length && left.every((item, index) => item.key === right[index]?.key);
 }
@@ -109,6 +119,91 @@ function selectNode(
     commit(next, next.at(-1)?.key ?? "", node.key);
 }
 
+function selectAddress(
+    state: SelectionState,
+    commit: SelectionCommit,
+    item: FileBrowserSelectionItem,
+    visible: FileBrowserSelectionItem[],
+    modifiers: FileBrowserSelectionModifiers,
+) {
+    if (modifiers.range) {
+        selectAddressRange(state, commit, item, visible, modifiers);
+        return;
+    }
+    if (!modifiers.toggle) {
+        const next = addressItem(item);
+        commit([next], next.key, next.key);
+        return;
+    }
+    const index = state.items.value.findIndex(candidate => candidate.key === item.key);
+    if (index < 0) {
+        const next = addressItem(item);
+        commit([...state.items.value, next], next.key, next.key);
+        return;
+    }
+    const next = state.items.value.filter(candidate => candidate.key !== item.key);
+    commit(next, next.at(-1)?.key ?? "", item.key);
+}
+
+function selectAddressRange(
+    state: SelectionState,
+    commit: SelectionCommit,
+    item: FileBrowserSelectionItem,
+    visible: FileBrowserSelectionItem[],
+    modifiers: FileBrowserSelectionModifiers,
+) {
+    const anchor = state.anchorKey.value || state.primaryKey.value;
+    const from = visible.findIndex(candidate => candidate.key === anchor);
+    const to = visible.findIndex(candidate => candidate.key === item.key);
+    if (from < 0 || to < 0) {
+        selectAddress(state, commit, item, visible, {toggle: false, range: false});
+        return;
+    }
+    const range = visible.slice(Math.min(from, to), Math.max(from, to) + 1).map(addressItem);
+    if (!modifiers.toggle) {
+        commit(range, item.key, anchor);
+        return;
+    }
+    const selected = new Map(state.items.value.map(candidate => [candidate.key, candidate]));
+    for (const candidate of range) {
+        selected.set(candidate.key, candidate);
+    }
+    commit([...selected.values()], item.key, anchor);
+}
+
+function selectAddresses(
+    state: SelectionState,
+    commit: SelectionCommit,
+    items: FileBrowserSelectionItem[],
+    modifiers: FileBrowserSelectionModifiers,
+) {
+    const unique = [...new Map(items.map(item => [item.key, addressItem(item)])).values()];
+    if (!modifiers.toggle && !modifiers.range) {
+        const primary = unique.at(-1)?.key ?? "";
+        commit(unique, primary, primary);
+        return;
+    }
+    if (modifiers.range) {
+        const selected = new Map(state.items.value.map(item => [item.key, item]));
+        for (const item of unique) {
+            selected.set(item.key, item);
+        }
+        const primary = unique.at(-1)?.key ?? state.primaryKey.value;
+        commit([...selected.values()], primary, state.anchorKey.value || primary);
+        return;
+    }
+    const selected = new Map(state.items.value.map(item => [item.key, item]));
+    for (const item of unique) {
+        if (selected.has(item.key)) {
+            selected.delete(item.key);
+        } else {
+            selected.set(item.key, item);
+        }
+    }
+    const primary = unique.at(-1)?.key ?? [...selected.keys()].at(-1) ?? "";
+    commit([...selected.values()], primary, primary);
+}
+
 function retainSelectionRoots(state: SelectionState, commit: SelectionCommit, rootIDs: Set<string>) {
     const next = state.items.value.filter(item => rootIDs.has(item.rootID));
     const primary = next.some(item => item.key === state.primaryKey.value)
@@ -138,6 +233,16 @@ function createSelectionActions(state: SelectionState) {
             visible: FileBrowserTreeNode[],
             modifiers: FileBrowserSelectionModifiers = {toggle: false, range: false},
         ) => selectNode(state, commit, node, visible, modifiers),
+        selectAddress: (
+            item: FileBrowserSelectionItem,
+            visible: FileBrowserSelectionItem[],
+            modifiers: FileBrowserSelectionModifiers = {toggle: false, range: false},
+        ) => selectAddress(state, commit, item, visible, modifiers),
+        selectAddresses: (
+            items: FileBrowserSelectionItem[],
+            _visible: FileBrowserSelectionItem[],
+            modifiers: FileBrowserSelectionModifiers = {toggle: false, range: false},
+        ) => selectAddresses(state, commit, items, modifiers),
         replace: (node: FileBrowserTreeNode) => replaceSelection(commit, node),
         replaceAddress: (item: FileBrowserSelectionItem) => replaceAddressSelection(commit, item),
         retainRoots: (rootIDs: Set<string>) => retainSelectionRoots(state, commit, rootIDs),

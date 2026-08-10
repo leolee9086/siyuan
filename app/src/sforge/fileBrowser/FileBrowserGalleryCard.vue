@@ -1,7 +1,10 @@
 <template>
     <article class="sforge-file-gallery-card" :class="{'sforge-file-gallery-card--selected': selected}"
-        draggable="true" @dragstart.stop="handleDragStart" @dblclick.stop="emit('open', asset)">
-        <AssetCard :item="cardItem" :is-selected="selected" @select="emit('select', asset)" />
+        :data-file-key="assetKey" :data-gallery-index="index" :aria-selected="selected" tabindex="0"
+        draggable="true" @click.stop="handleSelect" @keydown.stop="handleKeydown"
+        @dragstart.stop="handleDragStart" @dblclick.stop="emit('open', asset)"
+        @contextmenu.stop.prevent="emit('menu', asset, $event)">
+        <AssetCard :item="cardItem" :is-selected="selected" />
         <div class="sforge-file-gallery-card__meta">
             <span v-if="showPath" class="sforge-file-gallery-card__path" :title="asset.path">{{ assetName }}</span>
             <dl v-if="displayAttributes.length > 0" class="sforge-file-gallery-card__attributes">
@@ -38,23 +41,30 @@ import type {AssetItem} from "../../asset/components/AssetCard.types";
 import type {FileBrowserGalleryAttribute} from "./FileBrowser.gallery.constants";
 import type {FileBrowserAssetResult} from "./FileBrowser.query.types";
 import {FILE_BROWSER_DRAG_MIME} from "./FileBrowser.drag";
+import type {FileBrowserDragItem} from "./FileBrowser.types";
 
 const props = defineProps<{
     asset: FileBrowserAssetResult;
     thumbnailUrl: string;
     selected?: boolean;
+    index?: number;
+    dragItems?: readonly FileBrowserDragItem[];
     showPath?: boolean;
     displayAttributes?: readonly FileBrowserGalleryAttribute[];
 }>();
 
 const emit = defineEmits<{
     select: [asset: FileBrowserAssetResult];
+    "select-with-event": [asset: FileBrowserAssetResult, event: MouseEvent];
     open: [asset: FileBrowserAssetResult];
+    menu: [asset: FileBrowserAssetResult, event: MouseEvent];
+    keydown: [asset: FileBrowserAssetResult, event: KeyboardEvent];
 }>();
 
 const assetName = computed(() => props.asset.name || props.asset.path.split("/").at(-1) || props.asset.path);
 const displayAttributes = computed(() => props.displayAttributes ?? FILE_BROWSER_GALLERY_DEFAULT_ATTRIBUTES);
 const showPath = computed(() => props.showPath !== false);
+const assetKey = computed(() => JSON.stringify([props.asset.rootID, props.asset.path]));
 const cardItem = computed<AssetItem>(() => ({
     hName: assetName.value,
     path: props.asset.path,
@@ -69,11 +79,27 @@ function handleDragStart(event: DragEvent) {
     if (!event.dataTransfer) {
         return;
     }
-    event.dataTransfer.effectAllowed = "copy";
-    event.dataTransfer.setData(FILE_BROWSER_DRAG_MIME, JSON.stringify({
+    event.dataTransfer.effectAllowed = "move";
+    const item: FileBrowserDragItem = {
         rootID: props.asset.rootID, path: props.asset.path, kind: "file", name: assetName.value,
-    }));
+    };
+    const items = props.dragItems && props.dragItems.length > 0 ? [...props.dragItems] : [item];
+    const first = items.find(candidate => candidate.rootID === item.rootID && candidate.path === item.path) ?? items[0]!;
+    event.dataTransfer.setData(FILE_BROWSER_DRAG_MIME, JSON.stringify(
+        items.length > 1 ? {...first, items} : first,
+    ));
     event.dataTransfer.setData("text/plain", props.asset.path);
+}
+
+function handleSelect(event: MouseEvent) {
+    if (event.button === 0) {
+        emit("select", props.asset);
+        emit("select-with-event", props.asset, event);
+    }
+}
+
+function handleKeydown(event: KeyboardEvent) {
+    emit("keydown", props.asset, event);
 }
 </script>
 

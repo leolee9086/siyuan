@@ -8,6 +8,22 @@ describe("file browser drag data", () => {
         }))).toEqual({rootID: "workspace", path: "assets/中文.png", kind: "file", name: "中文.png"});
     });
 
+    it("keeps a selected set as individually authorized root-relative items", () => {
+        expect(parseFileBrowserDragData(JSON.stringify({
+            rootID: "workspace", path: "assets/one.txt", kind: "file", name: "one.txt",
+            items: [
+                {rootID: "workspace", path: "assets/one.txt", kind: "file", name: "one.txt"},
+                {rootID: "agent", path: "drafts/two.txt", kind: "file", name: "two.txt"},
+            ],
+        }))).toEqual({
+            rootID: "workspace", path: "assets/one.txt", kind: "file", name: "one.txt",
+            items: [
+                {rootID: "workspace", path: "assets/one.txt", kind: "file", name: "one.txt"},
+                {rootID: "agent", path: "drafts/two.txt", kind: "file", name: "two.txt"},
+            ],
+        });
+    });
+
     it.each([
         "",
         "not-json",

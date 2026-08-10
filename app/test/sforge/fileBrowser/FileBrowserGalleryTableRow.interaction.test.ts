@@ -70,4 +70,33 @@ describe("FileBrowserGalleryTableRow", () => {
         expect(host.querySelector(".sforge-file-gallery-table-row__image-error")?.textContent)
             .toContain("缩略图加载失败");
     });
+
+    it("keeps keyboard and multi-item drag data on the row boundary", () => {
+        const keydown = vi.fn();
+        const setData = vi.fn();
+        const dataTransfer = {effectAllowed: "", setData};
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileBrowserGalleryTableRow, {
+            asset,
+            index: 2,
+            thumbnailUrl: "/api/s-forge/file-browser/thumbnail?rootID=workspace&path=data%2Fassets%2Fhero.png&size=360",
+            dragItems: [
+                {rootID: "workspace", path: "data/assets/hero.png", kind: "file", name: "hero.png"},
+                {rootID: "workspace", path: "data/assets/second.png", kind: "file", name: "second.png"},
+            ],
+            onKeydown: keydown,
+        });
+        app.mount(host);
+
+        const row = host.querySelector<HTMLElement>(".sforge-file-gallery-table-row");
+        row?.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowRight", bubbles: true}));
+        expect(keydown).toHaveBeenCalledWith(asset, expect.any(KeyboardEvent));
+
+        const dragStart = new Event("dragstart", {bubbles: true});
+        Object.defineProperty(dragStart, "dataTransfer", {value: dataTransfer});
+        row?.dispatchEvent(dragStart);
+        expect(dataTransfer.effectAllowed).toBe("move");
+        expect(setData).toHaveBeenCalledWith("application/x-sforge-file", expect.stringContaining("second.png"));
+    });
 });

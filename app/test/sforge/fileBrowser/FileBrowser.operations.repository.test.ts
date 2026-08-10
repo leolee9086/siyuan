@@ -32,6 +32,18 @@ describe("file browser operation repository", () => {
                 items: [{request: {rootID: "workspace", path: "a.txt"}, result: {
                     operation: "delete", rootID: "workspace", path: "a.txt", removedFileCount: 1,
                 }}], successCount: 1, failureCount: 0,
+            }})
+            .mockResolvedValueOnce({code: 0, msg: "", data: {
+                items: [{request: {rootID: "workspace", path: "a.txt"}, result: {
+                    operation: "copy", sourceRootID: "workspace", sourcePath: "a.txt",
+                    destinationRootID: "agent", destinationPath: "out/a.txt",
+                }}], successCount: 1, failureCount: 0,
+            }})
+            .mockResolvedValueOnce({code: 0, msg: "", data: {
+                items: [{request: {rootID: "workspace", path: "a.txt"}, result: {
+                    operation: "move", sourceRootID: "workspace", sourcePath: "a.txt",
+                    destinationRootID: "agent", destinationPath: "out/a.txt",
+                }}], successCount: 1, failureCount: 0,
             }});
         const {fileBrowserOperationsRepository} = await import(
             "../../../src/sforge/fileBrowser/FileBrowser.operations.repository"
@@ -53,6 +65,12 @@ describe("file browser operation repository", () => {
             .resolves.toMatchObject({operation: "delete", removedFileCount: 1});
         await expect(fileBrowserOperationsRepository.deleteBatch({items: [{rootID: "workspace", path: "a.txt"}]}))
             .resolves.toMatchObject({successCount: 1, failureCount: 0});
+        await expect(fileBrowserOperationsRepository.copyBatch({
+            items: [{rootID: "workspace", path: "a.txt"}], destinationRootID: "agent", destinationPath: "out",
+        })).resolves.toMatchObject({successCount: 1, failureCount: 0});
+        await expect(fileBrowserOperationsRepository.moveBatch({
+            items: [{rootID: "workspace", path: "a.txt"}], destinationRootID: "agent", destinationPath: "out",
+        })).resolves.toMatchObject({successCount: 1, failureCount: 0});
 
         expect(network.fetchSyncPost).toHaveBeenNthCalledWith(
             1, "/api/s-forge/file-browser/operations/create-directory", {rootID: "workspace", path: "new"},
@@ -76,6 +94,16 @@ describe("file browser operation repository", () => {
         expect(network.fetchSyncPost).toHaveBeenNthCalledWith(
             6, "/api/s-forge/file-browser/operations/delete-batch", {
                 items: [{rootID: "workspace", path: "a.txt"}],
+            },
+        );
+        expect(network.fetchSyncPost).toHaveBeenNthCalledWith(
+            7, "/api/s-forge/file-browser/operations/copy-batch", {
+                items: [{rootID: "workspace", path: "a.txt"}], destinationRootID: "agent", destinationPath: "out",
+            },
+        );
+        expect(network.fetchSyncPost).toHaveBeenNthCalledWith(
+            8, "/api/s-forge/file-browser/operations/move-batch", {
+                items: [{rootID: "workspace", path: "a.txt"}], destinationRootID: "agent", destinationPath: "out",
             },
         );
     });

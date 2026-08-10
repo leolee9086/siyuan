@@ -12,7 +12,6 @@ import type {
 	FileBrowserD5ABundleSummary,
 	FileBrowserD5AMeshSummary,
 	FileBrowserOperationResult,
-	FileBrowserBatchDeleteResult,
     FileBrowserGalleryTabData,
     FileBrowserPermission,
     FileBrowserRoot,
@@ -245,10 +244,6 @@ function isFiniteNumber(value: unknown): value is number {
     return typeof value === "number" && Number.isFinite(value);
 }
 
-function isNonNegativeInteger(value: unknown): value is number {
-    return isFiniteNumber(value) && Number.isInteger(value) && value >= 0;
-}
-
 function isD5MeshSummary(value: unknown): value is FileBrowserD5AMeshSummary {
     return isRecord(value) && isFiniteNumber(value.version) && isFiniteNumber(value.sourceBytes) &&
         isFiniteNumber(value.triangleCount) && isFiniteNumber(value.vertexCount) &&
@@ -332,44 +327,5 @@ export function parseFileBrowserOperationResult(value: unknown): FileBrowserOper
         ...(typeof value.copiedBytes === "number" ? {copiedBytes: value.copiedBytes} : {}),
         ...(typeof value.removedFileCount === "number" ? {removedFileCount: value.removedFileCount} : {}),
         ...(typeof value.removedDirectoryCount === "number" ? {removedDirectoryCount: value.removedDirectoryCount} : {}),
-    };
-}
-
-/** 校验批量删除的逐项结果，避免把服务端任意 JSON 交给选择状态。 */
-export function parseFileBrowserBatchDeleteResult(value: unknown): FileBrowserBatchDeleteResult {
-    if (!isRecord(value) || !Array.isArray(value.items) || !isNonNegativeInteger(value.successCount) ||
-        !isNonNegativeInteger(value.failureCount) || value.successCount + value.failureCount !== value.items.length) {
-        throw new Error("批量删除响应格式错误");
-    }
-    const items = value.items.map(item => {
-        if (!isRecord(item) || !isRecord(item.request) || typeof item.request.rootID !== "string" ||
-            typeof item.request.path !== "string" || (item.result === undefined && item.error === undefined) ||
-            (item.result !== undefined && item.error !== undefined)) {
-            throw new Error("批量删除响应格式错误");
-        }
-        let result: FileBrowserOperationResult | undefined;
-        if (item.result !== undefined) {
-            result = parseFileBrowserOperationResult(item.result);
-            if (result.operation !== "delete") {
-                throw new Error("批量删除响应格式错误：操作类型错误");
-            }
-        }
-        let error: {code: string; message: string} | undefined;
-        if (item.error !== undefined) {
-            if (!isRecord(item.error) || typeof item.error.code !== "string" || typeof item.error.message !== "string") {
-                throw new Error("批量删除响应格式错误：错误项格式错误");
-            }
-            error = {code: item.error.code, message: item.error.message};
-        }
-        return {
-            request: {rootID: item.request.rootID, path: item.request.path},
-            ...(result ? {result} : {}),
-            ...(error ? {error} : {}),
-        };
-    });
-    return {
-        items,
-        successCount: value.successCount,
-        failureCount: value.failureCount,
     };
 }

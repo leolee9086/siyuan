@@ -1,4 +1,5 @@
 .sforge-file-gallery {
+    --sforge-file-table-columns: 48px minmax(130px, 1.2fr) minmax(150px, 2fr) minmax(120px, 1.2fr) 110px 90px 70px;
     display: flex;
     min-width: 0;
     min-height: 0;
@@ -114,13 +115,13 @@
 }
 
 .sforge-file-gallery__attribute-control {
-    min-width: 0;
+    min-width: 180px;
+    flex: 0 1 260px;
 }
 
-.sforge-file-gallery__attribute-control .b3-select {
+.sforge-file-gallery__attribute-control > :deep(.sforge-multi-select) {
     min-width: 0;
     flex: 1;
-    height: 28px;
 }
 
 .sforge-file-gallery__scope {
@@ -176,6 +177,7 @@
 }
 
 .sforge-file-gallery__content {
+    position: relative;
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -186,15 +188,25 @@
     overflow: hidden;
 }
 
+.sforge-file-gallery__selection-box {
+    position: fixed;
+    z-index: 5;
+    box-sizing: border-box;
+    border: 1px dashed var(--b3-theme-primary);
+    background: color-mix(in srgb, var(--b3-theme-primary) 16%, transparent);
+    pointer-events: none;
+}
+
 .sforge-file-gallery-table-header {
     display: grid;
     flex: none;
     align-items: center;
     height: 30px;
-    padding: 0 16px;
+    box-sizing: border-box;
+    padding: 0 8px;
     border-bottom: 1px solid var(--b3-border-color);
     background: var(--b3-theme-surface);
-    grid-template-columns: 48px minmax(130px, 1.2fr) minmax(150px, 2fr) minmax(120px, 1.2fr) 110px 90px 70px;
+    grid-template-columns: var(--sforge-file-table-columns);
     gap: 8px;
     color: var(--b3-theme-on-surface);
     font-size: 11px;
@@ -273,8 +285,13 @@
 }
 
 @container file-gallery (max-width: 900px) {
+    .sforge-file-gallery__header,
+    .sforge-file-gallery__content {
+        --sforge-file-table-columns: 48px minmax(120px, 1fr) minmax(100px, 1.2fr) minmax(100px, 1fr) 80px;
+    }
+
     .sforge-file-gallery-table-header {
-        grid-template-columns: 48px minmax(120px, 1fr) minmax(100px, 1.2fr) minmax(100px, 1fr) 80px;
+        grid-template-columns: var(--sforge-file-table-columns);
     }
 
     .sforge-file-gallery-table-header span:nth-last-child(-n + 2) {

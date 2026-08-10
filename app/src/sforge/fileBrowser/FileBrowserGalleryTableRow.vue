@@ -1,7 +1,9 @@
 <template>
     <article class="sforge-file-gallery-table-row" :class="{'sforge-file-gallery-table-row--selected': selected}"
-        role="row" tabindex="0" @click="emit('select', asset)" @dblclick.stop="emit('open', asset)"
-        @keydown.enter.stop="emit('open', asset)">
+        :data-file-key="assetKey" :data-gallery-index="index" :aria-selected="selected"
+        role="row" tabindex="0" draggable="true" @click="handleSelect" @dblclick.stop="emit('open', asset)"
+        @keydown.stop="handleKeydown" @dragstart.stop="handleDragStart"
+        @contextmenu.stop.prevent="emit('menu', asset, $event)">
         <div class="sforge-file-gallery-table-row__preview" role="cell">
             <img v-if="isImage && !thumbnailError && !imageError" :src="thumbnailUrl" :alt="assetName" loading="lazy"
                 @error="imageError = true" />
@@ -27,19 +29,27 @@ import {computed, ref, watch} from "vue";
 import {getAssetIconHref, isAssetThumbnail} from "../../asset/assetFormat";
 import {resolveAssetURL} from "../../asset/assetUrl";
 import type {FileBrowserAssetResult} from "./FileBrowser.query.types";
+import {FILE_BROWSER_DRAG_MIME} from "./FileBrowser.drag";
+import type {FileBrowserDragItem} from "./FileBrowser.types";
 
 const props = defineProps<{
     asset: FileBrowserAssetResult;
     thumbnailUrl: string;
     selected?: boolean;
+    index?: number;
+    dragItems?: readonly FileBrowserDragItem[];
 }>();
 
 const emit = defineEmits<{
     select: [asset: FileBrowserAssetResult];
+    "select-with-event": [asset: FileBrowserAssetResult, event: MouseEvent];
     open: [asset: FileBrowserAssetResult];
+    menu: [asset: FileBrowserAssetResult, event: MouseEvent];
+    keydown: [asset: FileBrowserAssetResult, event: KeyboardEvent];
 }>();
 
 const assetName = computed(() => props.asset.name || props.asset.path.split("/").at(-1) || props.asset.path);
+const assetKey = computed(() => JSON.stringify([props.asset.rootID, props.asset.path]));
 const isImage = computed(() => isAssetThumbnail(props.asset.path));
 const thumbnailUrl = ref("");
 const thumbnailError = ref("");
@@ -80,6 +90,33 @@ function formatBytes(value: number) {
     }
     return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+function handleSelect(event: MouseEvent) {
+    if (event.button === 0) {
+        emit("select", props.asset);
+        emit("select-with-event", props.asset, event);
+    }
+}
+
+function handleKeydown(event: KeyboardEvent) {
+    emit("keydown", props.asset, event);
+}
+
+function handleDragStart(event: DragEvent) {
+    if (!event.dataTransfer) {
+        return;
+    }
+    event.dataTransfer.effectAllowed = "move";
+    const item: FileBrowserDragItem = {
+        rootID: props.asset.rootID, path: props.asset.path, kind: "file", name: assetName.value,
+    };
+    const items = props.dragItems && props.dragItems.length > 0 ? [...props.dragItems] : [item];
+    const first = items.find(candidate => candidate.rootID === item.rootID && candidate.path === item.path) ?? items[0]!;
+    event.dataTransfer.setData(FILE_BROWSER_DRAG_MIME, JSON.stringify(
+        items.length > 1 ? {...first, items} : first,
+    ));
+    event.dataTransfer.setData("text/plain", props.asset.path);
+}
 </script>
 
 <style scoped lang="scss">
@@ -87,11 +124,12 @@ function formatBytes(value: number) {
     display: grid;
     width: 100%;
     height: 56px;
+    box-sizing: border-box;
     align-items: center;
     padding: 4px 8px;
     border-bottom: 1px solid var(--b3-border-color);
     background: var(--b3-theme-background);
-    grid-template-columns: 48px minmax(130px, 1.2fr) minmax(150px, 2fr) minmax(120px, 1.2fr) 110px 90px 70px;
+    grid-template-columns: var(--sforge-file-table-columns);
     gap: 8px;
     color: var(--b3-theme-on-background);
     cursor: pointer;
@@ -173,7 +211,7 @@ function formatBytes(value: number) {
 
 @container file-gallery (max-width: 900px) {
     .sforge-file-gallery-table-row {
-        grid-template-columns: 48px minmax(120px, 1fr) minmax(100px, 1.2fr) minmax(100px, 1fr) 80px;
+        grid-template-columns: var(--sforge-file-table-columns);
     }
 
     .sforge-file-gallery-table-row__value:nth-last-child(-n + 2) {

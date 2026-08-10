@@ -113,6 +113,16 @@ export interface FileBrowserBatchDeleteRequest {
     items: FileBrowserFileRequest[];
 }
 
+/** 批量复制/移动共用的目标目录契约；目标路径必须指向已存在目录。 */
+export interface FileBrowserBatchTransferRequest {
+    items: FileBrowserFileRequest[];
+    destinationRootID: string;
+    destinationPath: string;
+}
+
+export type FileBrowserBatchCopyRequest = FileBrowserBatchTransferRequest;
+export type FileBrowserBatchMoveRequest = FileBrowserBatchTransferRequest;
+
 /** 批量操作中单项失败的稳定错误。 */
 export interface FileBrowserOperationFailure {
     code: string;
@@ -128,6 +138,19 @@ export interface FileBrowserBatchDeleteItemResult {
 
 export interface FileBrowserBatchDeleteResult {
     items: FileBrowserBatchDeleteItemResult[];
+    successCount: number;
+    failureCount: number;
+}
+
+/** 批量复制/移动的逐项结果，保留部分成功和明确失败。 */
+export interface FileBrowserBatchOperationItemResult {
+    request: FileBrowserFileRequest;
+    result?: FileBrowserOperationResult;
+    error?: FileBrowserOperationFailure;
+}
+
+export interface FileBrowserBatchOperationResult {
+    items: FileBrowserBatchOperationItemResult[];
     successCount: number;
     failureCount: number;
 }
@@ -328,6 +351,8 @@ export interface FileBrowserOperationRepository {
     move(request: FileBrowserMoveRequest): Promise<FileBrowserOperationResult>;
     delete(request: FileBrowserDeleteRequest): Promise<FileBrowserOperationResult>;
     deleteBatch(request: FileBrowserBatchDeleteRequest): Promise<FileBrowserBatchDeleteResult>;
+    copyBatch(request: FileBrowserBatchCopyRequest): Promise<FileBrowserBatchOperationResult>;
+    moveBatch(request: FileBrowserBatchMoveRequest): Promise<FileBrowserBatchOperationResult>;
 }
 
 /** 布局宿主绑定后的统一文件打开动作。 */
@@ -339,12 +364,17 @@ export type FileBrowserDirectoryOpener = (rootID: string, path: string, name: st
 /** 递归树节点分类。 */
 export type FileBrowserTreeNodeKind = "root" | "directory" | "file";
 
-/** 文件浏览器拖放载荷；由树/画廊产生，供移动和标签投递解析根内相对地址。 */
-export interface FileBrowserDragData {
+/** 一个可移动的根内地址；不携带绝对物理路径。 */
+export interface FileBrowserDragItem {
     rootID: string;
     path: string;
     kind: Exclude<FileBrowserTreeNodeKind, "root">;
     name: string;
+}
+
+/** 文件浏览器拖放载荷；items 仅在多选拖放时出现。 */
+export interface FileBrowserDragData extends FileBrowserDragItem {
+    items?: FileBrowserDragItem[];
 }
 
 /** 容器节点的异步子项状态。 */
@@ -410,6 +440,16 @@ export interface FileBrowserSelectionStore {
     revision: Ref<number>;
     keys: ComputedRef<string[]>;
     select(node: FileBrowserTreeNode, visible: FileBrowserTreeNode[], modifiers?: FileBrowserSelectionModifiers): void;
+    selectAddress(
+        item: FileBrowserSelectionItem,
+        visible: FileBrowserSelectionItem[],
+        modifiers?: FileBrowserSelectionModifiers,
+    ): void;
+    selectAddresses(
+        items: FileBrowserSelectionItem[],
+        visible: FileBrowserSelectionItem[],
+        modifiers?: FileBrowserSelectionModifiers,
+    ): void;
     replace(node: FileBrowserTreeNode): void;
     replaceAddress(item: FileBrowserSelectionItem): void;
     retainRoots(rootIDs: Set<string>): void;

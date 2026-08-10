@@ -112,6 +112,60 @@ describe("FileBrowserSearchPanel", () => {
         }), {timeout: 1200});
     });
 
+    it("refreshes keyword and sort changes without requiring a form submit", async () => {
+        const search = vi.fn();
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileBrowserSearchPanel, {
+            roots: [root], loading: false, error: "", initialRequest: {allRoots: true, orderBy: "updated"},
+            onSearch: search,
+        });
+        app.mount(host);
+
+        const keyword = host.querySelector<HTMLInputElement>("input[aria-label='关键词']");
+        if (!keyword) {
+            throw new Error("missing keyword input");
+        }
+        keyword.value = "hero";
+        keyword.dispatchEvent(new Event("input", {bubbles: true}));
+        await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith({
+            allRoots: true, keyword: "hero", orderBy: "updated",
+        }), {timeout: 1200});
+
+        const sort = host.querySelector<HTMLSelectElement>("select[aria-label='查询排序']");
+        if (!sort) {
+            throw new Error("missing sort select");
+        }
+        sort.value = "size";
+        sort.dispatchEvent(new Event("change", {bubbles: true}));
+        await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith({
+            allRoots: true, keyword: "hero", orderBy: "size",
+        }), {timeout: 1200});
+    });
+
+    it("refreshes the query when a color filter is enabled or edited", async () => {
+        const search = vi.fn();
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileBrowserSearchPanel, {
+            roots: [root], loading: false, error: "", initialRequest: {allRoots: true, orderBy: "updated"},
+            onSearch: search,
+        });
+        app.mount(host);
+
+        host.querySelector<HTMLButtonElement>("button[aria-label='颜色筛选']")?.click();
+        await vi.waitFor(() => expect(host?.querySelector(".sforge-file-search__color-line")).toBeTruthy());
+        const color = host.querySelector<HTMLInputElement>("input[aria-label='RGB 目标颜色']");
+        if (!color) {
+            throw new Error("missing color input");
+        }
+        color.value = "#123456";
+        color.dispatchEvent(new Event("input", {bubbles: true}));
+        await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith({
+            allRoots: true, orderBy: "updated", palette: expect.objectContaining({color: [18, 52, 86]}),
+        }), {timeout: 1200});
+    });
+
     it("keeps result rendering out of the tree search form", () => {
         host = document.createElement("div");
         document.body.append(host);

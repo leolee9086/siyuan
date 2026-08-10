@@ -10,8 +10,10 @@ const operationState = vi.hoisted(() => ({
     createDirectory: vi.fn(),
     rename: vi.fn(),
     copy: vi.fn(),
+    copyBatch: vi.fn(),
     requestText: vi.fn(),
     requestDestination: vi.fn(),
+    requestBatchDestination: vi.fn(),
     showMessage: vi.fn(),
 }));
 
@@ -20,11 +22,13 @@ vi.mock("../../../src/sforge/fileBrowser/FileBrowser.operations.repository", () 
         createDirectory: operationState.createDirectory,
         rename: operationState.rename,
         copy: operationState.copy,
+        copyBatch: operationState.copyBatch,
     },
 }));
 vi.mock("../../../src/sforge/fileBrowser/FileBrowser.operations.dialog", () => ({
     requestFileBrowserText: operationState.requestText,
     requestFileBrowserCopyDestination: operationState.requestDestination,
+    requestFileBrowserBatchDestination: operationState.requestBatchDestination,
 }));
 vi.mock("../../../src/sforge/fileBrowser/menu/imports", () => ({
     getSiyuanGlobalMenus: () => ({
@@ -47,11 +51,15 @@ const root: FileBrowserRoot = {
 function page(path: string): FileBrowserDirectoryPage {
     const entries = path === ""
         ? [{name: "notes", path: "notes", isDir: true, isSymlink: false, restricted: false, hidden: false,
-            size: 0, updated: 1, childFileCount: 1, childDirectoryCount: 0, childCountKnown: true}]
-        : [{name: "old.txt", path: "notes/old.txt", isDir: false, isSymlink: false, restricted: false,
-            hidden: false, size: 1, updated: 1, extension: ".txt"}];
+            size: 0, updated: 1, childFileCount: 2, childDirectoryCount: 0, childCountKnown: true}]
+        : [
+            {name: "old.txt", path: "notes/old.txt", isDir: false, isSymlink: false, restricted: false,
+                hidden: false, size: 1, updated: 1, extension: ".txt"},
+            {name: "second.txt", path: "notes/second.txt", isDir: false, isSymlink: false, restricted: false,
+                hidden: false, size: 1, updated: 1, extension: ".txt"},
+        ];
     return {
-        root, path, entries, total: entries.length, fileCount: path ? 1 : 0,
+        root, path, entries, total: entries.length, fileCount: path ? entries.length : 0,
         directoryCount: path ? 0 : 1, offset: 0, limit: 200, hasMore: false,
     };
 }
@@ -74,8 +82,12 @@ describe("file browser tree write operations", () => {
         operationState.createDirectory.mockReset().mockResolvedValue({operation: "create-directory"});
         operationState.rename.mockReset().mockResolvedValue({operation: "rename"});
         operationState.copy.mockReset().mockResolvedValue({operation: "copy", copiedFileCount: 1});
+        operationState.copyBatch.mockReset().mockResolvedValue({
+            items: [], successCount: 2, failureCount: 0,
+        });
         operationState.requestText.mockReset();
         operationState.requestDestination.mockReset();
+        operationState.requestBatchDestination.mockReset();
         operationState.showMessage.mockReset();
         vi.spyOn(fileBrowserRepository, "listRoots").mockResolvedValue([root]);
         vi.spyOn(fileBrowserRepository, "listDirectory").mockImplementation(async request => page(request.path));
@@ -121,5 +133,45 @@ describe("file browser tree write operations", () => {
             destinationRootID: "workspace", destinationPath: "notes/copied.txt",
         }));
         expect(fileBrowserRepository.listDirectory).toHaveBeenCalledWith(expect.objectContaining({path: "notes"}));
+    });
+
+    it("copies the selected set to a directory with an explicit directory payload", async () => {
+        operationState.requestBatchDestination.mockResolvedValue({rootID: "workspace", path: "notes"});
+        operationState.copyBatch.mockImplementation(async request => ({
+            items: request.items.map(item => ({
+                request: item,
+                result: {
+                    operation: "copy" as const,
+                    sourceRootID: item.rootID,
+                    sourcePath: item.path,
+                    destinationRootID: request.destinationRootID,
+                    destinationPath: `${request.destinationPath}/${item.path.split("/").at(-1)}`,
+                },
+            })),
+            successCount: request.items.length,
+            failureCount: 0,
+        }));
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileBrowserPanel, {app: {openAsset: vi.fn(), openTab: vi.fn(async () => undefined)}});
+        app.mount(host);
+
+        const row = (name: string) => Array.from(host?.querySelectorAll<HTMLElement>(".sforge-file-tree__row") ?? [])
+            .find(item => item.querySelector(".sforge-file-tree__name")?.textContent?.trim() === name);
+        await vi.waitFor(() => expect(row("old.txt")).toBeTruthy());
+        row("old.txt")?.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+        row("second.txt")?.dispatchEvent(new MouseEvent("click", {bubbles: true, ctrlKey: true}));
+        const button = () => host?.querySelector<HTMLButtonElement>("button[aria-label='复制已选择项目到目录']");
+        await vi.waitFor(() => expect(button()).toBeTruthy());
+        await button()?.click();
+        await vi.waitFor(() => expect(operationState.copyBatch).toHaveBeenCalledWith({
+            items: [
+                {rootID: "workspace", path: "notes/old.txt"},
+                {rootID: "workspace", path: "notes/second.txt"},
+            ], destinationRootID: "workspace", destinationPath: "notes",
+        }));
+        expect(operationState.requestBatchDestination).toHaveBeenCalledWith(
+            [root], "workspace", "notes",
+        );
     });
 });

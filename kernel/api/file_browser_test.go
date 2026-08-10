@@ -213,6 +213,81 @@ func TestFileBrowserEditorHandlersRejectBinaryAndRemoteRequests(t *testing.T) {
 	}
 }
 
+func TestFileBrowserEditorHandlersMapBoundaryErrors(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	workspace := t.TempDir()
+	readOnly := filepath.Join(workspace, "readonly")
+	if err := os.Mkdir(readOnly, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(workspace, "binary.bin"), []byte{'a', 0, 'b'}, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(workspace, "guide.txt"), []byte("guide\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(readOnly, "note.txt"), []byte("read only\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	originalFactory := newFileBrowserService
+	newFileBrowserService = func() *filebrowser.Service {
+		return filebrowser.NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) {
+			return map[string]*agent.TaskDirectoryBinding{
+				"session": {Directories: []*agent.TaskDirectoryGrant{{
+					ID: "readonly", Path: readOnly, Name: "readonly",
+					Permission: agent.TaskDirectoryPermissionReadOnly,
+				}}},
+			}, nil
+		})
+	}
+	t.Cleanup(func() { newFileBrowserService = originalFactory })
+
+	if response := callFileBrowserHandler(t, readSForgeFileBrowserEditor, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"binary.bin"}`); response.Code != http.StatusUnsupportedMediaType {
+		t.Fatalf("binary read status: %+v", response)
+	}
+	if response := callFileBrowserHandler(t, readSForgeFileBrowserEditor, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"guide.txt","maxBytes":1}`); response.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("oversized read status: %+v", response)
+	}
+	if response := callFileBrowserHandler(t, readSForgeFileBrowserEditor, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"readonly"}`); response.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("directory read status: %+v", response)
+	}
+	if response := callFileBrowserHandler(t, readSForgeFileBrowserEditor, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"../guide.txt"}`); response.Code != http.StatusForbidden {
+		t.Fatalf("traversal read status: %+v", response)
+	}
+
+	readOnlyResponse := callFileBrowserHandler(t, readSForgeFileBrowserEditor, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"readonly/note.txt"}`)
+	if readOnlyResponse.Code != 0 {
+		t.Fatalf("read-only document read failed: %+v", readOnlyResponse)
+	}
+	var readOnlyDocument filebrowser.EditorDocument
+	if err := json.Unmarshal(readOnlyResponse.Data, &readOnlyDocument); err != nil {
+		t.Fatal(err)
+	}
+	readOnlyBody := `{"rootID":"workspace","path":"readonly/note.txt","text":"changed","encoding":"utf-8","revision":"` + readOnlyDocument.Revision + `"}`
+	if response := callFileBrowserHandler(t, writeSForgeFileBrowserEditor, "127.0.0.1:6806", readOnlyBody); response.Code != http.StatusForbidden {
+		t.Fatalf("read-only write status: %+v", response)
+	}
+
+	guideResponse := callFileBrowserHandler(t, readSForgeFileBrowserEditor, "127.0.0.1:6806",
+		`{"rootID":"workspace","path":"guide.txt"}`)
+	if guideResponse.Code != 0 {
+		t.Fatalf("guide document read failed: %+v", guideResponse)
+	}
+	var guideDocument filebrowser.EditorDocument
+	if err := json.Unmarshal(guideResponse.Data, &guideDocument); err != nil {
+		t.Fatal(err)
+	}
+	invalidEncodingBody := `{"rootID":"workspace","path":"guide.txt","text":"changed","encoding":"windows-1252","revision":"` + guideDocument.Revision + `"}`
+	if response := callFileBrowserHandler(t, writeSForgeFileBrowserEditor, "127.0.0.1:6806", invalidEncodingBody); response.Code != http.StatusUnsupportedMediaType {
+		t.Fatalf("invalid encoding write status: %+v", response)
+	}
+}
+
 func TestFileBrowserMutationOperationsUseRootRelativeContracts(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	workspace := t.TempDir()
@@ -312,6 +387,74 @@ func TestFileBrowserBatchDeleteReturnsPerItemResults(t *testing.T) {
 		`{"items":[{"rootID":"workspace","path":"./same.txt"},{"rootID":"workspace","path":"same.txt"}]}`)
 	if duplicate.Code != http.StatusBadRequest {
 		t.Fatalf("duplicate batch should be rejected: %+v", duplicate)
+	}
+}
+
+func TestFileBrowserBatchCopyAndMoveHandlersUseDirectoryDestinationContract(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	workspace := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(workspace, "source", "nested"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(workspace, "copy-out"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(workspace, "move-out"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(workspace, "source", "copy.txt"), []byte("copy"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(workspace, "source", "nested", "move.txt"), []byte("move"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	originalFactory := newFileBrowserService
+	newFileBrowserService = func() *filebrowser.Service {
+		return filebrowser.NewService(workspace, func() (map[string]*agent.TaskDirectoryBinding, error) { return nil, nil })
+	}
+	t.Cleanup(func() { newFileBrowserService = originalFactory })
+
+	copyResponse := callFileBrowserHandler(t, copyBatchSForgeFileBrowserEntries, "127.0.0.1:6806",
+		`{"items":[{"rootID":"workspace","path":"source/copy.txt"}],"destinationRootID":"workspace","destinationPath":"copy-out"}`)
+	if copyResponse.Code != 0 {
+		t.Fatalf("batch copy failed: %+v", copyResponse)
+	}
+	var copyResult filebrowser.BatchOperationResult
+	if err := json.Unmarshal(copyResponse.Data, &copyResult); err != nil {
+		t.Fatal(err)
+	}
+	if copyResult.SuccessCount != 1 || copyResult.FailureCount != 0 || len(copyResult.Items) != 1 ||
+		copyResult.Items[0].Result == nil || copyResult.Items[0].Result.Operation != "copy" {
+		t.Fatalf("unexpected copy handler result: %+v", copyResult)
+	}
+	if data, err := os.ReadFile(filepath.Join(workspace, "copy-out", "copy.txt")); err != nil || string(data) != "copy" {
+		t.Fatalf("copy handler output mismatch: %q err=%v", data, err)
+	}
+
+	moveResponse := callFileBrowserHandler(t, moveBatchSForgeFileBrowserEntries, "127.0.0.1:6806",
+		`{"items":[{"rootID":"workspace","path":"source/nested/move.txt"}],"destinationRootID":"workspace","destinationPath":"move-out"}`)
+	if moveResponse.Code != 0 {
+		t.Fatalf("batch move failed: %+v", moveResponse)
+	}
+	var moveResult filebrowser.BatchOperationResult
+	if err := json.Unmarshal(moveResponse.Data, &moveResult); err != nil {
+		t.Fatal(err)
+	}
+	if moveResult.SuccessCount != 1 || moveResult.FailureCount != 0 || len(moveResult.Items) != 1 ||
+		moveResult.Items[0].Result == nil || moveResult.Items[0].Result.Operation != "move" {
+		t.Fatalf("unexpected move handler result: %+v", moveResult)
+	}
+	if _, err := os.Stat(filepath.Join(workspace, "source", "nested", "move.txt")); !os.IsNotExist(err) {
+		t.Fatalf("move handler left source: %v", err)
+	}
+	if data, err := os.ReadFile(filepath.Join(workspace, "move-out", "move.txt")); err != nil || string(data) != "move" {
+		t.Fatalf("move handler output mismatch: %q err=%v", data, err)
+	}
+
+	invalidDestination := callFileBrowserHandler(t, copyBatchSForgeFileBrowserEntries, "127.0.0.1:6806",
+		`{"items":[{"rootID":"workspace","path":"source/copy.txt"}],"destinationRootID":"workspace","destinationPath":"missing"}`)
+	if invalidDestination.Code != http.StatusNotFound {
+		t.Fatalf("invalid batch destination status: %+v", invalidDestination)
 	}
 }
 

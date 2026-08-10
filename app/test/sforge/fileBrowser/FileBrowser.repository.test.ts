@@ -199,4 +199,55 @@ describe("file browser repository", () => {
         });
         await expect(inspectFileBrowserD5A(request)).rejects.toThrow("D5A 结构响应与请求地址不一致");
     });
+
+    it("forwards root-relative editor reads and writes and validates their identity", async () => {
+        const {readFileBrowserEditor, writeFileBrowserEditor} = await import(
+            "../../../src/sforge/fileBrowser/FileBrowser.repository"
+        );
+        const entry = {
+            name: "guide.md", path: "docs/guide.md", isDir: false, isSymlink: false,
+            restricted: false, hidden: false, size: 8, updated: 100, extension: ".md",
+        };
+        const document = {
+            root: workspaceRoot,
+            entry,
+            previewKind: "text" as const,
+            contentURL: "/api/s-forge/file-browser/content/workspace/docs/guide.md",
+            text: "# Guide",
+            encoding: "utf-8" as const,
+            size: 8,
+            updated: 100,
+            revision: "revision-1",
+            readOnly: false,
+            language: "markdown",
+        };
+        const readRequest = {rootID: "workspace", path: "docs/guide.md", maxBytes: 4096};
+        network.fetchSyncPost.mockResolvedValueOnce({code: 0, msg: "", data: document});
+        await expect(readFileBrowserEditor(readRequest)).resolves.toEqual(document);
+        expect(network.fetchSyncPost).toHaveBeenCalledWith(
+            "/api/s-forge/file-browser/editor/read", readRequest,
+        );
+
+        const writeRequest = {
+            rootID: "workspace", path: "docs/guide.md", text: "# Changed", encoding: "utf-8" as const,
+            revision: document.revision, maxBytes: 4096,
+        };
+        const writeResult = {...document};
+        delete (writeResult as {text?: string}).text;
+        writeResult.revision = "revision-2";
+        writeResult.size = 10;
+        network.fetchSyncPost.mockResolvedValueOnce({code: 0, msg: "", data: writeResult});
+        await expect(writeFileBrowserEditor(writeRequest)).resolves.toMatchObject({revision: "revision-2"});
+        expect(network.fetchSyncPost).toHaveBeenNthCalledWith(
+            2, "/api/s-forge/file-browser/editor/write", writeRequest,
+        );
+        expect(JSON.stringify(network.fetchSyncPost.mock.calls)).not.toContain("os.File");
+        expect(JSON.stringify(network.fetchSyncPost.mock.calls)).not.toContain("D:\\\\workspace");
+
+        network.fetchSyncPost.mockResolvedValueOnce({code: 0, msg: "", data: {...document, text: undefined}});
+        await expect(readFileBrowserEditor({rootID: "workspace", path: "docs/guide.md"}))
+            .rejects.toThrow("文件编辑器文档响应格式错误");
+        network.fetchSyncPost.mockResolvedValueOnce({code: 0, msg: "", data: {...writeResult, root: {...workspaceRoot, id: "other"}}});
+        await expect(writeFileBrowserEditor(writeRequest)).rejects.toThrow("编辑器保存响应与请求地址不一致");
+    });
 });

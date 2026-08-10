@@ -3,7 +3,7 @@
         <button type="button" class="sforge-multi-select__trigger" :aria-label="ariaLabel"
             :aria-expanded="open" :disabled="disabled" @click.stop="toggleOpen">
             <span class="sforge-multi-select__value" :class="{'sforge-multi-select__value--placeholder': selected.length === 0}">
-                {{ selected.length === 0 ? placeholder : selected.join(", ") }}
+                {{ selected.length === 0 ? placeholder : selectedLabels.join(", ") }}
             </span>
             <svg aria-hidden="true"><use :href="open ? '#iconUp' : '#iconDown'" /></svg>
         </button>
@@ -20,7 +20,7 @@
                 <label v-for="option in filteredOptions" :key="option" class="sforge-multi-select__option"
                     role="option" :aria-selected="selected.includes(option)">
                     <input type="checkbox" :value="option" :checked="selected.includes(option)" @change="toggle(option)" />
-                    <span>{{ option }}</span>
+                    <span>{{ optionLabels?.[option] ?? option }}</span>
                 </label>
                 <span v-if="filteredOptions.length === 0" class="sforge-multi-select__empty">没有匹配项</span>
             </div>
@@ -36,8 +36,10 @@ const props = withDefaults(defineProps<{
     modelValue: readonly string[];
     placeholder: string;
     ariaLabel: string;
+    optionLabels?: Readonly<Record<string, string>>;
     disabled?: boolean;
 }>(), {
+    optionLabels: undefined,
     disabled: false,
 });
 
@@ -49,6 +51,7 @@ const container = ref<HTMLElement>();
 const open = ref(false);
 const searchText = ref("");
 const selected = computed(() => [...props.modelValue]);
+const selectedLabels = computed(() => selected.value.map(option => props.optionLabels?.[option] ?? option));
 const filteredOptions = computed(() => {
     const query = searchText.value.trim().toLowerCase();
     return query ? props.options.filter(option => option.toLowerCase().includes(query)) : [...props.options];

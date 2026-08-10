@@ -3,6 +3,7 @@ import {createApp, type App as VueApp} from "vue";
 import FileBrowserGalleryTab from "../../../src/sforge/fileBrowser/FileBrowserGalleryTab.vue";
 import {fileBrowserQueryRepository} from "../../../src/sforge/fileBrowser/FileBrowser.query.repository";
 import {fileBrowserRepository} from "../../../src/sforge/fileBrowser/FileBrowser.repository";
+import {fileBrowserOperationsRepository} from "../../../src/sforge/fileBrowser/FileBrowser.operations.repository";
 import {fileBrowserSelection} from "../../../src/sforge/fileBrowser/FileBrowser.selection";
 import type {FileBrowserRoot} from "../../../src/sforge/fileBrowser/FileBrowser.types";
 import type {FileBrowserSearchResult} from "../../../src/sforge/fileBrowser/FileBrowser.query.types";
@@ -89,7 +90,7 @@ describe("FileBrowserGalleryTab", () => {
         expect(initialRequest).not.toHaveProperty("keyword");
         expect(initialRequest).not.toHaveProperty("exts");
         expect(host?.querySelector<HTMLInputElement>("input[aria-label='关键词']")?.value).toBe("");
-        expect(host?.querySelector(".sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
+        expect(host?.querySelector(".sforge-file-search .sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
         await vi.waitFor(() => expect(host?.textContent).toContain("hero.png"));
         expect(host?.querySelector(".virtual-masonry-grid-wrapper")).toBeTruthy();
         expect(host?.textContent).toContain("sub");
@@ -107,13 +108,20 @@ describe("FileBrowserGalleryTab", () => {
         widthSlider?.dispatchEvent(new Event("input", {bubbles: true}));
         await vi.waitFor(() => expect(host?.querySelector("output")?.textContent).toBe("300px"));
 
-        const attributes = host?.querySelector<HTMLSelectElement>("select[aria-label='显示属性']");
-        const sourceOption = Array.from(attributes?.options ?? []).find(option => option.value === "source");
+        const attributes = host?.querySelector<HTMLButtonElement>(
+            ".sforge-file-gallery__attribute-control button[aria-label='显示属性']",
+        );
+        attributes?.click();
+        await vi.waitFor(() => expect(host?.querySelector(
+            ".sforge-file-gallery__attribute-control .sforge-multi-select__option",
+        )).toBeTruthy());
+        const sourceOption = Array.from(host?.querySelectorAll<HTMLElement>(
+            ".sforge-file-gallery__attribute-control .sforge-multi-select__option",
+        ) ?? []).find(option => option.textContent?.includes("来源"));
         if (!attributes || !sourceOption) {
             throw new Error("missing gallery attribute option");
         }
-        Array.from(attributes.options).forEach(option => { option.selected = option === sourceOption; });
-        attributes.dispatchEvent(new Event("change", {bubbles: true}));
+        sourceOption.querySelector<HTMLInputElement>("input")?.click();
         await vi.waitFor(() => expect(host?.textContent).toContain("catalog"));
 
         const recursiveToggle = host?.querySelector<HTMLInputElement>("input[aria-label='显示子路径']");
@@ -147,9 +155,9 @@ describe("FileBrowserGalleryTab", () => {
         keywordInput?.dispatchEvent(new Event("input", {bubbles: true}));
         const extensionTrigger = host?.querySelector<HTMLButtonElement>("button[aria-label='扩展名筛选']");
         extensionTrigger?.click();
-        await vi.waitFor(() => expect(host?.querySelector(".sforge-multi-select__option input")).toBeTruthy());
-        host?.querySelector<HTMLInputElement>(".sforge-multi-select__option input")?.click();
-        await vi.waitFor(() => expect(host?.querySelector(".sforge-multi-select__value")?.textContent).toContain(".bmp"));
+        await vi.waitFor(() => expect(host?.querySelector(".sforge-file-search .sforge-multi-select__option input")).toBeTruthy());
+        host?.querySelector<HTMLInputElement>(".sforge-file-search .sforge-multi-select__option input")?.click();
+        await vi.waitFor(() => expect(host?.querySelector(".sforge-file-search .sforge-multi-select__value")?.textContent).toContain(".bmp"));
         await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith(expect.objectContaining({
             rootIDs: ["workspace"], pathPrefix: "data/assets/icons", exts: [".bmp"], orderBy: "updated",
         })), {timeout: 1200});
@@ -158,7 +166,7 @@ describe("FileBrowserGalleryTab", () => {
             rootIDs: ["workspace"], pathPrefix: "", orderBy: "updated",
         })));
         expect(host?.querySelector<HTMLInputElement>("input[aria-label='关键词']")?.value).toBe("");
-        expect(host?.querySelector(".sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
+        expect(host?.querySelector(".sforge-file-search .sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
 
         const card = host?.querySelector<HTMLElement>(".sforge-file-gallery-card");
         const assetCard = card?.querySelector<HTMLElement>(".asset-card");
@@ -304,7 +312,7 @@ describe("FileBrowserGalleryTab", () => {
         await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith({
             allRoots: true, orderBy: "updated", limit: 200, offset: 0,
         }));
-        expect(host.querySelector(".sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
+        expect(host.querySelector(".sforge-file-search .sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
         expect(host.querySelector<HTMLInputElement>("input[type='checkbox']")?.checked).toBe(true);
         expect(file.query).toEqual({allRoots: true, tags: ["blue"], orderBy: "updated"});
 
@@ -323,7 +331,7 @@ describe("FileBrowserGalleryTab", () => {
         await vi.waitFor(() => expect(search).toHaveBeenCalledWith({
             allRoots: true, tags: ["blue"], limit: 200, offset: 0, orderBy: "updated",
         }));
-        expect(host.querySelector(".sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
+        expect(host.querySelector(".sforge-file-search .sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
     });
 
     it("does not persist an explicitly submitted empty global form", async () => {
@@ -343,7 +351,7 @@ describe("FileBrowserGalleryTab", () => {
         await vi.waitFor(() => expect(search).toHaveBeenCalledWith(expect.objectContaining({
             allRoots: true, orderBy: "updated",
         })));
-        expect(host.querySelector(".sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
+        expect(host.querySelector(".sforge-file-search .sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
         host.querySelector("form")?.dispatchEvent(new Event("submit", {bubbles: true, cancelable: true}));
 
         await vi.waitFor(() => expect(search).toHaveBeenLastCalledWith({
@@ -361,7 +369,7 @@ describe("FileBrowserGalleryTab", () => {
         await vi.waitFor(() => expect(search).toHaveBeenCalledWith({
             allRoots: true, orderBy: "updated", limit: 200, offset: 0,
         }));
-        expect(host.querySelector(".sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
+        expect(host.querySelector(".sforge-file-search .sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
     });
 
     it("does not restore a stale .tmp filter after a runtime extension change", async () => {
@@ -383,9 +391,9 @@ describe("FileBrowserGalleryTab", () => {
         })));
         const extensionTrigger = host.querySelector<HTMLButtonElement>("button[aria-label='扩展名筛选']");
         extensionTrigger?.click();
-        await vi.waitFor(() => expect(host!.querySelector(".sforge-multi-select__option")).toBeTruthy());
+        await vi.waitFor(() => expect(host!.querySelector(".sforge-file-search .sforge-multi-select__option")).toBeTruthy());
         const option = (extension: string) => Array.from(host!.querySelectorAll<HTMLElement>(
-            ".sforge-multi-select__option",
+            ".sforge-file-search .sforge-multi-select__option",
         )).find(item => item.textContent?.includes(extension))?.querySelector<HTMLInputElement>("input");
         const freshExtension = option(".png");
         if (!freshExtension) {
@@ -410,7 +418,7 @@ describe("FileBrowserGalleryTab", () => {
         await vi.waitFor(() => expect(search).toHaveBeenCalledWith({
             allRoots: true, orderBy: "updated", limit: 200, offset: 0,
         }));
-        expect(host.querySelector(".sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
+        expect(host.querySelector(".sforge-file-search .sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
     });
 
     it("ignores stale all-root query data on a directory tab", async () => {
@@ -436,7 +444,41 @@ describe("FileBrowserGalleryTab", () => {
         expect(initialRequest).not.toHaveProperty("keyword");
         expect(initialRequest).not.toHaveProperty("exts");
         expect(host.querySelector<HTMLInputElement>("input[aria-label='关键词']")?.value).toBe("");
-        expect(host.querySelector(".sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
+        expect(host.querySelector(".sforge-file-search .sforge-multi-select__value--placeholder")?.textContent).toContain("扩展名");
         expect(file.query).toBeUndefined();
     });
+
+    it("uses the directory tab as a real move target for file-browser drops", async () => {
+        vi.spyOn(fileBrowserRepository, "listRoots").mockResolvedValue([root]);
+        vi.spyOn(fileBrowserRepository, "listDirectory").mockResolvedValue({
+            root, path: "data/assets/icons", entries: [], total: 0, fileCount: 0, directoryCount: 0,
+            offset: 0, limit: 2000, hasMore: false,
+        });
+        const search = vi.spyOn(fileBrowserQueryRepository, "search").mockResolvedValue(result);
+        const move = vi.spyOn(fileBrowserOperationsRepository, "move").mockResolvedValue({operation: "move"});
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileBrowserGalleryTab, {
+            app: {openAsset: vi.fn(), openTab: vi.fn(async () => undefined)},
+            file: {rootID: root.id, path: "data/assets/icons", name: "icons", scope: "directory"},
+        });
+        app.mount(host);
+
+        await vi.waitFor(() => expect(search).toHaveBeenCalled());
+        const drop = new Event("drop", {bubbles: true, cancelable: true});
+        Object.defineProperty(drop, "dataTransfer", {
+            value: {
+                getData: (type: string) => type === "application/x-sforge-file" ? JSON.stringify({
+                    rootID: "workspace", path: "incoming/hero.png", kind: "file", name: "hero.png",
+                }) : "",
+            },
+        });
+        host.querySelector<HTMLElement>(".sforge-file-gallery__content")?.dispatchEvent(drop);
+
+        await vi.waitFor(() => expect(move).toHaveBeenCalledWith({
+            sourceRootID: "workspace", sourcePath: "incoming/hero.png",
+            destinationRootID: "workspace", destinationPath: "data/assets/icons/hero.png",
+        }));
+    });
+
 });

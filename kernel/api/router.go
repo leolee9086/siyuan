@@ -720,6 +720,8 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/s-forge/file-browser/operations/move", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, moveSForgeFileBrowserEntry)
 	ginServer.Handle("POST", "/api/s-forge/file-browser/operations/delete", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, deleteSForgeFileBrowserEntry)
 	ginServer.Handle("POST", "/api/s-forge/file-browser/operations/delete-batch", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, deleteBatchSForgeFileBrowserEntries)
+	ginServer.Handle("POST", "/api/s-forge/file-browser/operations/copy-batch", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, copyBatchSForgeFileBrowserEntries)
+	ginServer.Handle("POST", "/api/s-forge/file-browser/operations/move-batch", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, moveBatchSForgeFileBrowserEntries)
 	ginServer.Handle("POST", "/api/s-forge/file-browser/stat", model.CheckAuth, model.CheckAdminRole, statSForgeFileBrowserFile)
 	ginServer.Handle("POST", "/api/s-forge/file-browser/properties", model.CheckAuth, model.CheckAdminRole, batchSForgeFileBrowserProperties)
 	ginServer.Handle("POST", "/api/s-forge/file-browser/properties/set", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, setSForgeFileProperties)

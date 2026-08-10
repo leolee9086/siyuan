@@ -418,3 +418,48 @@
 - [x] 修复 `FileBrowserEditor.preferences.ts` 末尾裸 `\\n` 导致的 P0 解析错误；文件浏览全量转换恢复。
 - [x] 证据：`go test ./filebrowser -count=1`；`go test ./api -run 'TestFileBrowser(BatchDelete|MutationOperations)' -count=1 -v`；`pnpm exec vitest --run test/sforge/fileBrowser --reporter=dot`（30 个文件、98 个用例）；`pnpm run typecheck:protyle-contract`；文件浏览范围 typecheck 无新增诊断；`git diff --cached --check`。
 - [x] 子 TTT 已移入 [`archive/批量文件操作.shorterm.ttt.md`](archive/批量文件操作.shorterm.ttt.md)，保留契约和证据；批量复制/移动、拖放批处理、进度取消和监听增量仍保持未完成状态。
+
+## 2026-08-09 批量复制/移动与多选拖放切片（已完成）
+
+- [x] 在单项 `Copy`/`Move` 之外新增独立批量契约：目标路径是已存在目录，源项保留自身名称；根授权、链接、重叠、冲突和遍历继续复用现有领域与 `fswalk.Walker`。
+- [x] API 接入 `operations/copy-batch` 与 `operations/move-batch`，返回按输入顺序排列的逐项成功/失败结果；前端仓储和守卫严格区分 `copy`/`move`，不把错误响应当作成功。
+- [x] 树拖放载荷在多选时携带多个 `{rootID,path}`，单项拖放仍调用旧接口；多项拖放调用 `move-batch`，成功项清理共享选择并刷新来源父目录和目标目录。
+- [x] 工具栏新增批量复制入口和独立目标目录对话框，明确允许目标根本身；部分失败显示服务端逐项错误。
+- [x] 证据：`go test ./filebrowser -run 'Test(CopyBatch|MoveBatch|BatchTransfer|DeleteBatch)' -count=1`、`go test ./api -run 'TestFileBrowserBatch(CopyAndMove|Delete)' -count=1`；`pnpm exec vitest --run test/sforge/fileBrowser --reporter=dot`（30 个文件、101 个用例）；`pnpm run typecheck:protyle-contract`；`pnpm run dev:once`；`git diff --check`。
+- [x] 详细契约和残余风险已保存在并归档于 [`archive/文件树批量复制移动.shorterm.ttt.md`](archive/文件树批量复制移动.shorterm.ttt.md)。
+- [ ] 后台进度/取消、大目录增量监听、外部系统拖放和桌面真实窗口冲突 UI 仍未完成；`go test ./api -count=1` 的既有 Agent Windows 权限失败不作为本切片成功证据。
+
+## 2026-08-09 批量操作边界模块拆分（已完成）
+
+- [x] 批量复制/移动/删除响应守卫从通用 `FileBrowser.guards.ts` 移入 `FileBrowser.operation.guards.ts`，保持单项操作守卫与批量部分成功契约分层。
+- [x] 拖放项结构守卫移入 `FileBrowser.drag.guards.ts`；`FileBrowser.drag.ts` 保留路径规范化和载荷编排，先规范化再执行结构守卫，避免反斜杠根内路径被错误拒绝。
+- [x] 拖放、批量仓储、批量交互和面板交互聚焦回归：4 个文件、14 个用例通过；`pnpm run typecheck:protyle-contract` 通过。
+- [x] 完整 `pnpm exec vitest --run test/sforge/fileBrowser`：30 个文件、101 个用例通过；`go test ./filebrowser -run 'Test(CopyBatch|MoveBatch|BatchTransfer|DeleteBatch)' -count=1` 和 `go test ./api -run 'TestFileBrowserBatch(CopyAndMove|Delete)' -count=1` 通过；`pnpm run typecheck:protyle-contract` 与 `pnpm run dev:once`（全目标）通过代理 `http://127.0.0.1:7890` 执行。
+- [ ] 目录级 `folder-item-limit` P15 是既有 fileBrowser 目录债务，不在本次逻辑修正范围内；后台进度/取消、大目录增量监听、外部系统拖放和桌面真实窗口冲突 UI 仍未完成。
+
+## 2026-08-09 文件画廊项上下文菜单切片（已完成）
+
+- [x] 真实对照 `SACAssetsManager/source/UI/siyuanCommon/menus/galleryItem.js` 及其 `galleryItemMenu/menuItems.js`，确认打开来源笔记、默认应用、资源管理器、所在目录新页签、复制地址/链接/缩略图和文件操作分组的最终入口；未按关键词猜测菜单。
+- [x] 新增 `app/src/sforge/fileBrowser/FileBrowserGalleryMenu.ts`，卡片和表格行通过同一上下文事件进入；菜单动作只声明式调用既有 `openBy`、剪贴板、属性 Dock、打开页签和文件操作端口。
+- [x] 绑定块存在时显示“所在笔记”，资源根直接根/挂载根均按 `rootID` 可靠解析；根不存在或删除权限不足保留明确页签错误。
+- [x] 删除完成后清理共享选择并维护已加载/总数/分页游标；删除菜单使用“删除”而非伪装成回收站，保持当前后端真实语义。
+- [x] 子 TTT 已归档至 [`archive/文件画廊项菜单切片.shorterm.ttt.md`](archive/文件画廊项菜单切片.shorterm.ttt.md)，保留参考契约、测试证据和未完成边界。
+- [x] 证据：`pnpm exec vitest --run test/sforge/fileBrowser/FileBrowserGalleryMenu.test.ts test/sforge/fileBrowser/FileBrowserGalleryTab.interaction.test.ts test/sforge/fileBrowser/FileBrowserGalleryTableRow.interaction.test.ts`（3 个文件、13 个用例）；`pnpm exec vitest --run test/sforge/fileBrowser`（31 个文件、103 个用例）；`go test ./filebrowser ./filequery ./fileproperties`；`pnpm run typecheck:protyle-contract`；`git diff --check`。
+- [ ] SACAssetsManager 的 Efu、插件/颜色分析、批处理压缩去重、移动/硬链接/软链接、上传和真实桌面 Shell/索引刷新验收仍未完成，不在本切片中宣称完成。
+
+## 2026-08-10 画廊筛选自动刷新与表格列对齐切片（已完成）
+
+- [x] 参考画廊的运行期刷新语义扩展到关键词、标签、根范围、颜色/RGB/HSL/调色板参数、排序和扩展名；统一 300ms 防抖，手动提交、清空和卸载会取消待执行请求，不把旧筛选重新写入页签来源。
+- [x] 属性列选择改用现有 `FileBrowserMultiSelect`，增加内部 key 与显示标签分离能力；扩展名控件仍复用同一组件和原有值契约。
+- [x] 表格表头与表格行共用 `--sforge-file-table-columns`，窄容器通过同一列变量同步收缩并隐藏末列，避免独立栅格造成表头/内容错位。
+- [x] 回归证据：`pnpm exec vitest --run test/sforge/fileBrowser`（31 个文件、105 个用例）；`pnpm run typecheck:protyle-contract`；`git diff --check`。
+- [ ] 真实桌面窗口中的容器断点、颜色面板明暗主题对比度和大结果滚动仍需现场验收；Efu/Everything provider、批处理菜单、插件入口和外部索引仍未完成，provider 审计见 [`Efu与Everything provider迁移.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/Efu与Everything%20provider迁移.shorterm.ttt.md)。
+
+## 2026-08-10 画廊多选、框选与目录拖放切片（已完成本轮逻辑）
+
+- [x] 共享 `FileBrowserSelectionStore` 增加基于 `{rootID,path}` 地址序列的单项、范围和批量选择入口；树节点选择契约保持不变，属性 Dock 继续复用同一选择端口。
+- [x] 画廊卡片和表格行使用统一的 `data-file-key`/`data-gallery-index`、键盘焦点和选择事件；Ctrl/Meta 追加或移除、Shift 按当前结果顺序选区，方向键移动、Enter 打开、Escape 清空。
+- [x] 画廊内容空白区增加真实框选矩形，只命中当前已布局 DOM 项；框选结果仍经共享选择端口提交，不在组件内维护第二份选择状态。
+- [x] 卡片与表格行的拖放载荷会在当前可见选择超过一项时携带多个根内地址；目录画廊接入现有单项 `move`/批量 `moveBatch` 仓储，部分失败保留服务端错误并刷新范围，未添加万能写入接口。
+- [x] 证据：选择、表格行和画廊专项 3 个测试文件、17 个用例通过；`pnpm run typecheck:protyle-contract`、`git diff --check` 通过。联网环境变量按要求使用 `http://127.0.0.1:7890`。
+- [ ] 真实桌面窗口的多列框选命中、虚拟滚动远端焦点、目录拖放冲突提示和批量移动现场验收仍未完成；当前挂载测试不替代桌面验收。

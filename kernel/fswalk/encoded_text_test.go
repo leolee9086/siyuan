@@ -117,6 +117,80 @@ func TestEncodedTextWritePreservesEncodingPermissionsAndRevision(t *testing.T) {
 	}
 }
 
+func TestEncodedTextWriteSupportsEveryDeclaredEncoding(t *testing.T) {
+	root := t.TempDir()
+	walker, err := New(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encodings := []TextEncoding{
+		TextEncodingUTF8,
+		TextEncodingUTF8BOM,
+		TextEncodingUTF16LE,
+		TextEncodingUTF16BE,
+	}
+	for _, encoding := range encodings {
+		t.Run(string(encoding), func(t *testing.T) {
+			path := filepath.Join(root, string(encoding)+".txt")
+			initial, encodeErr := encodeText("first 中文\n", encoding)
+			if encodeErr != nil {
+				t.Fatal(encodeErr)
+			}
+			if err = os.WriteFile(path, initial, 0600); err != nil {
+				t.Fatal(err)
+			}
+			document, readErr := walker.ReadTextFileWithEncoding(context.Background(), filepath.Base(path), 1024)
+			if readErr != nil {
+				t.Fatal(readErr)
+			}
+			if document.Encoding != encoding || document.Text != "first 中文\n" {
+				t.Fatalf("unexpected initial document: %+v", document)
+			}
+			updated := "second 中文\n"
+			newRevision, writeErr := walker.WriteTextFileWithEncoding(context.Background(), filepath.Base(path), updated,
+				encoding, document.Revision, 1024)
+			if writeErr != nil {
+				t.Fatal(writeErr)
+			}
+			expected, encodeErr := encodeText(updated, encoding)
+			if encodeErr != nil {
+				t.Fatal(encodeErr)
+			}
+			written, readErr := os.ReadFile(path)
+			if readErr != nil {
+				t.Fatal(readErr)
+			}
+			if !bytes.Equal(written, expected) || newRevision != revisionOf(expected) {
+				t.Fatalf("encoding %s changed bytes: got=%v want=%v revision=%s", encoding, written, expected, newRevision)
+			}
+		})
+	}
+}
+
+func TestEncodedTextWriteRejectsUnsupportedEncodingBeforeTouchingFile(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "document.txt")
+	if err := os.WriteFile(path, []byte("unchanged"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	walker, err := New(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	document, err := walker.ReadTextFileWithEncoding(context.Background(), "document.txt", 1024)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = walker.WriteTextFileWithEncoding(context.Background(), "document.txt", "changed",
+		TextEncoding("windows-1252"), document.Revision, 1024); !errors.Is(err, ErrUnsupportedTextEncoding) {
+		t.Fatalf("unsupported encoding returned %v", err)
+	}
+	content, err := os.ReadFile(path)
+	if err != nil || string(content) != "unchanged" {
+		t.Fatalf("unsupported encoding touched file: %q err=%v", content, err)
+	}
+}
+
 func TestEncodedTextRejectsInvalidContentLimitsDirectoriesAndLinks(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "binary.bin"), []byte{'a', 0, 'b'}, 0600); err != nil {

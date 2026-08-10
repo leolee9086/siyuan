@@ -4,10 +4,12 @@ import FileBrowserPanel from "../../../src/sforge/fileBrowser/FileBrowserPanel.v
 import {fileBrowserRepository} from "../../../src/sforge/fileBrowser/FileBrowser.repository";
 import {fileBrowserOperationsRepository} from "../../../src/sforge/fileBrowser/FileBrowser.operations.repository";
 import {fileBrowserSelection} from "../../../src/sforge/fileBrowser/FileBrowser.selection";
+import {makeFileBrowserNodeKey} from "../../../src/sforge/fileBrowser/FileBrowser.tree";
 import type {
     FileBrowserDirectoryPage,
     FileBrowserEntry,
     FileBrowserRoot,
+    FileBrowserTreeNode,
 } from "../../../src/sforge/fileBrowser/FileBrowser.types";
 
 const workspace: FileBrowserRoot = {
@@ -186,9 +188,96 @@ describe("file browser panel interaction", () => {
             sourceRootID: "workspace", sourcePath: "source.txt",
             destinationRootID: "workspace", destinationPath: "target/source.txt",
         }));
-        await vi.waitFor(() => expect(listDirectory.mock.calls.filter(([request]) => request.path === "target")).toHaveLength(2));
-        expect(Array.from(host.querySelectorAll<HTMLElement>("[role='treeitem']"))
-            .some(row => row.getAttribute("title")?.startsWith("target/source.txt"))).toBe(true);
+        await vi.waitFor(() => expect(listDirectory.mock.calls.filter(([request]) => request.path === "target")).toHaveLength(1));
+        await vi.waitFor(() => expect(Array.from(host.querySelectorAll<HTMLElement>("[role='treeitem']"))
+            .some(row => row.getAttribute("title")?.startsWith("target/source.txt"))).toBe(true));
+        expect(host.querySelector(".sforge-file-browser__error")?.textContent ?? "").not.toContain("移动");
+    });
+
+    it("moves a multi-selection through the batch contract and clears successful sources", async () => {
+        let moved = false;
+        vi.spyOn(fileBrowserRepository, "listRoots").mockResolvedValue([workspace]);
+        const listDirectory = vi.spyOn(fileBrowserRepository, "listDirectory").mockImplementation(async request => {
+            const entries: FileBrowserEntry[] = request.path === ""
+                ? [
+                    {name: "target", path: "target", isDir: true, isSymlink: false, restricted: false,
+                        hidden: false, size: 0, updated: 1, childFileCount: moved ? 2 : 0,
+                        childDirectoryCount: 0, childCountKnown: false},
+                    ...(!moved ? [
+                        {name: "one.txt", path: "one.txt", isDir: false, isSymlink: false,
+                            restricted: false, hidden: false, size: 1, updated: 1, extension: ".txt"},
+                        {name: "two.txt", path: "two.txt", isDir: false, isSymlink: false,
+                            restricted: false, hidden: false, size: 1, updated: 1, extension: ".txt"},
+                    ] : []),
+                ]
+                : moved ? [
+                    {name: "one.txt", path: "target/one.txt", isDir: false, isSymlink: false,
+                        restricted: false, hidden: false, size: 1, updated: 1, extension: ".txt"},
+                    {name: "two.txt", path: "target/two.txt", isDir: false, isSymlink: false,
+                        restricted: false, hidden: false, size: 1, updated: 1, extension: ".txt"},
+                ] : [];
+            return {
+                root: workspace, path: request.path, entries, total: entries.length,
+                fileCount: entries.filter(entry => !entry.isDir).length,
+                directoryCount: entries.filter(entry => entry.isDir).length,
+                offset: 0, limit: 200, hasMore: false,
+            };
+        });
+        const moveBatch = vi.spyOn(fileBrowserOperationsRepository, "moveBatch")
+            .mockImplementation(async request => {
+                moved = true;
+                return {
+                    items: request.items.map(item => ({
+                        request: item,
+                        result: {
+                            operation: "move" as const,
+                            sourceRootID: item.rootID,
+                            sourcePath: item.path,
+                            destinationRootID: request.destinationRootID,
+                            destinationPath: `${request.destinationPath}/${item.path.split("/").at(-1)}`,
+                        },
+                    })),
+                    successCount: request.items.length,
+                    failureCount: 0,
+                };
+            });
+        host = document.createElement("div");
+        document.body.append(host);
+        mountedApp = createApp(FileBrowserPanel, {app: {openAsset: vi.fn(), openTab: vi.fn()}});
+        mountedApp.mount(host);
+
+        await vi.waitFor(() => expect(host?.textContent).toContain("one.txt"));
+        const targetRow = Array.from(host.querySelectorAll<HTMLElement>("[role='treeitem']"))
+            .find(row => row.textContent?.includes("target"));
+        expect(targetRow).toBeDefined();
+        fileBrowserSelection.replaceAddress({
+            key: makeFileBrowserNodeKey("workspace", "one.txt"), rootID: "workspace", path: "one.txt",
+            kind: "file", name: "one.txt",
+        });
+        fileBrowserSelection.select({
+            key: makeFileBrowserNodeKey("workspace", "two.txt"), rootID: "workspace", path: "two.txt",
+            kind: "file", name: "two.txt",
+        } as FileBrowserTreeNode, [], {toggle: true, range: false});
+
+        const dataTransfer = {
+            getData: vi.fn(() => JSON.stringify({
+                rootID: "workspace", path: "one.txt", kind: "file", name: "one.txt",
+                items: [
+                    {rootID: "workspace", path: "one.txt", kind: "file", name: "one.txt"},
+                    {rootID: "workspace", path: "two.txt", kind: "file", name: "two.txt"},
+                ],
+            })),
+        };
+        const drop = new Event("drop", {bubbles: true, cancelable: true});
+        Object.defineProperty(drop, "dataTransfer", {value: dataTransfer});
+        targetRow?.dispatchEvent(drop);
+
+        await vi.waitFor(() => expect(moveBatch).toHaveBeenCalledWith({
+            items: [{rootID: "workspace", path: "one.txt"}, {rootID: "workspace", path: "two.txt"}],
+            destinationRootID: "workspace", destinationPath: "target",
+        }));
+        await vi.waitFor(() => expect(fileBrowserSelection.items.value).toHaveLength(0));
+        await vi.waitFor(() => expect(listDirectory.mock.calls.filter(([request]) => request.path === "target")).toHaveLength(1));
         expect(host.querySelector(".sforge-file-browser__error")?.textContent ?? "").not.toContain("移动");
     });
 });

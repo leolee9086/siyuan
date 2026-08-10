@@ -1,5 +1,5 @@
 <template>
-    <section ref="galleryRoot" class="sforge-file-gallery" aria-label="文件资源画廊" :data-layout-mode="layoutMode"
+    <section ref="galleryRoot" class="sforge-file-gallery" aria-label="文件资源画廊" v-bind="galleryRootAttributes"
         :aria-busy="loading || loadingMore || rootsLoading">
         <header class="sforge-file-gallery__header">
             <div class="sforge-file-gallery__topline">
@@ -46,14 +46,11 @@
                     <input v-model="showPaths" type="checkbox" aria-label="显示路径" />
                     <span>显示路径</span>
                 </label>
-                <label class="sforge-file-gallery__attribute-control">
+                <div class="sforge-file-gallery__attribute-control">
                     <span>显示属性</span>
-                    <select v-model="selectedAttributes" class="b3-select" multiple aria-label="显示属性">
-                        <option v-for="attribute in galleryAttributes" :key="attribute.key" :value="attribute.key">
-                            {{ attribute.label }}
-                        </option>
-                    </select>
-                </label>
+                    <FileBrowserMultiSelect v-model="selectedAttributes" :options="galleryAttributeKeys"
+                        :option-labels="galleryAttributeLabels" placeholder="属性" aria-label="显示属性" />
+                </div>
             </div>
         </header>
 
@@ -67,7 +64,8 @@
             :available-extensions="availableExtensions" :initial-request="initialSearchRequest"
             @search="runSearch" @clear="clearSearch" />
 
-        <main class="sforge-file-gallery__content">
+        <main ref="galleryContent" class="sforge-file-gallery__content" @mousedown.left="startMarquee"
+            @dragover.prevent="handleGalleryDragOver" @drop.prevent="handleGalleryDrop">
             <div v-if="layoutMode === 'table' && galleryAssets.length > 0" class="sforge-file-gallery-table-header"
                 role="row" aria-label="表格列标题">
                 <span role="columnheader">预览</span>
@@ -82,16 +80,21 @@
                 :column-width="effectiveColumnWidth" :gap="12" id-key="key" :item-height="estimateItemHeight"
                 :mode="layoutMode === 'table' ? 'list' : layoutMode" :managed-by-provider="true"
                 @load-more="loadNextPage">
-                <template #default="{item}">
+                <template #default="{item, index}">
                     <FileBrowserGalleryTableRow v-if="layoutMode === 'table'" :asset="item"
-                        :thumbnail-url="thumbnailUrl(item)" :selected="selectedKey === item.key"
-                        @select="selectAsset" @open="openAsset" />
+                        :index="index" :drag-items="dragItemsFor(item)" :thumbnail-url="thumbnailUrl(item)"
+                        :selected="isAssetSelected(item)" @select-with-event="selectAsset" @open="openAsset"
+                        @keydown="handleAssetKeydown" @menu="openGalleryMenu" />
                     <FileBrowserGalleryCard v-else :asset="item" :thumbnail-url="thumbnailUrl(item)"
-                        :selected="selectedKey === item.key" :show-path="showPaths"
+                        :index="index" :drag-items="dragItemsFor(item)" :selected="isAssetSelected(item)"
+                        :show-path="showPaths"
                         :display-attributes="selectedAttributes"
-                        @select="selectAsset" @open="openAsset" />
+                        @select-with-event="selectAsset" @open="openAsset" @keydown="handleAssetKeydown"
+                        @menu="openGalleryMenu" />
                 </template>
             </VirtualMasonryGrid>
+            <div v-if="marquee.active" class="sforge-file-gallery__selection-box" :style="marqueeStyle"
+                aria-hidden="true" />
             <div v-else-if="loading || rootsLoading" class="sforge-file-gallery__state">
                 <svg class="fn__rotate"><use href="#iconRefresh" /></svg>
                 <span>正在读取资源</span>
@@ -114,7 +117,7 @@
             </span>
             <button v-if="pageError" type="button" class="b3-button b3-button--text"
                 @click="loadNextPage">重试</button>
-            <span v-if="selectedKey" class="sforge-file-gallery__selected">已选择</span>
+            <span v-if="selectedCount > 0" class="sforge-file-gallery__selected">已选择 {{ selectedCount }} 项</span>
         </footer>
     </section>
 </template>
@@ -123,24 +126,42 @@
 import {computed, nextTick, onBeforeUnmount, onMounted, ref, watch} from "vue";
 import VirtualMasonryGrid from "../../components/masonry/components/VirtualMasonryGrid.vue";
 import FileBrowserSearchPanel from "./FileBrowserSearchPanel.vue";
+import FileBrowserMultiSelect from "./FileBrowserMultiSelect.vue";
 import FileBrowserGalleryScope from "./FileBrowserGalleryScope.vue";
 import FileBrowserGalleryCard from "./FileBrowserGalleryCard.vue";
 import FileBrowserGalleryTableRow from "./FileBrowserGalleryTableRow.vue";
 import {fileBrowserRepository} from "./FileBrowser.repository";
 import {fileBrowserQueryRepository} from "./FileBrowser.query.repository";
+import {fileBrowserOperationsRepository} from "./FileBrowser.operations.repository";
+import {requestFileBrowserConfirmation} from "./FileBrowser.operations.dialog";
 import {useFileBrowserSearch} from "./useFileBrowserSearch";
-import {createFileBrowserEntryOpener} from "./FileBrowser.open";
+import {createFileBrowserDirectoryOpener, createFileBrowserEntryOpener} from "./FileBrowser.open";
 import {fileBrowserSelection} from "./FileBrowser.selection";
-import {makeFileBrowserNodeKey} from "./FileBrowser.tree";
+import {FILE_BROWSER_DRAG_MIME, parseFileBrowserDragData} from "./FileBrowser.drag";
+import {getFileBrowserCapabilitiesForPath, makeFileBrowserNodeKey} from "./FileBrowser.tree";
+import {
+    openFileBrowserGalleryAssetContainingFolder,
+    openFileBrowserGalleryAssetDefault,
+    showFileBrowserGalleryItemMenu,
+    showFileBrowserGalleryProperties,
+} from "./FileBrowserGalleryMenu";
 import {resolveAssetURL} from "../../asset/assetUrl";
 import {getAssetThumbnailRequestURL} from "../../asset/assetFormat";
+import {showMessage} from "../../dialog/message";
+import {escapeHtml} from "../../util/DOM/escape";
 import {
     FILE_BROWSER_GALLERY_ATTRIBUTES,
     FILE_BROWSER_GALLERY_DEFAULT_ATTRIBUTES,
     FILE_BROWSER_GALLERY_VIEW_MODES,
 } from "./FileBrowser.gallery.constants";
 import type {AppFacade} from "./dock/imports";
-import type {FileBrowserEntry, FileBrowserGalleryTabData, FileBrowserRoot} from "./FileBrowser.types";
+import type {
+    FileBrowserDragItem,
+    FileBrowserEntry,
+    FileBrowserGalleryTabData,
+    FileBrowserRoot,
+    FileBrowserSelectionItem,
+} from "./FileBrowser.types";
 import type {
     FileBrowserAssetResult,
     FileBrowserSearchRequest,
@@ -171,12 +192,33 @@ const scopeError = ref("");
 const includeSubfolders = ref(true);
 const selectedSubfolderPaths = ref<string[]>([]);
 let scopeRevision = 0;
-const selectedKey = ref("");
+const selectedCount = computed(() => {
+    const visibleKeys = new Set(galleryAssets.value.map(asset => asset.key));
+    return fileBrowserSelection.items.value.filter(item => visibleKeys.has(item.key)).length;
+});
 const galleryRoot = ref<HTMLElement | null>(null);
+const galleryContent = ref<HTMLElement | null>(null);
+interface MarqueeState {
+    active: boolean;
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+    toggle: boolean;
+    range: boolean;
+}
+const marquee = ref<MarqueeState>({active: false, startX: 0, startY: 0, endX: 0, endY: 0, toggle: false, range: false});
+const marqueeStyle = computed(() => ({
+    left: `${Math.min(marquee.value.startX, marquee.value.endX)}px`,
+    top: `${Math.min(marquee.value.startY, marquee.value.endY)}px`,
+    width: `${Math.abs(marquee.value.endX - marquee.value.startX)}px`,
+    height: `${Math.abs(marquee.value.endY - marquee.value.startY)}px`,
+}));
 const containerWidth = ref(0);
 const columnWidth = ref(220);
 const galleryViewModes = FILE_BROWSER_GALLERY_VIEW_MODES;
 const layoutMode = ref<FileBrowserGalleryViewMode>("masonry");
+const galleryRootAttributes = computed(() => ({"data-layout-mode": layoutMode.value}));
 const showPaths = ref(true);
 const selectedAttributes = ref<FileBrowserGalleryAttribute[]>([...FILE_BROWSER_GALLERY_DEFAULT_ATTRIBUTES]);
 const galleryGrid = ref<InstanceType<typeof VirtualMasonryGrid> | null>(null);
@@ -196,6 +238,7 @@ let activePageRequest: FileBrowserSearchRequest | undefined;
 const search = useFileBrowserSearch(fileBrowserQueryRepository);
 const {result, loading, error} = search;
 const openEntry = createFileBrowserEntryOpener(props.app, fileBrowserRepository);
+const openDirectory = createFileBrowserDirectoryOpener(props.app);
 
 function cloneSearchRequest(request: FileBrowserSearchRequest | undefined) {
     if (!request) {
@@ -334,6 +377,8 @@ const hasQuery = computed(() => hasActiveFilters.value || loading.value || Boole
 const loadedCount = computed(() => loadedAssets.value.length);
 const galleryAssets = computed<GalleryAsset[]>(() => loadedAssets.value);
 const galleryAttributes = FILE_BROWSER_GALLERY_ATTRIBUTES;
+const galleryAttributeKeys = galleryAttributes.map(attribute => attribute.key);
+const galleryAttributeLabels = Object.fromEntries(galleryAttributes.map(attribute => [attribute.key, attribute.label]));
 const availableExtensions = computed(() => loadedAssets.value.map(asset => extensionOf(asset.name || asset.path)));
 
 function toGalleryAssets(assets: FileBrowserAssetResult[]) {
@@ -592,14 +637,302 @@ function navigateHistory(delta: number) {
     if (nextIndex < 0 || nextIndex >= scopeHistory.value.length) {
         return;
     }
+    const nextPath = scopeHistory.value[nextIndex];
+    if (nextPath === undefined) {
+        return;
+    }
     scopeHistoryIndex.value = nextIndex;
-    setScopePath(scopeHistory.value[nextIndex], false);
+    setScopePath(nextPath, false);
 }
 
-function selectAsset(asset: FileBrowserAssetResult) {
-    selectedKey.value = makeFileBrowserNodeKey(asset.rootID, asset.path);
-    fileBrowserSelection.replaceAddress({
-        key: selectedKey.value, rootID: asset.rootID, path: asset.path, kind: "file", name: asset.name,
+function selectionItemForAsset(asset: FileBrowserAssetResult): FileBrowserSelectionItem {
+    return {
+        key: makeFileBrowserNodeKey(asset.rootID, asset.path),
+        rootID: asset.rootID,
+        path: asset.path,
+        kind: "file",
+        name: asset.name,
+    };
+}
+
+function gallerySelectionItems() {
+    return galleryAssets.value.map(selectionItemForAsset);
+}
+
+function isAssetSelected(asset: GalleryAsset) {
+    return fileBrowserSelection.items.value.some(item => item.key === asset.key);
+}
+
+function selectAsset(asset: FileBrowserAssetResult, event?: MouseEvent | KeyboardEvent) {
+    const item = selectionItemForAsset(asset);
+    const toggle = Boolean(event?.ctrlKey || event?.metaKey);
+    const range = Boolean(event?.shiftKey);
+    fileBrowserSelection.selectAddress(item, gallerySelectionItems(), {toggle, range});
+}
+
+function dragItemsFor(asset: GalleryAsset): readonly FileBrowserDragItem[] {
+    const visibleKeys = new Set(galleryAssets.value.map(item => item.key));
+    const selected = fileBrowserSelection.items.value.filter(item => visibleKeys.has(item.key) && item.kind === "file");
+    const current = selectionItemForAsset(asset);
+    const source = selected.length > 1 && selected.some(item => item.key === current.key) ? selected : [current];
+    return source.map(item => ({
+        rootID: item.rootID, path: item.path, kind: "file" as const, name: item.name,
+    }));
+}
+
+function galleryColumnCount() {
+    if (layoutMode.value === "list" || layoutMode.value === "table" || containerWidth.value <= 0) {
+        return 1;
+    }
+    const available = Math.max(1, containerWidth.value - 24);
+    return Math.max(1, Math.floor((available + 12) / (effectiveColumnWidth.value + 12)));
+}
+
+function focusGalleryAsset(index: number) {
+    const target = galleryContent.value?.querySelector<HTMLElement>(`[data-gallery-index="${index}"]`);
+    target?.focus();
+}
+
+function handleAssetKeydown(asset: FileBrowserAssetResult, event: KeyboardEvent) {
+    const index = galleryAssets.value.findIndex(item => item.key === makeFileBrowserNodeKey(asset.rootID, asset.path));
+    if (index < 0) {
+        return;
+    }
+    if (event.key === "Escape") {
+        event.preventDefault();
+        fileBrowserSelection.clear();
+        return;
+    }
+    if (event.key === "Enter") {
+        event.preventDefault();
+        void openAsset(asset);
+        return;
+    }
+    const columnCount = galleryColumnCount();
+    let nextIndex = index;
+    if (event.key === "ArrowLeft") {
+        nextIndex = Math.max(0, index - 1);
+    } else if (event.key === "ArrowRight") {
+        nextIndex = Math.min(galleryAssets.value.length - 1, index + 1);
+    } else if (event.key === "ArrowUp") {
+        nextIndex = Math.max(0, index - columnCount);
+    } else if (event.key === "ArrowDown") {
+        nextIndex = Math.min(galleryAssets.value.length - 1, index + columnCount);
+    } else {
+        return;
+    }
+    event.preventDefault();
+    const target = galleryAssets.value[nextIndex];
+    if (!target) {
+        return;
+    }
+    selectAsset(target, event);
+    focusGalleryAsset(nextIndex);
+}
+
+function isMarqueeExcludedTarget(target: EventTarget | null) {
+    return target instanceof Element && Boolean(target.closest(
+        "article, button, input, select, textarea, .sforge-file-search, .sforge-file-gallery-scope, .sforge-file-gallery__header, .sforge-file-gallery__footer",
+    ));
+}
+
+function updateMarquee(event: MouseEvent) {
+    if (!marquee.value.active) {
+        return;
+    }
+    marquee.value.endX = event.clientX;
+    marquee.value.endY = event.clientY;
+}
+
+function finishMarquee() {
+    if (!marquee.value.active) {
+        return;
+    }
+    const current = marquee.value;
+    const minX = Math.min(current.startX, current.endX);
+    const maxX = Math.max(current.startX, current.endX);
+    const minY = Math.min(current.startY, current.endY);
+    const maxY = Math.max(current.startY, current.endY);
+    const hits: FileBrowserSelectionItem[] = [];
+    if (maxX - minX >= 4 || maxY - minY >= 4) {
+        const elements = galleryContent.value?.querySelectorAll<HTMLElement>("[data-file-key]") ?? [];
+        const keyByElement = new Map<string, FileBrowserSelectionItem>(gallerySelectionItems().map(item => [item.key, item]));
+        elements.forEach(element => {
+            const key = element.dataset.fileKey;
+            const item = key ? keyByElement.get(key) : undefined;
+            if (!item) {
+                return;
+            }
+            const rect = element.getBoundingClientRect();
+            if (rect.right >= minX && rect.left <= maxX && rect.bottom >= minY && rect.top <= maxY) {
+                hits.push(item);
+            }
+        });
+    }
+    fileBrowserSelection.selectAddresses(hits, gallerySelectionItems(), {
+        toggle: current.toggle,
+        range: current.range,
+    });
+    marquee.value.active = false;
+    window.removeEventListener("mousemove", updateMarquee);
+    window.removeEventListener("mouseup", finishMarquee);
+}
+
+function startMarquee(event: MouseEvent) {
+    if (event.button !== 0 || isMarqueeExcludedTarget(event.target)) {
+        return;
+    }
+    marquee.value = {
+        active: true,
+        startX: event.clientX,
+        startY: event.clientY,
+        endX: event.clientX,
+        endY: event.clientY,
+        toggle: event.ctrlKey || event.metaKey,
+        range: event.shiftKey,
+    };
+    window.addEventListener("mousemove", updateMarquee);
+    window.addEventListener("mouseup", finishMarquee);
+}
+
+function handleGalleryDragOver(event: DragEvent) {
+    if (isGlobalResult || !scopeRoot.value || !getFileBrowserCapabilitiesForPath(scopeRoot.value, scopePath.value).write) {
+        return;
+    }
+    if (event.dataTransfer?.types.includes(FILE_BROWSER_DRAG_MIME)) {
+        event.dataTransfer.dropEffect = "move";
+    }
+}
+
+async function handleGalleryDrop(event: DragEvent) {
+    const source = parseFileBrowserDragData(event.dataTransfer?.getData(FILE_BROWSER_DRAG_MIME));
+    if (!source) {
+        return;
+    }
+    if (isGlobalResult) {
+        pageError.value = "全局资源结果没有唯一的目录目标，请从目录页签执行移动";
+        return;
+    }
+    const targetRoot = scopeRoot.value;
+    if (!targetRoot || !targetRoot.exists || !getFileBrowserCapabilitiesForPath(targetRoot, scopePath.value).write) {
+        pageError.value = "当前目录不可写，无法接收拖放项目";
+        return;
+    }
+    const sources = source.items ?? [source];
+    let dropError = "";
+    try {
+        if (sources.length === 1) {
+            const item = sources[0]!;
+            await fileBrowserOperationsRepository.move({
+                sourceRootID: item.rootID,
+                sourcePath: item.path,
+                destinationRootID: props.file.rootID,
+                destinationPath: `${scopePath.value ? `${scopePath.value}/` : ""}${basename(item.path)}`,
+            });
+            fileBrowserSelection.removeSubtree(item.rootID, item.path);
+            showMessage(`已移动：${escapeHtml(item.name)}`, 3000);
+        } else {
+            const result = await fileBrowserOperationsRepository.moveBatch({
+                items: sources.map(item => ({rootID: item.rootID, path: item.path})),
+                destinationRootID: props.file.rootID,
+                destinationPath: scopePath.value,
+            });
+            const failures = result.items.filter(item => item.error);
+            result.items.filter(item => !item.error).forEach(item => fileBrowserSelection.removeSubtree(
+                item.request.rootID, item.request.path,
+            ));
+            if (failures.length > 0) {
+                dropError = `部分项目移动失败：${failures.map(item => item.error?.message ?? "未知错误").join("；")}`;
+            } else {
+                showMessage(`已移动 ${result.successCount} 项`, 3000);
+            }
+        }
+        await loadScope();
+        runScopedSearch(false);
+        if (dropError) {
+            pageError.value = dropError;
+        }
+    } catch (reason) {
+        pageError.value = reason instanceof Error ? reason.message : String(reason);
+    }
+}
+
+function resolveAssetRoot(asset: FileBrowserAssetResult) {
+    const direct = roots.value.find(root => root.id === asset.rootID);
+    if (direct) {
+        return direct;
+    }
+    for (const root of roots.value) {
+        const mount = root.mounts?.find(candidate => candidate.id === asset.rootID);
+        if (mount) {
+            return {...mount};
+        }
+    }
+    return undefined;
+}
+
+function parentRelativePath(path: string) {
+    const normalized = path.trim().replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
+    const index = normalized.lastIndexOf("/");
+    return index >= 0 ? normalized.slice(0, index) : "";
+}
+
+function basename(path: string) {
+    const normalized = path.trim().replaceAll("\\", "/");
+    return normalized.split("/").at(-1) || normalized;
+}
+
+async function openSourceNote(asset: FileBrowserAssetResult) {
+    const blockID = asset.boundBlockId.trim();
+    if (!blockID) {
+        return;
+    }
+    await props.app.openBlock({id: blockID, action: ["cb-get-focus"]});
+}
+
+async function deleteAsset(asset: FileBrowserAssetResult) {
+    const root = resolveAssetRoot(asset);
+    if (!root || !root.exists || !getFileBrowserCapabilitiesForPath(root, asset.path).write) {
+        pageError.value = "资源根当前不可写";
+        return;
+    }
+    const confirmed = await requestFileBrowserConfirmation(
+        "删除文件",
+        `确定将 <b>${escapeHtml(asset.name || basename(asset.path))}</b> 移动到回收站吗？此操作不可撤销。`,
+    );
+    if (!confirmed) {
+        return;
+    }
+    try {
+        const result = await fileBrowserOperationsRepository.delete({rootID: asset.rootID, path: asset.path});
+        fileBrowserSelection.removeSubtree(asset.rootID, asset.path);
+        const removedCount = Math.max(1, result.removedFileCount ?? 1);
+        loadedAssets.value = loadedAssets.value.filter(item => item.key !== makeFileBrowserNodeKey(asset.rootID, asset.path));
+        totalCount.value = Math.max(0, totalCount.value - removedCount);
+        nextOffset.value = Math.max(loadedAssets.value.length, nextOffset.value - removedCount);
+        exhausted.value = loadedAssets.value.length >= totalCount.value;
+        showMessage(`已删除：${escapeHtml(asset.path)}`, 3000);
+    } catch (reason) {
+        pageError.value = reason instanceof Error ? reason.message : String(reason);
+    }
+}
+
+function openGalleryMenu(asset: FileBrowserAssetResult, event: MouseEvent) {
+    const root = resolveAssetRoot(asset);
+    if (!root) {
+        pageError.value = "资源根不存在";
+        return;
+    }
+    selectAsset(asset);
+    showFileBrowserGalleryItemMenu(event, asset, root, thumbnailUrl(asset), {
+        open: openAsset,
+        openSourceNote,
+        openDefault: openFileBrowserGalleryAssetDefault,
+        openContainingFolder: openFileBrowserGalleryAssetContainingFolder,
+        openDirectory: async item => openDirectory(item.rootID, parentRelativePath(item.path),
+            basename(parentRelativePath(item.path)) || root.label),
+        openProperties: item => showFileBrowserGalleryProperties(item, () => selectAsset(item)),
+        delete: deleteAsset,
     });
 }
 
@@ -645,6 +978,8 @@ onBeforeUnmount(() => {
     search.dispose();
     galleryResizeObserver?.disconnect();
     galleryResizeObserver = undefined;
+    window.removeEventListener("mousemove", updateMarquee);
+    window.removeEventListener("mouseup", finishMarquee);
 });
 </script>
 

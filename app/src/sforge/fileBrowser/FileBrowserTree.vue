@@ -18,7 +18,7 @@
 /** 用途：文件树组合边界；使用范围：根列表、递归节点和树级拖拽状态。 */
 import {onBeforeUnmount, ref, watch} from "vue";
 /** 用途：树容器判断、父节点查找和稳定节点状态；使用范围：拖放目标解析。 */
-import {isFileBrowserContainer} from "./FileBrowser.tree";
+import {findFileBrowserTreeNode, isFileBrowserContainer} from "./FileBrowser.tree";
 /** 用途：递归节点视图；使用范围：所有工作空间/Agent 根和后代节点。 */
 import FileBrowserTreeNode from "./FileBrowserTreeNode.vue";
 /** 用途：拖放 MIME 契约；使用范围：树节点移动入口。 */
@@ -127,9 +127,18 @@ function handleDragStart(payload: {event: DragEvent; node: TreeNode}) {
     }
     draggingKey.value = node.key;
     event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData(FILE_BROWSER_DRAG_MIME, JSON.stringify({
-        rootID: node.rootID, path: node.path, kind: node.kind, name: node.name,
+    const selectedNodes = props.selectedKeys.has(node.key) && props.selectedKeys.size > 1
+        ? Array.from(props.selectedKeys)
+            .map(key => findFileBrowserTreeNode(props.rootNodes, key))
+            .filter((candidate): candidate is TreeNode => Boolean(candidate) && candidate.kind !== "root" &&
+                candidate.root.exists && !candidate.entry?.restricted)
+        : [node];
+    const sourceItems = selectedNodes.map(candidate => ({
+        rootID: candidate.rootID, path: candidate.path, kind: candidate.kind, name: candidate.name,
     }));
+    const draggedItem = sourceItems.find(item => item.rootID === node.rootID && item.path === node.path) ?? sourceItems[0]!;
+    const data = sourceItems.length > 1 ? {...draggedItem, items: sourceItems} : draggedItem;
+    event.dataTransfer.setData(FILE_BROWSER_DRAG_MIME, JSON.stringify(data));
     event.dataTransfer.setData("text/plain", node.path);
     emit("dragstart", payload);
 }

@@ -5,7 +5,7 @@
                 <label class="sforge-file-search__query">
                     <svg aria-hidden="true"><use href="#iconSearch" /></svg>
                     <input v-model="keyword" class="b3-text-field" type="search"
-                        placeholder="名称、路径、注释或标签" aria-label="关键词" />
+                        placeholder="名称、路径、注释或标签" aria-label="关键词" @input="scheduleSubmit" />
                 </label>
                 <button type="submit" class="block__icon ariaLabel sforge-file-search__submit" aria-label="执行文件查询"
                     :disabled="loading">
@@ -19,11 +19,11 @@
 
             <div class="sforge-file-search__scope-line">
                 <label class="sforge-file-search__check">
-                    <input v-model="allRoots" type="checkbox" />
+                    <input v-model="allRoots" type="checkbox" @change="scheduleSubmit" />
                     <span>全部文件根</span>
                 </label>
                 <select v-model="selectedRootIDs" class="b3-select sforge-file-search__roots" multiple
-                    :disabled="allRoots" aria-label="文件根范围">
+                    :disabled="allRoots" aria-label="文件根范围" @change="scheduleSubmit">
                     <option v-for="root in roots" :key="root.id" :value="root.id">
                         {{ root.label }}{{ root.exists ? "" : "（失效）" }}
                     </option>
@@ -31,9 +31,9 @@
                 <FileBrowserMultiSelect v-model="selectedExtensions" :options="extensions" placeholder="扩展名"
                     ariaLabel="扩展名筛选" @update:model-value="scheduleExtensionSubmit" />
                 <input ref="tagsInput" v-model="tagsText" class="b3-text-field" type="text" placeholder="标签，以逗号分隔"
-                    aria-label="标签筛选" />
+                    aria-label="标签筛选" @input="scheduleSubmit" />
                 <label class="sforge-file-search__check">
-                    <input v-model="matchAllTags" type="checkbox" />
+                    <input v-model="matchAllTags" type="checkbox" @change="scheduleSubmit" />
                     <span>全部标签</span>
                 </label>
             </div>
@@ -52,7 +52,8 @@
                     :class="{'is-active': selectedExtensions.length > 0}" aria-label="扩展名筛选入口"
                     @click="focusExtensions">格式</button>
                 <span class="sforge-file-search__facet-spacer" />
-                <select v-model="orderBy" class="b3-select sforge-file-search__sort" aria-label="查询排序">
+                <select v-model="orderBy" class="b3-select sforge-file-search__sort" aria-label="查询排序"
+                    @change="scheduleSubmit">
                     <option value="updated">最近更新</option>
                     <option value="name">名称</option>
                     <option value="size">大小</option>
@@ -63,43 +64,43 @@
 
             <div v-if="colorEnabled" class="sforge-file-search__color-line is-active" aria-label="颜色检索条件">
                 <label class="sforge-file-search__check">
-                    <input v-model="colorEnabled" type="checkbox" aria-label="启用颜色检索" />
+                    <input v-model="colorEnabled" type="checkbox" aria-label="启用颜色检索" @change="scheduleSubmit" />
                     <span>颜色条件</span>
                 </label>
                 <span class="sforge-file-search__color-picker" :class="{'is-disabled': !colorEnabled}">
                     <input ref="colorInput" v-model="color" type="color" aria-label="RGB 目标颜色"
-                        :disabled="!colorEnabled" />
+                        :disabled="!colorEnabled" @input="scheduleSubmit" />
                 </span>
                 <label class="sforge-file-search__number">
                     <span>容差</span>
                     <input v-model="tolerance" type="number" min="0" max="442" step="1" aria-label="颜色容差"
-                        :disabled="!colorEnabled" />
+                        :disabled="!colorEnabled" @input="scheduleSubmit" />
                 </label>
                 <label class="sforge-file-search__number">
                     <span>比例</span>
                     <input v-model="minRatio" type="number" min="0" max="1" step="0.05" aria-label="最小调色板比例"
-                        :disabled="!colorEnabled" />
+                        :disabled="!colorEnabled" @input="scheduleSubmit" />
                 </label>
                 <label class="sforge-file-search__number">
                     <span>H</span>
                     <input v-model="minH" type="number" min="0" max="360" step="1" aria-label="最小色相"
-                        :disabled="!colorEnabled" />
+                        :disabled="!colorEnabled" @input="scheduleSubmit" />
                     <input v-model="maxH" type="number" min="0" max="360" step="1" aria-label="最大色相"
-                        :disabled="!colorEnabled" />
+                        :disabled="!colorEnabled" @input="scheduleSubmit" />
                 </label>
                 <label class="sforge-file-search__number">
                     <span>S</span>
                     <input v-model="minS" type="number" min="0" max="100" step="1" aria-label="最小饱和度"
-                        :disabled="!colorEnabled" />
+                        :disabled="!colorEnabled" @input="scheduleSubmit" />
                     <input v-model="maxS" type="number" min="0" max="100" step="1" aria-label="最大饱和度"
-                        :disabled="!colorEnabled" />
+                        :disabled="!colorEnabled" @input="scheduleSubmit" />
                 </label>
                 <label class="sforge-file-search__number">
                     <span>L</span>
                     <input v-model="minL" type="number" min="0" max="100" step="1" aria-label="最小亮度"
-                        :disabled="!colorEnabled" />
+                        :disabled="!colorEnabled" @input="scheduleSubmit" />
                     <input v-model="maxL" type="number" min="0" max="100" step="1" aria-label="最大亮度"
-                        :disabled="!colorEnabled" />
+                        :disabled="!colorEnabled" @input="scheduleSubmit" />
                 </label>
             </div>
         </form>
@@ -161,7 +162,7 @@ const maxS = ref("");
 const minL = ref("");
 const maxL = ref("");
 const orderBy = ref<NonNullable<FileBrowserSearchRequest["orderBy"]>>(initialRequest.orderBy ?? "updated");
-let extensionSubmitTimer: ReturnType<typeof setTimeout> | undefined;
+let submitTimer: ReturnType<typeof setTimeout> | undefined;
 
 function colorToHex(value: [number, number, number] | undefined) {
     if (!value) {
@@ -293,32 +294,37 @@ function focusExtensions() {
 
 function toggleColorFilter() {
     colorEnabled.value = !colorEnabled.value;
+    scheduleSubmit();
     if (colorEnabled.value) {
         void nextTick(() => colorInput.value?.focus());
     }
 }
 
 /**
- * SACAssetsManager 在扩展名变更后会刷新画廊；防抖保留连续勾选多个类型时的单次查询语义。
+ * 参考画廊在筛选控件变化后刷新结果；防抖保留连续勾选多个条件时的单次查询语义。
  * 手动提交和清空会取消尚未发出的刷新，避免旧表单在新范围上再次执行。
  */
-function cancelScheduledExtensionSubmit() {
-    if (extensionSubmitTimer !== undefined) {
-        clearTimeout(extensionSubmitTimer);
-        extensionSubmitTimer = undefined;
+function cancelScheduledSubmit() {
+    if (submitTimer !== undefined) {
+        clearTimeout(submitTimer);
+        submitTimer = undefined;
     }
 }
 
-function scheduleExtensionSubmit() {
-    cancelScheduledExtensionSubmit();
-    extensionSubmitTimer = setTimeout(() => {
-        extensionSubmitTimer = undefined;
+function scheduleSubmit() {
+    cancelScheduledSubmit();
+    submitTimer = setTimeout(() => {
+        submitTimer = undefined;
         submit();
     }, 300);
 }
 
+function scheduleExtensionSubmit() {
+    scheduleSubmit();
+}
+
 function submit() {
-    cancelScheduledExtensionSubmit();
+    cancelScheduledSubmit();
     const tags = tagsText.value.split(",").map(tag => tag.trim()).filter(Boolean);
     const palette = buildPalette();
     const request: FileBrowserSearchRequest = {orderBy: orderBy.value};
@@ -348,7 +354,7 @@ function submit() {
 }
 
 function clear() {
-    cancelScheduledExtensionSubmit();
+    cancelScheduledSubmit();
     keyword.value = "";
     allRoots.value = initialAllRoots.value;
     selectedRootIDs.value = [];
@@ -368,7 +374,7 @@ function clear() {
     emit("clear");
 }
 
-onBeforeUnmount(cancelScheduledExtensionSubmit);
+onBeforeUnmount(cancelScheduledSubmit);
 </script>
 
 <style scoped lang="scss">

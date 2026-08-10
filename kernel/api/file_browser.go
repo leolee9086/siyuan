@@ -259,6 +259,54 @@ func deleteBatchSForgeFileBrowserEntries(c *gin.Context) {
 	ret.Data = result
 }
 
+func copyBatchSForgeFileBrowserEntries(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+	if !requireLocalFileBrowser(c, ret) {
+		return
+	}
+	var request filebrowser.BatchCopyRequest
+	if !decodeFileBrowserRequest(c, ret, &request) {
+		return
+	}
+	if request.DestinationRootID == "" {
+		ret.Code = http.StatusBadRequest
+		ret.Msg = "destinationRootID is required"
+		return
+	}
+	result, err := newFileBrowserService().CopyBatch(c.Request.Context(), request)
+	if err != nil {
+		ret.Code = fileBrowserErrorCode(err)
+		ret.Msg = err.Error()
+		return
+	}
+	ret.Data = result
+}
+
+func moveBatchSForgeFileBrowserEntries(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+	if !requireLocalFileBrowser(c, ret) {
+		return
+	}
+	var request filebrowser.BatchMoveRequest
+	if !decodeFileBrowserRequest(c, ret, &request) {
+		return
+	}
+	if request.DestinationRootID == "" {
+		ret.Code = http.StatusBadRequest
+		ret.Msg = "destinationRootID is required"
+		return
+	}
+	result, err := newFileBrowserService().MoveBatch(c.Request.Context(), request)
+	if err != nil {
+		ret.Code = fileBrowserErrorCode(err)
+		ret.Msg = err.Error()
+		return
+	}
+	ret.Data = result
+}
+
 func decodeFileBrowserRequest(c *gin.Context, ret *gulu.Result, target any) bool {
 	arg, ok := util.JsonArg(c, ret)
 	if !ok {

@@ -37,6 +37,11 @@
                 :disabled="batchDeleting" @click="deleteSelectedNodes">
                 <svg :class="{'fn__rotate': batchDeleting}"><use href="#iconTrashcan" /></svg>
             </button>
+            <button v-if="selectedTransferableNodes.length > 1" type="button"
+                class="block__icon block__icon--show ariaLabel" aria-label="复制已选择项目到目录"
+                :disabled="batchCopying" @click="copySelectedNodes">
+                <svg :class="{'fn__rotate': batchCopying}"><use href="#iconCopy" /></svg>
+            </button>
             <span class="sforge-file-browser__root-count">{{ rootSummary }}</span>
         </div>
 
@@ -91,6 +96,7 @@ import {fileBrowserRepository} from "./FileBrowser.repository";
 import {createFileBrowserDirectoryOpener, createFileBrowserEntryOpener} from "./FileBrowser.open";
 import {fileBrowserOperationsRepository} from "./FileBrowser.operations.repository";
 import {
+    requestFileBrowserBatchDestination,
     requestFileBrowserCopyDestination,
     requestFileBrowserConfirmation,
     requestFileBrowserText,
@@ -107,7 +113,10 @@ import {showMessage} from "../../dialog/message";
 import {escapeHtml} from "../../util/DOM/escape";
 /** 用途：应用宿主与树节点类型；使用范围：组件参数和事件。 */
 import type {AppFacade} from "./dock/imports";
-import type {FileBrowserTreeNode as TreeNode} from "./FileBrowser.types";
+import type {
+    FileBrowserBatchOperationResult,
+    FileBrowserTreeNode as TreeNode,
+} from "./FileBrowser.types";
 
 const props = defineProps<{
     app: AppFacade;
@@ -124,6 +133,7 @@ const {
 const operationError = ref("");
 const movingKey = ref("");
 const batchDeleting = ref(false);
+const batchCopying = ref(false);
 
 const selectedKeySet = computed<ReadonlySet<string>>(() => new Set(selectedKeys.value));
 
@@ -218,10 +228,19 @@ function canWriteNode(node: TreeNode) {
     return node.root.exists && !node.entry?.restricted && getFileBrowserCapabilitiesForPath(node.root, node.path).write;
 }
 
+function canBrowseNode(node: TreeNode) {
+    return node.root.exists && !node.entry?.restricted && getFileBrowserCapabilitiesForPath(node.root, node.path).browse;
+}
+
 const selectedActionableNodes = computed(() => fileBrowserSelection.items.value
     .map(item => findFileBrowserTreeNode(rootNodes.value, item.key))
     .filter((node): node is TreeNode => node !== undefined)
     .filter(node => node.kind !== "root" && canWriteNode(node)));
+
+const selectedTransferableNodes = computed(() => fileBrowserSelection.items.value
+    .map(item => findFileBrowserTreeNode(rootNodes.value, item.key))
+    .filter((node): node is TreeNode => node !== undefined)
+    .filter(node => node.kind !== "root" && canBrowseNode(node)));
 
 async function createDirectory(node: TreeNode) {
     if (!canWriteNode(node)) {
@@ -301,6 +320,54 @@ async function copyNode(node: TreeNode) {
     } catch (error) {
         reportOperationError(error);
     }
+}
+
+async function copySelectedNodes() {
+    const nodes = selectedTransferableNodes.value;
+    if (nodes.length < 2 || batchCopying.value) {
+        return;
+    }
+    const first = nodes[0]!;
+    const destination = await requestFileBrowserBatchDestination(
+        operationRoots(), first.rootID, parentRootRelativePath(first.path),
+    );
+    if (!destination) {
+        return;
+    }
+    operationError.value = "";
+    batchCopying.value = true;
+    try {
+        const result = await fileBrowserOperationsRepository.copyBatch({
+            items: nodes.map(node => ({rootID: node.rootID, path: node.path})),
+            destinationRootID: destination.rootID,
+            destinationPath: destination.path,
+        });
+        const target = findRefreshTarget(destination.rootID, destination.path);
+        if (target && isFileBrowserContainer(target)) {
+            await refreshNode(target);
+        }
+        reportBatchTransferResult(result, "复制", "sforgeFileBrowserBatchCopyError");
+    } catch (error) {
+        reportOperationError(error);
+    } finally {
+        batchCopying.value = false;
+    }
+}
+
+function reportBatchTransferResult(
+    result: FileBrowserBatchOperationResult,
+    operation: string,
+    messageKey: string,
+) {
+    if (result.failureCount > 0) {
+        const failures = result.items.filter(item => item.error).map(item =>
+            `${item.request.path}: ${item.error?.message ?? `批量${operation}失败`}`,
+        );
+        operationError.value = failures.join("；");
+        showMessage(escapeHtml(operationError.value), 6000, "error", messageKey);
+        return;
+    }
+    showMessage(`已${operation} ${result.successCount} 项`, 3000);
 }
 
 async function deleteNode(node: TreeNode) {
@@ -384,37 +451,61 @@ async function handleNodeDrop(payload: {event: DragEvent; node: TreeNode; target
     }
     const source = parseFileBrowserDragData(payload.event.dataTransfer?.getData(FILE_BROWSER_DRAG_MIME));
     const target = payload.target;
-    if (!source || !isFileBrowserContainer(target) || !target.root.exists || target.entry?.restricted ||
+    const sources = source?.items ?? (source ? [source] : []);
+    if (!source || sources.length === 0 || !isFileBrowserContainer(target) || !target.root.exists || target.entry?.restricted ||
         !getFileBrowserCapabilitiesForPath(target.root, target.path).write) {
         reportOperationError(new Error("拖放来源或目标目录不具备移动条件"));
         return;
     }
-    const destinationPath = joinRootRelativePath(target.path, source.name);
-    if (source.rootID === target.rootID && source.kind === "directory" &&
-        (destinationPath === source.path || destinationPath.startsWith(`${source.path}/`))) {
-        reportOperationError(new Error("源目录与目标目录存在重叠"));
-        return;
+    for (const item of sources) {
+        if (item.rootID === target.rootID && item.kind === "directory" &&
+            (target.path === item.path || target.path.startsWith(`${item.path}/`))) {
+            reportOperationError(new Error("源目录与目标目录存在重叠"));
+            return;
+        }
     }
     operationError.value = "";
-    movingKey.value = source.rootID + ":" + source.path;
+    movingKey.value = sources.map(item => `${item.rootID}:${item.path}`).join("\n");
     try {
-        await fileBrowserOperationsRepository.move({
-            sourceRootID: source.rootID,
-            sourcePath: source.path,
+        if (sources.length === 1) {
+            const [item] = sources;
+            const destinationPath = joinRootRelativePath(target.path, item!.name);
+            await fileBrowserOperationsRepository.move({
+                sourceRootID: item!.rootID,
+                sourcePath: item!.path,
+                destinationRootID: target.rootID,
+                destinationPath,
+            });
+            const refreshTargets = new Map<string, TreeNode>();
+            addRefreshTarget(refreshTargets, item!.rootID, parentRootRelativePath(item!.path));
+            refreshTargets.set(target.key, target);
+            for (const refreshTarget of refreshTargets.values()) {
+                await refreshNode(refreshTarget);
+            }
+            const movedNode = findRefreshTarget(target.rootID, destinationPath);
+            if (movedNode) {
+                browser.selectNode(movedNode);
+            }
+            showMessage(`已移动：${escapeHtml(destinationPath)}`, 3000);
+            return;
+        }
+        const result = await fileBrowserOperationsRepository.moveBatch({
+            items: sources.map(item => ({rootID: item.rootID, path: item.path})),
             destinationRootID: target.rootID,
-            destinationPath,
+            destinationPath: target.path,
         });
         const refreshTargets = new Map<string, TreeNode>();
-        addRefreshTarget(refreshTargets, source.rootID, parentRootRelativePath(source.path));
+        for (const item of result.items) {
+            if (item.result) {
+                fileBrowserSelection.removeSubtree(item.request.rootID, item.request.path);
+                addRefreshTarget(refreshTargets, item.request.rootID, parentRootRelativePath(item.request.path));
+            }
+        }
         refreshTargets.set(target.key, target);
         for (const refreshTarget of refreshTargets.values()) {
             await refreshNode(refreshTarget);
         }
-        const movedNode = findRefreshTarget(target.rootID, destinationPath);
-        if (movedNode) {
-            browser.selectNode(movedNode);
-        }
-        showMessage(`已移动：${escapeHtml(destinationPath)}`, 3000);
+        reportBatchTransferResult(result, "移动", "sforgeFileBrowserBatchMoveError");
     } catch (error) {
         reportOperationError(error);
     } finally {

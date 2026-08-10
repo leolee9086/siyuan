@@ -205,6 +205,34 @@ type BatchDeleteResult struct {
 	FailureCount int                     `json:"failureCount"`
 }
 
+// BatchMoveRequest moves each selected entry into one existing destination
+// directory. The destination path is a directory path, unlike MoveRequest's
+// complete target path.
+type BatchMoveRequest struct {
+	Items             []FileRequest `json:"items"`
+	DestinationRootID string        `json:"destinationRootID"`
+	DestinationPath   string        `json:"destinationPath"`
+}
+
+// BatchCopyRequest is the copy-domain counterpart of BatchMoveRequest.
+type BatchCopyRequest struct {
+	Items             []FileRequest `json:"items"`
+	DestinationRootID string        `json:"destinationRootID"`
+	DestinationPath   string        `json:"destinationPath"`
+}
+
+type BatchOperationItemResult struct {
+	Request FileRequest          `json:"request"`
+	Result  *FileOperationResult `json:"result,omitempty"`
+	Error   *OperationFailure    `json:"error,omitempty"`
+}
+
+type BatchOperationResult struct {
+	Items        []BatchOperationItemResult `json:"items"`
+	SuccessCount int                        `json:"successCount"`
+	FailureCount int                        `json:"failureCount"`
+}
+
 // FileOperationResult reports only root-relative identities and counts.
 type FileOperationResult struct {
 	Operation             string `json:"operation"`

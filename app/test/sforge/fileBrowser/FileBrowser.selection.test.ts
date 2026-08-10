@@ -72,4 +72,22 @@ describe("shared file browser selection", () => {
         expect(selection.items.value.map(item => item.path)).toEqual(["other.txt"]);
         expect(selection.primaryKey.value).toBe(JSON.stringify(["workspace", "other.txt"]));
     });
+
+    it("applies Ctrl/Shift selection to gallery addresses without creating tree nodes", () => {
+        const selection = createFileBrowserSelectionStore();
+        const visible = ["a.png", "b.png", "c.png", "d.png"].map(path => ({
+            key: JSON.stringify(["workspace", path]), rootID: "workspace", path,
+            kind: "file" as const, name: path,
+        }));
+
+        selection.selectAddress(visible[0]!, visible);
+        selection.selectAddress(visible[2]!, visible, {toggle: true, range: false});
+        expect(selection.keys.value).toEqual([visible[0]!.key, visible[2]!.key]);
+
+        selection.selectAddress(visible[3]!, visible, {toggle: false, range: true});
+        expect(selection.items.value.map(item => item.path)).toEqual(["c.png", "d.png"]);
+
+        selection.selectAddresses([visible[0]!, visible[1]!], visible, {toggle: true, range: false});
+        expect(selection.items.value.map(item => item.path)).toEqual(["c.png", "d.png", "a.png", "b.png"]);
+    });
 });

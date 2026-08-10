@@ -10,6 +10,8 @@ export interface FileBrowserCopyDestination {
     path: string;
 }
 
+export type FileBrowserBatchDestination = FileBrowserCopyDestination;
+
 interface TextDialogOptions {
     title: string;
     label: string;
@@ -147,6 +149,75 @@ export function requestFileBrowserCopyDestination(
             const path = pathInput.value.trim().replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
             dialog.destroy();
             settle(rootID && path ? {rootID, path} : undefined);
+        };
+        dialog.bindInput(pathInput, finish);
+        pathInput.select();
+        cancel.addEventListener("click", () => {
+            dialog.destroy();
+            settle(undefined);
+        });
+        confirm.addEventListener("click", finish);
+    });
+}
+
+/** 选择批量复制/移动使用的目标目录；空路径明确表示目标根本身。 */
+export function requestFileBrowserBatchDestination(
+    roots: readonly FileBrowserRoot[],
+    defaultRootID: string,
+    defaultPath: string,
+): Promise<FileBrowserBatchDestination | undefined> {
+    const writableRoots = roots.filter(root => root.exists && root.capabilities.browse && root.capabilities.write);
+    if (writableRoots.length === 0) {
+        return Promise.resolve(undefined);
+    }
+    const initialRootID = writableRoots.some(root => root.id === defaultRootID) ? defaultRootID : writableRoots[0]!.id;
+    return new Promise(resolve => {
+        let settled = false;
+        let dialog: Dialog;
+        const settle = (value: FileBrowserBatchDestination | undefined) => {
+            if (!settled) {
+                settled = true;
+                resolve(value);
+            }
+        };
+        const rootOptions = writableRoots.map(root =>
+            `<option value="${escapeAttr(root.id)}"${root.id === initialRootID ? " selected" : ""}>` +
+            `${escapeHtml(root.label)} · ${escapeHtml(root.path)}</option>`,
+        ).join("");
+        dialog = new Dialog({
+            title: "复制已选择项目到",
+            width: "620px",
+            content: `<div class="b3-dialog__content">
+    <label class="b3-label">
+        <div class="b3-label__text">目标文件根</div>
+        <select class="b3-select fn__block" data-sforge-operation-input="root">${rootOptions}</select>
+    </label>
+    <label class="b3-label">
+        <div class="b3-label__text">目标根内目录</div>
+        <input class="b3-text-field fn__block" data-sforge-operation-input="path"
+            value="${escapeAttr(defaultPath)}" placeholder="留空表示目标文件根" />
+    </label>
+</div>
+<div class="b3-dialog__action">
+    <button class="b3-button b3-button--cancel" data-sforge-operation-action="cancel">取消</button>
+    <div class="fn__space"></div>
+    <button class="b3-button b3-button--text" data-sforge-operation-action="confirm">确定</button>
+</div>`,
+            destroyCallback: () => settle(undefined),
+        });
+        const rootInput = dialog.element.querySelector<HTMLSelectElement>("[data-sforge-operation-input='root']");
+        const pathInput = resolveDialogInput(dialog, "[data-sforge-operation-input='path']");
+        const cancel = dialog.element.querySelector<HTMLButtonElement>("[data-sforge-operation-action='cancel']");
+        const confirm = dialog.element.querySelector<HTMLButtonElement>("[data-sforge-operation-action='confirm']");
+        if (!rootInput || !pathInput || !cancel || !confirm) {
+            dialog.destroy();
+            return;
+        }
+        const finish = () => {
+            const rootID = rootInput.value.trim();
+            const path = pathInput.value.trim().replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
+            dialog.destroy();
+            settle(rootID ? {rootID, path} : undefined);
         };
         dialog.bindInput(pathInput, finish);
         pathInput.select();
