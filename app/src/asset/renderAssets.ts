@@ -4,25 +4,7 @@ import { isMobile } from "../platform";
 import {pathPosix} from "../util/file/path/operations";
 import * as dayjs from "dayjs";
 import {resolveAssetURL} from "./assetUrl";
-
-/** 已知的文本文件扩展名，用于判断是否提供内容预览 */
-const TEXT_EXTENSIONS = new Set([
-    ".txt", ".md", ".markdown", ".json", ".log", ".sql", ".html", ".xml",
-    ".java", ".h", ".c", ".cpp", ".go", ".rs", ".swift", ".kt", ".py",
-    ".php", ".js", ".css", ".ts", ".sh", ".bat", ".cmd", ".ini", ".yaml",
-    ".yml", ".toml", ".rst", ".adoc", ".textile", ".opml", ".org", ".wiki",
-    ".gitignore", ".editorconfig", ".env", ".properties"
-]);
-
-/**
- * 判断是否为文本文件
- * 
- * @param ext - 文件扩展名（含前导点）
- * @returns 是否为文本文件
- */
-const isTextFile = (ext: string) => {
-    return TEXT_EXTENSIONS.has(ext.toLowerCase());
-};
+import {getAssetFormat} from "./assetFormat";
 
 /**
  * 作用：为旧资源菜单生成和主 Asset/文件浏览器相同的缩略图地址。
@@ -61,7 +43,7 @@ function ensurePreviewImageErrorHandler() {
  *   - 图片：使用缩略图 API
  *   - 音频/视频：使用原生播放器
  *   - 文本文件：显示文件内容预览
- *   - 其他文件：使用缩略图 API（返回文件图标）
+ *   - 其他文件：请求格式 Provider 的缩略图；Provider 失败时由统一错误监听显式呈现
  * 
  * 意图：在资源选择菜单、历史记录等场景中提供资源预览
  * 调用时机：当用户悬停或选择资源列表项时
@@ -74,10 +56,10 @@ export const renderAssetsPreview = (pathString: string) => {
         return "";
     }
     ensurePreviewImageErrorHandler();
-    const type = pathPosix().extname(pathString).toLowerCase();
+    const format = getAssetFormat(pathString);
 
     // 图片：使用缩略图 API + 元信息面板
-    if (Constants.SIYUAN_ASSETS_IMAGE.includes(type)) {
+    if (format.previewKind === "image") {
         const thumbnailUrl = getPreviewThumbnailURL(pathString, 360);
         // 生成唯一 ID 用于后续填充元信息
         const metaId = `asset-meta-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -92,17 +74,17 @@ export const renderAssetsPreview = (pathString: string) => {
     }
 
     // 音频：使用原生播放器
-    if (Constants.SIYUAN_ASSETS_AUDIO.includes(type)) {
+    if (format.previewKind === "audio") {
         return `<audio style="max-width: 100%" controls="controls" src="${pathString}"></audio>`;
     }
 
     // 视频：使用原生播放器
-    if (Constants.SIYUAN_ASSETS_VIDEO.includes(type)) {
+    if (format.previewKind === "video") {
         return `<video style="max-width: 100%" controls="controls" src="${pathString}"></video>`;
     }
 
     // 文本文件：显示异步加载占位符，然后加载内容
-    if (isTextFile(type)) {
+    if (format.previewKind === "text") {
         // 生成唯一 ID 用于后续内容填充
         const previewId = `text-preview-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -114,7 +96,7 @@ export const renderAssetsPreview = (pathString: string) => {
         </div>`;
     }
 
-    // 其他文件：使用缩略图 API 获取文件图标
+    // 其他文件：只请求格式 Provider 生成的缩略图，不把文件图标伪装成资源缩略图
     const thumbnailUrl = getPreviewThumbnailURL(pathString, 256);
     return `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
         <img style="max-width: 128px; max-height: 128px;" src="${thumbnailUrl}" data-sforge-preview-image="thumbnail" alt="${escapeHtml(pathPosix().basename(pathString))}">
@@ -392,7 +374,8 @@ export const pdfResize = () => {
  * @returns 对应类型的 HTML 字符串
  */
 export const genAssetHTML = (type: string, pathString: string, imgName: string, linkName: string) => {
-    if (Constants.SIYUAN_ASSETS_AUDIO.includes(type)) {
+    const format = getAssetFormat(type);
+    if (format.previewKind === "audio") {
         return /*html*/`
         <div data-node-id="${Lute.NewNodeID()}" data-type="NodeAudio" class="iframe" updated="${dayjs().format("YYYYMMDDHHmmss")}">
         <div class="iframe-content">
@@ -401,7 +384,7 @@ export const genAssetHTML = (type: string, pathString: string, imgName: string, 
         </div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
     }
 
-    if (Constants.SIYUAN_ASSETS_IMAGE.includes(type)) {
+    if (format.previewKind === "image") {
         const netHTML = pathString.startsWith("assets/") ? "" : /*html*/`
             <span class="img__net">
                 <svg>
@@ -411,7 +394,7 @@ export const genAssetHTML = (type: string, pathString: string, imgName: string, 
         return /*html*/`<span contenteditable="false" data-type="img" class="img"><span></span><span><span class="protyle-action protyle-icons"><span class="protyle-icon protyle-icon--only"><svg><use xlink:href="#iconMore"></use></svg></span></span><img src="${pathString}" data-src="${pathString}" alt="${imgName}" /><span class="protyle-action__drag"></span>${netHTML}<span class="protyle-action__title"><span></span></span></span><span> </span></span>`;
     }
 
-    if (Constants.SIYUAN_ASSETS_VIDEO.includes(type)) {
+    if (format.previewKind === "video") {
         return `<div data-node-id="${Lute.NewNodeID()}" data-type="NodeVideo" class="iframe" updated="${dayjs().format("YYYYMMDDHHmmss")}"><div class="iframe-content">${Constants.ZWSP}<video controls="controls" src="${pathString}"></video><span class="protyle-action__drag" contenteditable="false"></span></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
     }
 

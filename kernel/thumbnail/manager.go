@@ -105,7 +105,7 @@ func NewInstance() *Manager {
 // 注册顺序决定优先级：先注册的会先尝试
 func (m *Manager) registerProviders() {
 	// 1. 专用格式 Provider 必须先于 Windows 泛化 Provider，保持参考实现的格式语义。
-	for _, provider := range []Provider{NewSVGProvider(), NewD5MProvider()} {
+	for _, provider := range []Provider{NewSVGProvider(), NewSYProvider(), NewD5MProvider()} {
 		m.providers = append(m.providers, provider)
 		logging.LogInfof("registered thumbnail provider: %s", provider.Name())
 	}

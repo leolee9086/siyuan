@@ -510,3 +510,9 @@ export interface FileBrowserPreviewPanelProps {
 export interface FileBrowserEditorTabData extends FileBrowserFileRequest {
     name: string;
 }
+
+/** 网络文本页签的稳定入口数据；网络资源不伪装成授权本地根。 */
+export interface FileBrowserNetworkTabData {
+    uri: string;
+    name: string;
+}

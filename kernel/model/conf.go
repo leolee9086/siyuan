@@ -915,7 +915,9 @@ func closeKernel(force, setCurrentWorkspace bool, execInstallPkg int, exitData *
 
 	logging.LogInfof("exiting kernel [force=%v, setCurrentWorkspace=%v, execInstallPkg=%d]", force, setCurrentWorkspace, execInstallPkg)
 
-	util.PushMsg(Conf.Language(95), 10000*60)
+	if exitData == nil {
+		util.PushMsg(Conf.Language(95), 10000*60)
+	}
 	FlushTxQueue()
 
 	cancelPurge()

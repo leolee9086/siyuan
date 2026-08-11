@@ -5,6 +5,7 @@ import type {
     FileBrowserEditorEncoding,
     FileBrowserEditorWriteResult,
     FileBrowserEditorTabData,
+    FileBrowserNetworkTabData,
     FileBrowserEntry,
     FileBrowserFileStat,
 	FileBrowserD5AInspectionReport,
@@ -119,6 +120,11 @@ export const isFileBrowserPreviewTabData = (value: unknown): value is FileBrowse
 export const isFileBrowserEditorTabData = (value: unknown): value is FileBrowserEditorTabData =>
     isRecord(value) && typeof value.rootID === "string" && typeof value.path === "string" &&
     typeof value.name === "string";
+
+/** 校验网络文本页签入口，拒绝把本地绝对路径或空 URI 交给渲染层。 */
+export const isFileBrowserNetworkTabData = (value: unknown): value is FileBrowserNetworkTabData =>
+    isRecord(value) && typeof value.uri === "string" && value.uri.trim().length > 0 &&
+    typeof value.name === "string" && value.name.trim().length > 0;
 
 /** @同步豁免: 类型守卫 */
 export const isFileBrowserEditorEncoding = (value: unknown): value is FileBrowserEditorEncoding =>

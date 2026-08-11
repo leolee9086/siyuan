@@ -26,6 +26,14 @@ export class ForgeRuntimeControl {
         this.view.openControlDialog();
     }
 
+    public pauseForKernelRestart(): void {
+        this.controller.pauseForKernelRestart();
+    }
+
+    public resumeAfterKernelRestart(): void {
+        this.controller.resumeAfterKernelRestart();
+    }
+
     public destroy(): void {
         this.view.destroy();
         this.controller.destroy();

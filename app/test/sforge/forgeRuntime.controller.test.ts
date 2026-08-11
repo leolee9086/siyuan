@@ -88,6 +88,18 @@ describe("Forge Runtime WebUI client", () => {
         expect(JSON.stringify(network.fetchSyncPost.mock.calls)).not.toContain("supervisor-token");
     });
 
+    it("reads status without routing transient control responses through the global message handler", async () => {
+        network.fetchSyncPost.mockResolvedValue({code: 0, msg: "", data: status()});
+
+        await expect(new ForgeRuntimeClient().getStatus()).resolves.toEqual(status());
+        expect(network.fetchSyncPost).toHaveBeenCalledWith(
+            "/api/s-forge/forge/runtime/status",
+            {},
+            {"Content-Type": "application/json"},
+            {processMessage: false},
+        );
+    });
+
     it("surfaces Kernel API failures", async () => {
         network.fetchSyncPost.mockResolvedValue({code: -1, msg: "same-device WebUI required", data: null});
 
@@ -185,6 +197,41 @@ describe("Forge Runtime controller", () => {
 
         await vi.advanceTimersByTimeAsync(10_000);
         expect(getStatus).toHaveBeenCalledOnce();
+    });
+
+    it("does not let a paused status response poison the state used after resume", async () => {
+        const client = new ForgeRuntimeClient();
+        const getStatus = vi.spyOn(client, "getStatus").mockResolvedValueOnce(status());
+        const controller = new ForgeRuntimeController(client);
+        await controller.start();
+
+        let resolvePausedStatus: (value: ForgeRuntimeStatusData) => void = () => undefined;
+        getStatus.mockReturnValueOnce(new Promise<ForgeRuntimeStatusData>((resolve) => {
+            resolvePausedStatus = resolve;
+        }));
+        controller.pauseForKernelRestart();
+        const refresh = controller.refresh();
+        resolvePausedStatus({available: false});
+        await expect(refresh).resolves.toEqual(status());
+
+        expect(controller.state.status).toEqual(status());
+        controller.resumeAfterKernelRestart();
+        controller.destroy();
+    });
+
+    it("restarts polling when startup happens during a Kernel replacement", async () => {
+        const client = new ForgeRuntimeClient();
+        const getStatus = vi.spyOn(client, "getStatus").mockResolvedValue(status());
+        const controller = new ForgeRuntimeController(client);
+
+        controller.pauseForKernelRestart();
+        await expect(controller.start()).resolves.toEqual({available: false});
+
+        controller.resumeAfterKernelRestart();
+        await vi.advanceTimersByTimeAsync(5000);
+
+        expect(getStatus).toHaveBeenCalledOnce();
+        controller.destroy();
     });
 
     it("binds protected approval identity to both job and revision", () => {

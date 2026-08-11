@@ -2,6 +2,7 @@
 
 export interface FileBrowserPaletteSearch {
     color?: [number, number, number];
+    /** CIEDE2000 Delta-E threshold; zero/omitted uses the reference default. */
     tolerance?: number;
     minRatio?: number;
     minH?: number;

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/siyuan-note/logging"
+	assetcolor "github.com/siyuan-note/siyuan/kernel/color"
 	_ "github.com/siyuan-note/siyuan/kernel/sql" // Ensure sqlite3_extended is registered
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
@@ -578,7 +579,9 @@ func GetIndexAssetsAt(addresses []AssetAddress) []AssetMeta {
 	return results
 }
 
-// PaletteSearch 描述必须由同一个调色板色块满足的 RGB/HSL 条件。
+// PaletteSearch describes RGB perceptual-distance, ratio and HSL conditions
+// that must be satisfied by the same palette swatch. Tolerance is Delta-E;
+// zero uses the reference default of 20.
 type PaletteSearch struct {
 	Color     *[3]int `json:"color,omitempty"`
 	Tolerance int     `json:"tolerance,omitempty"`
@@ -836,16 +839,9 @@ func addPaletteSearchConditions(query *searchSQL, palette *PaletteSearch) {
 		values = append(values, palette.MinRatio)
 	}
 	if palette.Color != nil {
-		tolerance := palette.Tolerance
-		if tolerance < 0 {
-			tolerance = 0
-		}
-		if tolerance > 442 {
-			tolerance = 442
-		}
-		conditions = append(conditions, "((p.r - ?) * (p.r - ?) + (p.g - ?) * (p.g - ?) + (p.b - ?) * (p.b - ?)) <= ?")
-		values = append(values, palette.Color[0], palette.Color[0], palette.Color[1], palette.Color[1],
-			palette.Color[2], palette.Color[2], tolerance*tolerance)
+		conditions = append(conditions, "ciede2000_rgb(p.r, p.g, p.b, ?, ?, ?) <= ?")
+		values = append(values, palette.Color[0], palette.Color[1], palette.Color[2],
+			assetcolor.NormalizeCIEDE2000Tolerance(palette.Tolerance))
 	}
 	addHSLRange(&conditions, &values, "p.h", palette.MinH, palette.MaxH, true)
 	addHSLRange(&conditions, &values, "p.s", palette.MinS, palette.MaxS, false)

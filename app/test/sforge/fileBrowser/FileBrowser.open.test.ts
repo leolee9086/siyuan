@@ -1,5 +1,8 @@
 import {describe, expect, it, vi} from "vitest";
-import {createFileBrowserEntryOpener} from "../../../src/sforge/fileBrowser/FileBrowser.open";
+import {
+    createFileBrowserEntryOpener,
+    createFileBrowserNetworkOpener,
+} from "../../../src/sforge/fileBrowser/FileBrowser.open";
 import type {
     FileBrowserEntry,
     FileBrowserFileStat,
@@ -59,5 +62,16 @@ describe("file browser opening", () => {
             },
         });
         expect(app.openAsset).not.toHaveBeenCalled();
+    });
+
+    it("opens external text through the read-only network tab", async () => {
+        const app = {openTab: vi.fn(async () => undefined)};
+        await createFileBrowserNetworkOpener(app)("https://example.test/raw/guide.md", "guide.md");
+        expect(app.openTab).toHaveBeenCalledWith({
+            custom: {
+                title: "guide.md", icon: "iconGlobe", id: "sforge-file-network",
+                data: {uri: "https://example.test/raw/guide.md", name: "guide.md"},
+            },
+        });
     });
 });

@@ -4,6 +4,10 @@ vi.mock("../../src/constants", () => ({
     Constants: {SIYUAN_APPID: "test-app"},
 }));
 
+vi.mock("../../src/platform", () => ({
+    isElectron: true,
+}));
+
 const runtime = vi.hoisted(() => ({
     createModelWebSocket: vi.fn(),
     kernelError: vi.fn(),
@@ -25,6 +29,11 @@ vi.mock("../../src/layout/modelWebSocket.factory", () => ({
 
 import {Model} from "../../src/layout/Model";
 import {disposeModelResources} from "../../src/layout/lifecycle/model";
+import {
+    beginForgeRuntimeElectronRestart,
+    getForgeRuntimeElectronRestartState,
+    isForgeRuntimeElectronRestartActive,
+} from "../../src/sforge/forgeRuntime/restartState";
 import type {
     ILayoutDestroyableModel,
     ILayoutDisposableModel,
@@ -97,6 +106,10 @@ describe("Model WebSocket lifecycle", () => {
     });
 
     afterEach(() => {
+        const state = getForgeRuntimeElectronRestartState();
+        state.active = false;
+        state.context = undefined;
+        state.promise = undefined;
         vi.unstubAllGlobals();
     });
 
@@ -276,6 +289,90 @@ describe("Model WebSocket lifecycle", () => {
         } finally {
             vi.useRealTimers();
         }
+    });
+
+    it("defers reconnect until Electron Kernel continuity has ended", async () => {
+        vi.useFakeTimers();
+        try {
+            const model = new Model({app: {} as never});
+            const {socket: firstSocket} = createSocket(WebSocket.OPEN);
+            const {socket: secondSocket} = createSocket(WebSocket.OPEN);
+            runtime.createModelWebSocket.mockReturnValueOnce(firstSocket).mockReturnValueOnce(secondSocket);
+            model.connect({id: "continuity"});
+            beginForgeRuntimeElectronRestart({
+                mode: "forge-restart",
+                jobId: "restart-job",
+                targetRevision: "a".repeat(40),
+            });
+
+            emitClose(firstSocket, "kernel replacement");
+            await vi.advanceTimersByTimeAsync(3000);
+            expect(runtime.createModelWebSocket).toHaveBeenCalledOnce();
+
+            const state = getForgeRuntimeElectronRestartState();
+            state.active = false;
+            state.context = undefined;
+            state.promise = undefined;
+            await vi.advanceTimersByTimeAsync(3000);
+            expect(runtime.createModelWebSocket).toHaveBeenCalledTimes(2);
+        } finally {
+            const state = getForgeRuntimeElectronRestartState();
+            state.active = false;
+            state.context = undefined;
+            state.promise = undefined;
+            vi.useRealTimers();
+        }
+    });
+
+    it("registers an Electron exit identity before asynchronous message handling", async () => {
+        const model = new Model({app: {} as never});
+        const {socket} = createSocket(WebSocket.OPEN);
+        const exitResponse = {
+            cmd: "exit",
+            code: 0,
+            msg: "",
+            data: {
+                mode: "forge-restart",
+                jobId: "restart-job",
+                targetRevision: "a".repeat(40),
+            },
+        };
+        runtime.createModelWebSocket.mockReturnValue(socket);
+        runtime.processMessage.mockResolvedValue(exitResponse);
+        model.connect({id: "exit", type: "main", msgCallback: vi.fn()});
+
+        emitMessage(socket, JSON.stringify(exitResponse));
+        Object.defineProperty(socket, "readyState", {value: WebSocket.CLOSED});
+        socket.onerror?.call(socket, new Event("error"));
+
+        expect(isForgeRuntimeElectronRestartActive()).toBe(true);
+        expect(runtime.kernelError).not.toHaveBeenCalled();
+
+        await vi.waitFor(() => expect(runtime.processMessage).toHaveBeenCalledOnce());
+        model.dispose();
+    });
+
+    it("registers an Electron exit identity before config and callback gates", () => {
+        const model = new Model({app: {} as never});
+        const {socket} = createSocket(WebSocket.OPEN);
+        const exitResponse = {
+            cmd: "exit",
+            code: 0,
+            msg: "",
+            data: {
+                mode: "forge-restart",
+                jobId: "restart-job-before-config",
+                targetRevision: "a".repeat(40),
+            },
+        };
+        runtime.createModelWebSocket.mockReturnValue(socket);
+        vi.stubGlobal("siyuan", {dialogs: []});
+        model.connect({id: "exit-before-config", type: "main"});
+
+        emitMessage(socket, JSON.stringify(exitResponse));
+
+        expect(isForgeRuntimeElectronRestartActive()).toBe(true);
+        model.dispose();
     });
 
     it("reports an asynchronous open callback failure", async () => {

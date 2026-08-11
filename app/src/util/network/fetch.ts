@@ -411,6 +411,7 @@ export const fetchSyncPost = async (
     url: string,
     data?: TFetchRequestData,
     headers?: HeadersInit | IObject | null,
+    options: {processMessage?: boolean} = {},
 ) => {
     await acquire();
     let released = false;
@@ -421,7 +422,9 @@ export const fetchSyncPost = async (
         }
         release(); 
         released = true;
-        await processMessage(responseData, {fetchPost});
+        if (options.processMessage !== false) {
+            await processMessage(responseData, {fetchPost});
+        }
         return responseData;
     } catch (e) {
         if (!released) {

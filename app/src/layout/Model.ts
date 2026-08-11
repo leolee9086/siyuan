@@ -1,9 +1,37 @@
 import { Constants } from "../constants";
 import { getModelHandlers } from "./modelRegistry";
+/** 用途：识别 Electron 宿主；使用范围：原始 exit 帧接续登记；解耦评估：平台事实必须由统一网关提供，不能从消息参数推断。 */
+import {isElectron} from "./imports";
+/** 用途：读取接续停机门控；使用范围：Model WebSocket 错误与重连边界；解耦评估：跨模块状态必须复用唯一注册槽。 */
+import {isForgeRuntimeElectronRestartActive} from "./imports";
+/** 用途：登记原始 Electron exit 身份；使用范围：异步消息处理之前；解耦评估：调用唯一接续状态机，避免在 Model 内复制解析逻辑。 */
+import {prepareForgeRuntimeElectronContinuity} from "./imports";
 import type {ILayoutModel} from "./lifecycle/model.types";
 import type {ILayoutModelHost} from "./lifecycle/model.types";
 import type {IModelConnectOptions} from "./lifecycle/model.types";
 import {createModelWebSocket} from "./modelWebSocket.factory";
+
+/** 在消息进入异步队列前登记 Electron Forge exit 身份，避免 close/error 抢先显示普通内核故障。 */
+const prepareElectronExitFrame = (serializedResponse: unknown) => {
+    if (!isElectron || typeof serializedResponse !== "string") {
+        return;
+    }
+    let response: unknown;
+    try {
+        response = JSON.parse(serializedResponse);
+    } catch {
+        return;
+    }
+    if (typeof response !== "object" || response === null || Reflect.get(response, "cmd") !== "exit") {
+        return;
+    }
+    try {
+        prepareForgeRuntimeElectronContinuity(Reflect.get(response, "data"));
+    } catch (error) {
+        // index.ts 负责向用户展示结构化载荷错误；这里仅保持 WebSocket 错误门控同步。
+        console.error("[Forge Runtime] Electron exit identity preparation failed", error);
+    }
+};
 
 /** 布局模型基类，统一管理 App 引用、WebSocket 传输及可停止的重连生命周期。 */
 export class Model<
@@ -66,11 +94,13 @@ export class Model<
             }
         };
         ws.onmessage = (event) => {
+            const serializedResponse = event.data;
+            // exit 身份登记必须先于 config/msgCallback 门控；内核可能在配置异步加载完成前就关闭连接。
+            prepareElectronExitFrame(serializedResponse);
             // 等待 config 加载完成才接受推送 https://github.com/siyuan-note/siyuan/issues/17508
             if (!options.msgCallback || !window.siyuan.config) {
                 return;
             }
-            const serializedResponse = event.data;
             // WebSocket 不会等待异步事件监听器；实例队列保持与原同步实现相同的消息分发顺序。
             this.messageQueue = this.messageQueue.then(async () => {
                 if (this.destroyed || this.ws !== ws) {
@@ -96,7 +126,8 @@ export class Model<
         ws.onclose = (ev) => this.handleSocketClose(ws, ev, options);
         ws.onerror = () => {
             // 仅主连接（type=main）且 WebSocket 已关闭（readyState=3）时显示内核错误提示
-            if (!this.destroyed && this.ws === ws && ws.url.endsWith("&type=main") && ws.readyState === WebSocket.CLOSED) {
+            if (!this.destroyed && !isForgeRuntimeElectronRestartActive() && this.ws === ws &&
+                ws.url.endsWith("&type=main") && ws.readyState === WebSocket.CLOSED) {
                 getModelHandlers().kernelError();
             }
         };
@@ -139,10 +170,22 @@ export class Model<
             0 <= ev.reason.indexOf("close websocket")) {
             return;
         }
-        console.warn("WebSocket is closed. Reconnect will be attempted in 3 second.", ev);
+        if (!isForgeRuntimeElectronRestartActive()) {
+            console.warn("WebSocket is closed. Reconnect will be attempted in 3 second.", ev);
+        }
         // 内核要求短暂退避后重连，且现有协议没有可等待的 ready 信号；该延迟与原实现保持一致。
+        this.scheduleReconnect(options);
+    }
+
+    /** 安排一次可被 Electron 热替换状态再次门控的模型重连。 */
+    private scheduleReconnect(options: IModelConnectOptions) {
+        this.clearReconnectTimer();
         this.reconnectTimer = window.setTimeout(() => {
             this.reconnectTimer = null;
+            if (isForgeRuntimeElectronRestartActive()) {
+                this.scheduleReconnect(options);
+                return;
+            }
             this.reconnect(options);
         }, 3000);
     }

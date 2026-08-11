@@ -51,6 +51,7 @@ async function poll(){
         const status=payload.data&&payload.data.status;
         const job=status&&status.job;
         const active=status&&status.activeVersion;
+        const supervisorReady=status&&status.lifecycle==="ready"&&status.ready===true;
         if(!job||job.id!==config.jobId){
             phase.textContent="正在等待对应的切换任务";
             detail.textContent=job?"当前任务与已审批任务不匹配。":"Supervisor 尚未返回切换任务。";
@@ -59,7 +60,7 @@ async function poll(){
         }
         detail.textContent="任务阶段："+(job.phase||job.state);
         if(job.state==="completed"){
-            if(active&&active.state==="healthy"&&active.revision===config.targetRevision){
+            if(supervisorReady&&active&&active.state==="healthy"&&active.revision===config.targetRevision){
                 phase.textContent="Kernel 校验完成，正在恢复工作区";
                 resume("completed",active.revision);
                 return;
@@ -71,7 +72,7 @@ async function poll(){
         if(job.state==="rolled_back"){
             phase.textContent="候选 Kernel 未通过，已恢复上一健康版本";
             detail.textContent=job.error||"回退已完成。";
-            if(active&&active.state==="healthy"&&active.revision){
+            if(supervisorReady&&active&&active.state==="healthy"&&active.revision){
                 rollbackRevision=active.revision;
                 resumeRollback.style.display="inline-block";
             }
@@ -116,7 +117,7 @@ const requireSafeReturnURL = (value: string) => {
 };
 
 /** 只识别明确声明 `forge-restart` 的载荷；普通 exit 返回 undefined，伪造载荷由 Zod 显式报错。 */
-const parseForgeRuntimeExitContext = (value: unknown) => {
+export const parseForgeRuntimeExitContext = (value: unknown) => {
     if (typeof value !== "object" || value === null || Reflect.get(value, "mode") !== "forge-restart") {
         return undefined;
     }

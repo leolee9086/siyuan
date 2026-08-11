@@ -7,9 +7,8 @@ import {FILE_BROWSER_GALLERY_TAB_TYPE} from "./FileBrowser.gallery.constants";
 
 export {FILE_BROWSER_GALLERY_TAB_TYPE};
 
-// A layout restore/HMR pass can call a Custom initializer again for the same
-// panel before the previous Vue app has received its destroy hook. Keep one
-// live app per host so an old async query cannot repaint a second state tree.
+// 布局恢复或页签复用可能在旧模型销毁回调执行前再次初始化同一宿主；每个
+// panelElement 只保留一个活动 Vue 实例，旧查询结果不能再绘制第二棵状态树。
 interface GalleryMount {
     app: ReturnType<typeof createVueComponentLoader>;
     active: boolean;

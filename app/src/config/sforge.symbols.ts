@@ -52,6 +52,9 @@ export const SETTING_TAB_REGISTRY = Symbol.for("sforge.config.settingTabRegistry
 /** Forge Runtime 主界面控制器的唯一注册表键。 */
 export const FORGE_RUNTIME_CONTROL = Symbol.for("sforge.runtime.control");
 
+/** Forge Runtime Electron 热替换接续状态的唯一注册表键。 */
+export const FORGE_RUNTIME_ELECTRON_CONTINUITY = Symbol.for("sforge.runtime.electronContinuity");
+
 /** SForge 全局状态 Symbol 键。 */
 export const SForgeSymbols = Object.freeze({
     /** Dock 类型注册表 */
@@ -96,6 +99,8 @@ export const SForgeSymbols = Object.freeze({
     WND_DRAG_RESTORE: Symbol.for("sforge.layout.wndDragRestore"),
     /** Forge Runtime 主界面控制器 */
     FORGE_RUNTIME_CONTROL,
+    /** Forge Runtime Electron 热替换接续状态 */
+    FORGE_RUNTIME_ELECTRON_CONTINUITY,
     /** 文档底部反链刷新调度器 */
     BACKLINK_REFRESH_SCHEDULER: Symbol.for("sforge.backlink.refreshScheduler"),
 } as const);

@@ -52,6 +52,7 @@ import {
     fileTagMutationRepository,
 } from "./FileTags.repository";
 import type {
+    FileBrowserFileRequest,
     FileTagCountRepository,
     FileTagDefinitionsRepository,
     FileTagMutationRepository,
@@ -89,7 +90,24 @@ function collapseAll() {
 
 function parseDroppedRequest(event: DragEvent) {
     const parsed = parseFileBrowserDragData(event.dataTransfer?.getData(FILE_BROWSER_DRAG_MIME));
-    return parsed?.kind === "file" ? {rootID: parsed.rootID, path: parsed.path} : undefined;
+    if (!parsed) {
+        return undefined;
+    }
+    const items = parsed.items ?? [parsed];
+    if (items.length === 0 || items.some(item => item.kind !== "file")) {
+        return undefined;
+    }
+    const seen = new Set<string>();
+    const requests: FileBrowserFileRequest[] = [];
+    for (const item of items) {
+        const key = `${item.rootID}\n${item.path}`;
+        if (seen.has(key)) {
+            continue;
+        }
+        seen.add(key);
+        requests.push({rootID: item.rootID, path: item.path});
+    }
+    return requests.length > 0 ? requests : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -97,15 +115,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 async function handleDrop(payload: {tag: string; event: DragEvent}) {
-    const request = parseDroppedRequest(payload.event);
-    if (!request) {
+    const requests = parseDroppedRequest(payload.event);
+    if (!requests) {
         actionError.value = "只接受文件树或资源瀑布流中的已授权文件";
         return;
     }
     actionBusy.value = true;
     actionError.value = "";
     try {
-        await mutationRepository.add([request], payload.tag);
+        await mutationRepository.add(requests, payload.tag);
         await refresh();
     } catch (reason) {
         actionError.value = reason instanceof Error ? reason.message : String(reason);

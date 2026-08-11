@@ -5,6 +5,7 @@ import type {AppFacade} from "./open/imports";
 import {FILE_BROWSER_PREVIEW_TAB_TYPE} from "./FileBrowser.preview";
 import {FILE_BROWSER_GALLERY_TAB_TYPE} from "./FileBrowser.gallery.constants";
 import {FILE_BROWSER_EDITOR_TAB_TYPE} from "./FileBrowser.editor.constants";
+import {FILE_BROWSER_NETWORK_TAB_TYPE} from "./FileBrowser.network.constants";
 import {supportsAssetMainTab} from "../../asset/assetFormat";
 /** 用途：文件统计、目录项和打开动作；使用范围：打开端口契约。 */
 import type {
@@ -69,6 +70,23 @@ export function createFileBrowserDirectoryOpener(app: Pick<AppFacade, "openTab">
                 icon: "iconAssets",
                 id: FILE_BROWSER_GALLERY_TAB_TYPE,
                 data: {rootID, path, name, scope: "directory"},
+            },
+        });
+    };
+}
+
+/** 为外部文本 URI 建立只读网络页签；网络资源不进入本地根和文件操作端口。 */
+export function createFileBrowserNetworkOpener(app: Pick<AppFacade, "openTab">) {
+    return async (uri: string, name: string) => {
+        if (!uri.trim() || !name.trim()) {
+            throw new Error("网络文件 URI 和名称不能为空");
+        }
+        await app.openTab({
+            custom: {
+                title: name,
+                icon: "iconGlobe",
+                id: FILE_BROWSER_NETWORK_TAB_TYPE,
+                data: {uri, name},
             },
         });
     };

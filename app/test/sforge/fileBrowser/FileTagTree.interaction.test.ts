@@ -83,6 +83,36 @@ describe("FileTagTreePanel", () => {
         expect(on).toHaveBeenCalledWith("ws-main", expect.any(Function));
     });
 
+    it("writes every authorized file in a multi-selection drop", async () => {
+        const add = vi.fn().mockResolvedValue(undefined);
+        host = document.createElement("div");
+        document.body.append(host);
+        app = createApp(FileTagTreePanel, {
+            countRepository: {list: vi.fn().mockResolvedValue([{name: "blue", count: 1}])},
+            definitionsRepository: {get: vi.fn().mockResolvedValue({revision: "1", items: []})},
+            mutationRepository: {add},
+        });
+        app.mount(host);
+
+        await vi.waitFor(() => expect(host?.textContent).toContain("blue"));
+        const dataTransfer = {
+            getData: vi.fn((type: string) => type === "application/x-sforge-file" ? JSON.stringify({
+                rootID: "agent-a", path: "output/one.png", kind: "file", name: "one.png",
+                items: [
+                    {rootID: "agent-a", path: "output/one.png", kind: "file", name: "one.png"},
+                    {rootID: "agent-a", path: "output/two.png", kind: "file", name: "two.png"},
+                ],
+            }) : ""),
+        };
+        const drop = new Event("drop", {bubbles: true, cancelable: true});
+        Object.defineProperty(drop, "dataTransfer", {value: dataTransfer});
+        host.querySelector<HTMLElement>("[role='treeitem']")?.dispatchEvent(drop);
+        await vi.waitFor(() => expect(add).toHaveBeenCalledWith([
+            {rootID: "agent-a", path: "output/one.png"},
+            {rootID: "agent-a", path: "output/two.png"},
+        ], "blue"));
+    });
+
     it("deletes an unreferenced configured tag and unregisters the event listener", async () => {
         const update = vi.fn().mockResolvedValue({revision: "2", items: []});
         const on = vi.fn();

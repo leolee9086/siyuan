@@ -1,4 +1,5 @@
 import {ForgeRuntimeClient} from "./client";
+import {isForgeRuntimeElectronRestartActive} from "./restartState";
 import {isForgeRuntimeJobActive} from "./types";
 import type {ForgeRuntimeControllerState, ForgeRuntimeStatusData} from "./types";
 
@@ -15,6 +16,7 @@ export class ForgeRuntimeController {
     private pollTimer: number | undefined;
     private started = false;
     private destroyed = false;
+    private pollingSuspended = false;
 
     constructor(client = new ForgeRuntimeClient()) {
         this.client = client;
@@ -38,6 +40,9 @@ export class ForgeRuntimeController {
             return this.currentState.status;
         }
         this.started = true;
+        if (this.pollingSuspended || isForgeRuntimeElectronRestartActive()) {
+            return this.currentState.status ?? {available: false};
+        }
         try {
             return await this.refresh();
         } finally {
@@ -68,6 +73,9 @@ export class ForgeRuntimeController {
         if (isForgeRuntimeJobActive(this.currentState.status?.status?.job)) {
             throw new Error("A Forge Runtime restart job is already running");
         }
+        if (this.pollingSuspended || isForgeRuntimeElectronRestartActive()) {
+            throw new Error("Forge Runtime is waiting for Kernel replacement");
+        }
         await this.runMutation(async () => {
             await this.client.restart(normalizedReason);
         });
@@ -90,6 +98,7 @@ export class ForgeRuntimeController {
             return;
         }
         this.destroyed = true;
+        this.pollingSuspended = true;
         if (this.pollTimer !== undefined) {
             window.clearTimeout(this.pollTimer);
             this.pollTimer = undefined;
@@ -97,13 +106,47 @@ export class ForgeRuntimeController {
         this.listeners.clear();
     }
 
+    /** 暂停热替换期间的控制面轮询，避免把停机窗口当成鉴权或业务错误。 */
+    public pauseForKernelRestart(): void {
+        this.pollingSuspended = true;
+        if (this.pollTimer !== undefined) {
+            window.clearTimeout(this.pollTimer);
+            this.pollTimer = undefined;
+        }
+        if (this.currentState.error) {
+            this.currentState = {...this.currentState, error: undefined};
+            this.emit();
+        }
+    }
+
+    /** 在 Kernel 恢复或回滚后恢复控制面轮询。 */
+    public resumeAfterKernelRestart(): void {
+        if (this.destroyed) {
+            return;
+        }
+        this.pollingSuspended = false;
+        if (this.currentState.status?.available === false) {
+            this.currentState = {...this.currentState, status: undefined, error: undefined};
+            this.emit();
+        }
+        this.schedulePoll();
+    }
+
     private async loadStatus(): Promise<ForgeRuntimeStatusData> {
         try {
             const status = await this.client.getStatus();
+            if (this.pollingSuspended || isForgeRuntimeElectronRestartActive()) {
+                return this.currentState.status ?? status;
+            }
             this.currentState = {...this.currentState, status, error: undefined};
             this.emit();
             return status;
         } catch (error) {
+            if (this.pollingSuspended || isForgeRuntimeElectronRestartActive()) {
+                this.currentState = {...this.currentState, error: undefined};
+                this.emit();
+                return this.currentState.status ?? {available: false};
+            }
             const statusError = error instanceof Error ? error : new Error(String(error));
             this.currentState = {...this.currentState, error: statusError};
             this.emit();
@@ -136,7 +179,8 @@ export class ForgeRuntimeController {
     }
 
     private schedulePoll(): void {
-        if (this.destroyed || !this.started || this.currentState.status?.available === false) {
+        if (this.destroyed || this.pollingSuspended || isForgeRuntimeElectronRestartActive() || !this.started ||
+            this.currentState.status?.available === false) {
             return;
         }
         if (this.pollTimer !== undefined) {

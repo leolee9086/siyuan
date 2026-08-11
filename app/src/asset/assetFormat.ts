@@ -74,7 +74,8 @@ export function getAssetFormat(path: string, mediaType = ""): AssetFormatStrateg
     }
 
     const supportsAssetTab = Constants.SIYUAN_ASSETS_EXTS.includes(extension) && previewKind !== "text";
-    const thumbnailMode: AssetThumbnailMode = previewKind === "image" || extension === ".d5m" ? "generated" : "none";
+    const thumbnailMode: AssetThumbnailMode = previewKind === "image" || extension === ".d5m" || extension === ".sy"
+        ? "generated" : "none";
     const mainSurface: AssetMainSurface = previewKind === "text" ? "text" : supportsAssetTab ? "asset" : "binary";
     return {
         extension,

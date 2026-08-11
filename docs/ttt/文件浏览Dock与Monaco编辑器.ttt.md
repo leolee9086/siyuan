@@ -513,6 +513,45 @@
 
 - [x] 画廊宿主按 DOM 容器维护唯一活动 Vue 挂载；同一容器重复初始化时先卸载旧实例，再挂载当前实例。
 - [x] 旧实例收到延迟 `destroy` 时只结束自身生命周期，不再对同一容器执行第二次 `unmount`，避免清空新实例的资源网格并遗留“此目录没有可展示的资源”。
-- [x] 空态分支增加 `galleryDisplayState === "empty" && galleryAssets.length === 0` 不变量；资源数组非空时不会进入空态，异常阶段显示显式错误和重试入口。
-- [x] 新增同容器重复初始化/旧销毁回归：`FileBrowserGallery.mount.test.ts`；文件浏览专项 33 个测试文件、117 个用例通过；`pnpm run typecheck:protyle-contract` 通过；目标范围 `git diff --check` 通过。
-- [ ] 真实桌面页签重复初始化来源、热更新与布局恢复现场仍需 A 级窗口复核；专项挂载测试不替代桌面验收。
+- [x] 空态分支改为消费统一的 `galleryContentState.kind`；资源数组非空时不会进入空态，异常阶段显示显式错误和重试入口。
+- [x] 新增同容器重复初始化/旧销毁回归：`FileBrowserGallery.mount.test.ts`；文件浏览专项 33 个测试文件、119 个用例通过；`pnpm run typecheck:protyle-contract` 通过；目标范围 `git diff --check` 通过。
+- [ ] 真实桌面页签重复初始化来源、正常布局恢复/页签切换与刷新期间 DOM 仍需 A 级窗口复核；专项挂载测试不替代桌面验收。
+
+## 2026-08-10 正常构建生命周期诊断前提校正
+
+- [x] 确认当前运行方式仅使用正常构建产物和完整页签生命周期；核对 `app/stage/build/app/index.html` 只引用当前入口脚本，旧脚本文件不会由入口自动加载。
+- [x] 明确开发热更新从未存在；移除本轮误加的 Electron 热替换接续、轮询暂停、全局状态槽和对应测试，不把不存在的运行模式作为画廊状态问题的解释。
+- [x] 新增真实 `Custom` 模型挂载后经生产 `destroyModel` 包装函数的销毁回归，确认页签关闭路径会卸载画廊宿主；画廊宿主/状态/交互回归 3 个文件、18 个用例通过。
+- [x] `pnpm run typecheck:protyle-contract` 与 `git diff --check` 通过。
+- [ ] 仍需在正常桌面布局恢复、页签切换和 `Custom -> destroyModel -> unmount` 路径取得现场 DOM 证据；当前专项挂载测试不替代窗口验收。
+
+## 2026-08-11 开发热更新语义清理（已完成）
+
+- [x] 按实际项目边界确认开发热更新从未存在；删除误加的 Electron 接续实现、`restartState` 全局状态、控制器暂停/恢复 API、布局 WebSocket 特判、Kernel 退出提示改写及其未跟踪测试。
+- [x] 保留仓库原有的浏览器端 Forge Runtime 退出隔离页（`exitContinuity.ts`）；它只处理真实 Kernel `exit` 载荷，不代表开发热更新。
+- [x] 全量源码扫描不再命中 `electronContinuity`、`restartState`、`pauseForKernelRestart`、`isForgeRuntimeElectronRestartActive` 等误加符号；工作区未跟踪文件已清零（不含用户已有文件浏览改动）。
+- [x] 证据：`pnpm exec vitest --run test/sforge/fileBrowser --reporter=dot`（33 个文件、119 个用例）；Forge Runtime 控制器/退出页 2 个文件、12 个用例；`pnpm run typecheck:protyle-contract`；`git diff --check`。
+
+## 2026-08-11 颜色匹配契约纠正（本轮完成逻辑切片）
+
+- [x] 对照 `SACAssetsManager@94c8534a` 的颜色倒排查询：颜色命中使用 CIEDE2000 色差阈值 `<20`，不再把 RGB 欧氏距离当作参考实现。
+- [x] 删除未接通的 `PaletteProbe`/`PaletteExtractor` 外部根按需扫描实验；`filequery` 继续只负责授权根查询与 walker 编排，解码策略不进入领域层。
+- [x] 新增共享 `kernel/color`，统一 RGB -> sRGB 线性 -> Lab(D65) -> CIEDE2000；`assetmeta.PaletteMatches` 和 SQLite `ciede2000_rgb` provider 复用同一实现。
+- [x] 证据：`go test ./color ./assetmeta ./filequery` 通过；`go test ./sql -run '^$'` 纯编译通过；`go test ./sql` 的既有 FTS5 测试因当前构建缺少 `fts5` 模块失败，未把该失败归因到颜色改动；`git diff --check` 通过。
+- [ ] 颜色 provider 的外部根未索引文件、Everything/EFU 颜色入口、目录监听和真实桌面性能仍未完成；本切片不宣称全量颜色功能完成。
+
+## 2026-08-11 Monaco 网络文件只读模型切片（进行中）
+
+- [x] 参照 `siyuan-plugin-monaco-editor@edce237dab4ef807be3b8647087543bcb87d1ca7` 的 `src/handlers/network.ts`，实现独立网络文本读取模型：GET、扩展名优先、无扩展名按 Content-Type 识别语言。
+- [x] 接入 `sforge-file-network` 只读 Monaco 页签和显式打开端口；网络 URI 不进入本地文件根、文件操作或 Electron 默认应用路径。
+- [x] 增加请求/HTTP/取消/超限/URI 错误模型和 5 个业务契约用例；`pnpm run typecheck:protyle-contract`、新增模块筛选后的 `vue-tsc` 检查通过。
+- [x] 子 TTT 已建立：[`Monaco网络文件只读模型.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/Monaco网络文件只读模型.shorterm.ttt.md)。
+- [ ] 网络入口菜单、页签恢复、代理/CORS 现场和完整 Monaco handler 矩阵仍未完成；本切片不宣称 M4 或主线全量完成。
+
+## 2026-08-11 文件 loader provider 真实夹具闭环（已完成切片）
+
+- [x] 对照 `SACAssetsManager@94c8534a` 最终内置序列，确认 S-Forge `kernel/assets` 格式策略与 `kernel/thumbnail` 的 SVG、SY、D5M、Windows、Go Imaging provider 分层；不把 `onlyName` 或文件图标当作缩略图 provider。
+- [x] SVG 真实文件夹具验证原始字节和 `image/svg+xml`；D5M 真实 ZIP 夹具验证根级 `icon.png`、嵌套同名文件不误选、缺失图标显式报错和 `image/png`；Manager 顺序验证 `SVG < SY < D5M < GoImaging`。
+- [x] 旧资源预览的 SVG、D5M、SY 均通过共享 `/api/s-forge/thumbnail` 请求；新增前端契约测试覆盖 provider 专用路径，不生成图标/空地址回退。
+- [x] 证据：`go test ./thumbnail -count=1`；`pnpm exec vitest --run test/asset/renderAssetsPreview.interaction.test.ts test/asset/AssetCard.interaction.test.ts --reporter=dot`（均通过）。
+- [ ] Windows Shell provider 的真实系统扩展能力、外部根媒体和桌面现场原图/卡片验收仍未完成；SVG/D5M 夹具闭环不代表主线全量完成。

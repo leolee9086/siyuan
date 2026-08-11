@@ -17,7 +17,7 @@
 | 右键菜单与动作 | `src/explorer/menu.ts`、`src/components/UploadDialog.svelte` | 统一 file operation command | 待实现 |
 | 拖动移动、批量上传、外拖下载 | `src/explorer/filetree.ts`、组件 DnD | 后端原子操作、打包下载和进度 | 待实现 |
 | 本地文件编辑 | `src/handlers/local.ts`、`Editor*.svelte` | capability 授权的文本文档页签 | 待实现 |
-| 网络文件查看 | `src/handlers/network.ts` | 只读网络文档模型，明确来源和保存限制 | 待实现 |
+| 网络文件查看 | `src/handlers/network.ts` | 只读网络文档模型，明确来源和保存限制 | 基础模型/只读页签已实现，完整入口与桌面验收进行中 |
 | Markdown/Kramdown 块编辑 | `src/handlers/block.ts`、`history.ts` | 复用 Lute/块 API，支持差异和保存 | 待实现 |
 | 代码片段、收集箱、文件/文档历史、快照 | `src/handlers/{snippet,inbox,history,snapshot}.ts` | 统一只读/可写编辑模型和差异模型 | 待实现 |
 | Vditor 编辑/预览和资源上传 | `src/components/Vditor*.svelte`、`vditor/*` | 保持现有 Protyle/资源上传边界，按需求接入 | 待实现 |
@@ -41,3 +41,10 @@
 - 拖拽链覆盖树内移动、拖入文件/目录上传、浏览器拖出下载、静态资源多 MIME 超链接载荷以及目录悬停 500ms 自动展开；目录不能移入自身或后代，移动后同时刷新源目录和目标目录。
 - `src/explorer/menu.ts` 按根/目录/文件过滤完整菜单，包含新建、当前/递归刷新、多种打开方式、系统定位、复制名称/相对路径/完整路径/编辑与预览链接、历史差异、桌面复制/导出、浏览器上传/下载、重命名和删除；创建与重命名检查空名、非法名和同名冲突。`data`、`repo`、`.lock` 的编辑/移动/重命名/删除受权限矩阵约束，受保护操作要求输入完整路径二次确认。
 - S-Forge `app/src/util/file/tree/Tree.ts` 可复用 B3 视觉、基本焦点、右键/拖拽分发和展开 ID 语义，但其输入绑定思源块树且以整棵 `innerHTML` 重绘为核心，没有节点级异步加载、分页、错误和并发修订状态。文件浏览域需要专用递归 Vue 节点模型，同时沿用现有样式和宿主菜单，不能把通用 `Tree` 的存在当作 Monaco 行为已实现。
+
+## 2026-08-11 网络文件只读模型切片
+
+- [x] 对照参考 `src/handlers/network.ts` 落地 GET、扩展名优先和无扩展名 Content-Type 语言识别。
+- [x] 增加只读网络页签、取消/HTTP/请求/解码/超限错误边界；实现不复用本地根读写 API，不暴露保存入口。
+- [x] 详细记录、源码入口和未完成边界见 [`Monaco网络文件只读模型.shorterm.ttt.md`](Monaco网络文件只读模型.shorterm.ttt.md)。
+- [ ] 网络入口菜单、恢复、代理/CORS 现场和其它 handler 仍未完成，不能据此宣称 Monaco 全量迁移。

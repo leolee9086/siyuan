@@ -16,6 +16,8 @@ import {registerFileBrowserPreviewTab} from "./FileBrowser.preview";
 import {registerFileBrowserGalleryTab} from "./FileBrowser.gallery";
 /** 用途：注册本地文本编辑页签；使用范围：文件树打开和布局恢复。 */
 import {registerFileBrowserEditorTab} from "./FileBrowser.editor";
+/** 用途：注册网络文本只读页签；使用范围：外部 URI 打开入口。 */
+import {registerFileBrowserNetworkTab} from "./FileBrowser.networkTab";
 import {openFileBrowserTagResults} from "./FileBrowserTagNavigation";
 /** 用途：应用和页签宿主类型；使用范围：Dock 工厂参数。 */
 import type {AppFacade, CustomDomain, Tab} from "./dock/imports";
@@ -31,6 +33,7 @@ export {FILE_BROWSER_DOCK_TYPE, FILE_PROPERTIES_DOCK_TYPE, FILE_TAG_TREE_DOCK_TY
 registerFileBrowserPreviewTab();
 registerFileBrowserGalleryTab();
 registerFileBrowserEditorTab();
+registerFileBrowserNetworkTab();
 
 /** 将共享文件浏览面板挂载到既有 Custom model，并把销毁交还布局生命周期。 */
 function initFileBrowserDock(custom: CustomDomain) {

@@ -66,7 +66,7 @@
 
         <main ref="galleryContent" class="sforge-file-gallery__content" @mousedown.left="startMarquee"
             @dragover.prevent="handleGalleryDragOver" @drop.prevent="handleGalleryDrop">
-            <div v-if="galleryDisplayState === 'ready'" key="gallery-ready"
+            <div v-if="galleryContentState.kind === 'ready'" key="gallery-ready"
                 class="sforge-file-gallery__ready-surface">
                 <div v-if="layoutMode === 'table'" class="sforge-file-gallery-table-header"
                     role="row" aria-label="表格列标题">
@@ -98,16 +98,16 @@
                 <div v-if="marquee.active" class="sforge-file-gallery__selection-box" :style="marqueeStyle"
                     aria-hidden="true" />
             </div>
-            <div v-else-if="galleryDisplayState === 'loading'" key="gallery-loading" class="sforge-file-gallery__state">
+            <div v-else-if="galleryContentState.kind === 'loading'" key="gallery-loading" class="sforge-file-gallery__state">
                 <svg class="fn__rotate"><use href="#iconRefresh" /></svg>
                 <span>正在读取资源</span>
             </div>
-            <div v-else-if="galleryDisplayState === 'error'" key="gallery-error"
+            <div v-else-if="galleryContentState.kind === 'error'" key="gallery-error"
                 class="sforge-file-gallery__state sforge-file-gallery__state--error">
                 <span>{{ rootsError || error || galleryResult.error }}</span>
                 <button type="button" class="b3-button b3-button--text" @click="() => runScopedSearch()">重试</button>
             </div>
-            <div v-else-if="galleryDisplayState === 'empty' && galleryAssets.length === 0" key="gallery-empty"
+            <div v-else-if="galleryContentState.kind === 'empty'" key="gallery-empty"
                 class="sforge-file-gallery__state">
                 <svg><use href="#iconAssets" /></svg>
                 <span>{{ hasQuery ? "没有匹配资源" : "此目录没有可展示的资源" }}</span>
@@ -182,9 +182,8 @@ import {
     appendFileBrowserGalleryPage,
     applyFileBrowserGalleryInitialPage,
     createFileBrowserGalleryResult,
-    deriveFileBrowserGalleryDisplayState,
+    deriveFileBrowserGalleryContentState,
     type FileBrowserGalleryAsset,
-    type FileBrowserGalleryPhase,
     type FileBrowserGalleryResultState,
 } from "./FileBrowserGalleryState";
 
@@ -391,12 +390,12 @@ const loading = computed(() => galleryResult.value.phase === "loading");
 const error = computed(() => galleryResult.value.error);
 const loadingMore = computed(() => galleryResult.value.loadingMore);
 const pageError = computed(() => galleryResult.value.pageError);
-const galleryAssets = computed<FileBrowserGalleryAsset[]>(() => galleryResult.value.assets);
-const galleryDisplayState = computed<FileBrowserGalleryPhase>(() => deriveFileBrowserGalleryDisplayState(
+const galleryContentState = computed(() => deriveFileBrowserGalleryContentState(
     galleryResult.value,
     rootsLoading.value,
     rootsError.value,
 ));
+const galleryAssets = computed<FileBrowserGalleryAsset[]>(() => galleryContentState.value.assets);
 const galleryAttributes = FILE_BROWSER_GALLERY_ATTRIBUTES;
 const galleryAttributeKeys = galleryAttributes.map(attribute => attribute.key);
 const galleryAttributeLabels = Object.fromEntries(galleryAttributes.map(attribute => [attribute.key, attribute.label]));

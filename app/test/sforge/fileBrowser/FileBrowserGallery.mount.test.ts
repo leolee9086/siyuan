@@ -1,4 +1,6 @@
 import {afterEach, describe, expect, it, vi} from "vitest";
+import {Custom} from "../../../src/layout/dock/custom/Custom";
+import {destroyModel} from "../../../src/layout/Wnd.tabAction";
 import {mountFileBrowserGallery} from "../../../src/sforge/fileBrowser/FileBrowser.gallery";
 import {fileBrowserQueryRepository} from "../../../src/sforge/fileBrowser/FileBrowser.query.repository";
 import {fileBrowserRepository} from "../../../src/sforge/fileBrowser/FileBrowser.repository";
@@ -71,5 +73,35 @@ describe("FileBrowser gallery host lifecycle", () => {
         expect(host.querySelectorAll(".sforge-file-gallery")).toHaveLength(1);
         secondDestroy?.();
         expect(host.querySelectorAll(".sforge-file-gallery")).toHaveLength(0);
+    });
+
+    it("unmounts through the normal Custom model disposal path", async () => {
+        vi.stubGlobal("siyuan", {config: {fileTree: {openFilesUseCurrentTab: false}}});
+        vi.spyOn(fileBrowserRepository, "listRoots").mockResolvedValue([root]);
+        vi.spyOn(fileBrowserQueryRepository, "search").mockResolvedValue(result);
+        host = document.createElement("div");
+        document.body.append(host);
+
+        const tab = {
+            id: "gallery-tab",
+            headElement: document.createElement("li"),
+            panelElement: host,
+        };
+        const model = new Custom({
+            app: {openAsset: vi.fn(), openTab: vi.fn(async () => undefined)} as never,
+            type: "sforge-file-gallery",
+            tab: tab as never,
+            data: {rootID: root.id, path: "", name: "全部资源", scope: "global"},
+            init: mountFileBrowserGallery,
+        });
+
+        await vi.waitFor(() => expect(host?.querySelector(".sforge-file-gallery")).toBeTruthy());
+        await vi.waitFor(() => expect(host?.textContent).toContain("hero.png"));
+        expect(host.querySelectorAll(".sforge-file-gallery")).toHaveLength(1);
+
+        destroyModel(model);
+
+        expect(host.querySelectorAll(".sforge-file-gallery")).toHaveLength(0);
+        expect(host.textContent).not.toContain("hero.png");
     });
 });

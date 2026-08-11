@@ -46,6 +46,7 @@ describe("Forge Runtime browser continuity", () => {
         expect(document).toContain("default-src 'none'");
         expect(document).toContain("connect-src http://localhost:6806");
         expect(document).toContain("/api/s-forge/forge/runtime/status");
+        expect(document).toContain("status.lifecycle===\"ready\"&&status.ready===true");
         expect(document).toContain(exitContext.jobId);
         expect(document).toContain(exitContext.targetRevision);
         expect(document).toContain("active.revision===config.targetRevision");

@@ -49,7 +49,7 @@ import "./export-preview/register";
 import "./bazaar-hub/register";
 // 注册 MAGI Identity Access 页签类型
 import "./magi/identity-access/adapters/register";
-import { isBrowser, isBrowserDesktop } from "./platform";
+import { isBrowser, isBrowserDesktop, isElectron } from "./platform";
 import { ipcSend } from "./platform/electron/ipcRenderer";
 import { reloadEmoji } from "./emoji";
 import { processIOSPurchaseResponse } from "./util/platform/iOSPurchase";
@@ -95,6 +95,71 @@ import {loadSiyuanLanguages} from "./util/siyuanEnvironments/languages/environme
 import {escapeHtml} from "./util/DOM/escape";
 import {initForgeRuntimeControl} from "./sforge/forgeRuntime";
 import {createForgeRuntimeRecoveryURL} from "./sforge/forgeRuntime/exitContinuity";
+import {
+    reloadForgeRuntimeElectronInterface,
+    startForgeRuntimeElectronContinuity,
+} from "./sforge/forgeRuntime/electronContinuity";
+import {getSForgeState} from "./config/sforge.global";
+import {FORGE_RUNTIME_CONTROL} from "./config/sforge.symbols";
+import type {ForgeRuntimeElectronContinuityResult} from "./sforge/forgeRuntime/types";
+
+const forgeRuntimeElectronContinuityMessageID = "forgeRuntimeElectronContinuity";
+
+/** 将 Electron 接续终态转换为主界面可观察的错误信息。 */
+const describeForgeRuntimeElectronContinuityResult = (result: ForgeRuntimeElectronContinuityResult): string => {
+    switch (result.state) {
+        case "rolled_back":
+            return `Kernel 热替换已回滚：${result.detail}`;
+        case "failed":
+            return `Kernel 热替换失败：${result.detail}`;
+        case "rejected":
+            return `Kernel 热替换被控制面拒绝：${result.detail}`;
+        case "timed_out":
+            return `Kernel 热替换等待超时：${result.detail}`;
+        default:
+            return "";
+    }
+};
+
+/** Electron 收到结构化 Forge 退出事件后独立接续；普通退出不进入此流程。 */
+const handleForgeRuntimeElectronExit = (value: unknown): void => {
+    let continuity: ReturnType<typeof startForgeRuntimeElectronContinuity>;
+    try {
+        continuity = startForgeRuntimeElectronContinuity(value, {
+            onPhase: (_phase, detail) => {
+                const suffix = detail ? `：${detail}` : "";
+                showMessage(`Forge Runtime 正在接续 Kernel${suffix}`, 0, "info", forgeRuntimeElectronContinuityMessageID);
+            },
+        });
+    } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        console.error("[Forge Runtime] Electron 接续初始化失败", error);
+        showMessage(`Kernel 热替换接续初始化失败：${detail}`, 8000, "error", forgeRuntimeElectronContinuityMessageID);
+        return;
+    }
+    if (!continuity) {
+        return;
+    }
+    const control = getSForgeState(FORGE_RUNTIME_CONTROL);
+    control?.pauseForKernelRestart();
+    void continuity.then((result) => {
+        void hideMessage(forgeRuntimeElectronContinuityMessageID);
+        if (result.state === "completed") {
+            reloadForgeRuntimeElectronInterface();
+            return;
+        }
+        control?.resumeAfterKernelRestart();
+        showMessage(describeForgeRuntimeElectronContinuityResult(result), 8000, "error",
+            `${forgeRuntimeElectronContinuityMessageID}Outcome`);
+    }, (error: unknown) => {
+        void hideMessage(forgeRuntimeElectronContinuityMessageID);
+        control?.resumeAfterKernelRestart();
+        const detail = error instanceof Error ? error.message : String(error);
+        console.error("[Forge Runtime] Electron 接续失败", error);
+        showMessage(`Kernel 热替换接续失败：${detail}`, 8000, "error",
+            `${forgeRuntimeElectronContinuityMessageID}Outcome`);
+    });
+};
 
 export class App {
     readonly [appFacadeBrand] = "AppFacade" as const;
@@ -372,6 +437,8 @@ export class App {
                                     console.error("Forge Runtime recovery page initialization failed", error);
                                     window.location.href = "about:blank";
                                 }
+                            } else if (isElectron) {
+                                handleForgeRuntimeElectronExit(data.data);
                             }
                             break;
                         case "updateKernelPluginState": {

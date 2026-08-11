@@ -49,12 +49,12 @@ type Service struct {
 
 // NewService composes a root authority and an indexed metadata search implementation.
 func NewService(roots RootProvider, search IndexSearch, enumerators ...FileEnumerator) *Service {
-	if search == nil {
-		search = assetmeta.SearchAssetsAdvanced
-	}
 	var enumerator FileEnumerator
 	if len(enumerators) > 0 {
 		enumerator = enumerators[0]
+	}
+	if search == nil {
+		search = assetmeta.SearchAssetsAdvanced
 	}
 	return &Service{roots: roots, search: search, enumerator: enumerator}
 }

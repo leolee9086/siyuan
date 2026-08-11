@@ -73,7 +73,7 @@
                 </span>
                 <label class="sforge-file-search__number">
                     <span>容差</span>
-                    <input v-model="tolerance" type="number" min="0" max="442" step="1" aria-label="颜色容差"
+                    <input v-model="tolerance" type="number" min="0" max="100" step="1" aria-label="颜色容差"
                         :disabled="!colorEnabled" @input="scheduleSubmit" />
                 </label>
                 <label class="sforge-file-search__number">
@@ -153,7 +153,7 @@ const selectedExtensions = ref<string[]>(cleanStringList(initialRequest.exts));
 const matchAllTags = ref(initialRequest.matchAllTags ?? false);
 const colorEnabled = ref(false);
 const color = ref("#ffffff");
-const tolerance = ref("30");
+const tolerance = ref("20");
 const minRatio = ref("");
 const minH = ref("");
 const maxH = ref("");
@@ -184,7 +184,7 @@ function resetFormFromProps() {
     matchAllTags.value = request.matchAllTags ?? false;
     colorEnabled.value = Boolean(request.palette);
     color.value = colorToHex(request.palette?.color);
-    tolerance.value = request.palette?.tolerance === undefined ? "30" : String(request.palette.tolerance);
+    tolerance.value = request.palette?.tolerance === undefined ? "20" : String(request.palette.tolerance);
     minRatio.value = request.palette?.minRatio === undefined ? "" : String(request.palette.minRatio);
     minH.value = request.palette?.minH === undefined ? "" : String(request.palette.minH);
     maxH.value = request.palette?.maxH === undefined ? "" : String(request.palette.maxH);

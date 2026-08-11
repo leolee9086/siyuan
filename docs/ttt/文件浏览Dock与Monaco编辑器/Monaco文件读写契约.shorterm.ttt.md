@@ -45,6 +45,11 @@
 
 - [x] 已核对现有 `fswalk` 编码识别、原始字节 revision、原子写回、权限保留、同根校验和符号链接拒绝实现；此前单一 UTF-16LE 写回用例不足以证明四种编码，需补齐四编码写回矩阵。
 - [x] 已核对 `filebrowser.Service` 的只读挂载 capability 与编辑器领域错误适配；目录、二进制、越界、符号链接、超限和 revision 冲突的领域测试已存在，API 返回码矩阵仍需补证。
-- [ ] 补充 `/editor/read`、`/editor/write` 对边界错误的 HTTP 包络测试，确保错误不会伪装成空文档或成功响应。
-- [ ] 补充前端仓储对编辑器读写请求字段和响应地址的严格测试；请求只包含根 ID、根相对路径、文本、编码、revision 和可选大小，不暴露绝对路径或句柄。
+- [x] `kernel/api/file_browser_test.go` 已覆盖 `/editor/read`、`/editor/write` 的缺失请求、远端请求、二进制、超限、目录、越界、只读挂载、非法编码、revision 冲突和 HTTP 状态包络。
+- [x] `app/test/sforge/fileBrowser/FileBrowser.repository.test.ts` 已覆盖四种编码、请求字段、响应地址一致性、缺失 data 和错误包络；请求不暴露绝对路径或句柄。
 - [ ] 保留 Monaco 页签的 Ctrl+S、只读、脏状态和桌面现场验收为独立未完成项，不以挂载测试替代真实窗口证据。
+
+## 2026-08-11 读写契约证据复核
+
+- [x] 复核 Go API 测试源码与前端仓储测试源码，以上边界矩阵已实际落盘；此前记录的“待补”状态已更正为已覆盖。
+- [ ] `go test` 本轮未重复执行，当前 Windows 环境的 Go 构建缓存权限问题仍需单独取得可复现的执行证据；不把静态源码核对当作本轮运行通过。

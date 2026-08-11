@@ -22,6 +22,13 @@ export interface FileBrowserGalleryResultState {
     pageError: string;
 }
 
+/** 内容区唯一允许的投影；资源数组和空态不能由两个独立来源分别决定。 */
+export type FileBrowserGalleryContentState =
+    | {kind: "loading"; assets: FileBrowserGalleryAsset[]}
+    | {kind: "ready"; assets: FileBrowserGalleryAsset[]}
+    | {kind: "empty"; assets: []}
+    | {kind: "error"; assets: FileBrowserGalleryAsset[]};
+
 export function createFileBrowserGalleryResult(
     phase: FileBrowserGalleryPhase = "loading",
 ): FileBrowserGalleryResultState {
@@ -102,4 +109,28 @@ export function deriveFileBrowserGalleryDisplayState(
         return "error";
     }
     return state.assets.length > 0 ? "ready" : "empty";
+}
+
+/**
+ * 将根加载和查询归约为内容区的单一判别状态。
+ *
+ * 这里返回资源数组的同一快照，模板只能从 `kind` 选择一个分支，避免
+ * ready 网格和空态分别消费不同的 ref 后在一次更新中短暂并存。
+ */
+export function deriveFileBrowserGalleryContentState(
+    state: FileBrowserGalleryResultState,
+    rootsLoading: boolean,
+    rootsError: string,
+): FileBrowserGalleryContentState {
+    const displayState = deriveFileBrowserGalleryDisplayState(state, rootsLoading, rootsError);
+    if (displayState === "loading") {
+        return {kind: "loading", assets: []};
+    }
+    if (displayState === "error") {
+        return {kind: "error", assets: state.assets};
+    }
+    if (state.assets.length > 0) {
+        return {kind: "ready", assets: state.assets};
+    }
+    return {kind: "empty", assets: []};
 }

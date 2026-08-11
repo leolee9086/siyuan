@@ -20,7 +20,8 @@ const requireSuccessfulResponse = (response: IWebSocketData, operation: string) 
 
 export class ForgeRuntimeClient {
     public async getStatus(): Promise<ForgeRuntimeStatusData> {
-        const response = await fetchSyncPost("/api/s-forge/forge/runtime/status", {}, forgeRuntimeWebUIHeaders);
+        const response = await fetchSyncPost("/api/s-forge/forge/runtime/status", {}, forgeRuntimeWebUIHeaders,
+            {processMessage: false});
         return forgeRuntimeStatusDataSchema.parse(requireSuccessfulResponse(response, "Forge Runtime status"));
     }
 

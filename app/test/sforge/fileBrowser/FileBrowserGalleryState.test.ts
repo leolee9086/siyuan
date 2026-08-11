@@ -3,6 +3,7 @@ import {
     appendFileBrowserGalleryPage,
     applyFileBrowserGalleryInitialPage,
     createFileBrowserGalleryResult,
+    deriveFileBrowserGalleryContentState,
     deriveFileBrowserGalleryDisplayState,
 } from "../../../src/sforge/fileBrowser/FileBrowserGalleryState";
 import type {FileBrowserSearchResult} from "../../../src/sforge/fileBrowser/FileBrowser.query.types";
@@ -19,6 +20,9 @@ describe("FileBrowserGalleryState", () => {
     it("derives ready from assets even when a stale phase says empty", () => {
         const state = {...createFileBrowserGalleryResult("empty"), assets: [{...asset("a.png"), key: "a"}]};
         expect(deriveFileBrowserGalleryDisplayState(state, false, "")).toBe("ready");
+        const content = deriveFileBrowserGalleryContentState(state, false, "");
+        expect(content.kind).toBe("ready");
+        expect(content.assets).toHaveLength(1);
     });
 
     it("keeps loaded assets when an empty pagination page arrives", () => {
@@ -39,5 +43,11 @@ describe("FileBrowserGalleryState", () => {
         );
         expect(state.phase).toBe("empty");
         expect(deriveFileBrowserGalleryDisplayState(state, false, "")).toBe("empty");
+        expect(deriveFileBrowserGalleryContentState(state, false, "")).toEqual({kind: "empty", assets: []});
+    });
+
+    it("does not project stale assets while the unified result is loading", () => {
+        const state = {...createFileBrowserGalleryResult("ready"), assets: [{...asset("a.png"), key: "a"}]};
+        expect(deriveFileBrowserGalleryContentState(state, true, "")).toEqual({kind: "loading", assets: []});
     });
 });

@@ -1,6 +1,6 @@
 # Efu 与 Everything provider 迁移（TikTocTak）
 
-> **状态**：审计完成，接入未开始（2026-08-10）
+> **状态**：契约冻结，接入进行中（2026-08-11）
 > **父任务**：[`文件浏览Dock与Monaco编辑器.ttt.md`](../文件浏览Dock与Monaco编辑器.ttt.md)
 
 ## 已确认参考调用链
@@ -18,12 +18,18 @@
 
 ## 待实现契约
 
-- [ ] 冻结 `FileBrowserExternalProvider` 的 provider ID、能力、健康状态、分页、取消和明确错误模型。
-- [ ] Everything HTTP provider 只接受本机配置的 host/port，返回外部地址到受控 `ExternalAssetAddress`，不冒充 workspace/Agent root。
-- [ ] EFU provider 只读取已授权的根内 `.efu` 文件，使用结构化 CSV 解析，保留重复项、坏行和时间转换错误的逐项状态。
+- [x] 冻结 `FileBrowserExternalProvider` 的 provider ID、能力、健康状态、分页、取消和明确错误模型：`everything-http` 与 `efu` 独立请求/响应，页大小上限 1000，`context.Context` 取消直接返回取消错误，provider 失败不转为空结果。
+- [x] Everything HTTP provider 只接受 loopback host（`localhost`、`127.0.0.1`、`::1`）和 1-65535 端口；结果使用短期受控 `ExternalAssetAddress` token，不冒充 workspace/Agent root，也不把绝对路径写入本地根页签数据。
+- [x] EFU provider 只读取已授权根内的 `.efu` 文件，使用 RFC4180 CSV 解析；重复项保留，坏行、缺失字段、大小/时间转换错误写入逐项 `issues`，不静默过滤或伪造成功。
 - [ ] 为两条 provider 设计独立 API 仓储和画廊来源页签；默认工作空间/Agent 根查询逻辑保持不变。
 - [ ] 用本地 HTTP fixture、EFU 字节 fixture、取消、分页、服务不可用和路径越界测试验证；不得以空数组代替 provider 错误。
 - [ ] 接入完成后把本文件移入 `docs/ttt/archive/`，保留审计证据和未完成边界。
+
+## 冻结的领域响应
+
+- `ExternalAssetAddress` 只包含 `provider`、短期 `token` 和展示用 `name`；token 由 kernel registry 生成，内容/缩略图请求不能提交任意绝对路径。
+- `ExternalAssetPage` 保留 `assets`、`totalCount`、`offset`、`limit`、`hasMore`、`provider` 和 `issues`；Everything 的 HTTP/JSON/结构错误是页级错误，EFU 的行级问题只进入 `issues`。
+- Everything 请求保留 `search`、`offset`、`limit`、`sort`；EFU 请求保留 `rootID`、`.efu` 根内 `path`、`offset`、`limit`。两者不修改 `filequery.SearchRequest`。
 
 ## 当前证据
 

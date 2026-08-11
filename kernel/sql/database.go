@@ -44,6 +44,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/siyuan-note/eventbus"
 	"github.com/siyuan-note/logging"
+	assetcolor "github.com/siyuan-note/siyuan/kernel/color"
 	"github.com/siyuan-note/siyuan/kernel/treenode"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
@@ -73,7 +74,12 @@ func init() {
 
 	sql.Register("sqlite3_extended", &sqlite3.SQLiteDriver{
 		ConnectHook: func(conn *sqlite3.SQLiteConn) error {
-			return conn.RegisterFunc("regexp", regex, true)
+			if err := conn.RegisterFunc("regexp", regex, true); err != nil {
+				return err
+			}
+			return conn.RegisterFunc("ciede2000_rgb", func(r1, g1, b1, r2, g2, b2 int64) float64 {
+				return assetcolor.CIEDE2000RGB([3]int{int(r1), int(g1), int(b1)}, [3]int{int(r2), int(g2), int(b2)})
+			}, true)
 		},
 	})
 }
