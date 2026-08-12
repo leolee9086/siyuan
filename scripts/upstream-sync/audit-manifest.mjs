@@ -272,7 +272,8 @@ export const deriveUpstreamReconciliation = ({repo, output, mainHead}) => {
     let expectedUpstreamBase = cycle.upstreamBase;
     for (const checkpoint of checkpoints) {
         if (checkpoint.status !== "integrated") {
-            throw new Error(`Topology checkpoint ${checkpoint.checkpointId ?? "<unnamed>"} is not integrated`);
+            console.warn(`[audit-manifest] topology checkpoint ${checkpoint.checkpointId ?? "<unnamed>"} has status ${checkpoint.status}; record kept as-is but excluded from the continuous boundary and topology coverage`);
+            continue;
         }
         if (typeof checkpoint.checkpointId !== "string" || checkpoint.checkpointId.length === 0) {
             throw new Error("An integrated topology checkpoint is missing checkpointId");

@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "sourceHead": "08e06828c470245829bc2e2dd75c0e3c591ebe60",
+  "sourceHead": "ecff339266b0492ce51609330834c3d2816939b7",
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
-  "upstreamTip": "8ebcffa04ce16bab2a3b1b2b9f9b235485918101",
+  "upstreamTip": "d1bdd0e6606ddf0be4bbb7e0dc19e1efe8420e9e",
   "summary": {
-    "total": 1194,
+    "total": 1360,
     "stateCounts": {
       "topology-integrated": 2,
       "delivery-integrated": 16,
@@ -13,7 +13,7 @@
       "semantic-verified": 0,
       "audit-in-progress": 0,
       "audit-blocked": 0,
-      "audit-pending": 1176
+      "audit-pending": 1342
     },
     "semanticVerifiedPrefix": {
       "count": 6,
@@ -1313,6 +1313,7 @@
       "59c8e27964941e73bc5b95150fac09ae4c442eb5",
       "5a9761f0f97c6219c6abe899c489dbfce5a2ba80",
       "d025b7677985a93d8c1d4e05c9819465a69d23ae",
+      "b4b81d593d700bc48348ac80225e483e9c56c493",
       "0bffce84b1dd38025cb08515adcc070870d5ec49",
       "dd08975c765e4da3706e1c2828700ac098c9f1ae",
       "edb53234ae734862b7549cf5b98dc8bb29a0c205",
@@ -1325,13 +1326,174 @@
       "cc1083dd8f2867a93f907e752c45e918bb0f4601",
       "0847b93030b051a08460a0573fef693227ce333b",
       "67662449334bb8bc257997081af3b58b15e223d8",
-      "8ebcffa04ce16bab2a3b1b2b9f9b235485918101"
+      "8ebcffa04ce16bab2a3b1b2b9f9b235485918101",
+      "74c1ed5a367750751adcc5ec8cecd016674c33e4",
+      "158374e06f000b459056d9755e2f23529207b636",
+      "1fdbf41dc0f52f6db0b894dd949d7b28f52c4094",
+      "42349db6756a9326eb4b4bb06fb3f20855f27a27",
+      "54ae6eb262587dcf795330526084e1c84ed6cd70",
+      "22b3064cda471aa45a467d09329e462f18c0211f",
+      "9ec2ac9149a05d36caa31e9377493d1e7e39fb47",
+      "be1013d84e60b925caac57ab244d4f06be28a2c8",
+      "c067293704d801595316c42e623bae71dc587930",
+      "8bbdf876f9960493075ad27001bb02ea320a7686",
+      "32230ecb6c96982b4ce415d00d21b231f5b08877",
+      "60b4955bc1bbb0827600d3ede085021955777001",
+      "acd6a417866ac1b432c26aedb12583bbbdb07809",
+      "2aa12ce585aebcc42b16a0072db8123e8a57a5a0",
+      "85ba69bc811d04d0e91b7c419e6bd4e3f3989224",
+      "32a1336ff9b915995095bcef5227c31e4f2690a8",
+      "78ecb8bbad811324f3b1a39ceefe290e82c9ddf4",
+      "004f908b9c53cd68345a7faa09ab8cec0b21cd08",
+      "54c5a27ce6e8f4497276c4e0124f3f531b964d3b",
+      "ecbc0eb6fb12a17853393c756bddb270dcc4ea5c",
+      "f4497ceff5c5f95eef3d3181d7bd86e525191f3c",
+      "8269e61d29f2fb1e1c013833639d5e5e86058477",
+      "0db6f19bf5aa5544b0853db7fa32ac78e62670c9",
+      "110df4e761617c65f5c7490cf0660bba1ecd7ee3",
+      "6a00e3215f46d574ef51cf51a22b6e72858b3797",
+      "04c9b2d763d01511237938ce6aa2695397066d3f",
+      "d727949b3ca52c866c6dec02ecd5f2aab4b11ddd",
+      "a042f6e44b045165cff0a138aaa450f1387c34ea",
+      "1c50071bbb971c6ac326611ffbf897ee1f0c04fa",
+      "f31bc27d73dc3eee988212f11b743385b06b0a4b",
+      "27a697dbe235785de85583cd52173691b983a417",
+      "3228ee42396164890acabe9a936d4ed28396aadf",
+      "15da28cd1bb13df1ca9496d7fa9459f13409e18e",
+      "03434e92300ad30dd8a38be4c6cb761585a4bb04",
+      "97427bfa676c6ec5513e86701f6e5636edd3a126",
+      "e2d33f29e9c7634a67036a6b52aea25ce1f04e6b",
+      "1f603b912253d5580786abd0bbd6f19bdfe151c4",
+      "0c5da7bd38d0d784d5357e8b9c0f0eb8df917d65",
+      "c81476c2dba777c173e8901a02f9330e2e38daa9",
+      "cb1f5c452ff1ab6edbb1bda590b09b99d3e815ea",
+      "7d13eb0139364f6d408c74ed5750c0a29f97eec9",
+      "606c08aef39eed2d66c9789c70b4dd090320049d",
+      "eb2185ac48dd391a7b9dc92f2130ceeb3af00d94",
+      "8c784ca1ed850bd796affb5f865c2b99ecde0ad8",
+      "7bc705f9883fd44e60b4111cf8946e068c565228",
+      "6c824da6fdb0f7452296453927f8ff2fa391f2a9",
+      "82ef7048823e70e161845dd91b13ff8e6b0e1ddb",
+      "99e85433b290dfd2aa8541de74439b36017c07f1",
+      "6882db586eefb9a1b0d1bb9b6e3904c8bb5c27a0",
+      "4fbc0cfbcafcccf38317912c47f157eaa67c6925",
+      "ed44344b836c541944e1e683f5b0db94992172e3",
+      "b7887d737410ac77de2608bc19d2c9b2be0952cd",
+      "8f4f781b0536b1e4a00b7cfbccc0cf00b8b70a24",
+      "d5e28cff4da0cfe12d73593316a5bb726539daa4",
+      "fd24a4a3739799e9011f6aca6c11b2a70e66098c",
+      "779f160f8900073fcc909ec44f5cc6428d9a007b",
+      "914e650770554d4a613cc2f59cecd1fb58b8d53f",
+      "a798512dcc1c1ac16687169ef115c6d256e13550",
+      "577548e5e34205de6c07f3e9e16e4b4ae81b1ed6",
+      "6c643ceda2cd86b40f50aac80e7ee6938df0c29a",
+      "148f3c671108d135d058591c8131d6d4870d9989",
+      "0a88e5f6898b04afe8d1ce5e74c90ca7f6270836",
+      "c3d18e29814343ace9571bb405bfb762187c3723",
+      "906b685a7726970101aa64c09aebeacb652d55de",
+      "dc65b5009b44e15a64012d8de0d78e84337ecaaf",
+      "2d9a403e4f9e48ae57fdfd557169cd57b818b0bb",
+      "834c55b74c28442b64f994bc3ff96b064a2004fe",
+      "88bea93a59f17ab0d0dd323c8324656204e2958c",
+      "44befaddc1c3e25779eb73f6e60e37301390d323",
+      "ebac1b74a0e2fb7777ecb7bb9b372f80913e2a88",
+      "1ce24404d42d4313fc811d2327b924fa9b153a68",
+      "1297df9fb85aaeace84058cc081bf11127643b42",
+      "a8d2cc4e495234ed06dc87715574657ace4db155",
+      "f8d8805de5f2d0013a6cdaabedecc0076e9dd29a",
+      "995410f2b6dcba8bf2f862fc92b65a05b44b95c8",
+      "469810a053a4516c00d7b23a7214d4b21aba6417",
+      "cab0ab9948cc2c8a18c88f6f49c56f975a1024ec",
+      "f3d98acec357febdbe64150be613c3d20bfab816",
+      "e795937d683729058be5f2f116f679e5895360e4",
+      "be1a2ccdff72abd54141ad5405e101b3444489ec",
+      "c775528bb08dc443f03dcf94677a3f1b424378a1",
+      "08bfa8ad49157524ad8d6dbfdeb5e99a4fe3f086",
+      "6420c28caaccfd0449870fa63187c2c031ae00a9",
+      "f085485310b4a5d71d76a335532d0c9632c7a0af",
+      "b32b45b389a7961a5f68a8fc29a743ff987e9a40",
+      "610ad59c857432620b79d46d19aeb5c228d33207",
+      "76a0643b844aef0177c03480fa2ccb2edef47148",
+      "6a3216d4c14109829b5237bb11210b0848f17bba",
+      "83a164f94566894d741fbc70466c01b18614e6d5",
+      "ba8da634dfe291180edbd5f753b684f325945ccf",
+      "676053be4146837e97fb5807db7dabbcdd4c76d8",
+      "cf799f16be6c238668e7a83616a1be8a8a15839f",
+      "313be336ae4c27010e4e2c00709a527385b8326c",
+      "60d833a2368a2d87c10f46d8a5f4c03cdac18074",
+      "f6c7b2758decde6297e4e133d506cc19a647e2e0",
+      "377326a01fd330fe71430f727a0fdeb31eabb60b",
+      "d4f3aebce24bf753575b545651132bf8f75b9c73",
+      "c4e89e8e40a7f7a47f3b648efde5a4fbcc8563c6",
+      "c7a9d13619f57e46e5ce0b7029820cf9da5ee5e6",
+      "ce9c604d948add7d472f503312eacfeb2389327d",
+      "98c3a7d5553ad9d922bd290779b7888543e15085",
+      "701c830b77b72facf45f3ca459c42f588cf94400",
+      "2ffe6f537351aea2b7f9438497395a15764c0fed",
+      "f75d1ae260c54b94b6ed2402ee3e718a5622dcf0",
+      "df22f306780eaf1738265c4f7983a5781da5757e",
+      "b710fde9ada477738b45188453038ea464845830",
+      "921ccce1220e409845c4ca4ce2e5ec6517a2d838",
+      "3ead6eeb9562b54aa055ebbb2785b8566aaf8c3b",
+      "5dcf82db18db84dc3aa6c01cbb52b4d10ac090ba",
+      "6953bd7aff0380f1ca4dd9845ba223abafb76775",
+      "f151ae415a83bfb2c2101b4b16cce56f265171dd",
+      "9841bb087ae2f42b5529b0e15ee8b4828e4428ee",
+      "38a36ba01c3ce6c4ef05124e7d70021b09c242f1",
+      "1e3c436a0670ad96d1c5408c143c17b8cebbacfc",
+      "ea8275757c50454a7d7184d92e0aaefaef2863ab",
+      "b00ff520040e1182932f1c6b8e209218acf1e3d3",
+      "734c4ed05563da0dd8c49cf7f35aa02785803d78",
+      "ace2790ed2f90cb33fedc446cab7013ed2a8ca96",
+      "47c31e7af01fc58f6f3ead83ce865336fa1dd99e",
+      "9ab5fd4bf825d6c05fa82ab066342601ab7ab818",
+      "7c00aa8c8154314e587e8d5d85d8ae678edc3079",
+      "a9add02b6de49241ec06a014f1afe5a73820ded9",
+      "cc30c6a9fb19e7b9df15870f35e783345bf3cc2d",
+      "9bc2641c948f6aaa7bfdff8f50dafa4f7a920194",
+      "9c340259b39814360eb53c06882de7d181cd50eb",
+      "d713580971c2877bd9a12152bda8e8dee59ed30a",
+      "544555b5f9c7485805f44fcb010141061fd8e22d",
+      "119fa74f02e77a9a9d716f42e2b86e369c277f11",
+      "ff6825af1e3a03ee81ab2fe25fee1dbe8bbcdc30",
+      "f08016571fcd615fef24ba9b51be9a11fa5bc428",
+      "f2814ce270b45f5f420636319421202765d5151b",
+      "226a9608173a2fec585eb72705d40ff798e07ccf",
+      "2e53d59af2462a8d77040a4db25a1aaaa823473e",
+      "8b4e13d5cee4a900c12a78890b2a8de426239e35",
+      "63a9e6e7aff530e9f81cf2a4d3aecce98232d49b",
+      "1c627c51a9580297c308ff92f0dcdc99229feaad",
+      "af2a987cfd39c92e8fb5d162c4e5a6eae00a6416",
+      "0f219f7d459f4615399cdfa977f87687c61e8766",
+      "61a62b18c34a7b1aeb4dce66d5f194c0b2337c03",
+      "e6d87fe4693dd3a9423500b0d9664fb3cf9495b5",
+      "525ba6076c6d98895948559986a8a4449fe9402a",
+      "28a51053e793e91718242bf9f9fbc81681f9b21c",
+      "965352043ecd69fe74e4dd78aa57a9fbf64d2461",
+      "7c0177b4b56cb3e8e1a37551807187ae6998ecb1",
+      "f3efbf1824c540433a64bf72716ec5de444dafce",
+      "cb730acc916b3de2c45a0c364ea8b95baaacfe87",
+      "b2005f20cc7d3a1a7a303c0d2c79c02ab2395579",
+      "b501a389305aa29fc54fb9da2ec64d919ee163f2",
+      "7f736ca837cf82c4a7d809dd26e16b43ae11ff87",
+      "eba40a7eecdc1e6f9db1bd4a2836ae03825452ff",
+      "743a167c3bcbd2524cad928de4dbe8a66942c750",
+      "251596fc0de2f9528c00c224252fd073a99973f4",
+      "54191e4e9e8eec49916b27fee9a01f4c1361c510",
+      "574a9a63d31a406ed20ce4b85436da84d9df86c8",
+      "0f9a3c2212f55d2da1ae683b3955493cfac6f768",
+      "be1a2b3ed8021b0f3c13bf4ade604ac8c127fb61",
+      "21dbce06a75d1c48f49abc70f765b5523bcff876",
+      "896f511c0b14bc146952641695623b9e0ad416cc",
+      "f23a8dffff9288218c6ec81da7f0cfbabf2528fd",
+      "e11e6f02e8f77bbc1094956660e0efda9cc5bf06",
+      "553bb6646084d7e69001e550f53e73a7590767bc",
+      "5fd295dc5ebbcf72f5fc4760a1d58090b3944a4b",
+      "ba6c15395d691fe1112699a0f61d38d10e790d24",
+      "8484e446e97036a36963a17424be53f7ea27f7ac",
+      "d1bdd0e6606ddf0be4bbb7e0dc19e1efe8420e9e"
     ],
     "topologyLag": [
-      "484e3782963cae4095bfcd71add5e168fb51d5e3",
-      "5437866299dba896b41b356abf4d28f059c9d89c",
-      "b8543f5b959a94b830db45853751a52222a3df2b",
-      "446be135969fc9676fd810968ba2f646a2ad9d55",
       "ab15722b032a53257c3ed6c3f076014335f72abe",
       "5bc3cdc055c2eca1367c0d8180468a5805de3a37",
       "30e2e49de7f4539f7939d645bf7905ad38c6f69b",
@@ -2507,6 +2669,7 @@
       "59c8e27964941e73bc5b95150fac09ae4c442eb5",
       "5a9761f0f97c6219c6abe899c489dbfce5a2ba80",
       "d025b7677985a93d8c1d4e05c9819465a69d23ae",
+      "b4b81d593d700bc48348ac80225e483e9c56c493",
       "0bffce84b1dd38025cb08515adcc070870d5ec49",
       "dd08975c765e4da3706e1c2828700ac098c9f1ae",
       "edb53234ae734862b7549cf5b98dc8bb29a0c205",
@@ -2519,7 +2682,172 @@
       "cc1083dd8f2867a93f907e752c45e918bb0f4601",
       "0847b93030b051a08460a0573fef693227ce333b",
       "67662449334bb8bc257997081af3b58b15e223d8",
-      "8ebcffa04ce16bab2a3b1b2b9f9b235485918101"
+      "8ebcffa04ce16bab2a3b1b2b9f9b235485918101",
+      "74c1ed5a367750751adcc5ec8cecd016674c33e4",
+      "158374e06f000b459056d9755e2f23529207b636",
+      "1fdbf41dc0f52f6db0b894dd949d7b28f52c4094",
+      "42349db6756a9326eb4b4bb06fb3f20855f27a27",
+      "54ae6eb262587dcf795330526084e1c84ed6cd70",
+      "22b3064cda471aa45a467d09329e462f18c0211f",
+      "9ec2ac9149a05d36caa31e9377493d1e7e39fb47",
+      "be1013d84e60b925caac57ab244d4f06be28a2c8",
+      "c067293704d801595316c42e623bae71dc587930",
+      "8bbdf876f9960493075ad27001bb02ea320a7686",
+      "32230ecb6c96982b4ce415d00d21b231f5b08877",
+      "60b4955bc1bbb0827600d3ede085021955777001",
+      "acd6a417866ac1b432c26aedb12583bbbdb07809",
+      "2aa12ce585aebcc42b16a0072db8123e8a57a5a0",
+      "85ba69bc811d04d0e91b7c419e6bd4e3f3989224",
+      "32a1336ff9b915995095bcef5227c31e4f2690a8",
+      "78ecb8bbad811324f3b1a39ceefe290e82c9ddf4",
+      "004f908b9c53cd68345a7faa09ab8cec0b21cd08",
+      "54c5a27ce6e8f4497276c4e0124f3f531b964d3b",
+      "ecbc0eb6fb12a17853393c756bddb270dcc4ea5c",
+      "f4497ceff5c5f95eef3d3181d7bd86e525191f3c",
+      "8269e61d29f2fb1e1c013833639d5e5e86058477",
+      "0db6f19bf5aa5544b0853db7fa32ac78e62670c9",
+      "110df4e761617c65f5c7490cf0660bba1ecd7ee3",
+      "6a00e3215f46d574ef51cf51a22b6e72858b3797",
+      "04c9b2d763d01511237938ce6aa2695397066d3f",
+      "d727949b3ca52c866c6dec02ecd5f2aab4b11ddd",
+      "a042f6e44b045165cff0a138aaa450f1387c34ea",
+      "1c50071bbb971c6ac326611ffbf897ee1f0c04fa",
+      "f31bc27d73dc3eee988212f11b743385b06b0a4b",
+      "27a697dbe235785de85583cd52173691b983a417",
+      "3228ee42396164890acabe9a936d4ed28396aadf",
+      "15da28cd1bb13df1ca9496d7fa9459f13409e18e",
+      "03434e92300ad30dd8a38be4c6cb761585a4bb04",
+      "97427bfa676c6ec5513e86701f6e5636edd3a126",
+      "e2d33f29e9c7634a67036a6b52aea25ce1f04e6b",
+      "1f603b912253d5580786abd0bbd6f19bdfe151c4",
+      "0c5da7bd38d0d784d5357e8b9c0f0eb8df917d65",
+      "c81476c2dba777c173e8901a02f9330e2e38daa9",
+      "cb1f5c452ff1ab6edbb1bda590b09b99d3e815ea",
+      "7d13eb0139364f6d408c74ed5750c0a29f97eec9",
+      "606c08aef39eed2d66c9789c70b4dd090320049d",
+      "eb2185ac48dd391a7b9dc92f2130ceeb3af00d94",
+      "8c784ca1ed850bd796affb5f865c2b99ecde0ad8",
+      "7bc705f9883fd44e60b4111cf8946e068c565228",
+      "6c824da6fdb0f7452296453927f8ff2fa391f2a9",
+      "82ef7048823e70e161845dd91b13ff8e6b0e1ddb",
+      "99e85433b290dfd2aa8541de74439b36017c07f1",
+      "6882db586eefb9a1b0d1bb9b6e3904c8bb5c27a0",
+      "4fbc0cfbcafcccf38317912c47f157eaa67c6925",
+      "ed44344b836c541944e1e683f5b0db94992172e3",
+      "b7887d737410ac77de2608bc19d2c9b2be0952cd",
+      "8f4f781b0536b1e4a00b7cfbccc0cf00b8b70a24",
+      "d5e28cff4da0cfe12d73593316a5bb726539daa4",
+      "fd24a4a3739799e9011f6aca6c11b2a70e66098c",
+      "779f160f8900073fcc909ec44f5cc6428d9a007b",
+      "914e650770554d4a613cc2f59cecd1fb58b8d53f",
+      "a798512dcc1c1ac16687169ef115c6d256e13550",
+      "577548e5e34205de6c07f3e9e16e4b4ae81b1ed6",
+      "6c643ceda2cd86b40f50aac80e7ee6938df0c29a",
+      "148f3c671108d135d058591c8131d6d4870d9989",
+      "0a88e5f6898b04afe8d1ce5e74c90ca7f6270836",
+      "c3d18e29814343ace9571bb405bfb762187c3723",
+      "906b685a7726970101aa64c09aebeacb652d55de",
+      "dc65b5009b44e15a64012d8de0d78e84337ecaaf",
+      "2d9a403e4f9e48ae57fdfd557169cd57b818b0bb",
+      "834c55b74c28442b64f994bc3ff96b064a2004fe",
+      "88bea93a59f17ab0d0dd323c8324656204e2958c",
+      "44befaddc1c3e25779eb73f6e60e37301390d323",
+      "ebac1b74a0e2fb7777ecb7bb9b372f80913e2a88",
+      "1ce24404d42d4313fc811d2327b924fa9b153a68",
+      "1297df9fb85aaeace84058cc081bf11127643b42",
+      "a8d2cc4e495234ed06dc87715574657ace4db155",
+      "f8d8805de5f2d0013a6cdaabedecc0076e9dd29a",
+      "995410f2b6dcba8bf2f862fc92b65a05b44b95c8",
+      "469810a053a4516c00d7b23a7214d4b21aba6417",
+      "cab0ab9948cc2c8a18c88f6f49c56f975a1024ec",
+      "f3d98acec357febdbe64150be613c3d20bfab816",
+      "e795937d683729058be5f2f116f679e5895360e4",
+      "be1a2ccdff72abd54141ad5405e101b3444489ec",
+      "c775528bb08dc443f03dcf94677a3f1b424378a1",
+      "08bfa8ad49157524ad8d6dbfdeb5e99a4fe3f086",
+      "6420c28caaccfd0449870fa63187c2c031ae00a9",
+      "f085485310b4a5d71d76a335532d0c9632c7a0af",
+      "b32b45b389a7961a5f68a8fc29a743ff987e9a40",
+      "610ad59c857432620b79d46d19aeb5c228d33207",
+      "76a0643b844aef0177c03480fa2ccb2edef47148",
+      "6a3216d4c14109829b5237bb11210b0848f17bba",
+      "83a164f94566894d741fbc70466c01b18614e6d5",
+      "ba8da634dfe291180edbd5f753b684f325945ccf",
+      "676053be4146837e97fb5807db7dabbcdd4c76d8",
+      "cf799f16be6c238668e7a83616a1be8a8a15839f",
+      "313be336ae4c27010e4e2c00709a527385b8326c",
+      "60d833a2368a2d87c10f46d8a5f4c03cdac18074",
+      "f6c7b2758decde6297e4e133d506cc19a647e2e0",
+      "377326a01fd330fe71430f727a0fdeb31eabb60b",
+      "d4f3aebce24bf753575b545651132bf8f75b9c73",
+      "c4e89e8e40a7f7a47f3b648efde5a4fbcc8563c6",
+      "c7a9d13619f57e46e5ce0b7029820cf9da5ee5e6",
+      "ce9c604d948add7d472f503312eacfeb2389327d",
+      "98c3a7d5553ad9d922bd290779b7888543e15085",
+      "701c830b77b72facf45f3ca459c42f588cf94400",
+      "2ffe6f537351aea2b7f9438497395a15764c0fed",
+      "f75d1ae260c54b94b6ed2402ee3e718a5622dcf0",
+      "df22f306780eaf1738265c4f7983a5781da5757e",
+      "b710fde9ada477738b45188453038ea464845830",
+      "921ccce1220e409845c4ca4ce2e5ec6517a2d838",
+      "3ead6eeb9562b54aa055ebbb2785b8566aaf8c3b",
+      "5dcf82db18db84dc3aa6c01cbb52b4d10ac090ba",
+      "6953bd7aff0380f1ca4dd9845ba223abafb76775",
+      "f151ae415a83bfb2c2101b4b16cce56f265171dd",
+      "9841bb087ae2f42b5529b0e15ee8b4828e4428ee",
+      "38a36ba01c3ce6c4ef05124e7d70021b09c242f1",
+      "1e3c436a0670ad96d1c5408c143c17b8cebbacfc",
+      "ea8275757c50454a7d7184d92e0aaefaef2863ab",
+      "b00ff520040e1182932f1c6b8e209218acf1e3d3",
+      "734c4ed05563da0dd8c49cf7f35aa02785803d78",
+      "ace2790ed2f90cb33fedc446cab7013ed2a8ca96",
+      "47c31e7af01fc58f6f3ead83ce865336fa1dd99e",
+      "9ab5fd4bf825d6c05fa82ab066342601ab7ab818",
+      "7c00aa8c8154314e587e8d5d85d8ae678edc3079",
+      "a9add02b6de49241ec06a014f1afe5a73820ded9",
+      "cc30c6a9fb19e7b9df15870f35e783345bf3cc2d",
+      "9bc2641c948f6aaa7bfdff8f50dafa4f7a920194",
+      "9c340259b39814360eb53c06882de7d181cd50eb",
+      "d713580971c2877bd9a12152bda8e8dee59ed30a",
+      "544555b5f9c7485805f44fcb010141061fd8e22d",
+      "119fa74f02e77a9a9d716f42e2b86e369c277f11",
+      "ff6825af1e3a03ee81ab2fe25fee1dbe8bbcdc30",
+      "f08016571fcd615fef24ba9b51be9a11fa5bc428",
+      "f2814ce270b45f5f420636319421202765d5151b",
+      "226a9608173a2fec585eb72705d40ff798e07ccf",
+      "2e53d59af2462a8d77040a4db25a1aaaa823473e",
+      "8b4e13d5cee4a900c12a78890b2a8de426239e35",
+      "63a9e6e7aff530e9f81cf2a4d3aecce98232d49b",
+      "1c627c51a9580297c308ff92f0dcdc99229feaad",
+      "af2a987cfd39c92e8fb5d162c4e5a6eae00a6416",
+      "0f219f7d459f4615399cdfa977f87687c61e8766",
+      "61a62b18c34a7b1aeb4dce66d5f194c0b2337c03",
+      "e6d87fe4693dd3a9423500b0d9664fb3cf9495b5",
+      "525ba6076c6d98895948559986a8a4449fe9402a",
+      "28a51053e793e91718242bf9f9fbc81681f9b21c",
+      "965352043ecd69fe74e4dd78aa57a9fbf64d2461",
+      "7c0177b4b56cb3e8e1a37551807187ae6998ecb1",
+      "f3efbf1824c540433a64bf72716ec5de444dafce",
+      "cb730acc916b3de2c45a0c364ea8b95baaacfe87",
+      "b2005f20cc7d3a1a7a303c0d2c79c02ab2395579",
+      "b501a389305aa29fc54fb9da2ec64d919ee163f2",
+      "7f736ca837cf82c4a7d809dd26e16b43ae11ff87",
+      "eba40a7eecdc1e6f9db1bd4a2836ae03825452ff",
+      "743a167c3bcbd2524cad928de4dbe8a66942c750",
+      "251596fc0de2f9528c00c224252fd073a99973f4",
+      "54191e4e9e8eec49916b27fee9a01f4c1361c510",
+      "574a9a63d31a406ed20ce4b85436da84d9df86c8",
+      "0f9a3c2212f55d2da1ae683b3955493cfac6f768",
+      "be1a2b3ed8021b0f3c13bf4ade604ac8c127fb61",
+      "21dbce06a75d1c48f49abc70f765b5523bcff876",
+      "896f511c0b14bc146952641695623b9e0ad416cc",
+      "f23a8dffff9288218c6ec81da7f0cfbabf2528fd",
+      "e11e6f02e8f77bbc1094956660e0efda9cc5bf06",
+      "553bb6646084d7e69001e550f53e73a7590767bc",
+      "5fd295dc5ebbcf72f5fc4760a1d58090b3944a4b",
+      "ba6c15395d691fe1112699a0f61d38d10e790d24",
+      "8484e446e97036a36963a17424be53f7ea27f7ac",
+      "d1bdd0e6606ddf0be4bbb7e0dc19e1efe8420e9e"
     ],
     "deliveryIds": [
       "D001",
@@ -24279,6 +24607,24 @@
     },
     {
       "topoIndex": 1182,
+      "sha": "b4b81d593d700bc48348ac80225e483e9c56c493",
+      "subject": ":art: https://github.com/siyuan-note/siyuan/issues/15974",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1183,
       "sha": "0bffce84b1dd38025cb08515adcc070870d5ec49",
       "subject": ":bug: Keep block gutters aligned with moved blocks https://github.com/siyuan-note/siyuan/issues/12321",
       "state": "audit-pending",
@@ -24296,7 +24642,7 @@
       "topologyCheckpoints": []
     },
     {
-      "topoIndex": 1183,
+      "topoIndex": 1184,
       "sha": "dd08975c765e4da3706e1c2828700ac098c9f1ae",
       "subject": ":bug: Allow plugins to await pending editor transactions https://github.com/siyuan-note/siyuan/issues/16453",
       "state": "audit-pending",
@@ -24314,7 +24660,7 @@
       "topologyCheckpoints": []
     },
     {
-      "topoIndex": 1184,
+      "topoIndex": 1185,
       "sha": "edb53234ae734862b7549cf5b98dc8bb29a0c205",
       "subject": ":bookmark: Release v3.8.0-beta.1",
       "state": "audit-pending",
@@ -24332,7 +24678,7 @@
       "topologyCheckpoints": []
     },
     {
-      "topoIndex": 1185,
+      "topoIndex": 1186,
       "sha": "bc897d582c89b4eddceba9a5c6c178b4cd51db05",
       "subject": ":memo: Sync v3.8.0 changelog translations",
       "state": "audit-pending",
@@ -24350,7 +24696,7 @@
       "topologyCheckpoints": []
     },
     {
-      "topoIndex": 1186,
+      "topoIndex": 1187,
       "sha": "9da8c77a66d3ae37c1d4fe87622923e43acb7682",
       "subject": ":green_heart: Run Electron packaging after end-to-end tests",
       "state": "audit-pending",
@@ -24368,7 +24714,7 @@
       "topologyCheckpoints": []
     },
     {
-      "topoIndex": 1187,
+      "topoIndex": 1188,
       "sha": "97a8b8c7766259cd40c96df37d082dbced9c631d",
       "subject": ":sparkles: Support appending a list item to the end of the current list https://github.com/siyuan-note/siyuan/issues/17635",
       "state": "audit-pending",
@@ -24386,7 +24732,7 @@
       "topologyCheckpoints": []
     },
     {
-      "topoIndex": 1188,
+      "topoIndex": 1189,
       "sha": "821ac1a8dcc0f24bedf564aa2bb99317c15012ba",
       "subject": ":sparkles: Support selecting text to page boundaries https://github.com/siyuan-note/siyuan/issues/14764",
       "state": "audit-pending",
@@ -24404,7 +24750,7 @@
       "topologyCheckpoints": []
     },
     {
-      "topoIndex": 1189,
+      "topoIndex": 1190,
       "sha": "4ad26acb57e699b3686c652f78b1112920a25c85",
       "subject": ":sparkles: Support prepending a list item to the current list https://github.com/siyuan-note/siyuan/issues/17635",
       "state": "audit-pending",
@@ -24422,7 +24768,7 @@
       "topologyCheckpoints": []
     },
     {
-      "topoIndex": 1190,
+      "topoIndex": 1191,
       "sha": "d2063db7f81b02843bcd23d1364b2e89ab2e4b95",
       "subject": ":art: Improve super block alignment menu https://github.com/siyuan-note/siyuan/issues/10906",
       "state": "audit-pending",
@@ -24440,7 +24786,7 @@
       "topologyCheckpoints": []
     },
     {
-      "topoIndex": 1191,
+      "topoIndex": 1192,
       "sha": "cc1083dd8f2867a93f907e752c45e918bb0f4601",
       "subject": ":sparkles: Support transforming multiple headings with subheadings https://github.com/siyuan-note/siyuan/issues/11838",
       "state": "audit-pending",
@@ -24458,7 +24804,7 @@
       "topologyCheckpoints": []
     },
     {
-      "topoIndex": 1192,
+      "topoIndex": 1193,
       "sha": "0847b93030b051a08460a0573fef693227ce333b",
       "subject": ":art: Leave the append list item shortcut unassigned by default https://github.com/siyuan-note/siyuan/issues/17635",
       "state": "audit-pending",
@@ -24476,7 +24822,7 @@
       "topologyCheckpoints": []
     },
     {
-      "topoIndex": 1193,
+      "topoIndex": 1194,
       "sha": "67662449334bb8bc257997081af3b58b15e223d8",
       "subject": ":bug: Avoid false-positive iCloud workspace detection on macOS",
       "state": "audit-pending",
@@ -24494,9 +24840,2979 @@
       "topologyCheckpoints": []
     },
     {
-      "topoIndex": 1194,
+      "topoIndex": 1195,
       "sha": "8ebcffa04ce16bab2a3b1b2b9f9b235485918101",
       "subject": ":sparkles: Support a custom shortcut for prepending list items https://github.com/siyuan-note/siyuan/issues/17635",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1196,
+      "sha": "74c1ed5a367750751adcc5ec8cecd016674c33e4",
+      "subject": ":art: Warn when select all excludes unloaded blocks https://github.com/siyuan-note/siyuan/issues/18621",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1197,
+      "sha": "158374e06f000b459056d9755e2f23529207b636",
+      "subject": ":bug: Keep database column resize indicators aligned while scrolling https://github.com/siyuan-note/siyuan/issues/18622",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1198,
+      "sha": "1fdbf41dc0f52f6db0b894dd949d7b28f52c4094",
+      "subject": ":bug: Allow undoing pasted database asset values https://github.com/siyuan-note/siyuan/issues/18624",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1199,
+      "sha": "42349db6756a9326eb4b4bb06fb3f20855f27a27",
+      "subject": ":art: Improve incomplete select-all warning settings https://github.com/siyuan-note/siyuan/issues/18621",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1200,
+      "sha": "54ae6eb262587dcf795330526084e1c84ed6cd70",
+      "subject": ":bug: Stabilize database column resizing during horizontal scrolling https://github.com/siyuan-note/siyuan/issues/18622",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1201,
+      "sha": "22b3064cda471aa45a467d09329e462f18c0211f",
+      "subject": ":bug: Avoid errors when Shift-clicking database rows https://github.com/siyuan-note/siyuan/issues/18623",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1202,
+      "sha": "9ec2ac9149a05d36caa31e9377493d1e7e39fb47",
+      "subject": ":art: Improve notification settings button alignment https://github.com/siyuan-note/siyuan/issues/18628",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1203,
+      "sha": "be1013d84e60b925caac57ab244d4f06be28a2c8",
+      "subject": ":bug: Correct folded subheading levels after transformation https://github.com/siyuan-note/siyuan/issues/18625",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1204,
+      "sha": "c067293704d801595316c42e623bae71dc587930",
+      "subject": ":bug: Fix mobile long-press selection toolbars https://github.com/siyuan-note/siyuan/issues/18627",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1205,
+      "sha": "8bbdf876f9960493075ad27001bb02ea320a7686",
+      "subject": ":bug: Correct nested super block column reordering https://github.com/siyuan-note/siyuan/issues/18174",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1206,
+      "sha": "32230ecb6c96982b4ce415d00d21b231f5b08877",
+      "subject": ":bug: Preserve adjacent characters when creating block references https://github.com/siyuan-note/siyuan/issues/18626",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1207,
+      "sha": "60b4955bc1bbb0827600d3ede085021955777001",
+      "subject": ":art: Keep database item and cell selections mutually exclusive https://github.com/siyuan-note/siyuan/issues/18629",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1208,
+      "sha": "acd6a417866ac1b432c26aedb12583bbbdb07809",
+      "subject": ":bug: Preserve all characters outside block reference triggers https://github.com/siyuan-note/siyuan/issues/18626",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1209,
+      "sha": "2aa12ce585aebcc42b16a0072db8123e8a57a5a0",
+      "subject": ":bug: Restore Shift-click database row selection https://github.com/siyuan-note/siyuan/issues/18623",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1210,
+      "sha": "85ba69bc811d04d0e91b7c419e6bd4e3f3989224",
+      "subject": "Merge remote-tracking branch 'origin/dev' into dev",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1211,
+      "sha": "32a1336ff9b915995095bcef5227c31e4f2690a8",
+      "subject": ":bug: Preserve enclosing brackets when inserting block references https://github.com/siyuan-note/siyuan/issues/18626",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1212,
+      "sha": "78ecb8bbad811324f3b1a39ceefe290e82c9ddf4",
+      "subject": ":bug: Preserve pasted files when plugins replace clipboard text https://github.com/siyuan-note/siyuan/issues/12429",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1213,
+      "sha": "004f908b9c53cd68345a7faa09ab8cec0b21cd08",
+      "subject": "Merge remote-tracking branch 'origin/dev' into dev",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1214,
+      "sha": "54c5a27ce6e8f4497276c4e0124f3f531b964d3b",
+      "subject": ":art: Improve PDF rectangle annotation interactions https://github.com/siyuan-note/siyuan/issues/15974",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1215,
+      "sha": "ecbc0eb6fb12a17853393c756bddb270dcc4ea5c",
+      "subject": ":art: Collapse sync settings when data sync is disabled https://github.com/siyuan-note/siyuan/issues/18556",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1216,
+      "sha": "f4497ceff5c5f95eef3d3181d7bd86e525191f3c",
+      "subject": ":art: Rename cloud sync setting https://github.com/siyuan-note/siyuan/issues/18556",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1217,
+      "sha": "8269e61d29f2fb1e1c013833639d5e5e86058477",
+      "subject": "Merge remote-tracking branch 'origin/dev' into dev",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1218,
+      "sha": "0db6f19bf5aa5544b0853db7fa32ac78e62670c9",
+      "subject": ":art: https://github.com/siyuan-note/siyuan/issues/15974",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1219,
+      "sha": "110df4e761617c65f5c7490cf0660bba1ecd7ee3",
+      "subject": ":bug: Refresh copied PDF rectangle annotation images https://github.com/siyuan-note/siyuan/issues/15974",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1220,
+      "sha": "6a00e3215f46d574ef51cf51a22b6e72858b3797",
+      "subject": ":art: https://github.com/siyuan-note/siyuan/issues/14764",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1221,
+      "sha": "04c9b2d763d01511237938ce6aa2695397066d3f",
+      "subject": ":lock: Document external link opening as outside the security boundary",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1222,
+      "sha": "d727949b3ca52c866c6dec02ecd5f2aab4b11ddd",
+      "subject": ":bug: Preserve sync configuration before enabling cloud sync https://github.com/siyuan-note/siyuan/issues/18556",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1223,
+      "sha": "a042f6e44b045165cff0a138aaa450f1387c34ea",
+      "subject": ":art: Hide LAN sync setting when cloud sync is disabled https://github.com/siyuan-note/siyuan/issues/18556",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1224,
+      "sha": "1c50071bbb971c6ac326611ffbf897ee1f0c04fa",
+      "subject": ":bug: Open sync settings for disabled third-party providers https://github.com/siyuan-note/siyuan/issues/18556",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1225,
+      "sha": "f31bc27d73dc3eee988212f11b743385b06b0a4b",
+      "subject": "Merge remote-tracking branch 'origin/dev' into dev",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1226,
+      "sha": "27a697dbe235785de85583cd52173691b983a417",
+      "subject": ":memo: Sync more v3.8.0 changelog entries",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1227,
+      "sha": "3228ee42396164890acabe9a936d4ed28396aadf",
+      "subject": ":bookmark: Release v3.8.0-beta.2",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1228,
+      "sha": "15da28cd1bb13df1ca9496d7fa9459f13409e18e",
+      "subject": ":sparkles: Improve dynamic document loading https://github.com/siyuan-note/siyuan/issues/12696",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1229,
+      "sha": "03434e92300ad30dd8a38be4c6cb761585a4bb04",
+      "subject": ":art: Refine dynamic document loading https://github.com/siyuan-note/siyuan/issues/12696",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1230,
+      "sha": "97427bfa676c6ec5513e86701f6e5636edd3a126",
+      "subject": ":bug: Avoid loading entire documents from incomplete scroll positions https://github.com/siyuan-note/siyuan/issues/12696",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1231,
+      "sha": "e2d33f29e9c7634a67036a6b52aea25ce1f04e6b",
+      "subject": ":sparkles: Improve export preview copying to publishing platforms https://github.com/siyuan-note/siyuan/issues/15141",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1232,
+      "sha": "1f603b912253d5580786abd0bbd6f19bdfe151c4",
+      "subject": ":bug: Fix database search result focus https://github.com/siyuan-note/siyuan/issues/18630",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1233,
+      "sha": "0c5da7bd38d0d784d5357e8b9c0f0eb8df917d65",
+      "subject": ":bug: Correct database filter condition count https://github.com/siyuan-note/siyuan/issues/18633",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1234,
+      "sha": "c81476c2dba777c173e8901a02f9330e2e38daa9",
+      "subject": ":bug: Restore emoji lists in the editor picker https://github.com/siyuan-note/siyuan/issues/18635",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1235,
+      "sha": "cb1f5c452ff1ab6edbb1bda590b09b99d3e815ea",
+      "subject": ":bug: Resolve overlapping block reference triggers https://github.com/siyuan-note/siyuan/issues/18626",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1236,
+      "sha": "7d13eb0139364f6d408c74ed5750c0a29f97eec9",
+      "subject": ":art: https://github.com/siyuan-note/siyuan/issues/18620",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1237,
+      "sha": "606c08aef39eed2d66c9789c70b4dd090320049d",
+      "subject": ":bug: Stabilize LAN sync discovery and authentication https://github.com/siyuan-note/siyuan/issues/18556",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1238,
+      "sha": "eb2185ac48dd391a7b9dc92f2130ceeb3af00d94",
+      "subject": ":bug: Keep LAN sync device counts consistent https://github.com/siyuan-note/siyuan/issues/18556",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1239,
+      "sha": "8c784ca1ed850bd796affb5f865c2b99ecde0ad8",
+      "subject": ":bug: Preserve nested list structure in cross-block pasting",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1240,
+      "sha": "7bc705f9883fd44e60b4111cf8946e068c565228",
+      "subject": ":memo: Improve user guide content https://github.com/siyuan-note/siyuan/issues/18634",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1241,
+      "sha": "6c824da6fdb0f7452296453927f8ff2fa391f2a9",
+      "subject": ":bug: Reject invalid locally installed marketplace packages https://github.com/siyuan-note/siyuan/issues/17808",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1242,
+      "sha": "82ef7048823e70e161845dd91b13ff8e6b0e1ddb",
+      "subject": ":sparkles: Support embedding HTML files as IFrame blocks https://github.com/siyuan-note/siyuan/issues/18127",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1243,
+      "sha": "99e85433b290dfd2aa8541de74439b36017c07f1",
+      "subject": ":bug: Restore the selected dock panel after reload https://github.com/siyuan-note/siyuan/issues/18637",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1244,
+      "sha": "6882db586eefb9a1b0d1bb9b6e3904c8bb5c27a0",
+      "subject": ":bug: Preserve multi-document drag order https://github.com/siyuan-note/siyuan/issues/18636",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1245,
+      "sha": "4fbc0cfbcafcccf38317912c47f157eaa67c6925",
+      "subject": ":sparkles: Support document covers in block popovers https://github.com/siyuan-note/siyuan/issues/13083",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1246,
+      "sha": "ed44344b836c541944e1e683f5b0db94992172e3",
+      "subject": ":bug: Write compatible clipboard formats for headings and bottom blocks https://ld246.com/article/1786265169748 https://github.com/siyuan-note/siyuan/issues/12211 https://github.com/siyuan-note/siyuan/issues/12227 https://github.com/siyuan-note/siyuan/issues/16946",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1247,
+      "sha": "b7887d737410ac77de2608bc19d2c9b2be0952cd",
+      "subject": ":art: Unify marketplace package manifest terminology https://github.com/siyuan-note/siyuan/issues/17808",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1248,
+      "sha": "8f4f781b0536b1e4a00b7cfbccc0cf00b8b70a24",
+      "subject": ":art: Improve Agent input controls responsive layout https://github.com/siyuan-note/siyuan/issues/17797",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1249,
+      "sha": "d5e28cff4da0cfe12d73593316a5bb726539daa4",
+      "subject": ":bug: Prevent mobile workspace migration from moving sibling workspaces",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1250,
+      "sha": "fd24a4a3739799e9011f6aca6c11b2a70e66098c",
+      "subject": ":bug: Apply bottom backlink expansion settings immediately https://github.com/siyuan-note/siyuan/issues/18436",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1251,
+      "sha": "779f160f8900073fcc909ec44f5cc6428d9a007b",
+      "subject": "Merge remote-tracking branch 'origin/dev' into dev",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1252,
+      "sha": "914e650770554d4a613cc2f59cecd1fb58b8d53f",
+      "subject": ":bug: Protect the mobile workspace base directory",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1253,
+      "sha": "a798512dcc1c1ac16687169ef115c6d256e13550",
+      "subject": ":sparkles: Support configuring Agent capabilities https://github.com/siyuan-note/siyuan/issues/18638",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1254,
+      "sha": "577548e5e34205de6c07f3e9e16e4b4ae81b1ed6",
+      "subject": ":art: Improve Agent capability settings layout https://github.com/siyuan-note/siyuan/issues/18638",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1255,
+      "sha": "6c643ceda2cd86b40f50aac80e7ee6938df0c29a",
+      "subject": ":bug: Fix Agent capability settings view https://github.com/siyuan-note/siyuan/issues/18638",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1256,
+      "sha": "148f3c671108d135d058591c8131d6d4870d9989",
+      "subject": ":art: Align Agent capability controls https://github.com/siyuan-note/siyuan/issues/18638",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1257,
+      "sha": "0a88e5f6898b04afe8d1ce5e74c90ca7f6270836",
+      "subject": ":sparkles: Support resizing editors in multi-document popovers https://github.com/siyuan-note/siyuan/issues/12779",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1258,
+      "sha": "c3d18e29814343ace9571bb405bfb762187c3723",
+      "subject": ":bug: Localize data indexing error messages https://github.com/siyuan-note/siyuan/issues/18640",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1259,
+      "sha": "906b685a7726970101aa64c09aebeacb652d55de",
+      "subject": ":art: Simplify Agent capability approval settings https://github.com/siyuan-note/siyuan/issues/18638",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1260,
+      "sha": "dc65b5009b44e15a64012d8de0d78e84337ecaaf",
+      "subject": ":art: https://github.com/siyuan-note/siyuan/issues/18620",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1261,
+      "sha": "2d9a403e4f9e48ae57fdfd557169cd57b818b0bb",
+      "subject": "Merge remote-tracking branch 'origin/dev' into dev",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1262,
+      "sha": "834c55b74c28442b64f994bc3ff96b064a2004fe",
+      "subject": ":bug: Localize data indexing error messages https://github.com/siyuan-note/siyuan/issues/18640",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1263,
+      "sha": "88bea93a59f17ab0d0dd323c8324656204e2958c",
+      "subject": "Merge remote-tracking branch 'origin/dev' into dev",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1264,
+      "sha": "44befaddc1c3e25779eb73f6e60e37301390d323",
+      "subject": ":art: Improve boot animation",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1265,
+      "sha": "ebac1b74a0e2fb7777ecb7bb9b372f80913e2a88",
+      "subject": ":recycle: Unify kernel plugin capability terminology https://github.com/siyuan-note/siyuan/issues/18638",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1266,
+      "sha": "1ce24404d42d4313fc811d2327b924fa9b153a68",
+      "subject": ":zap: Speed up boot animation",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1267,
+      "sha": "1297df9fb85aaeace84058cc081bf11127643b42",
+      "subject": ":art: https://github.com/siyuan-note/siyuan/issues/15416",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1268,
+      "sha": "a8d2cc4e495234ed06dc87715574657ace4db155",
+      "subject": ":lock: Fix SSRF bypass via IPv6 transition addresses in CheckHostSSRF https://github.com/siyuan-note/siyuan/security/advisories/GHSA-rg26-cg95-gq6p",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1269,
+      "sha": "f8d8805de5f2d0013a6cdaabedecc0076e9dd29a",
+      "subject": ":bug: Use native clipboard for asynchronous editor operations",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1270,
+      "sha": "995410f2b6dcba8bf2f862fc92b65a05b44b95c8",
+      "subject": ":art: Improve cross-window tab dragging https://github.com/siyuan-note/siyuan/issues/14736",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1271,
+      "sha": "469810a053a4516c00d7b23a7214d4b21aba6417",
+      "subject": ":bug: Preserve cross-window tab order after tab eviction https://github.com/siyuan-note/siyuan/issues/14736",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1272,
+      "sha": "cab0ab9948cc2c8a18c88f6f49c56f975a1024ec",
+      "subject": ":zap: Improve graph rendering performance https://github.com/siyuan-note/siyuan/issues/18642",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1273,
+      "sha": "f3d98acec357febdbe64150be613c3d20bfab816",
+      "subject": ":bug: Correct block reference drop caret position https://github.com/siyuan-note/siyuan/issues/18641",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1274,
+      "sha": "e795937d683729058be5f2f116f679e5895360e4",
+      "subject": ":bug: Preserve text after block reference hints https://github.com/siyuan-note/siyuan/issues/18626",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1275,
+      "sha": "be1a2ccdff72abd54141ad5405e101b3444489ec",
+      "subject": ":bug: Prevent block reference drops inside inline math https://github.com/siyuan-note/siyuan/issues/18641",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1276,
+      "sha": "c775528bb08dc443f03dcf94677a3f1b424378a1",
+      "subject": ":art: Improve graph node colors https://github.com/siyuan-note/siyuan/issues/18642",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1277,
+      "sha": "08bfa8ad49157524ad8d6dbfdeb5e99a4fe3f086",
+      "subject": ":sparkles: Support custom AI model ordering https://github.com/siyuan-note/siyuan/issues/17797",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1278,
+      "sha": "6420c28caaccfd0449870fa63187c2c031ae00a9",
+      "subject": ":arrow_up: Upgrade Lute for Vditor Callout support https://github.com/Vanessa219/vditor/issues/1866",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1279,
+      "sha": "f085485310b4a5d71d76a335532d0c9632c7a0af",
+      "subject": ":art: Improve graph display and capacity https://github.com/siyuan-note/siyuan/issues/18642",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1280,
+      "sha": "b32b45b389a7961a5f68a8fc29a743ff987e9a40",
+      "subject": ":memo: Refine user guide content https://github.com/siyuan-note/siyuan/issues/18634",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1281,
+      "sha": "610ad59c857432620b79d46d19aeb5c228d33207",
+      "subject": ":bug: Restore caret after undoing block references https://github.com/siyuan-note/siyuan/issues/18626",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1282,
+      "sha": "76a0643b844aef0177c03480fa2ccb2edef47148",
+      "subject": ":memo: Replace custom theme screenshots with text instructions https://github.com/siyuan-note/siyuan/issues/18634",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1283,
+      "sha": "6a3216d4c14109829b5237bb11210b0848f17bba",
+      "subject": ":art: Scroll past document covers when opening floating windows https://github.com/siyuan-note/siyuan/issues/13083",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1284,
+      "sha": "83a164f94566894d741fbc70466c01b18614e6d5",
+      "subject": ":art: Normalize local HTML asset URLs in IFrame blocks https://github.com/siyuan-note/siyuan/issues/18127",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1285,
+      "sha": "ba8da634dfe291180edbd5f753b684f325945ccf",
+      "subject": ":bug: Normalize folded heading clipboard data https://github.com/siyuan-note/siyuan/issues/12227",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1286,
+      "sha": "676053be4146837e97fb5807db7dabbcdd4c76d8",
+      "subject": ":art: Clarify marketplace package mismatch tooltip https://github.com/siyuan-note/siyuan/issues/17808",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1287,
+      "sha": "cf799f16be6c238668e7a83616a1be8a8a15839f",
+      "subject": ":memo: Refine shortcut and developer tools docs https://github.com/siyuan-note/siyuan/issues/18634",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1288,
+      "sha": "313be336ae4c27010e4e2c00709a527385b8326c",
+      "subject": ":sparkles: Support configuring MCP capability exposure https://github.com/siyuan-note/siyuan/issues/18638",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1289,
+      "sha": "60d833a2368a2d87c10f46d8a5f4c03cdac18074",
+      "subject": ":bug: Honor configured paths from notebook documents https://github.com/siyuan-note/siyuan/issues/18643",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1290,
+      "sha": "f6c7b2758decde6297e4e133d506cc19a647e2e0",
+      "subject": ":memo: Align macOS shortcuts with the UI https://github.com/siyuan-note/siyuan/issues/18634",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1291,
+      "sha": "377326a01fd330fe71430f727a0fdeb31eabb60b",
+      "subject": ":bug: Stabilize graph layout interactions https://github.com/siyuan-note/siyuan/issues/18642",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1292,
+      "sha": "d4f3aebce24bf753575b545651132bf8f75b9c73",
+      "subject": ":bug: Restore graph after reopening dock https://github.com/siyuan-note/siyuan/issues/18642",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1293,
+      "sha": "c4e89e8e40a7f7a47f3b648efde5a4fbcc8563c6",
+      "subject": ":bug: Keep graph centered while reopening dock https://github.com/siyuan-note/siyuan/issues/18642",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1294,
+      "sha": "c7a9d13619f57e46e5ce0b7029820cf9da5ee5e6",
+      "subject": ":memo: Mark developer tools terms as code https://github.com/siyuan-note/siyuan/issues/18634",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1295,
+      "sha": "ce9c604d948add7d472f503312eacfeb2389327d",
+      "subject": ":bug: Prevent Agent capability list clipping https://github.com/siyuan-note/siyuan/issues/18638",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1296,
+      "sha": "98c3a7d5553ad9d922bd290779b7888543e15085",
+      "subject": ":bookmark: Release v3.8.0-beta.3",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1297,
+      "sha": "701c830b77b72facf45f3ca459c42f588cf94400",
+      "subject": "Merge remote-tracking branch 'origin/dev' into dev",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1298,
+      "sha": "2ffe6f537351aea2b7f9438497395a15764c0fed",
+      "subject": ":art: https://github.com/siyuan-note/siyuan/issues/8554",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1299,
+      "sha": "f75d1ae260c54b94b6ed2402ee3e718a5622dcf0",
+      "subject": ":memo: Sync latest v3.8.0 changelog entries",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1300,
+      "sha": "df22f306780eaf1738265c4f7983a5781da5757e",
+      "subject": ":zap: Improve startup timing and mobile sync handling",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1301,
+      "sha": "b710fde9ada477738b45188453038ea464845830",
+      "subject": ":bug: Ignore empty marketplace package directories https://github.com/siyuan-note/siyuan/issues/18645",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1302,
+      "sha": "921ccce1220e409845c4ca4ce2e5ec6517a2d838",
+      "subject": ":mute: Remove temporary startup diagnostics",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1303,
+      "sha": "3ead6eeb9562b54aa055ebbb2785b8566aaf8c3b",
+      "subject": ":zap: Reduce unchanged startup sync requests https://github.com/siyuan-note/siyuan/issues/18410",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1304,
+      "sha": "5dcf82db18db84dc3aa6c01cbb52b4d10ac090ba",
+      "subject": ":bug: Reindex startup sync data before merging https://github.com/siyuan-note/siyuan/issues/18410",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1305,
+      "sha": "6953bd7aff0380f1ca4dd9845ba223abafb76775",
+      "subject": ":bug: Enforce Agent capability approval policies https://github.com/siyuan-note/siyuan/issues/18638",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1306,
+      "sha": "f151ae415a83bfb2c2101b4b16cce56f265171dd",
+      "subject": ":bug: Preserve dock order after reloading https://github.com/siyuan-note/siyuan/issues/18646",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1307,
+      "sha": "9841bb087ae2f42b5529b0e15ee8b4828e4428ee",
+      "subject": ":art: Clarify Agent approval settings https://github.com/siyuan-note/siyuan/issues/18638",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1308,
+      "sha": "38a36ba01c3ce6c4ef05124e7d70021b09c242f1",
+      "subject": ":art: Improve mobile menu icon consistency https://github.com/siyuan-note/siyuan/issues/14648",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1309,
+      "sha": "1e3c436a0670ad96d1c5408c143c17b8cebbacfc",
+      "subject": ":art: Simplify Agent approval labels https://github.com/siyuan-note/siyuan/issues/18638",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1310,
+      "sha": "ea8275757c50454a7d7184d92e0aaefaef2863ab",
+      "subject": ":sparkles: Support searching settings on mobile https://github.com/siyuan-note/siyuan/issues/18648",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1311,
+      "sha": "b00ff520040e1182932f1c6b8e209218acf1e3d3",
+      "subject": ":art: Tighten mobile menu icon spacing https://github.com/siyuan-note/siyuan/issues/14648",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1312,
+      "sha": "734c4ed05563da0dd8c49cf7f35aa02785803d78",
+      "subject": ":art: Clarify encrypted notebook setup guidance https://github.com/siyuan-note/siyuan/issues/18034",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1313,
+      "sha": "ace2790ed2f90cb33fedc446cab7013ed2a8ca96",
+      "subject": ":art: Clarify Agent approval controls https://github.com/siyuan-note/siyuan/issues/18638",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1314,
+      "sha": "47c31e7af01fc58f6f3ead83ce865336fa1dd99e",
+      "subject": ":art: Improve document headers in floating windows https://github.com/siyuan-note/siyuan/issues/13083",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1315,
+      "sha": "9ab5fd4bf825d6c05fa82ab066342601ab7ab818",
+      "subject": ":memo: Wrap macOS shortcuts in single kbd elements https://github.com/siyuan-note/siyuan/issues/18634",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1316,
+      "sha": "7c00aa8c8154314e587e8d5d85d8ae678edc3079",
+      "subject": ":art: Align mobile settings search background https://github.com/siyuan-note/siyuan/issues/18648",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1317,
+      "sha": "a9add02b6de49241ec06a014f1afe5a73820ded9",
+      "subject": ":art: Prompt Rosetta users to install Apple silicon version",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1318,
+      "sha": "cc30c6a9fb19e7b9df15870f35e783345bf3cc2d",
+      "subject": ":bug: Remove invalid editors from floating windows https://github.com/siyuan-note/siyuan/issues/18649",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1319,
+      "sha": "9bc2641c948f6aaa7bfdff8f50dafa4f7a920194",
+      "subject": ":bug: Avoid circular dependency when removing block panel editors https://github.com/siyuan-note/siyuan/issues/18649",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1320,
+      "sha": "9c340259b39814360eb53c06882de7d181cd50eb",
+      "subject": ":art: Improve Traditional Chinese document and file terminology (#18650)",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1321,
+      "sha": "d713580971c2877bd9a12152bda8e8dee59ed30a",
+      "subject": ":bug: Detect Rosetta before starting the kernel",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1322,
+      "sha": "544555b5f9c7485805f44fcb010141061fd8e22d",
+      "subject": ":zap: Improve database table paste performance",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1323,
+      "sha": "119fa74f02e77a9a9d716f42e2b86e369c277f11",
+      "subject": ":art: Simplify the Rosetta warning dialog",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1324,
+      "sha": "ff6825af1e3a03ee81ab2fe25fee1dbe8bbcdc30",
+      "subject": ":memo: Improve cross-platform agent command compatibility https://github.com/siyuan-note/siyuan/issues/18653",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1325,
+      "sha": "f08016571fcd615fef24ba9b51be9a11fa5bc428",
+      "subject": ":bug: Prevent LAN sync preflight panic https://github.com/siyuan-note/siyuan/issues/18556",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1326,
+      "sha": "f2814ce270b45f5f420636319421202765d5151b",
+      "subject": ":zap: Further improve database table paste performance",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1327,
+      "sha": "226a9608173a2fec585eb72705d40ff798e07ccf",
+      "subject": ":bug: Honor dynamic loading in document backlink popovers https://github.com/siyuan-note/siyuan/issues/18652",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1328,
+      "sha": "2e53d59af2462a8d77040a4db25a1aaaa823473e",
+      "subject": ":bug: Prevent stale Protyle hints https://github.com/siyuan-note/siyuan/issues/18655",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1329,
+      "sha": "8b4e13d5cee4a900c12a78890b2a8de426239e35",
+      "subject": ":memo: Sync v3.8.0 changelog updates",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1330,
+      "sha": "63a9e6e7aff530e9f81cf2a4d3aecce98232d49b",
+      "subject": ":bookmark: Release v3.8.0-beta.4",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1331,
+      "sha": "1c627c51a9580297c308ff92f0dcdc99229feaad",
+      "subject": ":green_heart: Stabilize end-to-end test execution",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1332,
+      "sha": "af2a987cfd39c92e8fb5d162c4e5a6eae00a6416",
+      "subject": ":bug: Avoid block tree query panic during shutdown",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1333,
+      "sha": "0f219f7d459f4615399cdfa977f87687c61e8766",
+      "subject": ":art: Display mobile settings search results inline https://github.com/siyuan-note/siyuan/issues/18648",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1334,
+      "sha": "61a62b18c34a7b1aeb4dce66d5f194c0b2337c03",
+      "subject": ":bug: Wait for wireless Android device discovery",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1335,
+      "sha": "e6d87fe4693dd3a9423500b0d9664fb3cf9495b5",
+      "subject": ":sparkles: Support stdio MCP environment variables https://github.com/siyuan-note/siyuan/issues/18656",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1336,
+      "sha": "525ba6076c6d98895948559986a8a4449fe9402a",
+      "subject": ":art: Improve stdio MCP environment variable settings https://github.com/siyuan-note/siyuan/issues/18656",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1337,
+      "sha": "28a51053e793e91718242bf9f9fbc81681f9b21c",
+      "subject": "Merge remote-tracking branch 'origin/dev' into dev",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1338,
+      "sha": "965352043ecd69fe74e4dd78aa57a9fbf64d2461",
+      "subject": ":art: https://github.com/siyuan-note/siyuan/issues/16235",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1339,
+      "sha": "7c0177b4b56cb3e8e1a37551807187ae6998ecb1",
+      "subject": ":bug: Store ordinary imported assets globally https://github.com/siyuan-note/siyuan/issues/18657",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1340,
+      "sha": "f3efbf1824c540433a64bf72716ec5de444dafce",
+      "subject": "Merge remote-tracking branch 'origin/dev' into dev",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1341,
+      "sha": "cb730acc916b3de2c45a0c364ea8b95baaacfe87",
+      "subject": ":bug: Prevent startup from exiting before kernel launch https://github.com/siyuan-note/siyuan/issues/18658",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1342,
+      "sha": "b2005f20cc7d3a1a7a303c0d2c79c02ab2395579",
+      "subject": ":memo: Sync v3.8.0 changelog translations https://github.com/siyuan-note/siyuan/issues/16235 https://github.com/siyuan-note/siyuan/issues/18657",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1343,
+      "sha": "b501a389305aa29fc54fb9da2ec64d919ee163f2",
+      "subject": ":bug: Make encrypted notebook SY archives portable",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1344,
+      "sha": "7f736ca837cf82c4a7d809dd26e16b43ae11ff87",
+      "subject": ":bug: Reuse existing notebook asset directories https://github.com/siyuan-note/siyuan/issues/18657",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1345,
+      "sha": "eba40a7eecdc1e6f9db1bd4a2836ae03825452ff",
+      "subject": ":bug: Prioritize exact alias matches in search https://github.com/siyuan-note/siyuan/issues/18661",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1346,
+      "sha": "743a167c3bcbd2524cad928de4dbe8a66942c750",
+      "subject": ":bug: Restore mobile caret after invisible long-press selection https://github.com/siyuan-note/siyuan/issues/18660",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1347,
+      "sha": "251596fc0de2f9528c00c224252fd073a99973f4",
+      "subject": ":bookmark: Release v3.8.0",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1348,
+      "sha": "54191e4e9e8eec49916b27fee9a01f4c1361c510",
+      "subject": ":art: mac 打包",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1349,
+      "sha": "574a9a63d31a406ed20ce4b85436da84d9df86c8",
+      "subject": ":art: https://github.com/siyuan-note/siyuan/issues/18034",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1350,
+      "sha": "0f9a3c2212f55d2da1ae683b3955493cfac6f768",
+      "subject": ":bug: Preserve selected block reference anchor text https://github.com/siyuan-note/siyuan/issues/18663",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1351,
+      "sha": "be1a2b3ed8021b0f3c13bf4ade604ac8c127fb61",
+      "subject": ":arrow_up: Upgrade Lute for merged table escape preservation",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1352,
+      "sha": "21dbce06a75d1c48f49abc70f765b5523bcff876",
+      "subject": ":art: Improve the menu for inserting IFrame, audio, and video links on mobile https://github.com/siyuan-note/siyuan/issues/18665",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1353,
+      "sha": "896f511c0b14bc146952641695623b9e0ad416cc",
+      "subject": ":art: Improve graph layout and drag animations https://github.com/siyuan-note/siyuan/issues/18667",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1354,
+      "sha": "f23a8dffff9288218c6ec81da7f0cfbabf2528fd",
+      "subject": ":bug: Preserve request host in publish proxy https://github.com/siyuan-note/siyuan/issues/18670",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1355,
+      "sha": "e11e6f02e8f77bbc1094956660e0efda9cc5bf06",
+      "subject": ":memo: Document issue creation conventions",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1356,
+      "sha": "553bb6646084d7e69001e550f53e73a7590767bc",
+      "subject": ":art: Improve database text field auto-sizing https://github.com/siyuan-note/siyuan/issues/18669",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1357,
+      "sha": "5fd295dc5ebbcf72f5fc4760a1d58090b3944a4b",
+      "subject": ":art: Improve theme watcher to only watch the current theme https://github.com/siyuan-note/siyuan/issues/18668",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1358,
+      "sha": "ba6c15395d691fe1112699a0f61d38d10e790d24",
+      "subject": ":bug: Avoid encrypted notebook creation deadlock https://github.com/siyuan-note/siyuan/issues/18674",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1359,
+      "sha": "8484e446e97036a36963a17424be53f7ea27f7ac",
+      "subject": ":zap: Speed up initial document loading https://github.com/siyuan-note/siyuan/issues/18671",
+      "state": "audit-pending",
+      "nextAction": "audit-upstream-behavior",
+      "audit": {
+        "status": "pending",
+        "disposition": null,
+        "seriesId": null,
+        "localCommits": [],
+        "mappingEvidence": [],
+        "codeEvidence": [],
+        "testEvidence": []
+      },
+      "deliveries": [],
+      "topologyCheckpoints": []
+    },
+    {
+      "topoIndex": 1360,
+      "sha": "d1bdd0e6606ddf0be4bbb7e0dc19e1efe8420e9e",
+      "subject": ":bug: Sort notebooks by sub-document count https://github.com/siyuan-note/siyuan/issues/18673",
       "state": "audit-pending",
       "nextAction": "audit-upstream-behavior",
       "audit": {
