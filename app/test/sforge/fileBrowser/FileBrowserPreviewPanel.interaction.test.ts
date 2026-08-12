@@ -3,7 +3,7 @@ import {createApp, nextTick, type App as VueApp} from "vue";
 import FileBrowserPreviewPanel from "../../../src/sforge/fileBrowser/FileBrowserPreviewPanel.vue";
 import {fileBrowserRepository} from "../../../src/sforge/fileBrowser/FileBrowser.repository";
 import type {
-    FileBrowserD5AInspectionResult,
+    FileBrowserD5AInspectionReport,
     FileBrowserFileStat,
     FileBrowserRoot,
 } from "../../../src/sforge/fileBrowser/FileBrowser.types";
@@ -85,8 +85,7 @@ describe("FileBrowserPreviewPanel image adaptation", () => {
             previewKind: "d5a",
             contentURL: "/api/s-forge/file-browser/content/workspace/models/fixture.d5a",
         };
-        const report: FileBrowserD5AInspectionResult = {
-            rootID: "workspace", path: "models/fixture.d5a", report: {
+        const report: FileBrowserD5AInspectionReport = {
                 schemaVersion: 1, documentKind: "scene", operation: "inspect", status: "pass", format: "d5a",
                 elapsedMs: 2.5, warnings: [], d5a: {
                     variant: "d5mesh", entryCount: 1, fileEntryCount: 1, encryptedEntryCount: 0,
@@ -97,10 +96,11 @@ describe("FileBrowserPreviewPanel image adaptation", () => {
                         },
                     }],
                 },
-            },
         };
         vi.spyOn(fileBrowserRepository, "statFile").mockResolvedValue(d5aStat);
-        vi.spyOn(fileBrowserRepository, "inspectD5A").mockResolvedValue(report);
+        vi.spyOn(fileBrowserRepository, "previewFile").mockResolvedValue({
+            stat: d5aStat, provider: "d5a", data: report,
+        });
         host = document.createElement("div");
         document.body.append(host);
         app = createApp(FileBrowserPreviewPanel, {

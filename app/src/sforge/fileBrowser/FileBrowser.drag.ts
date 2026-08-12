@@ -11,7 +11,7 @@ import {isRecord} from "./FileBrowser.guards";
  */
 import {isFileBrowserDragItem} from "./FileBrowser.drag.guards";
 /** 用途：拖放载荷领域类型；使用范围：树和画廊之间的受控传递。 */
-import type {FileBrowserDragData} from "./FileBrowser.types";
+import type {FileBrowserDragData, FileBrowserDragItem} from "./FileBrowser.types";
 
 /** 文件树/画廊使用的受控 MIME，避免与普通文本拖放混淆。 */
 export const FILE_BROWSER_DRAG_MIME = "application/x-sforge-file";
@@ -26,7 +26,7 @@ function normalizeRelativePath(value: string) {
 }
 
 /** 将未信任的 JSON 项规范化为根内拖放项，供单项和多选载荷共用。 */
-function parseFileBrowserDragItem(value: unknown) {
+function parseFileBrowserDragItem(value: unknown): FileBrowserDragItem | undefined {
     if (!isRecord(value) || typeof value.rootID !== "string" || typeof value.path !== "string" ||
         (value.kind !== "file" && value.kind !== "directory")) {
         return undefined;

@@ -25,8 +25,8 @@
                 <span>{{ error }}</span>
                 <button type="button" class="b3-button b3-button--text" @click="loadPreview">重试</button>
             </div>
-            <pre v-else-if="preview" class="sforge-file-preview__text">{{ preview.text }}</pre>
-            <FileBrowserD5APreview v-else-if="stat?.previewKind === 'd5a' && d5aReport" :report="d5aReport" />
+            <FileBrowserD5APreview v-else-if="d5aReport" :report="d5aReport" />
+            <pre v-else-if="textPreview" class="sforge-file-preview__text">{{ textPreview.text }}</pre>
             <img v-else-if="stat?.previewKind === 'image' && !imageError && contentURL && !contentURLError" :src="contentURL" :alt="file.name"
                 @error="handleImageError">
             <div v-else-if="stat?.previewKind === 'image'" class="sforge-file-preview__state sforge-file-preview__state--error"
@@ -61,20 +61,21 @@ import {resolveAssetURL} from "../../asset/assetUrl";
 import type {
     FileBrowserFileStat,
     FileBrowserPreviewPanelProps,
-    FileBrowserTextPreview,
-    FileBrowserD5AInspectionReport,
+    FileBrowserPreview,
 } from "./FileBrowser.types";
 
 const props = defineProps<FileBrowserPreviewPanelProps>();
 const stat = ref<FileBrowserFileStat | null>(null);
-const preview = ref<FileBrowserTextPreview | null>(null);
-const d5aReport = ref<FileBrowserD5AInspectionReport | null>(null);
+const preview = ref<FileBrowserPreview | null>(null);
 const loading = ref(false);
 const error = ref("");
 const imageError = ref(false);
 const previewIcon = computed(() => stat.value?.previewKind === "text" ? "#iconCode" : "#iconFile");
 const contentURL = ref("");
 const contentURLError = ref("");
+const textPreview = computed(() => preview.value && "text" in preview.value ? preview.value : null);
+const d5aReport = computed(() => preview.value && "provider" in preview.value && preview.value.provider === "d5a"
+    ? preview.value.data : null);
 
 function setContentURL(value: string) {
     contentURL.value = "";
@@ -96,16 +97,12 @@ async function loadPreview() {
     contentURL.value = "";
     contentURLError.value = "";
     preview.value = null;
-    d5aReport.value = null;
     try {
         const request = {rootID: props.file.rootID, path: props.file.path};
         stat.value = await fileBrowserRepository.statFile(request);
         setContentURL(stat.value.contentURL);
-        if (stat.value.previewKind === "text") {
-            preview.value = await fileBrowserRepository.previewText({...request, maxBytes: 256 * 1024});
-        } else if (stat.value.previewKind === "d5a") {
-            const result = await fileBrowserRepository.inspectD5A(request);
-            d5aReport.value = result.report;
+        if (stat.value.previewKind === "text" || stat.value.previewKind === "d5a") {
+            preview.value = await fileBrowserRepository.previewFile({...request, maxBytes: 256 * 1024});
         }
     } catch (reason) {
         error.value = reason instanceof Error ? reason.message : String(reason);

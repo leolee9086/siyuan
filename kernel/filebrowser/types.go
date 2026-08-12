@@ -1,10 +1,11 @@
 package filebrowser
 
-import "github.com/siyuan-note/siyuan/kernel/assets"
-
 import (
+	"encoding/json"
 	"runtime"
 	"strings"
+
+	"github.com/siyuan-note/siyuan/kernel/assets"
 )
 
 // RootKind identifies the owner of a browsable filesystem root.
@@ -314,10 +315,12 @@ type PreviewRequest struct {
 
 // PreviewResult is a bounded, decoded text preview.
 type PreviewResult struct {
-	Stat      StatResult `json:"stat"`
-	Text      string     `json:"text"`
-	Encoding  string     `json:"encoding"`
-	Truncated bool       `json:"truncated"`
+	Stat      StatResult      `json:"stat"`
+	Provider  string          `json:"provider,omitempty"`
+	Data      json.RawMessage `json:"data,omitempty"`
+	Text      string          `json:"text,omitempty"`
+	Encoding  string          `json:"encoding,omitempty"`
+	Truncated bool            `json:"truncated,omitempty"`
 }
 
 // ListRequest describes a paged directory query. Path is relative to RootID.

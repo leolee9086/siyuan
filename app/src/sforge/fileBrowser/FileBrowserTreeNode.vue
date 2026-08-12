@@ -17,7 +17,7 @@
             @drop.stop="emit('drop', {event: $event, node})">
             <button type="button" class="b3-list-item__toggle b3-list-item__toggle--hl sforge-file-tree__toggle"
                 :class="{'fn__hidden': !container}" :aria-label="node.expanded ? '折叠' : '展开'"
-                :disabled="node.root?.exists === false" @click.stop="emit('toggle', node)">
+                :disabled="localNode?.root.exists === false" @click.stop="emit('toggle', node)">
                 <svg class="b3-list-item__arrow" :class="{'b3-list-item__arrow--open': node.expanded}">
                     <use href="#iconRight" />
                 </svg>
@@ -28,20 +28,20 @@
             </svg>
             <span class="b3-list-item__text sforge-file-tree__copy">
                 <span class="sforge-file-tree__name">{{ node.name }}</span>
-                <span v-if="node.kind === 'root'" class="sforge-file-tree__path">{{ node.root?.path }}</span>
-                <span v-if="node.kind === 'root' && (node.root?.mounts?.length || node.root?.sources?.length)"
+                <span v-if="localNode?.kind === 'root'" class="sforge-file-tree__path">{{ localNode.root.path }}</span>
+                <span v-if="localNode?.kind === 'root' && (localNode.root.mounts?.length || localNode.root.sources?.length)"
                     class="sforge-file-tree__mounts">
-                    {{ formatFileBrowserSources(node.root) }}
+                    {{ formatFileBrowserSources(localNode.root) }}
                 </span>
             </span>
-            <span v-if="node.kind === 'root'" class="sforge-file-tree__permission">
-                {{ formatFileBrowserPermission(node.root?.permission ?? 'read-only') }}
+            <span v-if="localNode?.kind === 'root'" class="sforge-file-tree__permission">
+                {{ formatFileBrowserPermission(localNode.root.permission) }}
             </span>
             <span v-if="showCounts" class="sforge-file-tree__counts" :aria-label="countLabel">
                 <span><svg><use href="#iconFolder" /></svg>{{ node.directoryCount }}</span>
                 <span><svg><use href="#iconFile" /></svg>{{ node.fileCount }}</span>
             </span>
-            <span v-if="node.entry?.isSymlink" class="b3-list-item__action sforge-file-tree__symlink"
+            <span v-if="localNode?.entry?.isSymlink" class="b3-list-item__action sforge-file-tree__symlink"
                 aria-label="符号链接"><svg><use href="#iconLink" /></svg></span>
             <button type="button" class="b3-list-item__action sforge-file-tree__menu" aria-label="更多"
                 @click.stop="emit('menu', {event: $event, node})">
@@ -90,7 +90,7 @@ import {computed} from "vue";
 /** 用途：权限显示；使用范围：常驻根节点。 */
 import {formatFileBrowserPermission, formatFileBrowserSources, formatFileBrowserUpdated} from "./FileBrowser.presentation";
 /** 用途：节点容器守卫；使用范围：折叠和 ARIA 状态。 */
-import {isFileBrowserContainer} from "./FileBrowser.tree";
+import {isFileBrowserContainer, isLocalFileBrowserTreeNode} from "./FileBrowser.tree";
 /** 用途：递归树节点类型；使用范围：组件参数和事件。 */
 import type {FileBrowserTreeNode} from "./FileBrowser.types";
 
@@ -125,19 +125,21 @@ const emit = defineEmits<{
 }>();
 
 const container = computed(() => isFileBrowserContainer(props.node));
+const localNode = computed(() => isLocalFileBrowserTreeNode(props.node) ? props.node : undefined);
 const selected = computed(() => props.selectedKeys.has(props.node.key));
 const focused = computed(() => props.focusedKey === props.node.key);
-const draggable = computed(() => props.node.kind !== "root" && props.node.root.exists && !props.node.entry?.restricted);
+const draggable = computed(() => Boolean(localNode.value && localNode.value.kind !== "root" &&
+    localNode.value.root.exists && !localNode.value.entry?.restricted));
 const showCounts = computed(() => container.value && (
-    props.node.loadState === "loaded" || props.node.entry?.childCountKnown === true));
+    props.node.loadState === "loaded" || localNode.value?.entry?.childCountKnown === true));
 const countLabel = computed(() => `${props.node.directoryCount} 个目录，${props.node.fileCount} 个文件`);
 const rowStyle = computed(() => ({"--sforge-file-tree-depth": String(props.node.depth)}));
 const childGuideStyle = computed(() => ({"--sforge-file-tree-guide-depth": String(props.node.depth + 1)}));
 const rowClasses = computed(() => ({
     "b3-list-item--focus": selected.value,
     "sforge-file-tree__row--root": props.node.kind === "root",
-    "sforge-file-tree__row--hidden": props.node.entry?.hidden,
-    "sforge-file-tree__row--restricted": props.node.entry?.restricted || props.node.root?.exists === false,
+    "sforge-file-tree__row--hidden": localNode.value?.entry?.hidden,
+    "sforge-file-tree__row--restricted": localNode.value?.entry?.restricted || localNode.value?.root.exists === false,
     "sforge-file-tree__row--opening": props.openingKey === props.node.key,
     "sforge-file-tree__row--dragging": props.draggingKey === props.node.key,
     "sforge-file-tree__row--dragover": props.dragOverKey === props.node.key,
@@ -146,7 +148,7 @@ const nodeIcon = computed(() => {
     if (props.node.loadState === "loading" && props.node.children.length === 0) {
         return "#iconRefresh";
     }
-    if (props.node.entry?.restricted || props.node.root?.exists === false) {
+    if (localNode.value?.entry?.restricted || localNode.value?.root.exists === false) {
         return "#iconLock";
     }
     if (props.node.kind === "root") {
@@ -155,16 +157,24 @@ const nodeIcon = computed(() => {
     return props.node.kind === "directory" ? "#iconFolder" : "#iconFile";
 });
 const nodeTitle = computed(() => {
-    if (props.node.kind === "root") {
-        const root = props.node.root;
-        if (!root) {
-            return props.node.name;
-        }
+    if (localNode.value?.kind === "root") {
+        const root = localNode.value.root;
         const mounts = root.mounts?.map(mount => `${mount.label}: ${mount.path}`).join("\n") ?? "";
         return mounts ? `${root.path}\n\n已归并绑定:\n${mounts}` : root.path;
     }
-    const updated = formatFileBrowserUpdated(props.node.entry?.updated ?? 0);
-    return updated ? `${props.node.path}\n${updated}` : props.node.path;
+    if (localNode.value) {
+        const updated = formatFileBrowserUpdated(localNode.value.entry?.updated ?? 0);
+        return updated ? `${localNode.value.path}\n${updated}` : localNode.value.path;
+    }
+    if (props.node.domain === "provider") {
+        if (props.node.kind === "provider-resource") {
+            return `${props.node.descriptor.displayName}\n${props.node.resource.name}`;
+        }
+        if (props.node.kind === "directory" || props.node.kind === "file") {
+            return `${props.node.descriptor.displayName}\n${props.node.providerEntry.name}`;
+        }
+    }
+    return props.node.name;
 });
 </script>
 

@@ -82,6 +82,13 @@ require (
 	github.com/siyuan-note/riff v0.0.0-20251022131846-228528e70754
 	github.com/siyuan-note/siyuan/packages/agentqueue v0.0.0
 	github.com/siyuan-note/siyuan/packages/d5a-viewer/native v0.0.0
+	github.com/siyuan-note/siyuan/packages/everything-efu v0.0.0
+	github.com/siyuan-note/siyuan/packages/everything-http-native v0.0.0
+	github.com/siyuan-note/siyuan/packages/external-provider-contract v0.0.0
+	github.com/siyuan-note/siyuan/packages/s3-provider v0.0.0
+	github.com/siyuan-note/siyuan/packages/synology-file-station-provider v0.0.0
+	github.com/siyuan-note/siyuan/packages/windows-smb-mount-provider v0.0.0
+	github.com/siyuan-note/siyuan/packages/webdav-provider v0.0.0
 	github.com/siyuan-note/siyuan/packages/websearch v0.0.0
 	github.com/smallnest/chanx v1.2.0
 	github.com/soheilhy/cmux v0.1.5
@@ -255,6 +262,20 @@ replace github.com/siyuan-note/siyuan/packages/websearch => ../packages/websearc
 replace github.com/siyuan-note/siyuan/packages/agentqueue => ../packages/agentqueue
 
 replace github.com/siyuan-note/siyuan/packages/d5a-viewer/native => ../packages/d5a-viewer/native
+
+replace github.com/siyuan-note/siyuan/packages/everything-efu => ../packages/everything-efu
+
+replace github.com/siyuan-note/siyuan/packages/everything-http-native => ../packages/everything-http-native
+
+replace github.com/siyuan-note/siyuan/packages/external-provider-contract => ../packages/external-provider-contract
+
+replace github.com/siyuan-note/siyuan/packages/s3-provider => ../packages/s3-provider
+
+replace github.com/siyuan-note/siyuan/packages/synology-file-station-provider => ../packages/synology-file-station-provider
+
+replace github.com/siyuan-note/siyuan/packages/windows-smb-mount-provider => ../packages/windows-smb-mount-provider
+
+replace github.com/siyuan-note/siyuan/packages/webdav-provider => ../packages/webdav-provider
 
 replace s-forge.local/chatseqtrie => ../packages/chatseqtrie
 

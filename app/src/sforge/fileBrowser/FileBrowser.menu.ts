@@ -1,20 +1,24 @@
 /** 用途：全局菜单、已有文案和剪贴板兼容；使用范围：树节点右键动作。 */
 import {getSiyuanGlobalMenus, siyuanI18n, writeText} from "./menu/imports";
 /** 用途：容器节点守卫；使用范围：按节点类型过滤菜单。 */
-import {getFileBrowserCapabilitiesForPath, isFileBrowserContainer} from "./FileBrowser.tree";
+import {
+    getFileBrowserCapabilitiesForPath,
+    isFileBrowserContainer,
+    isLocalFileBrowserTreeNode,
+} from "./FileBrowser.tree";
 /** 用途：树节点类型；使用范围：菜单参数与动作回调。 */
-import type {FileBrowserTreeNode} from "./FileBrowser.types";
+import type {FileBrowserLocalTreeNode, FileBrowserTreeNode} from "./FileBrowser.types";
 
 export interface FileBrowserTreeMenuActions {
     open(node: FileBrowserTreeNode): Promise<void>;
     createAgentTask?(node: FileBrowserTreeNode): Promise<void>;
     canCreateAgentTask?(node: FileBrowserTreeNode): boolean;
     refresh(node: FileBrowserTreeNode, recursive?: boolean): Promise<void>;
-    createFile?(node: FileBrowserTreeNode): Promise<void>;
-    createDirectory?(node: FileBrowserTreeNode): Promise<void>;
-    rename?(node: FileBrowserTreeNode): Promise<void>;
-    copy?(node: FileBrowserTreeNode): Promise<void>;
-    delete?(node: FileBrowserTreeNode): Promise<void>;
+    createFile?(node: FileBrowserLocalTreeNode): Promise<void>;
+    createDirectory?(node: FileBrowserLocalTreeNode): Promise<void>;
+    rename?(node: FileBrowserLocalTreeNode): Promise<void>;
+    copy?(node: FileBrowserLocalTreeNode): Promise<void>;
+    delete?(node: FileBrowserLocalTreeNode): Promise<void>;
 }
 
 /** 使用应用唯一菜单展示当前树切片已经具有真实业务链的动作。 */
@@ -24,6 +28,7 @@ export function showFileBrowserTreeNodeMenu(
     actions: FileBrowserTreeMenuActions,
 ) {
     const menu = getSiyuanGlobalMenus().menu;
+    const localNode = isLocalFileBrowserTreeNode(node) ? node : undefined;
     menu.remove();
     menu.addItem({
         id: "openBy",
@@ -40,9 +45,9 @@ export function showFileBrowserTreeNodeMenu(
             click: () => void actions.createAgentTask?.(node),
         });
     }
-    const capabilities = getFileBrowserCapabilitiesForPath(node.root, node.path);
-    const writable = node.root.exists && !node.entry?.restricted && capabilities.write;
-    if (writable && isFileBrowserContainer(node) && (actions.createDirectory || actions.createFile)) {
+    const capabilities = localNode ? getFileBrowserCapabilitiesForPath(localNode.root, localNode.path) : undefined;
+    const writable = Boolean(localNode?.root.exists && !localNode.entry?.restricted && capabilities?.write);
+    if (localNode && writable && isFileBrowserContainer(localNode) && (actions.createDirectory || actions.createFile)) {
         menu.addItem({type: "separator"});
         menu.addItem({
             id: "create",
@@ -54,44 +59,45 @@ export function showFileBrowserTreeNodeMenu(
                     id: "createFile",
                     label: "新建文件",
                     icon: "iconFile",
-                    click: () => void actions.createFile?.(node),
+                    click: () => void actions.createFile?.(localNode),
                 }] : []),
                 ...(actions.createDirectory ? [{
                     id: "createDirectory",
                     label: "新建目录",
                     icon: "iconFolder",
-                    click: () => void actions.createDirectory?.(node),
+                    click: () => void actions.createDirectory?.(localNode),
                 }] : []),
             ],
         });
     }
-    if (writable && node.kind !== "root" && actions.rename) {
-        if (!isFileBrowserContainer(node) || !(actions.createDirectory || actions.createFile)) {
+    if (localNode && writable && localNode.kind !== "root" && actions.rename) {
+        if (!isFileBrowserContainer(localNode) || !(actions.createDirectory || actions.createFile)) {
             menu.addItem({type: "separator"});
         }
         menu.addItem({
             id: "rename",
             label: siyuanI18n.rename,
             icon: "iconEdit",
-            click: () => void actions.rename?.(node),
+            click: () => void actions.rename?.(localNode),
         });
     }
-    if (node.kind !== "root" && node.root.exists && !node.entry?.restricted && capabilities.browse && actions.copy) {
+    if (localNode && localNode.kind !== "root" && localNode.root.exists && !localNode.entry?.restricted &&
+        capabilities?.browse && actions.copy) {
         menu.addItem({type: "separator"});
         menu.addItem({
             id: "copy",
             label: "复制到...",
             icon: "iconCopy",
-            click: () => void actions.copy?.(node),
+            click: () => void actions.copy?.(localNode),
         });
     }
-    if (writable && node.kind !== "root" && actions.delete) {
+    if (localNode && writable && localNode.kind !== "root" && actions.delete) {
         menu.addItem({type: "separator"});
         menu.addItem({
             id: "delete",
             label: "删除",
             icon: "iconTrashcan",
-            click: () => void actions.delete?.(node),
+            click: () => void actions.delete?.(localNode),
         });
     }
     if (isFileBrowserContainer(node)) {
@@ -110,9 +116,25 @@ export function showFileBrowserTreeNodeMenu(
         });
     }
     menu.addItem({type: "separator"});
-    const rootRelativePath = node.path || ".";
-    const absolutePath = node.kind === "root" ? node.root?.path ?? "" :
-        `${node.root?.path ?? ""}/${node.path}`.replaceAll("/", "\\");
+    const localPathItems = localNode ? [
+        {type: "separator" as const},
+        {
+            id: "copyRelativePath",
+            label: "复制根内路径",
+            icon: "iconCopy",
+            click: () => writeText(localNode.path || "."),
+        },
+        {
+            id: "copyFullPath",
+            label: siyuanI18n.copyPath,
+            icon: "iconCopy",
+            click: () => {
+                const absolutePath = localNode.kind === "root" ? localNode.root.path :
+                    `${localNode.root.path}/${localNode.path}`.replaceAll("/", "\\");
+                writeText(absolutePath);
+            },
+        },
+    ] : [];
     menu.addItem({
         id: "copyPaths",
         label: "复制",
@@ -125,19 +147,7 @@ export function showFileBrowserTreeNodeMenu(
                 icon: "iconCopy",
                 click: () => writeText(node.name),
             },
-            {type: "separator"},
-            {
-                id: "copyRelativePath",
-                label: "复制根内路径",
-                icon: "iconCopy",
-                click: () => writeText(rootRelativePath),
-            },
-            {
-                id: "copyFullPath",
-                label: siyuanI18n.copyPath,
-                icon: "iconCopy",
-                click: () => writeText(absolutePath),
-            },
+            ...localPathItems,
         ],
     });
     menu.popup({x: event.clientX, y: event.clientY});

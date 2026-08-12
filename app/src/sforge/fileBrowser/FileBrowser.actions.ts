@@ -5,7 +5,12 @@ import {
     refreshLoadedFileBrowserTree,
 } from "./FileBrowser.directory";
 /** 用途：节点查找和容器守卫；使用范围：选择、键盘和全部折叠。 */
-import {findFileBrowserTreeNode, isFileBrowserContainer, makeFileBrowserNodeKey} from "./FileBrowser.tree";
+import {
+    findFileBrowserTreeNode,
+    isFileBrowserContainer,
+    isLocalFileBrowserTreeNode,
+    makeFileBrowserNodeKey,
+} from "./FileBrowser.tree";
 /** 用途：树上下文、节点和排序字段；使用范围：本模块公开动作。 */
 import type {
     FileBrowserSelectionModifiers,
@@ -20,13 +25,23 @@ export function selectFileBrowserTreeNode(
     node: FileBrowserTreeNode,
     modifiers?: FileBrowserSelectionModifiers,
 ) {
-    context.selection.select(node, context.derived.visibleNodes.value, modifiers);
+    if (isLocalFileBrowserTreeNode(node)) {
+        context.state.providerSelectedKey.value = "";
+        context.selection.select(
+            node,
+            context.derived.visibleNodes.value.filter(isLocalFileBrowserTreeNode),
+            modifiers,
+        );
+    } else {
+        context.selection.clear();
+        context.state.providerSelectedKey.value = node.key;
+    }
     context.state.focusedKey.value = node.key;
 }
 
 /** 展开容器，并在第一次展开或失败重试时读取子项。 */
 export async function expandFileBrowserTreeNode(context: FileBrowserTreeContext, node: FileBrowserTreeNode) {
-    if (!isFileBrowserContainer(node) || node.root?.exists === false) {
+    if (!isFileBrowserContainer(node) || (isLocalFileBrowserTreeNode(node) && node.root.exists === false)) {
         return;
     }
     node.expanded = true;
@@ -65,14 +80,15 @@ export async function activateFileBrowserTreeNode(
 
 /** 双击或 Enter 打开文件；目录进入独立资源瀑布流页签。 */
 export async function openFileBrowserTreeNode(context: FileBrowserTreeContext, node: FileBrowserTreeNode) {
-    context.selection.replace(node);
-    context.state.focusedKey.value = node.key;
+    selectFileBrowserTreeNode(context, node);
     if (isFileBrowserContainer(node)) {
         await expandFileBrowserTreeNode(context, node);
-        await context.openDirectory(node.rootID, node.path, node.name);
+        if (isLocalFileBrowserTreeNode(node)) {
+            await context.openDirectory(node.rootID, node.path, node.name);
+        }
         return;
     }
-    if (!node.entry || node.entry.restricted) {
+    if (!isLocalFileBrowserTreeNode(node) || !node.entry || node.entry.restricted) {
         return;
     }
     context.state.openingKey.value = node.key;

@@ -1,91 +1,50 @@
-// Package fileprovider exposes external asset providers without weakening the
-// root-relative file-browser contract.
+// Package fileprovider contains the kernel-side adapter boundary for external
+// asset providers. Provider query and parsing rules live in packages; this
+// package owns authorization-facing adapters and opaque API addresses.
 package fileprovider
 
-import "errors"
+import (
+	"encoding/json"
+	"errors"
 
-type ProviderID string
+	externalprovider "github.com/siyuan-note/siyuan/packages/external-provider-contract"
+)
+
+type ProviderID = externalprovider.ProviderID
 
 const (
 	ProviderEverythingHTTP ProviderID = "everything-http"
 	ProviderEFU            ProviderID = "efu"
+	ProviderWindowsSMB     ProviderID = "windows-smb-mount"
 )
 
 var (
-	ErrInvalidProviderRequest  = errors.New("external provider request is invalid")
-	ErrProviderUnavailable     = errors.New("external provider is unavailable")
-	ErrProviderResponse        = errors.New("external provider response is invalid")
-	ErrEFUHeader               = errors.New("EFU header is invalid")
-	ErrExternalAddressNotFound = errors.New("external asset address not found")
+	ErrInvalidProviderRequest    = externalprovider.ErrInvalidRequest
+	ErrProviderUnavailable       = externalprovider.ErrUnavailable
+	ErrProviderResponse          = externalprovider.ErrResponse
+	ErrEFUHeader                 = externalprovider.ErrInvalidFormat
+	ErrExternalAddressNotFound   = errors.New("external asset address not found")
+	ErrProviderNotRegistered     = errors.New("external provider adapter is not registered")
+	ErrProviderAlreadyRegistered = errors.New("external provider adapter is already registered")
+	ErrProviderCapabilityMissing = errors.New("external provider capability is not implemented")
+	ErrProviderSessionExists     = errors.New("external provider session is already registered")
+	ErrProviderSessionNotFound   = errors.New("external provider session is not registered")
 )
 
-// SearchRequest contains only provider-specific fields. It is deliberately
-// separate from filequery.SearchRequest so external paths cannot enter the
-// authorized workspace/Agent root query.
 type SearchRequest struct {
-	Provider ProviderID `json:"provider"`
-	Host     string     `json:"host,omitempty"`
-	Port     int        `json:"port,omitempty"`
-	Search   string     `json:"search,omitempty"`
-	RootID   string     `json:"rootID,omitempty"`
-	Path     string     `json:"path,omitempty"`
-	Offset   int        `json:"offset,omitempty"`
-	Limit    int        `json:"limit,omitempty"`
-	Sort     string     `json:"sort,omitempty"`
+	Provider ProviderID      `json:"provider"`
+	Payload  json.RawMessage `json:"request"`
 }
 
-// ExternalAssetAddress is the only address accepted by external content and
-// thumbnail endpoints. The physical path never crosses the API boundary.
-type ExternalAssetAddress struct {
-	Provider ProviderID `json:"provider"`
-	Token    string     `json:"token"`
-	Name     string     `json:"name"`
-}
-
-type AssetIssue struct {
-	Line    int    `json:"line"`
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
-
-type Asset struct {
-	ID        string                `json:"id"`
-	Name      string                `json:"name"`
-	Path      string                `json:"path"`
-	Extension string                `json:"extension,omitempty"`
-	Size      int64                 `json:"size"`
-	Modified  int64                 `json:"modified"`
-	Created   int64                 `json:"created"`
-	Address   *ExternalAssetAddress `json:"address,omitempty"`
-	Issues    []AssetIssue          `json:"issues,omitempty"`
-}
-
-type Page struct {
-	Provider   ProviderID   `json:"provider"`
-	Assets     []Asset      `json:"assets"`
-	Issues     []AssetIssue `json:"issues,omitempty"`
-	TotalCount int          `json:"totalCount"`
-	Offset     int          `json:"offset"`
-	Limit      int          `json:"limit"`
-	HasMore    bool         `json:"hasMore"`
-}
+type AssetIssue = externalprovider.AssetIssue
+type ExternalAssetAddress = externalprovider.AssetAddress
+type Asset = externalprovider.Asset
+type Page = externalprovider.Page
 
 type AddressRecord struct {
 	Provider ProviderID
 	Token    string
 	Name     string
 	Path     string
-}
-
-func NormalizePage(offset, limit int) (int, int, error) {
-	if offset < 0 || limit < 0 {
-		return 0, 0, ErrInvalidProviderRequest
-	}
-	if limit == 0 {
-		limit = 200
-	}
-	if limit > 1000 {
-		limit = 1000
-	}
-	return offset, limit, nil
+	Resource *externalprovider.ResourceRef
 }

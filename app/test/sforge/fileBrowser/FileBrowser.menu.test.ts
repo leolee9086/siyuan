@@ -1,5 +1,8 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
-import type {FileBrowserTreeNode} from "../../../src/sforge/fileBrowser/FileBrowser.types";
+import type {
+    FileBrowserLocalTreeNode,
+    FileBrowserProviderEntryTreeNode,
+} from "../../../src/sforge/fileBrowser/FileBrowser.types";
 
 const menuState = vi.hoisted(() => ({
     items: [] as Array<Record<string, unknown>>,
@@ -30,15 +33,53 @@ const root = {
     capabilities: {browse: true, write: true, command: false}, exists: true,
 };
 
-function makeNode(overrides: Partial<FileBrowserTreeNode> = {}): FileBrowserTreeNode {
+function makeNode(overrides: Partial<FileBrowserLocalTreeNode> = {}): FileBrowserLocalTreeNode {
     return {
+        domain: "local",
         key: "[\"workspace\",\"notes/a.txt\"]", domID: "node", rootID: root.id, parentKey: "[\"workspace\",\"notes\"]",
         depth: 2, kind: "file", name: "a.txt", path: "notes/a.txt", root,
         entry: {
             name: "a.txt", path: "notes/a.txt", isDir: false, isSymlink: false, restricted: false,
             hidden: false, size: 1, updated: 1,
         }, expanded: false, loadState: "loaded", children: [], total: 0, fileCount: 0, directoryCount: 0,
-        hasMore: false, loadingMore: false, error: "", requestRevision: 0, ...overrides,
+        hasMore: false, totalKnown: true, nextCursor: "", loadingMore: false, error: "", requestRevision: 0,
+        ...overrides,
+    };
+}
+
+function makeProviderFile(): FileBrowserProviderEntryTreeNode {
+    const descriptor = {
+        id: "synology-file-station", displayName: "群晖文件", kind: "file-share",
+        sessionMode: "automatic" as const, sessionLabel: "当前会话", capabilities: ["list", "stat", "open"],
+    };
+    const session = {
+        address: {kind: "provider-session" as const, provider: descriptor.id, session: "same-session"},
+        readOnly: true,
+        descriptor,
+    };
+    const resource = {
+        id: "same-resource", name: "工作文件", kind: "file-share", readOnly: true,
+        capabilities: ["list", "stat", "open"], source: {name: "192.168.31.195", kind: "endpoint"},
+        address: {
+            kind: "provider-resource" as const, provider: descriptor.id,
+            session: "same-session", resource: "same-resource",
+        },
+    };
+    return {
+        domain: "provider",
+        key: "provider-file", domID: "provider-file", parentKey: "provider-resource", depth: 3,
+        kind: "file", name: "a.txt", descriptor, session, resource,
+        providerEntry: {
+            id: "same-token", name: "a.txt", kind: "file", isDir: false, size: 1, modified: 1, created: 1,
+            revision: {}, previewKind: "text",
+            address: {
+                kind: "provider-entry", provider: descriptor.id, session: "same-session",
+                resource: "same-resource", token: "same-token",
+            },
+        },
+        expanded: false, loadState: "loaded", children: [], total: 0, totalKnown: true,
+        fileCount: 0, directoryCount: 0, hasMore: false, nextCursor: "", loadingMore: false,
+        error: "", requestRevision: 0,
     };
 }
 
@@ -106,5 +147,22 @@ describe("FileBrowser tree menu", () => {
         });
         const labels = menuState.items.map(item => item.label);
         expect(labels).not.toEqual(expect.arrayContaining(["新建", "重命名", "复制到..."]));
+    });
+
+    it("does not expose local paths or local mutations for provider entries", async () => {
+        const {showFileBrowserTreeNodeMenu} = await import("../../../src/sforge/fileBrowser/FileBrowser.menu");
+        showFileBrowserTreeNodeMenu(new MouseEvent("contextmenu"), makeProviderFile(), {
+            open: vi.fn(async () => undefined), refresh: vi.fn(async () => undefined),
+            createFile: vi.fn(async () => undefined), createDirectory: vi.fn(async () => undefined),
+            rename: vi.fn(async () => undefined), copy: vi.fn(async () => undefined),
+            delete: vi.fn(async () => undefined),
+        });
+
+        const labels = menuState.items.map(item => item.label);
+        expect(labels).not.toEqual(expect.arrayContaining(["新建", "重命名", "复制到...", "删除"]));
+        const copyMenu = menuState.items.find(item => item.label === "复制") as {
+            submenu?: Array<Record<string, unknown>>;
+        } | undefined;
+        expect(copyMenu?.submenu?.map(item => item.label)).toEqual(["复制名称"]);
     });
 });

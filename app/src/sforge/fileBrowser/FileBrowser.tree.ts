@@ -2,8 +2,10 @@
 import type {
     FileBrowserDirectoryPage,
     FileBrowserEntry,
-    FileBrowserRootCapabilities,
+    FileBrowserLocalTreeNode,
+    FileBrowserProviderTreeNode,
     FileBrowserRoot,
+    FileBrowserRootCapabilities,
     FileBrowserTreeNode,
 } from "./FileBrowser.types";
 
@@ -13,13 +15,24 @@ export function makeFileBrowserNodeKey(rootID: string, path: string) {
 }
 
 /** 为原生焦点恢复生成稳定且可由 getElementById 直接查询的 ID。 */
-function makeFileBrowserNodeDOMID(key: string) {
+export function makeFileBrowserNodeDOMID(key: string) {
     return `sforge-file-node-${encodeURIComponent(key)}`;
+}
+
+/** 本地根和后代是唯一允许进入 rootID/path 操作链的节点。 */
+export function isLocalFileBrowserTreeNode(node: FileBrowserTreeNode): node is FileBrowserLocalTreeNode {
+    return node.domain === "local";
+}
+
+/** provider 节点只使用 provider/session/resource/token 地址。 */
+export function isProviderFileBrowserTreeNode(node: FileBrowserTreeNode): node is FileBrowserProviderTreeNode {
+    return node.domain === "provider";
 }
 
 /** 判断节点能否拥有异步子项。 */
 export function isFileBrowserContainer(node: FileBrowserTreeNode) {
-    return node.kind === "root" || node.kind === "directory";
+    return node.kind === "root" || node.kind === "provider" || node.kind === "provider-session" ||
+        node.kind === "provider-resource" || node.kind === "directory";
 }
 
 /**
@@ -28,7 +41,7 @@ export function isFileBrowserContainer(node: FileBrowserTreeNode) {
  * 父根归并后，树节点仍使用展示根 ID；这里按挂载点重新计算能力，
  * 使只读 Agent 挂载不会错误显示新建、重命名和复制入口。
  */
-export function getFileBrowserCapabilitiesForPath(root: FileBrowserTreeNode["root"], path: string) {
+export function getFileBrowserCapabilitiesForPath(root: FileBrowserRoot, path: string) {
     const normalize = (value: string) => value.trim().replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
     const normalizedPath = normalize(path);
     let capabilities: FileBrowserRootCapabilities = root.capabilities;
@@ -46,9 +59,10 @@ export function getFileBrowserCapabilitiesForPath(root: FileBrowserTreeNode["roo
 }
 
 /** 从服务端根创建一个常驻顶层节点。 */
-export function createFileBrowserRootNode(root: FileBrowserRoot): FileBrowserTreeNode {
+export function createFileBrowserRootNode(root: FileBrowserRoot): FileBrowserLocalTreeNode {
     const key = makeFileBrowserNodeKey(root.id, "");
     return {
+        domain: "local",
         key,
         domID: makeFileBrowserNodeDOMID(key),
         rootID: root.id,
@@ -62,9 +76,11 @@ export function createFileBrowserRootNode(root: FileBrowserRoot): FileBrowserTre
         loadState: root.exists ? "unloaded" : "error",
         children: [],
         total: 0,
+        totalKnown: false,
         fileCount: 0,
         directoryCount: 0,
         hasMore: false,
+        nextCursor: "",
         loadingMore: false,
         error: root.exists ? "" : "绑定目录当前不存在",
         requestRevision: 0,
@@ -72,11 +88,15 @@ export function createFileBrowserRootNode(root: FileBrowserRoot): FileBrowserTre
 }
 
 /** 从目录响应项创建文件或目录节点。 */
-export function createFileBrowserEntryNode(parent: FileBrowserTreeNode, entry: FileBrowserEntry): FileBrowserTreeNode {
+export function createFileBrowserEntryNode(parent: FileBrowserTreeNode, entry: FileBrowserEntry): FileBrowserLocalTreeNode {
+    if (!isLocalFileBrowserTreeNode(parent)) {
+        throw new Error("本地目录项不能挂载到 provider 节点");
+    }
     const key = makeFileBrowserNodeKey(parent.rootID, entry.path);
     const knownTotal = (entry.childFileCount ?? 0) + (entry.childDirectoryCount ?? 0);
     const emptyDirectory = entry.isDir && entry.childCountKnown === true && knownTotal === 0;
     return {
+        domain: "local",
         key,
         domID: makeFileBrowserNodeDOMID(key),
         rootID: parent.rootID,
@@ -91,9 +111,11 @@ export function createFileBrowserEntryNode(parent: FileBrowserTreeNode, entry: F
         loadState: entry.isDir ? (emptyDirectory ? "loaded" : "unloaded") : "loaded",
         children: [],
         total: entry.childCountKnown ? knownTotal : 0,
+        totalKnown: entry.childCountKnown === true,
         fileCount: entry.childFileCount ?? 0,
         directoryCount: entry.childDirectoryCount ?? 0,
         hasMore: false,
+        nextCursor: "",
         loadingMore: false,
         error: "",
         requestRevision: 0,
@@ -101,7 +123,7 @@ export function createFileBrowserEntryNode(parent: FileBrowserTreeNode, entry: F
 }
 
 /** 根刷新时保留仍指向同一真实位置的节点状态。 */
-function updateRootNode(node: FileBrowserTreeNode, root: FileBrowserRoot) {
+function updateRootNode(node: FileBrowserLocalTreeNode, root: FileBrowserRoot) {
     const locationChanged = node.root?.path !== root.path;
     const recovered = node.root?.exists === false && root.exists;
     node.name = root.label;
@@ -117,7 +139,7 @@ function updateRootNode(node: FileBrowserTreeNode, root: FileBrowserRoot) {
 }
 
 /** 协调根列表并保持仍存在根的展开、选择和已加载子树。 */
-export function reconcileFileBrowserRoots(previous: FileBrowserTreeNode[], roots: FileBrowserRoot[]) {
+export function reconcileFileBrowserRoots(previous: FileBrowserLocalTreeNode[], roots: FileBrowserRoot[]) {
     const previousByID = new Map(previous.map(node => [node.rootID, node]));
     return roots.map(root => {
         const node = previousByID.get(root.id);
@@ -130,7 +152,11 @@ export function reconcileFileBrowserRoots(previous: FileBrowserTreeNode[], roots
 }
 
 /** 用最新目录项更新旧节点的元数据，同时保留其已加载后代。 */
-function reconcileEntryNode(parent: FileBrowserTreeNode, previous: FileBrowserTreeNode | undefined, entry: FileBrowserEntry) {
+function reconcileEntryNode(
+    parent: FileBrowserLocalTreeNode,
+    previous: FileBrowserLocalTreeNode | undefined,
+    entry: FileBrowserEntry,
+) {
     const expectedKind = entry.isDir ? "directory" : "file";
     if (!previous || previous.kind !== expectedKind) {
         return createFileBrowserEntryNode(parent, entry);
@@ -145,6 +171,7 @@ function reconcileEntryNode(parent: FileBrowserTreeNode, previous: FileBrowserTr
         previous.fileCount = entry.childFileCount ?? 0;
         previous.directoryCount = entry.childDirectoryCount ?? 0;
         previous.total = previous.fileCount + previous.directoryCount;
+        previous.totalKnown = true;
         if (previous.total === 0) {
             previous.loadState = "loaded";
         }
@@ -154,11 +181,13 @@ function reconcileEntryNode(parent: FileBrowserTreeNode, previous: FileBrowserTr
 
 /** 把一个目录分页响应应用到容器节点。 */
 export function applyFileBrowserDirectoryPage(
-    node: FileBrowserTreeNode,
+    node: FileBrowserLocalTreeNode,
     page: FileBrowserDirectoryPage,
     append: boolean,
 ) {
-    const previousByKey = new Map(node.children.map(child => [child.key, child]));
+    const previousByKey = new Map(node.children
+        .filter((child): child is FileBrowserLocalTreeNode => child.domain === "local")
+        .map(child => [child.key, child]));
     const incoming = page.entries.map(entry => {
         const key = makeFileBrowserNodeKey(node.rootID, entry.path);
         return reconcileEntryNode(node, previousByKey.get(key), entry);
@@ -170,9 +199,11 @@ export function applyFileBrowserDirectoryPage(
         node.children = incoming;
     }
     node.total = page.total;
+    node.totalKnown = true;
     node.fileCount = page.fileCount;
     node.directoryCount = page.directoryCount;
     node.hasMore = page.hasMore;
+    node.nextCursor = "";
 }
 
 /** 清空一个容器的运行时子树并使下一次展开重新读取。 */
@@ -181,9 +212,11 @@ export function resetFileBrowserContainer(node: FileBrowserTreeNode) {
     node.loadState = "unloaded";
     node.children = [];
     node.total = 0;
+    node.totalKnown = false;
     node.fileCount = 0;
     node.directoryCount = 0;
     node.hasMore = false;
+    node.nextCursor = "";
     node.loadingMore = false;
     node.error = "";
     ++node.requestRevision;

@@ -143,6 +143,13 @@ func (s *Service) Preview(request PreviewRequest) (PreviewResult, error) {
 		return PreviewResult{}, err
 	}
 	stat := statFromResolved(resolved)
+	if stat.PreviewKind == PreviewKindD5A {
+		payload, err := assets.LoadPreview(resolved.absolute)
+		if err != nil {
+			return PreviewResult{}, err
+		}
+		return PreviewResult{Stat: stat, Provider: payload.Provider, Data: payload.Data}, nil
+	}
 	if stat.PreviewKind != PreviewKindText {
 		return PreviewResult{}, ErrPreviewUnsupported
 	}

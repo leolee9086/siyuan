@@ -9,9 +9,9 @@ import type {
     FileBrowserEntry,
     FileBrowserFileStat,
 	FileBrowserD5AInspectionReport,
-	FileBrowserD5AInspectionResult,
 	FileBrowserD5ABundleSummary,
 	FileBrowserD5AMeshSummary,
+	FileBrowserPreview,
 	FileBrowserOperationResult,
     FileBrowserGalleryTabData,
     FileBrowserPermission,
@@ -233,17 +233,27 @@ export function parseFileBrowserFileStat(value: unknown): FileBrowserFileStat {
 }
 
 /** 把文本预览响应收窄到有界内容契约。 */
+export function parseFileBrowserPreview(value: unknown): FileBrowserPreview {
+    if (!isRecord(value)) {
+        throw new Error("文件预览响应格式错误");
+    }
+    const stat = parseFileBrowserFileStat(value.stat);
+    if (value.provider === "d5a" && isD5InspectionReport(value.data)) {
+        return {stat, provider: "d5a", data: value.data};
+    }
+    if (typeof value.text === "string" && typeof value.encoding === "string" &&
+        typeof value.truncated === "boolean") {
+        return {stat, text: value.text, encoding: value.encoding, truncated: value.truncated};
+    }
+    throw new Error("文件预览响应格式错误");
+}
+
 export function parseFileBrowserTextPreview(value: unknown): FileBrowserTextPreview {
-    if (!isRecord(value) || typeof value.text !== "string" || typeof value.encoding !== "string" ||
-        typeof value.truncated !== "boolean") {
+    const preview = parseFileBrowserPreview(value);
+    if (!Object.prototype.hasOwnProperty.call(preview, "text")) {
         throw new Error("文本预览响应格式错误");
     }
-    return {
-        stat: parseFileBrowserFileStat(value.stat),
-        text: value.text,
-        encoding: value.encoding,
-        truncated: value.truncated,
-    };
+    return preview as FileBrowserTextPreview;
 }
 
 function isFiniteNumber(value: unknown): value is number {
@@ -288,15 +298,6 @@ function isD5InspectionReport(value: unknown): value is FileBrowserD5AInspection
         isFiniteNumber(value.d5a.uncompressedBytes) &&
         (value.d5a.groupInfoEntry === undefined || typeof value.d5a.groupInfoEntry === "string") &&
         Array.isArray(value.d5a.bundles) && value.d5a.bundles.every(isD5BundleSummary);
-}
-
-/** 校验迁移 D5A 包的结构报告，拒绝把任意 JSON 直接渲染进预览页。 */
-export function parseFileBrowserD5AInspection(value: unknown): FileBrowserD5AInspectionResult {
-    if (!isRecord(value) || typeof value.rootID !== "string" || typeof value.path !== "string" ||
-        !isD5InspectionReport(value.report)) {
-        throw new Error("D5A 结构报告响应格式错误");
-    }
-    return {rootID: value.rootID, path: value.path, report: value.report};
 }
 
 /** 把文件操作成功响应收窄为不含绝对路径的稳定包络。 */

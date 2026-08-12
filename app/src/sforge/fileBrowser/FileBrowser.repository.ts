@@ -6,9 +6,8 @@ import {
     parseFileBrowserEditorDocument,
     parseFileBrowserEditorWriteResult,
     parseFileBrowserFileStat,
-    parseFileBrowserD5AInspection,
+    parseFileBrowserPreview,
     parseFileBrowserRoots,
-    parseFileBrowserTextPreview,
 } from "./FileBrowser.guards";
 /** 用途：文件浏览器仓储契约；使用范围：请求输入与公开实现。 */
 import type {
@@ -17,6 +16,7 @@ import type {
     FileBrowserEditorWriteRequest,
     FileBrowserListRequest,
     FileBrowserPreviewRequest,
+    FileBrowserPreview,
     FileBrowserRepository,
 } from "./FileBrowser.types";
 
@@ -26,7 +26,6 @@ const STAT_ENDPOINT = "/api/s-forge/file-browser/stat";
 const PREVIEW_ENDPOINT = "/api/s-forge/file-browser/preview";
 const EDITOR_READ_ENDPOINT = "/api/s-forge/file-browser/editor/read";
 const EDITOR_WRITE_ENDPOINT = "/api/s-forge/file-browser/editor/write";
-const D5A_INSPECT_ENDPOINT = "/api/s-forge/file-browser/d5a/inspect";
 
 /** 在进入领域层前统一解释思源 API 包络。 */
 export function requireFileBrowserResponseData(response: IWebSocketData, operation: string): unknown {
@@ -65,24 +64,14 @@ export async function statFileBrowserFile(request: FileBrowserFileRequest) {
     return stat;
 }
 
-/** 读取受限长度的文本预览。 */
-export async function previewFileBrowserText(request: FileBrowserPreviewRequest) {
+/** 读取统一格式 loader 预览；文本和结构化格式共用同一个端点。 */
+export async function previewFileBrowserFile(request: FileBrowserPreviewRequest): Promise<FileBrowserPreview> {
     const response = await fetchSyncPost(PREVIEW_ENDPOINT, request);
-    const preview = parseFileBrowserTextPreview(requireFileBrowserResponseData(response, "读取文本预览"));
+    const preview = parseFileBrowserPreview(requireFileBrowserResponseData(response, "读取文件预览"));
     if (preview.stat.root.id !== request.rootID || preview.stat.entry.path !== request.path) {
-        throw new Error("文本预览响应与请求地址不一致");
+        throw new Error("文件预览响应与请求地址不一致");
     }
     return preview;
-}
-
-/** 读取迁移 D5A 领域包生成的真实结构报告。 */
-export async function inspectFileBrowserD5A(request: FileBrowserFileRequest) {
-    const response = await fetchSyncPost(D5A_INSPECT_ENDPOINT, request);
-    const result = parseFileBrowserD5AInspection(requireFileBrowserResponseData(response, "读取 D5A 结构"));
-    if (result.rootID !== request.rootID || result.path !== request.path) {
-        throw new Error("D5A 结构响应与请求地址不一致");
-    }
-    return result;
 }
 
 /** 读取本地编辑器快照；响应仍通过统一 API 包络和领域守卫。 */
@@ -110,8 +99,7 @@ export const fileBrowserRepository: FileBrowserRepository = {
     listRoots: listFileBrowserRoots,
     listDirectory: listFileBrowserDirectory,
     statFile: statFileBrowserFile,
-    previewText: previewFileBrowserText,
-    inspectD5A: inspectFileBrowserD5A,
+    previewFile: previewFileBrowserFile,
     readEditorFile: readFileBrowserEditor,
     writeEditorFile: writeFileBrowserEditor,
 };

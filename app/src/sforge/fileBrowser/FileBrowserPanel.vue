@@ -93,6 +93,7 @@ import FileBrowserTree from "./FileBrowserTree.vue";
 import {isFileBrowserSortField} from "./FileBrowser.guards";
 /** 用途：默认仓储与应用绑定打开端口；使用范围：真实 Dock 控制器组合。 */
 import {fileBrowserRepository} from "./FileBrowser.repository";
+import {fileBrowserProviderRepository} from "./FileBrowser.provider.repository";
 import {createFileBrowserDirectoryOpener, createFileBrowserEntryOpener} from "./FileBrowser.open";
 import {fileBrowserOperationsRepository} from "./FileBrowser.operations.repository";
 import {
@@ -112,7 +113,13 @@ import {
 /** 用途：拖放数据解析；使用范围：树移动入口。 */
 import {FILE_BROWSER_DRAG_MIME, parseFileBrowserDragData} from "./FileBrowser.drag";
 /** 用途：树节点查找和容器判断；使用范围：操作完成后的精确刷新。 */
-import {findFileBrowserTreeNode, getFileBrowserCapabilitiesForPath, isFileBrowserContainer, makeFileBrowserNodeKey} from "./FileBrowser.tree";
+import {
+    findFileBrowserTreeNode,
+    getFileBrowserCapabilitiesForPath,
+    isFileBrowserContainer,
+    isLocalFileBrowserTreeNode,
+    makeFileBrowserNodeKey,
+} from "./FileBrowser.tree";
 /** 用途：标准消息提示和 HTML 转义；使用范围：操作成功/失败反馈。 */
 import {showMessage} from "../../dialog/message";
 import {escapeHtml} from "../../util/DOM/escape";
@@ -120,6 +127,8 @@ import {escapeHtml} from "../../util/DOM/escape";
 import type {AppFacade} from "./dock/imports";
 import type {
     FileBrowserBatchOperationResult,
+    FileBrowserLocalTreeNode,
+    FileBrowserRoot,
     FileBrowserTreeNode as TreeNode,
 } from "./FileBrowser.types";
 
@@ -128,7 +137,13 @@ const props = defineProps<{
 }>();
 const openEntry = createFileBrowserEntryOpener(props.app, fileBrowserRepository);
 const openDirectory = createFileBrowserDirectoryOpener(props.app);
-const browser = useFileBrowser(fileBrowserRepository, openEntry, undefined, openDirectory);
+const browser = useFileBrowser(
+    fileBrowserRepository,
+    openEntry,
+    undefined,
+    openDirectory,
+    fileBrowserProviderRepository,
+);
 const {
     roots, rootNodes, selectedKeys, focusedKey, selectedNode, loadingRoots, rootsError,
     openingKey, openError, sortBy, sortDirection, loadRoots, activateNode, toggleNode,
@@ -155,8 +170,20 @@ const rootSummary = computed(() => {
 
 const selectedNodeAbsolutePath = computed(() => {
     const node = selectedNode.value;
-    if (!node?.root) {
+    if (!node) {
         return "";
+    }
+    if (node.domain === "provider") {
+        const parts = [node.descriptor.displayName];
+        if (node.kind !== "provider") {
+            parts.push(node.session.address.session);
+        }
+        if (node.kind === "provider-resource") {
+            parts.push(node.resource.name);
+        } else if (node.kind === "directory" || node.kind === "file") {
+            parts.push(node.resource.name, node.providerEntry.name);
+        }
+        return parts.join(" / ");
     }
     if (!node.path) {
         return node.root.path;
@@ -176,8 +203,8 @@ function handleNodeMenu(payload: {event: MouseEvent; node: TreeNode}) {
     browser.selectNode(payload.node);
     showFileBrowserTreeNodeMenu(payload.event, payload.node, {
         open: openNode,
-        canCreateAgentTask: node => node.kind === "file" ||
-            canCreateFileBrowserAgentDirectory(node.root, node.path),
+        canCreateAgentTask: node => node.kind === "file" || (isLocalFileBrowserTreeNode(node) &&
+            canCreateFileBrowserAgentDirectory(node.root, node.path)),
         createAgentTask: createAgentTaskFromNode,
         refresh: refreshNode,
         createFile: createFile,
@@ -190,12 +217,28 @@ function handleNodeMenu(payload: {event: MouseEvent; node: TreeNode}) {
 
 async function createAgentTaskFromNode(node: TreeNode) {
     try {
+        if (node.domain === "provider") {
+            if (node.kind !== "file") {
+                throw new Error("当前 provider 目录没有本地任务目录绑定地址");
+            }
+            const stat = await fileBrowserProviderRepository.statEntry(node.providerEntry.address);
+            if (!stat.contentURL) {
+                throw new Error("文件 provider 未返回附件内容地址");
+            }
+            await createFileBrowserAgentFileTask({
+                name: stat.name,
+                contentURL: stat.contentURL,
+                ...(stat.mediaType ? {mediaType: stat.mediaType} : {}),
+            });
+            showMessage(`已在 Agent 面板创建附件任务：${node.name}`, 3000);
+            return;
+        }
         if (node.kind === "file") {
             const stat = await fileBrowserRepository.statFile({rootID: node.rootID, path: node.path});
             await createFileBrowserAgentFileTask({
                 name: node.name,
                 contentURL: stat.contentURL,
-                mediaType: stat.mediaType,
+                ...(stat.mediaType ? {mediaType: stat.mediaType} : {}),
             });
             showMessage(`已在 Agent 面板创建附件任务：${node.name}`, 3000);
             return;
@@ -226,16 +269,23 @@ function parentRootRelativePath(path: string) {
 
 function findRefreshTarget(rootID: string, path: string) {
     const direct = findFileBrowserTreeNode(rootNodes.value, makeFileBrowserNodeKey(rootID, path));
-    if (direct) {
+    if (direct && isLocalFileBrowserTreeNode(direct)) {
         return direct;
     }
     for (const rootNode of rootNodes.value) {
+        if (!isLocalFileBrowserTreeNode(rootNode)) {
+            continue;
+        }
         const mount = rootNode.root.mounts?.find(candidate => candidate.id === rootID);
         if (!mount) {
             continue;
         }
         const displayPath = joinRootRelativePath(mount.relativePath, path);
-        return findFileBrowserTreeNode(rootNodes.value, makeFileBrowserNodeKey(rootNode.rootID, displayPath));
+        const mounted = findFileBrowserTreeNode(
+            rootNodes.value,
+            makeFileBrowserNodeKey(rootNode.rootID, displayPath),
+        );
+        return mounted && isLocalFileBrowserTreeNode(mounted) ? mounted : undefined;
     }
     return undefined;
 }
@@ -257,25 +307,27 @@ function reportOperationError(error: unknown) {
     showMessage(escapeHtml(operationError.value), 6000, "error", "sforgeFileBrowserOperationError");
 }
 
-function canWriteNode(node: TreeNode) {
-    return node.root.exists && !node.entry?.restricted && getFileBrowserCapabilitiesForPath(node.root, node.path).write;
+function canWriteNode(node: TreeNode): node is FileBrowserLocalTreeNode {
+    return isLocalFileBrowserTreeNode(node) && node.root.exists && !node.entry?.restricted &&
+        getFileBrowserCapabilitiesForPath(node.root, node.path).write;
 }
 
-function canBrowseNode(node: TreeNode) {
-    return node.root.exists && !node.entry?.restricted && getFileBrowserCapabilitiesForPath(node.root, node.path).browse;
+function canBrowseNode(node: TreeNode): node is FileBrowserLocalTreeNode {
+    return isLocalFileBrowserTreeNode(node) && node.root.exists && !node.entry?.restricted &&
+        getFileBrowserCapabilitiesForPath(node.root, node.path).browse;
 }
 
 const selectedActionableNodes = computed(() => fileBrowserSelection.items.value
     .map(item => findFileBrowserTreeNode(rootNodes.value, item.key))
-    .filter((node): node is TreeNode => node !== undefined)
-    .filter(node => node.kind !== "root" && canWriteNode(node)));
+    .filter((node): node is FileBrowserLocalTreeNode => node !== undefined && canWriteNode(node))
+    .filter(node => node.kind !== "root"));
 
 const selectedTransferableNodes = computed(() => fileBrowserSelection.items.value
     .map(item => findFileBrowserTreeNode(rootNodes.value, item.key))
-    .filter((node): node is TreeNode => node !== undefined)
-    .filter(node => node.kind !== "root" && canBrowseNode(node)));
+    .filter((node): node is FileBrowserLocalTreeNode => node !== undefined && canBrowseNode(node))
+    .filter(node => node.kind !== "root"));
 
-async function createDirectory(node: TreeNode) {
+async function createDirectory(node: FileBrowserLocalTreeNode) {
     if (!canWriteNode(node)) {
         return;
     }
@@ -293,7 +345,7 @@ async function createDirectory(node: TreeNode) {
     }
 }
 
-async function createFile(node: TreeNode) {
+async function createFile(node: FileBrowserLocalTreeNode) {
     if (!canWriteNode(node)) {
         return;
     }
@@ -311,7 +363,7 @@ async function createFile(node: TreeNode) {
     }
 }
 
-async function renameNode(node: TreeNode) {
+async function renameNode(node: FileBrowserLocalTreeNode) {
     if (node.kind === "root" || !canWriteNode(node)) {
         return;
     }
@@ -329,7 +381,7 @@ async function renameNode(node: TreeNode) {
 }
 
 function operationRoots() {
-    const result: TreeNode["root"][] = [];
+    const result: FileBrowserRoot[] = [];
     for (const root of roots.value) {
         result.push(root);
         for (const mount of root.mounts ?? []) {
@@ -343,7 +395,7 @@ function operationRoots() {
     return result;
 }
 
-function suggestCopyPath(node: TreeNode) {
+function suggestCopyPath(node: FileBrowserLocalTreeNode) {
     const parent = parentRootRelativePath(node.path);
     const dot = node.kind === "file" ? node.name.lastIndexOf(".") : -1;
     const base = dot > 0 ? node.name.slice(0, dot) : node.name;
@@ -351,7 +403,7 @@ function suggestCopyPath(node: TreeNode) {
     return joinRootRelativePath(parent, `${base} - copy${extension}`);
 }
 
-async function copyNode(node: TreeNode) {
+async function copyNode(node: FileBrowserLocalTreeNode) {
     if (node.kind === "root" || !node.root.exists || node.entry?.restricted) {
         return;
     }
@@ -421,7 +473,7 @@ function reportBatchTransferResult(
     showMessage(`已${operation} ${result.successCount} 项`, 3000);
 }
 
-async function deleteNode(node: TreeNode) {
+async function deleteNode(node: FileBrowserLocalTreeNode) {
     if (node.kind === "root" || !canWriteNode(node)) {
         return;
     }
@@ -462,7 +514,7 @@ async function deleteSelectedNodes() {
         const result = await fileBrowserOperationsRepository.deleteBatch({
             items: nodes.map(node => ({rootID: node.rootID, path: node.path})),
         });
-        const refreshTargets = new Map<string, TreeNode>();
+        const refreshTargets = new Map<string, FileBrowserLocalTreeNode>();
         for (const item of result.items) {
             if (!item.result) {
                 continue;
@@ -489,7 +541,7 @@ async function deleteSelectedNodes() {
     }
 }
 
-function addRefreshTarget(targets: Map<string, TreeNode>, rootID: string, path: string) {
+function addRefreshTarget(targets: Map<string, FileBrowserLocalTreeNode>, rootID: string, path: string) {
     const node = findRefreshTarget(rootID, path);
     if (node && isFileBrowserContainer(node)) {
         targets.set(node.key, node);
@@ -503,7 +555,8 @@ async function handleNodeDrop(payload: {event: DragEvent; node: TreeNode; target
     const source = parseFileBrowserDragData(payload.event.dataTransfer?.getData(FILE_BROWSER_DRAG_MIME));
     const target = payload.target;
     const sources = source?.items ?? (source ? [source] : []);
-    if (!source || sources.length === 0 || !isFileBrowserContainer(target) || !target.root.exists || target.entry?.restricted ||
+    if (!source || sources.length === 0 || !isLocalFileBrowserTreeNode(target) ||
+        !isFileBrowserContainer(target) || !target.root.exists || target.entry?.restricted ||
         !getFileBrowserCapabilitiesForPath(target.root, target.path).write) {
         reportOperationError(new Error("拖放来源或目标目录不具备移动条件"));
         return;
@@ -527,7 +580,7 @@ async function handleNodeDrop(payload: {event: DragEvent; node: TreeNode; target
                 destinationRootID: target.rootID,
                 destinationPath,
             });
-            const refreshTargets = new Map<string, TreeNode>();
+            const refreshTargets = new Map<string, FileBrowserLocalTreeNode>();
             addRefreshTarget(refreshTargets, item!.rootID, parentRootRelativePath(item!.path));
             refreshTargets.set(target.key, target);
             for (const refreshTarget of refreshTargets.values()) {
@@ -545,7 +598,7 @@ async function handleNodeDrop(payload: {event: DragEvent; node: TreeNode; target
             destinationRootID: target.rootID,
             destinationPath: target.path,
         });
-        const refreshTargets = new Map<string, TreeNode>();
+        const refreshTargets = new Map<string, FileBrowserLocalTreeNode>();
         for (const item of result.items) {
             if (item.result) {
                 fileBrowserSelection.removeSubtree(item.request.rootID, item.request.path);

@@ -1,4 +1,4 @@
-package fileprovider
+package everythingefu
 
 import (
 	"encoding/csv"
@@ -9,21 +9,24 @@ import (
 	"strings"
 )
 
-// ParseEFU parses the CSV form emitted by Everything's file-list exporter.
-// Rows are never deduplicated; malformed values stay attached to their row.
-func ParseEFU(reader io.Reader) ([]Asset, []AssetIssue, error) {
+const (
+	fileTimeEpochMilliseconds = int64(11644473600000)
+	fileTimeThreshold         = int64(100000000000000)
+)
+
+func Parse(reader io.Reader) ([]Asset, []AssetIssue, error) {
 	if reader == nil {
-		return nil, nil, ErrEFUHeader
+		return nil, nil, ErrHeader
 	}
 	csvReader := csv.NewReader(reader)
 	csvReader.FieldsPerRecord = -1
 	csvReader.TrimLeadingSpace = true
 	header, err := csvReader.Read()
 	if errors.Is(err, io.EOF) || len(header) == 0 {
-		return nil, nil, ErrEFUHeader
+		return nil, nil, ErrHeader
 	}
 	if err != nil && len(header) == 0 {
-		return nil, nil, ErrEFUHeader
+		return nil, nil, ErrHeader
 	}
 	columns := make(map[string]int, len(header))
 	for index, value := range header {
@@ -31,7 +34,7 @@ func ParseEFU(reader io.Reader) ([]Asset, []AssetIssue, error) {
 	}
 	filenameColumn, ok := columns["filename"]
 	if !ok {
-		return nil, nil, ErrEFUHeader
+		return nil, nil, ErrHeader
 	}
 	assets := make([]Asset, 0)
 	issues := make([]AssetIssue, 0)
@@ -57,30 +60,29 @@ func ParseEFU(reader io.Reader) ([]Asset, []AssetIssue, error) {
 			continue
 		}
 		normalizedPath := strings.ReplaceAll(strings.TrimSpace(filename), "\\", "/")
-		name := pathpkg.Base(normalizedPath)
 		asset := Asset{
 			ID:        "efu:" + normalizedPath,
-			Name:      name,
+			Name:      pathpkg.Base(normalizedPath),
 			Path:      normalizedPath,
 			Extension: extension(normalizedPath),
 		}
-		if sizeIndex, exists := columns["size"]; exists {
+		if index, exists := columns["size"]; exists {
 			var issue AssetIssue
-			asset.Size, issue = parseEFUNumber(field(record, sizeIndex), line, "invalid-size")
+			asset.Size, issue = parseNumber(field(record, index), line, "invalid-size")
 			if issue.Code != "" {
 				asset.Issues = append(asset.Issues, issue)
 			}
 		}
-		if modifiedIndex, exists := columns["datemodified"]; exists {
+		if index, exists := columns["datemodified"]; exists {
 			var issue AssetIssue
-			asset.Modified, issue = parseEFUTime(field(record, modifiedIndex), line, "invalid-date-modified")
+			asset.Modified, issue = parseTime(field(record, index), line, "invalid-date-modified")
 			if issue.Code != "" {
 				asset.Issues = append(asset.Issues, issue)
 			}
 		}
-		if createdIndex, exists := columns["datecreated"]; exists {
+		if index, exists := columns["datecreated"]; exists {
 			var issue AssetIssue
-			asset.Created, issue = parseEFUTime(field(record, createdIndex), line, "invalid-date-created")
+			asset.Created, issue = parseTime(field(record, index), line, "invalid-date-created")
 			if issue.Code != "" {
 				asset.Issues = append(asset.Issues, issue)
 			}
@@ -90,8 +92,8 @@ func ParseEFU(reader io.Reader) ([]Asset, []AssetIssue, error) {
 	return assets, issues, nil
 }
 
-func ParseEFUBytes(data []byte) ([]Asset, []AssetIssue, error) {
-	return ParseEFU(strings.NewReader(strings.TrimPrefix(string(data), "\uFEFF")))
+func ParseBytes(data []byte) ([]Asset, []AssetIssue, error) {
+	return Parse(strings.NewReader(strings.TrimPrefix(string(data), "\uFEFF")))
 }
 
 func normalizeColumn(value string) string {
@@ -121,7 +123,7 @@ func allEmpty(record []string) bool {
 	return true
 }
 
-func parseEFUNumber(value string, line int, code string) (int64, AssetIssue) {
+func parseNumber(value string, line int, code string) (int64, AssetIssue) {
 	if strings.TrimSpace(value) == "" {
 		return 0, AssetIssue{}
 	}
@@ -135,7 +137,7 @@ func parseEFUNumber(value string, line int, code string) (int64, AssetIssue) {
 	return parsed, AssetIssue{}
 }
 
-func parseEFUTime(value string, line int, code string) (int64, AssetIssue) {
+func parseTime(value string, line int, code string) (int64, AssetIssue) {
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return 0, AssetIssue{}
@@ -151,4 +153,12 @@ func parseEFUTime(value string, line int, code string) (int64, AssetIssue) {
 		return parsed/10000 - fileTimeEpochMilliseconds, AssetIssue{}
 	}
 	return parsed, AssetIssue{}
+}
+
+func extension(path string) string {
+	name := pathpkg.Base(path)
+	if dot := strings.LastIndexByte(name, '.'); dot >= 0 {
+		return strings.ToLower(name[dot:])
+	}
+	return ""
 }

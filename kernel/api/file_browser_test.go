@@ -586,7 +586,7 @@ func TestFileBrowserStatPreviewAndContentRange(t *testing.T) {
 	}
 }
 
-func TestFileBrowserD5AInspectionUsesMigratedDomainPackage(t *testing.T) {
+func TestFileBrowserD5AInspectionUsesUnifiedPreviewLoader(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	workspace := t.TempDir()
 	modelPath := filepath.Join(workspace, "models", "fixture.d5a")
@@ -602,15 +602,14 @@ func TestFileBrowserD5AInspectionUsesMigratedDomainPackage(t *testing.T) {
 	}
 	t.Cleanup(func() { newFileBrowserService = originalFactory })
 
-	response := callFileBrowserHandler(t, inspectSForgeFileBrowserD5A, "127.0.0.1:6806",
+	response := callFileBrowserHandler(t, previewSForgeFileBrowserFile, "127.0.0.1:6806",
 		`{"rootID":"workspace","path":"models/fixture.d5a"}`)
 	if response.Code != 0 {
 		t.Fatalf("D5A inspection failed: %+v", response)
 	}
 	var payload struct {
-		RootID string `json:"rootID"`
-		Path   string `json:"path"`
-		Report struct {
+		Provider string `json:"provider"`
+		Data     struct {
 			Format string `json:"format"`
 			D5A    struct {
 				Variant string `json:"variant"`
@@ -623,17 +622,16 @@ func TestFileBrowserD5AInspectionUsesMigratedDomainPackage(t *testing.T) {
 					} `json:"mesh"`
 				} `json:"bundles"`
 			} `json:"d5a"`
-		} `json:"report"`
+		} `json:"data"`
 	}
 	if err := json.Unmarshal(response.Data, &payload); err != nil {
 		t.Fatal(err)
 	}
-	if payload.RootID != "workspace" || payload.Path != "models/fixture.d5a" ||
-		payload.Report.Format != "d5a" || payload.Report.D5A.Variant != "d5mesh" ||
-		len(payload.Report.D5A.Bundles) != 1 || payload.Report.D5A.Bundles[0].Mesh == nil ||
-		payload.Report.D5A.Bundles[0].Mesh.Version != 11 ||
-		payload.Report.D5A.Bundles[0].Mesh.TriangleCount != 1 ||
-		payload.Report.D5A.Bundles[0].Mesh.VertexCount != 3 {
+	if payload.Provider != "d5a" || payload.Data.Format != "d5a" || payload.Data.D5A.Variant != "d5mesh" ||
+		len(payload.Data.D5A.Bundles) != 1 || payload.Data.D5A.Bundles[0].Mesh == nil ||
+		payload.Data.D5A.Bundles[0].Mesh.Version != 11 ||
+		payload.Data.D5A.Bundles[0].Mesh.TriangleCount != 1 ||
+		payload.Data.D5A.Bundles[0].Mesh.VertexCount != 3 {
 		t.Fatalf("unexpected migrated D5A report: %+v", payload)
 	}
 }

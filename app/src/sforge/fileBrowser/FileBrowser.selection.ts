@@ -5,7 +5,7 @@ import type {
     FileBrowserSelectionItem,
     FileBrowserSelectionModifiers,
     FileBrowserSelectionStore,
-    FileBrowserTreeNode,
+    FileBrowserLocalTreeNode,
 } from "./FileBrowser.types";
 
 type SelectionState = Pick<FileBrowserSelectionStore, "items" | "primaryKey" | "anchorKey" | "revision">;
@@ -15,7 +15,7 @@ type SelectionCommit = (
     anchor?: string,
 ) => void;
 
-function selectionItem(node: FileBrowserTreeNode): FileBrowserSelectionItem {
+function selectionItem(node: FileBrowserLocalTreeNode): FileBrowserSelectionItem {
     return {key: node.key, rootID: node.rootID, path: node.path, kind: node.kind, name: node.name};
 }
 
@@ -57,7 +57,7 @@ function createSelectionCommit(state: SelectionState): SelectionCommit {
     };
 }
 
-function replaceSelection(commit: SelectionCommit, node: FileBrowserTreeNode) {
+function replaceSelection(commit: SelectionCommit, node: FileBrowserLocalTreeNode) {
     const item = selectionItem(node);
     commit([item], item.key, item.key);
 }
@@ -69,8 +69,8 @@ function replaceAddressSelection(commit: SelectionCommit, item: FileBrowserSelec
 function selectRange(
     state: SelectionState,
     commit: SelectionCommit,
-    node: FileBrowserTreeNode,
-    visible: FileBrowserTreeNode[],
+    node: FileBrowserLocalTreeNode,
+    visible: FileBrowserLocalTreeNode[],
     modifiers: FileBrowserSelectionModifiers,
 ) {
     const anchor = state.anchorKey.value || state.primaryKey.value;
@@ -97,8 +97,8 @@ function selectRange(
 function selectNode(
     state: SelectionState,
     commit: SelectionCommit,
-    node: FileBrowserTreeNode,
-    visible: FileBrowserTreeNode[],
+    node: FileBrowserLocalTreeNode,
+    visible: FileBrowserLocalTreeNode[],
     modifiers: FileBrowserSelectionModifiers,
 ) {
     if (modifiers.range) {
@@ -229,8 +229,8 @@ function createSelectionActions(state: SelectionState) {
     const commit = createSelectionCommit(state);
     return {
         select: (
-            node: FileBrowserTreeNode,
-            visible: FileBrowserTreeNode[],
+            node: FileBrowserLocalTreeNode,
+            visible: FileBrowserLocalTreeNode[],
             modifiers: FileBrowserSelectionModifiers = {toggle: false, range: false},
         ) => selectNode(state, commit, node, visible, modifiers),
         selectAddress: (
@@ -243,7 +243,7 @@ function createSelectionActions(state: SelectionState) {
             _visible: FileBrowserSelectionItem[],
             modifiers: FileBrowserSelectionModifiers = {toggle: false, range: false},
         ) => selectAddresses(state, commit, items, modifiers),
-        replace: (node: FileBrowserTreeNode) => replaceSelection(commit, node),
+        replace: (node: FileBrowserLocalTreeNode) => replaceSelection(commit, node),
         replaceAddress: (item: FileBrowserSelectionItem) => replaceAddressSelection(commit, item),
         retainRoots: (rootIDs: Set<string>) => retainSelectionRoots(state, commit, rootIDs),
         removeSubtree: (rootID: string, path: string) => removeSelectionSubtree(state, commit, rootID, path),

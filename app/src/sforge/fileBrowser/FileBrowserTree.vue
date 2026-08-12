@@ -18,7 +18,11 @@
 /** 用途：文件树组合边界；使用范围：根列表、递归节点和树级拖拽状态。 */
 import {onBeforeUnmount, ref, watch} from "vue";
 /** 用途：树容器判断、父节点查找和稳定节点状态；使用范围：拖放目标解析。 */
-import {findFileBrowserTreeNode, isFileBrowserContainer} from "./FileBrowser.tree";
+import {
+    findFileBrowserTreeNode,
+    isFileBrowserContainer,
+    isLocalFileBrowserTreeNode,
+} from "./FileBrowser.tree";
 /** 用途：递归节点视图；使用范围：所有工作空间/Agent 根和后代节点。 */
 import FileBrowserTreeNode from "./FileBrowserTreeNode.vue";
 /** 用途：拖放 MIME 契约；使用范围：树节点移动入口。 */
@@ -117,12 +121,12 @@ function clearExpandTimer() {
 }
 
 function resolveDropTarget(node: TreeNode) {
-    return isFileBrowserContainer(node) ? node : undefined;
+    return isLocalFileBrowserTreeNode(node) && isFileBrowserContainer(node) ? node : undefined;
 }
 
 function handleDragStart(payload: {event: DragEvent; node: TreeNode}) {
     const {event, node} = payload;
-    if (node.kind === "root" || node.root.exists === false || !event.dataTransfer) {
+    if (!isLocalFileBrowserTreeNode(node) || node.kind === "root" || node.root.exists === false || !event.dataTransfer) {
         return;
     }
     draggingKey.value = node.key;
@@ -130,8 +134,9 @@ function handleDragStart(payload: {event: DragEvent; node: TreeNode}) {
     const selectedNodes = props.selectedKeys.has(node.key) && props.selectedKeys.size > 1
         ? Array.from(props.selectedKeys)
             .map(key => findFileBrowserTreeNode(props.rootNodes, key))
-            .filter((candidate): candidate is TreeNode => Boolean(candidate) && candidate.kind !== "root" &&
-                candidate.root.exists && !candidate.entry?.restricted)
+            .filter((candidate): candidate is Extract<TreeNode, {domain: "local"}> =>
+                Boolean(candidate) && isLocalFileBrowserTreeNode(candidate!) && candidate!.kind !== "root" &&
+                candidate!.root.exists && !candidate!.entry?.restricted)
         : [node];
     const sourceItems = selectedNodes.map(candidate => ({
         rootID: candidate.rootID, path: candidate.path, kind: candidate.kind, name: candidate.name,

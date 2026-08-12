@@ -56,10 +56,9 @@ function repository(overrides: Partial<FileBrowserRepository> = {}): FileBrowser
             entry: {...file, path: request.path}, mediaType: "text/plain", previewKind: "text" as const,
             contentURL: "/content", revision: "1-1",
         })),
-        previewText: vi.fn(async request => ({
+        previewFile: vi.fn(async request => ({
             stat: await repository().statFile(request), text: "text", encoding: "utf-8", truncated: false,
         })),
-        inspectD5A: vi.fn(),
         ...overrides,
     };
 }

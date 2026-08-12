@@ -6,7 +6,6 @@ import (
 	"errors"
 	"mime"
 	"net/http"
-	"path/filepath"
 	"strings"
 
 	"github.com/88250/gulu"
@@ -16,7 +15,6 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/filebrowser"
 	"github.com/siyuan-note/siyuan/kernel/fileproperties"
 	"github.com/siyuan-note/siyuan/kernel/util"
-	d5a "github.com/siyuan-note/siyuan/packages/d5a-viewer/native"
 )
 
 var newFileBrowserService = func() *filebrowser.Service {
@@ -514,63 +512,6 @@ func previewSForgeFileBrowserFile(c *gin.Context) {
 		return
 	}
 	ret.Data = result
-}
-
-// inspectSForgeFileBrowserD5A exposes the migrated D5A structural parser
-// through the same root-relative authorization boundary as every other file
-// browser operation.  The report contains no physical path and is consumed by
-// the D5A preview surface for real geometry/material diagnostics.
-func inspectSForgeFileBrowserD5A(c *gin.Context) {
-	ret := gulu.Ret.NewResult()
-	defer c.JSON(http.StatusOK, ret)
-	if !requireLocalFileBrowser(c, ret) {
-		return
-	}
-	var request filebrowser.FileRequest
-	if !decodeFileBrowserRequest(c, ret, &request) {
-		return
-	}
-	if request.RootID == "" || request.Path == "" {
-		ret.Code = http.StatusBadRequest
-		ret.Msg = "rootID and path are required"
-		return
-	}
-	service := newFileBrowserService()
-	_, absolute, relative, info, err := service.ValidateFilePath(request.RootID, request.Path)
-	if err != nil {
-		ret.Code = fileBrowserErrorCode(err)
-		ret.Msg = err.Error()
-		return
-	}
-	if info == nil || !info.Mode().IsRegular() {
-		ret.Code = http.StatusNotFound
-		ret.Msg = "D5A 文件不存在"
-		return
-	}
-	ext := strings.ToLower(filepath.Ext(relative))
-	if ext != ".d5a" && ext != ".d5mesh" {
-		ret.Code = http.StatusUnsupportedMediaType
-		ret.Msg = "D5A 预览只接受 .d5a 或 .d5mesh 文件"
-		return
-	}
-	var report []byte
-	if ext == ".d5mesh" {
-		report, err = d5a.InspectD5MeshJSON(absolute)
-	} else {
-		report, err = d5a.InspectFileJSON(absolute)
-	}
-	if err != nil {
-		ret.Code = fileBrowserErrorCode(err)
-		ret.Msg = err.Error()
-		return
-	}
-	var reportValue any
-	if err = json.Unmarshal(report, &reportValue); err != nil {
-		ret.Code = http.StatusInternalServerError
-		ret.Msg = err.Error()
-		return
-	}
-	ret.Data = map[string]any{"rootID": request.RootID, "path": relative, "report": reportValue}
 }
 
 func readSForgeFileBrowserEditor(c *gin.Context) {

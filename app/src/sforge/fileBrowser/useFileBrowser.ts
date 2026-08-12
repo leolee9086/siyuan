@@ -30,6 +30,7 @@ import type {
     FileBrowserDirectoryOpener,
     FileBrowserEntryOpener,
     FileBrowserRepository,
+    FileBrowserProviderRepository,
     FileBrowserSelectionModifiers,
     FileBrowserSortField,
     FileBrowserTreeNode,
@@ -45,11 +46,21 @@ export function useFileBrowser(
     openEntry: FileBrowserEntryOpener = ignoreFileBrowserOpen,
     selection: FileBrowserSelectionStore = fileBrowserSelection,
     openDirectory: FileBrowserDirectoryOpener = ignoreFileBrowserDirectoryOpen,
+    providerRepository?: FileBrowserProviderRepository,
 ) {
     const state = createFileBrowserTreeState(selection);
     const derived = createFileBrowserTreeDerivedState(state);
     const tracker = createFileBrowserTreeTracker();
-    const context = {state, derived, repository, openEntry, openDirectory, tracker, selection};
+    const context = {
+        state,
+        derived,
+        repository,
+        ...(providerRepository ? {providerRepository} : {}),
+        openEntry,
+        openDirectory,
+        tracker,
+        selection,
+    };
     const dispose = () => {
         tracker.disposed = true;
         ++tracker.rootsRevision;

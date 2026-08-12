@@ -1,4 +1,4 @@
-package fileprovider
+package everythinghttp
 
 import (
 	"context"
@@ -32,26 +32,15 @@ type everythingResult struct {
 	DateCreated  json.RawMessage `json:"date_created"`
 }
 
-// ValidateLoopbackEndpoint prevents the browser from turning the kernel into
-// a proxy for arbitrary remote hosts.
-func ValidateLoopbackEndpoint(host string, port int) error {
-	host = strings.TrimSpace(strings.Trim(host, "[]"))
-	if port < 1 || port > 65535 || host == "" {
-		return ErrInvalidProviderRequest
-	}
-	if strings.EqualFold(host, "localhost") {
-		return nil
-	}
-	ip := net.ParseIP(host)
-	if ip == nil || !ip.IsLoopback() {
-		return ErrInvalidProviderRequest
-	}
-	return nil
-}
-
-func BuildEverythingURL(host string, port int, request SearchRequest) (string, error) {
+// BuildURL constructs the provider request. Host authorization belongs to the
+// kernel adapter, not this domain package.
+func BuildURL(host string, port int, request SearchRequest) (string, error) {
+	host = strings.TrimSpace(host)
 	if err := ValidateLoopbackEndpoint(host, port); err != nil {
 		return "", err
+	}
+	if host == "" || port < 1 || port > 65535 {
+		return "", ErrInvalidRequest
 	}
 	offset, limit, err := NormalizePage(request.Offset, request.Limit)
 	if err != nil {
@@ -60,25 +49,54 @@ func BuildEverythingURL(host string, port int, request SearchRequest) (string, e
 	values := url.Values{}
 	values.Set("search", request.Search)
 	values.Set("json", "1")
-	values.Set("path_column", "1")
-	values.Set("size_column", "1")
-	values.Set("date_modified_column", "1")
-	values.Set("date_created_column", "1")
-	values.Set("count", strconv.Itoa(limit))
+	values.Set("path_column", boolParam(request.ShowPathColumn, true))
+	values.Set("size_column", boolParam(request.ShowSizeColumn, true))
+	values.Set("date_modified_column", boolParam(request.ShowDateModifiedColumn, true))
+	values.Set("date_created_column", boolParam(request.ShowDateCreatedColumn, true))
+	count := limit
+	if request.Count > 0 {
+		_, count, err = NormalizePage(request.Offset, request.Count)
+		if err != nil {
+			return "", err
+		}
+	}
+	values.Set("count", strconv.Itoa(count))
 	if offset > 0 {
 		values.Set("o", strconv.Itoa(offset))
 	}
 	if request.Sort != "" {
 		values.Set("sort", request.Sort)
 	}
-	return fmt.Sprintf("http://%s:%d/?%s", host, port, values.Encode()), nil
+	return fmt.Sprintf("http://%s/?%s", net.JoinHostPort(strings.Trim(host, "[]"), strconv.Itoa(port)), values.Encode()), nil
 }
 
-func SearchEverything(ctx context.Context, request SearchRequest, client *http.Client) (Page, error) {
-	if request.Provider != "" && request.Provider != ProviderEverythingHTTP {
-		return Page{}, ErrInvalidProviderRequest
+func ValidateLoopbackEndpoint(host string, port int) error {
+	host = strings.TrimSpace(strings.Trim(host, "[]"))
+	if host == "" || port < 1 || port > 65535 {
+		return ErrInvalidRequest
 	}
-	endpoint, err := BuildEverythingURL(request.Host, request.Port, request)
+	if strings.EqualFold(host, "localhost") {
+		return nil
+	}
+	ip := net.ParseIP(host)
+	if ip == nil || !ip.IsLoopback() {
+		return ErrInvalidRequest
+	}
+	return nil
+}
+
+func boolParam(value *bool, fallback bool) string {
+	if value == nil {
+		value = &fallback
+	}
+	if *value {
+		return "1"
+	}
+	return "0"
+}
+
+func Search(ctx context.Context, request SearchRequest, client *http.Client) (Page, error) {
+	endpoint, err := BuildURL(request.Host, request.Port, request)
 	if err != nil {
 		return Page{}, err
 	}
@@ -94,19 +112,22 @@ func SearchEverything(ctx context.Context, request SearchRequest, client *http.C
 		if ctx.Err() != nil {
 			return Page{}, ctx.Err()
 		}
-		return Page{}, fmt.Errorf("%w: %v", ErrProviderUnavailable, err)
+		return Page{}, fmt.Errorf("%w: %v", ErrUnavailable, err)
 	}
 	defer response.Body.Close()
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-		return Page{}, fmt.Errorf("%w: HTTP %d", ErrProviderUnavailable, response.StatusCode)
+		return Page{}, fmt.Errorf("%w: HTTP %d", ErrUnavailable, response.StatusCode)
 	}
 	body, err := io.ReadAll(io.LimitReader(response.Body, 32<<20))
 	if err != nil {
-		return Page{}, fmt.Errorf("%w: %v", ErrProviderUnavailable, err)
+		return Page{}, fmt.Errorf("%w: %v", ErrUnavailable, err)
 	}
 	var payload everythingResponse
 	if err = json.Unmarshal(body, &payload); err != nil || payload.Results == nil {
-		return Page{}, fmt.Errorf("%w: %v", ErrProviderResponse, err)
+		if err == nil {
+			err = ErrResponse
+		}
+		return Page{}, fmt.Errorf("%w: %v", ErrResponse, err)
 	}
 	offset, limit, err := NormalizePage(request.Offset, request.Limit)
 	if err != nil {
@@ -118,7 +139,7 @@ func SearchEverything(ctx context.Context, request SearchRequest, client *http.C
 		if !strings.EqualFold(strings.TrimSpace(item.Type), "file") {
 			continue
 		}
-		path := joinExternalPath(item.Path, item.Name)
+		path := joinPath(item.Path, item.Name)
 		if path == "" {
 			issues = append(issues, AssetIssue{Line: index + 1, Code: "missing-path", Message: "Everything file result has no path"})
 			continue
@@ -156,11 +177,7 @@ func SearchEverything(ctx context.Context, request SearchRequest, client *http.C
 	if total <= 0 {
 		total = offset + len(assets)
 	}
-	return Page{
-		Provider: ProviderEverythingHTTP, Assets: assets, Issues: issues,
-		TotalCount: total, Offset: offset, Limit: limit,
-		HasMore: offset+len(payload.Results) < total || len(payload.Results) >= limit,
-	}, nil
+	return Page{Provider: ProviderIDValue(), Assets: assets, Issues: issues, TotalCount: total, Offset: offset, Limit: limit, HasMore: offset+len(payload.Results) < total || len(payload.Results) >= limit}, nil
 }
 
 func parseNumber(raw json.RawMessage) (int64, string) {
@@ -193,7 +210,7 @@ func parseTimestamp(raw json.RawMessage) (int64, string) {
 	return value, ""
 }
 
-func joinExternalPath(directory, name string) string {
+func joinPath(directory, name string) string {
 	directory = strings.TrimRight(strings.TrimSpace(strings.ReplaceAll(directory, "\\", "/")), "/")
 	name = strings.TrimSpace(strings.ReplaceAll(name, "\\", "/"))
 	if directory == "" {

@@ -555,3 +555,96 @@
 - [x] 旧资源预览的 SVG、D5M、SY 均通过共享 `/api/s-forge/thumbnail` 请求；新增前端契约测试覆盖 provider 专用路径，不生成图标/空地址回退。
 - [x] 证据：`go test ./thumbnail -count=1`；`pnpm exec vitest --run test/asset/renderAssetsPreview.interaction.test.ts test/asset/AssetCard.interaction.test.ts --reporter=dot`（均通过）。
 - [ ] Windows Shell provider 的真实系统扩展能力、外部根媒体和桌面现场原图/卡片验收仍未完成；SVG/D5M 夹具闭环不代表主线全量完成。
+
+## 2026-08-11 provider 领域包与 kernel 注册表边界修正（进行中）
+
+- [x] 复核现有 `packages/everything-client-http`：它是纯 TypeScript Everything HTTP 客户端，当前没有被文件画廊业务实际 import；不把 EFU 或 Go kernel 逻辑塞进该目录。
+- [x] 将 Go Everything 查询实现放入独立 `packages/everything-http-native`，将 EFU CSV 解析/分页放入独立 `packages/everything-efu`；两个包分别有自己的 `go.mod`，没有语言混包目录，也没有新增含混的 `packages/fileprovider`。
+- [x] kernel `fileprovider` 收敛为 adapter registry、loopback/根相对授权边界和 opaque address DTO；领域包不依赖 kernel，工作空间 `filequery.Search` 契约不变。
+- [x] 真实 HTTP/EFU fixture、分页、结构错误、服务不可用、loopback 越界、root-relative source、provider token 隔离和注册表回包校验通过；全部使用系统默认 Go 缓存目录。
+- [x] `filebrowser.Open` 已作为 EFU source 的真实授权组合点；API 增加 `/api/s-forge/file-browser/provider-search`，handler 不按 provider 写分支，只调用 registry；授权越界保持 file-browser 403，不被误报为 provider 502。
+- [x] registry envelope 已收窄为 `provider + request`：Everything/EFU 的请求字段分别由各自独立 Go 包解析，kernel 不再维护跨 provider 的万能可选参数结构。
+- [x] 领域包与 kernel provider 测试覆盖取消路径；全部使用系统默认 Go 缓存目录，未创建项目内备用缓存。
+- [x] 附带提交失败中的 provider 编译问题已修正；复现并通过 `go test -short -tags fts5 ./...` 全量 kernel 门禁。
+- [ ] API 仓储/来源页签、Everything 现场服务、provider 配置持久化和画廊接入仍未完成；本切片不归档，不宣称 provider 全量交付。
+
+## 2026-08-11 外部文件 provider 契约调研与结构纠偏（进行中）
+
+### 已核对的可复用本地基础设施
+
+- `kernel/filebrowser.Service` 已提供授权根聚合、根层级归并、目录分页、`Stat`、受限 `Open`、内容流、创建、重命名、复制、移动、删除和批量结果；SMB/网络 provider 不应重新实现这些 Kernel 侧地址与错误包装。
+- `kernel/fswalk.Walker` 已提供根相对目录读取、递归 walker 和 reparse/symlink 边界；内容搜索、批量替换、复制、索引继续各自保留策略，只复用 walker。
+- `kernel/assets` 与 `kernel/thumbnail` 已是格式分类和缩略图 provider 的领域入口；D5A/SVG/D5M 不应各自新增 HTTP 端点。
+
+### 成熟实现对照矩阵
+
+| 参考实现 | 连接/资源边界 | 列表与查询 | Stat/内容 | 增删改 | 增量与错误 |
+| --- | --- | --- | --- | --- | --- |
+| MinIO Web/S3 | client/session -> bucket -> object key；bucket 与 prefix 不是本地目录 | `ListObjectsV2` 使用 prefix、delimiter、continuation token、max-keys；查询不是本地 glob | `HeadObject`、`GetObject`、范围读取、ETag/版本/Content-Type | Put、Delete、Copy、Multipart；条件写入使用 ETag/version | 服务端错误码、ETag/version 冲突、分页 token、事件通知；没有 SMB 式目录句柄 |
+| Synology DSM File Station | 登录 sid + `SYNO.FileStation.*` API；共享目录是资源根 | List API 传 folder_path、offset、limit、sort_by、sort_direction、filetype；响应有 files/total/offset | getinfo 与 download/stream 分离，条目带 isdir/size/mtime/additional | create/rename/delete/copy/move/upload；大操作返回 task id 再轮询 | API 错误码和 task 状态是独立契约，不把失败转空列表 |
+| SMB | negotiate -> session -> tree connect/share -> relative path/handle | QueryDirectory/FindFirst 分页由句柄状态推进 | QueryInfo、Create/Open、Read/Write、Close；权限和 share mode 参与结果 | SetInfo(rename/delete)、Create、Write、Copy；锁冲突必须显式返回 | Change Notify；NTSTATUS/会话断开/重连是独立错误域 |
+
+### 因此冻结的接口方向
+
+- [ ] 基础注册只描述 provider、连接生命周期和 capability 集合；不再保留 `ID + Search` 单方法接口。
+- [ ] capability 按操作拆分为 `List`、`Search`、`Stat`、`Open/Read`、`Create`、`Update/Rename`、`Delete`、`Copy/Move`、`Watch`、`Health`；只实现能力的 provider 不被迫实现其它方法。
+- [ ] 每个 provider 先建立 session/resource，再在资源内使用 provider 自己的请求类型；MinIO bucket、Synology share、SMB tree connect 和本地 Agent root 都不能伪装成同一种物理路径。
+- [ ] 分页分别支持 offset/limit 与 continuation/task/handle cursor；Kernel 不改写 provider cursor，也不使用一个万能可选参数结构。
+- [ ] Stat、内容读取和变更返回稳定的 resource address、revision/etag/version、媒体类型和明确错误；provider 失败不能降级成空结果。
+- [ ] Kernel 统一处理 root/capability/opaque address/HTTP 错误映射；provider 包直接返回共享 contract DTO，不存在 `kernel/fileprovider/efu.go`、`everything.go` 这种字段映射文件。
+- [ ] D5A 通过 `assets` 领域 loader 接入统一 preview response；删除 `/api/s-forge/file-browser/d5a/inspect` 及对应前端专用仓储方法。
+
+### 调研证据与当前缺口
+
+- 本地可验证证据：上述 `filebrowser.Service`、`fswalk.Walker`、`assets.Classify`、`thumbnail.Manager` 的源码与测试；SACAssetsManager 的 `useEverythingApi.js`、`galleryPanelData.js`、`computeEfuData.js` 仅覆盖 HTTP/EFU 查询投影，不是完整文件系统契约。
+- 代理 `http://127.0.0.1:7890` 的当前 TLS 请求返回 Windows `SEC_E_NO_CREDENTIALS`，本轮没有把未取到的外部网页内容当作已验证证据；MinIO/Synology/SMB 矩阵待用可保存的官方 API 文档或源码快照逐项补证。
+- 当前 S3/WebDAV/SMB 的 session、List/Stat/Open/CRUD/Watch、外部地址生命周期和画廊接入仍未全量接入；Synology HTTP 已完成本轮多共享 session/resource 切片，整体 provider 任务仍不归档、不宣称全量完成。
+
+## 2026-08-11 Synology SMB 共享入口确认与 provider 分层（进行中）
+
+- [x] 根据用户提供的盘符截图确认 `N:` 与 `O:` 均来自 `\\192.168.31.195`，共享名分别为 `视频素材` 与 `工作文件`；记录在子 TTT [`常见文件服务provider适配.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/常见文件服务provider适配.shorterm.ttt.md)。
+- [x] 明确 SMB drive/UNC 与 DSM File Station HTTP 是独立 provider session/resource，不把物理盘符硬编码进查询、标签或 D5A 路由。
+- [x] Synology HTTP provider 测试补齐并通过真实 `httptest` fixture；测试使用默认系统 Go 缓存，未创建项目内缓存目录。
+- [ ] 用户桌面身份下两个 SMB 共享的只读枚举、断线/权限边界和画廊来源接入仍未完成；当前执行身份没有用户桌面映射，未将访问拒绝误报为共享不存在。
+- [x] `N:`、`O:` 只记录为 `windows-smb-mount` 在当前 Windows session 枚举出的两个独立 resource；SMB 与 DSM 各自保持独立 provider/session，通用层不判断二者是否属于同一设备，也不依据主机名、endpoint 或展示元数据归并。外部根到树/画廊的链路由子 TTT [`外部provider根与目录树接入.shorterm.ttt.md`](文件浏览Dock与Monaco编辑器/外部provider根与目录树接入.shorterm.ttt.md) 单独追踪。
+- [x] Synology HTTP provider 在未配置单根时已通过 `SYNO.FileStation.List/list_share` 枚举全部可见共享；每个共享返回独立 opaque resource ID，资源根不泄露物理路径，多共享分页和发现失败注销有真实 fixture/边界测试。
+- [x] Kernel provider registry 改为进程级实例，session、异步 operation 和 opaque address 不会在后续 HTTP 请求中因 registry 重建而丢失；API/fileprovider/filebrowser 聚焦测试通过。
+- [x] Synology 多共享切片最终 `go test -race ./...`、Kernel 聚焦 `go test -short -tags fts5 ./api ./fileprovider ./filebrowser`、`gofmt -d` 和 `git diff --check` 通过；没有创建项目内 Go 缓存。
+- [ ] Forge A 级交互验收待稳定 revision 与干净门禁；现有 supervisor 已停止且最近重启审批超时，不宣称已启动。
+
+## 2026-08-11 provider 稳定逻辑节点（待 Forge 现场）
+
+- [x] Synology provider 测试修复后，S3、WebDAV、共享契约、`fileprovider`、`filebrowser` 和 `api` 聚焦测试通过；`git diff --check` 通过。
+- [x] 对真实 `192.168.31.195` 做无凭据 DSM API discovery，发现汇总 `SYNO.FileStation` 查询不返回 File Station 条目，已改为精确 API 名称查询并补充 fixture/测试证据。
+- [x] 修复当前并行新增代码中的两个编译阻断（`kernel/fileprovider/resource_registry.go` 缺少 `strings`、`kernel/api/file_browser.go` 未使用 `path/filepath`），仅恢复编译，不删除或回退其他修改。
+- [ ] Kernel 全量短测试与 Forge 启动仍待执行；Forge 原生启动要求 Git 工作树和索引干净，不能用隐藏文件或临时覆盖绕过。
+
+## 2026-08-12 provider 命名空间边界纠正（已完成逻辑约束）
+
+- [x] 通用模型固定为 `provider -> session -> resource -> entry`；provider 之间不存在“是否为同一设备”这一领域关系，也不存在设备节点、指纹匹配、归并、去重或联动生命周期。
+- [x] `source.name`、`source.kind`、endpoint、主机名和其他展示元数据只属于单个 session 的展示内容；它们不进入任何身份键、索引键或相等性判断。唯一地址始终包含明确的 `provider + session + resource`。
+- [x] Kernel 的 session 与资源地址索引已使用结构化 `(provider, session)`、`(provider, session, resource, path)` 键，不通过字符串化 endpoint、主机名或来源字段构造关联。
+- [x] 前端与 Kernel 回归均使用两个完全相同的显示名、endpoint、session ID、resource ID、资源名、路径和 source 展示值，仅 provider ID 不同；两侧仍独立注册、列举和解析，关闭一侧不影响另一侧。
+- [ ] 本节点只冻结身份边界；provider 目录树、画廊、属性 Dock 和 Agent 新任务入口仍按对应子 TTT 继续接入。
+
+## 2026-08-12 外部 provider 凭据传输边界（已完成逻辑节点）
+
+- [x] 复核确认生产组合根曾对 Synology、S3、WebDAV 无条件设置 `AllowInsecureHTTP: true`，使三个 provider 已有的 HTTPS 默认校验失效；该三处默认放行已删除。
+- [x] 共享契约增加 session 请求的无副作用预校验和统一 endpoint 传输策略：HTTPS 无需确认；HTTP 必须显式确认且 host 必须是精确 `localhost`、loopback、RFC1918/private、ULA 或 link-local IP；普通域名、公网 IP 和 unspecified address 即使确认也拒绝。
+- [x] Kernel API 在内联 credentials 写入短期 vault 前调用 registry/provider 预校验；API 回归携带 WebDAV 密码与 S3 AccessKey/SecretKey，并证明拒绝时 vault `Issue/Resolve/Revoke` 均为 0。
+- [x] Synology、S3、WebDAV 回归分别证明未确认 HTTP 和已确认公网 HTTP 在 credential resolver、client/store factory、Synology Login 前失败；已确认私网 HTTP 与无需确认的 HTTPS 通过 fake provider 真实 session 建立链。
+- [x] 三个 HTTP provider 统一阻止跨主机认证重定向与 HTTPS 到 HTTP 降级；前端 repository 在网络调用前执行同边界的即时提示，并在 HTTPS 请求中删除无意义的确认字段。
+- [x] 聚焦证据：四个独立 Go module `go test ./...`、Kernel `go test -short -tags fts5 ./api ./fileprovider`、前端 repository Vitest 7/7 通过；Go 使用系统默认缓存，没有创建项目内缓存。
+- [ ] 当前节点只闭合明文凭据传输风险；provider 配置 UI 中的显式确认控件与产品级警示、现场 TLS/证书交互验收仍随外部 provider 接入任务继续。
+
+## 2026-08-11 全量门禁与缓存审计结果
+
+- [x] `go test -short -tags fts5 ./...` 已执行；文件浏览、provider、fswalk、API 等相关包通过，唯一失败为既有 `kernel/embedding/TestOllamaEmbed` 访问本机 Ollama 超时。
+- [x] 核对到 `.dev-workspace/temp/go-build-cache` 是 2026-08-09 已存在的约 1.02 GB 未跟踪目录；本轮没有删除、移动、冻结进程或修改编译配置，也没有把它当作默认缓存使用。
+- [ ] 全量门禁仍需在 Ollama 环境可用或明确排除该外部服务测试后重新取得全绿证据；Forge 启动继续受工作树清洁门禁约束。
+
+## 2026-08-11 Forge 交互启动门禁结果
+
+- [x] 按原生入口执行 `pnpm forge --no-browser`，仅注入进程级 `safe.directory` 读取仓库状态；Forge 明确因当前并行 staged/unstaged/untracked 修改拒绝启动，命令已退出且没有停止或启动其他进程。
+- [x] 拒绝原因、涉及路径和过期 supervisor 状态已写入子 TTT；不通过临时覆盖、隐藏文件、重置或伪造 clean 状态绕过门禁。
+- [ ] 待用户/并行 agent 完成并保留所有修改的正式整理后，再从干净 revision 启动 Forge 并取得浏览器/桌面 A 级交互证据；当前不能宣称已启动。
