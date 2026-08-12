@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -152,6 +153,122 @@ func TestForgeRuntimeWebUIMutationsForwardOnlyValidatedRequests(t *testing.T) {
 	}
 }
 
+func TestForgeRuntimeUIHostsAreOptionalAndPlatformAgnostic(t *testing.T) {
+	previousMode := util.Mode
+	previousCall := forgeRuntimeCallSupervisor
+	t.Cleanup(func() {
+		util.Mode = previousMode
+		forgeRuntimeCallSupervisor = previousCall
+	})
+	callCount := 0
+	forgeRuntimeCallSupervisor = func(method, endpoint string, body any) (json.RawMessage, error) {
+		callCount++
+		if method != http.MethodGet || endpoint != "/ui-hosts" || body != nil {
+			t.Fatalf("unexpected Supervisor request: method=%s endpoint=%s body=%v", method, endpoint, body)
+		}
+		return json.RawMessage(`{"hosts":[{"id":"browser-1","kind":"browser","platform":"web","capabilities":[],"state":"online"}]}`), nil
+	}
+
+	util.Mode = util.ModeProd
+	prodRecorder := httptest.NewRecorder()
+	prodContext, _ := gin.CreateTestContext(prodRecorder)
+	prodContext.Request = newForgeRuntimeWebUIRequest(http.MethodPost,
+		"/api/s-forge/forge/runtime/uiHosts", `{}`, "127.0.0.1:54321")
+	forgeRuntimeUIHosts(prodContext)
+	prodResult := decodeForgeRuntimeResult(t, prodRecorder)
+	prodData, _ := json.Marshal(prodResult.Data)
+	if prodResult.Code != 0 || callCount != 0 || !bytes.Contains(prodData, []byte(`"available":false`)) ||
+		!bytes.Contains(prodData, []byte(`"hosts":[]`)) {
+		t.Fatalf("non-Forge UI Host query is not an empty capability set: result=%+v data=%s", prodResult, prodData)
+	}
+
+	util.Mode = util.ModeForge
+	forgeRecorder := httptest.NewRecorder()
+	forgeContext, _ := gin.CreateTestContext(forgeRecorder)
+	forgeContext.Request = newForgeRuntimeWebUIRequest(http.MethodPost,
+		"/api/s-forge/forge/runtime/uiHosts", `{}`, "127.0.0.1:54321")
+	forgeRuntimeUIHosts(forgeContext)
+	forgeResult := decodeForgeRuntimeResult(t, forgeRecorder)
+	forgeData, _ := json.Marshal(forgeResult.Data)
+	if forgeResult.Code != 0 || callCount != 1 || !bytes.Contains(forgeData, []byte(`"available":true`)) ||
+		!bytes.Contains(forgeData, []byte(`"kind":"browser"`)) {
+		t.Fatalf("Forge UI Host query was not forwarded generically: result=%+v data=%s", forgeResult, forgeData)
+	}
+}
+
+func TestForgeRuntimeUIHostInvocationIsStrictAndPreservesStructuredErrors(t *testing.T) {
+	previousMode := util.Mode
+	previousCall := forgeRuntimeCallSupervisor
+	t.Cleanup(func() {
+		util.Mode = previousMode
+		forgeRuntimeCallSupervisor = previousCall
+	})
+	util.Mode = util.ModeForge
+	callCount := 0
+	forgeRuntimeCallSupervisor = func(method, endpoint string, body any) (json.RawMessage, error) {
+		callCount++
+		if method != http.MethodPost || endpoint != "/ui-hosts/invoke" {
+			t.Fatalf("unexpected Supervisor request: method=%s endpoint=%s", method, endpoint)
+		}
+		request, ok := body.(forgeRuntimeUIHostInvokeRequest)
+		if !ok || request.HostID != "electron-1" || request.Capability != "ui.windows.inspect" ||
+			string(request.Input) != `{"includeHidden":true}` {
+			t.Fatalf("unexpected UI Host request: %#v", body)
+		}
+		return nil, &util.ForgeSupervisorHTTPError{
+			StatusCode: http.StatusServiceUnavailable,
+			Payload:    json.RawMessage(`{"errorCode":"ui_host_offline","error":"UI Host is offline"}`),
+		}
+	}
+
+	recorder := httptest.NewRecorder()
+	context, _ := gin.CreateTestContext(recorder)
+	context.Request = newForgeRuntimeWebUIRequest(http.MethodPost,
+		"/api/s-forge/forge/runtime/invokeUIHost",
+		`{"hostId":" electron-1 ","capability":"ui.windows.inspect","input":{"includeHidden":true}}`,
+		"127.0.0.1:54321")
+	forgeRuntimeInvokeUIHost(context)
+	result := decodeForgeRuntimeResult(t, recorder)
+	data, _ := json.Marshal(result.Data)
+	if result.Code == 0 || result.Msg != "UI Host is offline" || callCount != 1 ||
+		!bytes.Contains(data, []byte(`"errorCode":"ui_host_offline"`)) {
+		t.Fatalf("structured UI Host failure was lost: result=%+v data=%s calls=%d", result, data, callCount)
+	}
+
+	for _, body := range []string{
+		`{"hostId":"electron-1","capability":"ui.windows.inspect","unknown":true}`,
+		`{"hostId":"electron-1","capability":"UI WINDOWS"}`,
+		`{"hostId":"../electron","capability":"ui.windows.inspect"}`,
+	} {
+		invalidRecorder := httptest.NewRecorder()
+		invalidContext, _ := gin.CreateTestContext(invalidRecorder)
+		invalidContext.Request = newForgeRuntimeWebUIRequest(http.MethodPost,
+			"/api/s-forge/forge/runtime/invokeUIHost", body, "127.0.0.1:54321")
+		forgeRuntimeInvokeUIHost(invalidContext)
+		if invalidResult := decodeForgeRuntimeResult(t, invalidRecorder); invalidResult.Code == 0 {
+			t.Fatalf("invalid UI Host invocation was accepted: body=%s result=%+v", body, invalidResult)
+		}
+	}
+	if callCount != 1 {
+		t.Fatalf("invalid UI Host invocations reached Supervisor: %d", callCount)
+	}
+
+	forgeRuntimeCallSupervisor = func(method, endpoint string, body any) (json.RawMessage, error) {
+		return nil, errors.New("transport failed")
+	}
+	transportRecorder := httptest.NewRecorder()
+	transportContext, _ := gin.CreateTestContext(transportRecorder)
+	transportContext.Request = newForgeRuntimeWebUIRequest(http.MethodPost,
+		"/api/s-forge/forge/runtime/invokeUIHost",
+		`{"hostId":"electron-1","capability":"ui.windows.inspect"}`,
+		"127.0.0.1:54321")
+	forgeRuntimeInvokeUIHost(transportContext)
+	if transportResult := decodeForgeRuntimeResult(t, transportRecorder); transportResult.Code == 0 ||
+		transportResult.Msg != "transport failed" {
+		t.Fatalf("transport failure was not explicit: %+v", transportResult)
+	}
+}
+
 func TestForgeRuntimeWebUIRejectsNonUIAuthenticationAndRemoteSources(t *testing.T) {
 	previousMode := util.Mode
 	previousCall := forgeRuntimeCallSupervisor
@@ -270,6 +387,8 @@ func TestForgeRuntimeWebUIRoutesKeepRequiredAuthorizationChain(t *testing.T) {
 	}
 	expected := map[string][]string{
 		"/api/s-forge/forge/runtime/status":                {"model.CheckAuth", "model.CheckAdminRole", "model.CheckReadonly", "forgeRuntimeStatus"},
+		"/api/s-forge/forge/runtime/uiHosts":               {"model.CheckAuth", "model.CheckAdminRole", "model.CheckReadonly", "forgeRuntimeUIHosts"},
+		"/api/s-forge/forge/runtime/invokeUIHost":          {"model.CheckAuth", "model.CheckAdminRole", "model.CheckReadonly", "forgeRuntimeInvokeUIHost"},
 		"/api/s-forge/forge/runtime/restart":               {"model.CheckAuth", "model.CheckAdminRole", "model.CheckReadonly", "forgeRuntimeRestart"},
 		"/api/s-forge/forge/runtime/approveProtectedTests": {"model.CheckAuth", "model.CheckAdminRole", "model.CheckReadonly", "forgeRuntimeApproveProtectedTests"},
 		"/api/s-forge/forge/runtime/rejectProtectedTests":  {"model.CheckAuth", "model.CheckAdminRole", "model.CheckReadonly", "forgeRuntimeRejectProtectedTests"},

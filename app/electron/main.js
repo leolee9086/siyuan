@@ -50,6 +50,11 @@ const {
     sendForgeLaunchAcknowledgement,
     shouldSpawnKernel,
 } = require("./forge-kernel-attach");
+const {
+    UI_HOST_INSPECT_WINDOWS,
+    createElectronWindowInspectHandler,
+    createForgeUIHostControl,
+} = require("./forge-ui-host-control");
 
 process.noAsar = true;
 const appDir = path.dirname(app.getAppPath());
@@ -87,6 +92,8 @@ let gracefulSystemShutdownPromise;
 let keepAppOpenDuringSystemShutdown = false;
 let updateInstallPromise;
 let keepAppOpenDuringUpdate = false;
+let forgeUIHostControl;
+let forgeUIHostControlPromise;
 const openDialogSingletons = new Set();
 const isOpenAsHidden = function () {
     return 1 === workspaces.length && openAsHidden;
@@ -113,9 +120,36 @@ if (!app.requestSingleInstanceLock(singleInstanceData)) {
 }
 
 const acknowledgeForgeLaunch = (launchContext, payload) => {
-    void sendForgeLaunchAcknowledgement(launchContext, payload).catch((error) => {
+    const acknowledgement = forgeUIHostControl ? {...payload, uiHost: forgeUIHostControl.descriptor} : payload;
+    void sendForgeLaunchAcknowledgement(launchContext, acknowledgement).catch((error) => {
         writeLog("Forge launch acknowledgement failed: " + error.message);
     });
+};
+
+const ensureForgeUIHostControl = () => {
+    if (forgeUIHostControl) {
+        return Promise.resolve(forgeUIHostControl);
+    }
+    if (forgeUIHostControlPromise) {
+        return forgeUIHostControlPromise;
+    }
+    forgeUIHostControlPromise = createForgeUIHostControl({
+        capabilityHandlers: {
+            [UI_HOST_INSPECT_WINDOWS]: createElectronWindowInspectHandler({
+                BrowserWindow,
+                getWorkspaces: () => workspaces,
+                getMagiWindows: () => magiWindows,
+                getBootWindows: () => [bootWindow, ...attachedBootWindows.values()].filter(Boolean),
+            }),
+        },
+    }).then((control) => {
+        forgeUIHostControl = control;
+        writeLog(`Forge UI Host ready [id=${control.descriptor.id}, capabilities=${control.descriptor.capabilities.join(",")}]`);
+        return control;
+    }).finally(() => {
+        forgeUIHostControlPromise = undefined;
+    });
+    return forgeUIHostControlPromise;
 };
 
 // 开发环境下 Windows 需显式传入 Electron 可执行文件路径和 main.js 路径，否则 siyuan:// 会被当作相对路径
@@ -981,6 +1015,15 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
     });
     remote.enable(currentWindow.webContents);
     const currentWebContentsId = currentWindow.webContents.id;
+    const startupDiagnostics = {
+        createdAt: new Date().toISOString(),
+        loadRequestedAt: null,
+        didFinishLoadAt: null,
+        rendererReadyAt: null,
+        readyTimeoutAt: null,
+        lastLoadFailure: null,
+        lastRendererExit: null,
+    };
     let launchAcknowledged = false;
     const acknowledgeLaunch = (payload) => {
         if (!launchContext || launchAcknowledged) {
@@ -1029,7 +1072,14 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
     // pending（既不 resolve 也不 reject），会导致 loadURL 永不执行，主窗口卡在启动页无法显示。
     // 这里无论 setProxy 是否完成，最多等待 5 秒后强制加载主界面。
     const loadMainURL = () => {
+        startupDiagnostics.loadRequestedAt = new Date().toISOString();
         void currentWindow.loadURL(getServer(currentKernelPort) + "/stage/build/app/?v=" + Date.now()).catch((error) => {
+            startupDiagnostics.lastLoadFailure = {
+                at: new Date().toISOString(),
+                errorCode: null,
+                errorDescription: error.message,
+                validatedURL: currentWindow.webContents.getURL() || null,
+            };
             writeLog("load main UI failed: " + error.message);
             cleanupBeforeReady();
             acknowledgeLaunch({state: "rejected", reason: `main UI load failed: ${error.message}`});
@@ -1094,6 +1144,7 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
     });
 
     currentWindow.webContents.on("did-finish-load", () => {
+        startupDiagnostics.didFinishLoadAt = new Date().toISOString();
         let siyuanOpenURL = process.argv.find((arg) => arg.startsWith("siyuan://"));
         if (siyuanOpenURL) {
             if (currentWindow.isMinimized()) {
@@ -1159,10 +1210,23 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
         webContentsId: currentWebContentsId,
         port: currentKernelPort,
         workspaceDir: requestedWorkspace,
+        startupDiagnostics,
+    });
+    currentWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+        if (!isMainFrame) {
+            return;
+        }
+        startupDiagnostics.lastLoadFailure = {
+            at: new Date().toISOString(),
+            errorCode,
+            errorDescription,
+            validatedURL: validatedURL || null,
+        };
     });
     // loadURL 后设置超时兜底：前端 app bundle 加载或初始化异常导致 siyuan-ready-to-show 迟迟不发时，
     // 强制销毁 boot 窗口并显示主窗口，避免永久卡在启动页
     readyToShowTimeout = setTimeout(() => {
+        startupDiagnostics.readyTimeoutAt = new Date().toISOString();
         const hasBootWindow = attachedBootWindow ?
             !attachedBootWindow.isDestroyed() : Boolean(bootWindow && !bootWindow.isDestroyed());
         if (hasBootWindow) {
@@ -1178,6 +1242,7 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
         if (event.sender.id !== currentWebContentsId) {
             return;
         }
+        startupDiagnostics.rendererReadyAt = new Date().toISOString();
         cleanupBeforeReady();
         if (isOpenAsHidden()) {
             currentWindow.minimize();
@@ -1198,6 +1263,11 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
     };
     ipcMain.on("siyuan-ready-to-show", onMainUIReady);
     currentWindow.webContents.once("render-process-gone", (_event, details) => {
+        startupDiagnostics.lastRendererExit = {
+            at: new Date().toISOString(),
+            reason: details.reason,
+            exitCode: details.exitCode,
+        };
         cleanupBeforeReady();
         acknowledgeLaunch({
             state: "rejected",
@@ -1595,7 +1665,7 @@ const initKernel = (workspace, port, lang, safeMode, attachKernel = false) => {
     return startup;
 };
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
     // Trust self-signed TLS certificates for local HTTPS server
     session.defaultSession.setCertificateVerifyProc((request, callback) => {
         if (request.hostname === "127.0.0.1" || request.hostname === "localhost") {
@@ -1616,6 +1686,19 @@ app.whenReady().then(() => {
         showErrorWindow("连接开发内核失败", "Failed to attach development Kernel", `<div>${initialForgeLaunchContext.error}</div>`);
         acknowledgeForgeLaunch(initialForgeLaunchContext, {state: "rejected", reason: initialForgeLaunchContext.error});
         return;
+    }
+    if (attachKernelArgument.enabled) {
+        try {
+            await ensureForgeUIHostControl();
+        } catch (error) {
+            writeLog("Forge UI Host startup failed: " + error.message);
+            showErrorWindow("连接工坊界面宿主失败", "Failed to connect Forge UI Host", `<div>${error.message}</div>`);
+            acknowledgeForgeLaunch(initialForgeLaunchContext, {
+                state: "rejected",
+                reason: `UI Host startup failed: ${error.message}`,
+            });
+            return;
+        }
     }
 
     // 渲染进程崩溃监听，只有工作空间主窗口的非预期崩溃才会触发安全模式。
@@ -2526,7 +2609,7 @@ app.on("open-url", async (event, url) => { // for macOS
     }
 });
 
-app.on("second-instance", (event, argv, _workingDirectory, additionalData = {}) => {
+app.on("second-instance", async (event, argv, _workingDirectory, additionalData = {}) => {
     writeLog("second-instance [" + argv + "]");
     const secondForgeLaunchContext = additionalData.forgeLaunchContext || {};
     const rejectSecondForgeLaunch = (reason) => {
@@ -2576,6 +2659,15 @@ app.on("second-instance", (event, argv, _workingDirectory, additionalData = {}) 
         showErrorWindow("连接开发内核失败", "Failed to attach development Kernel", `<div>${error.message}</div>`);
         rejectSecondForgeLaunch(error.message);
         return;
+    }
+    if (secondAttachKernelArgument.enabled) {
+        try {
+            await ensureForgeUIHostControl();
+        } catch (error) {
+            writeLog("Forge UI Host startup failed for second instance: " + error.message);
+            rejectSecondForgeLaunch(`UI Host startup failed: ${error.message}`);
+            return;
+        }
     }
     const foundWorkspace = workspaces.find(item => {
         const browserWindow = item.browserWindow;

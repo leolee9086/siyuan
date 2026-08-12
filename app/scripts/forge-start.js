@@ -228,6 +228,12 @@ const callSupervisor = async (ownership, route, fetchImpl, init = {}) => {
     return payload;
 };
 
+const registerUIHostWithSupervisor = (ownership, descriptor, fetchImpl = globalThis.fetch.bind(globalThis)) =>
+    callSupervisor(ownership, "/ui-hosts/register", fetchImpl, {
+        method: "POST",
+        body: JSON.stringify(descriptor),
+    });
+
 const isSupervisorReady = (status) => {
     if (!status || !status.activeVersion?.revision) {
         return false;
@@ -456,7 +462,12 @@ const main = async () => {
             ownership: startup.ownership,
             status: startup.status,
         });
-        await openForgeInterface({root: repoRoot, port: startup.port, mode: interfaceMode});
+        await openForgeInterface({
+            root: repoRoot,
+            port: startup.port,
+            mode: interfaceMode,
+            registerUIHost: (descriptor) => registerUIHostWithSupervisor(startup.ownership, descriptor),
+        });
         return;
     }
     if (startup.kind === "reuse-legacy") {
@@ -487,7 +498,12 @@ const main = async () => {
     };
     process.once("SIGINT", () => void stop());
     process.once("SIGTERM", () => void stop());
-    await openForgeInterface({root: repoRoot, port, mode: interfaceMode});
+    await openForgeInterface({
+        root: repoRoot,
+        port,
+        mode: interfaceMode,
+        registerUIHost: (descriptor) => supervisor.registerUIHost(descriptor),
+    });
 };
 
 if (require.main === module) {
@@ -514,6 +530,7 @@ module.exports = {
     porcelainPaths,
     quarantineStaleOwnership,
     readOwnership,
+    registerUIHostWithSupervisor,
     resolveForgeStartup,
     runCommitRuntimeHookInstaller,
     resolveForgeInterfaceMode,

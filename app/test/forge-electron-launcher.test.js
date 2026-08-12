@@ -203,13 +203,29 @@ test("Electron launch rejection keeps observing the still-running child", async 
                         "Content-Type": "application/json",
                         [FORGE_LAUNCH_ACK_HEADER]: options.env[FORGE_LAUNCH_ACK_TOKEN_ENV],
                     },
-                    body: JSON.stringify({state: "rejected", reason: "renderer failed"}),
+                    body: JSON.stringify({
+                        state: "rejected",
+                        reason: "renderer failed",
+                        uiHost: {
+                            schemaVersion: 1,
+                            id: "electron-rejected",
+                            kind: "electron",
+                            platform: "win32",
+                            capabilities: ["ui.windows.inspect"],
+                            controlURL: "http://127.0.0.1:49152",
+                            token: "b".repeat(64),
+                        },
+                    }),
                 });
             });
             return child;
         },
     });
-    await assert.rejects(launching, /renderer failed/);
+    await assert.rejects(launching, (error) => {
+        assert.match(error.message, /renderer failed/);
+        assert.equal(error.uiHost.id, "electron-rejected");
+        return true;
+    });
 
     child.emit("error", new Error("late renderer process error"));
     child.emit("exit", 9, null);
@@ -242,6 +258,41 @@ test("Electron launch failure does not start the independent browser interface",
     assert.equal(errors.some((message) => message.includes("Electron main interface launch failed")), true);
 });
 
+test("UI Host registration failure does not relabel an already-ready Electron interface", async () => {
+    const errors = [];
+    const registrationError = new Error("Supervisor registration unavailable");
+    const result = await openForgeInterface({
+        root: "D:/repo",
+        port: 6807,
+        resolveElectron: () => ({ready: true}),
+        launchElectron: async () => ({
+            forwarded: false,
+            acknowledgement: {
+                state: "ready",
+                uiHost: {
+                    schemaVersion: 1,
+                    id: "electron-test",
+                    kind: "electron",
+                    platform: "win32",
+                    capabilities: ["ui.windows.inspect"],
+                    controlURL: "http://127.0.0.1:49152",
+                    token: "a".repeat(64),
+                },
+            },
+        }),
+        registerUIHost: async () => {
+            throw registrationError;
+        },
+        report: () => undefined,
+        reportError: (message) => errors.push(message),
+    });
+
+    assert.equal(result.kind, "electron");
+    assert.equal(result.uiHostRegistrationError, registrationError);
+    assert.deepEqual(result.uiHosts, []);
+    assert.equal(errors.some((message) => message.includes("UI Host registration failed")), true);
+});
+
 test("Independent browser interface opens the same complete main URL without probing Electron", async () => {
     let browserURL;
     const result = await openForgeBrowserInterface({
@@ -251,7 +302,7 @@ test("Independent browser interface opens the same complete main URL without pro
         report: () => undefined,
     });
 
-    assert.deepEqual(result, {kind: "browser", url: "http://127.0.0.1:6806/"});
+    assert.deepEqual(result, {kind: "browser", url: "http://127.0.0.1:6806/", uiHosts: []});
     assert.equal(browserURL, "http://127.0.0.1:6806/");
 });
 
@@ -264,7 +315,7 @@ test("Forge UI respects explicit no-interface mode without probing launchers", a
         launchBrowser: () => assert.fail("disabled UI must not open a browser"),
         report: () => undefined,
     });
-    assert.deepEqual(result, {kind: "disabled", url: "http://127.0.0.1:6806/"});
+    assert.deepEqual(result, {kind: "disabled", url: "http://127.0.0.1:6806/", uiHosts: []});
 });
 
 test("Forge UI keeps the runtime active when the Electron interface fails", async () => {
@@ -355,5 +406,9 @@ test("Forge restart policy protects the Electron launcher and its boundary tests
     const policyPath = path.resolve(__dirname, "../../kernel/forge_restart_test_policy.json");
     const policy = validateRestartPolicy(JSON.parse(fs.readFileSync(policyPath, "utf8")));
     assert.equal(isProtectedRestartPath("app/scripts/forge-electron-launcher.js", policy), true);
+    assert.equal(isProtectedRestartPath("app/scripts/forge-ui-host-contract.js", policy), true);
+    assert.equal(isProtectedRestartPath("app/scripts/forge-ui-host-registry.js", policy), true);
+    assert.equal(isProtectedRestartPath("app/electron/forge-ui-host-control.js", policy), true);
     assert.equal(isProtectedRestartPath("app/test/forge-electron-launcher.test.js", policy), true);
+    assert.equal(isProtectedRestartPath("app/test/forge-ui-host-control.test.js", policy), true);
 });

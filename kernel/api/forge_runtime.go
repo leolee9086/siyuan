@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"mime"
 	"net/http"
@@ -18,6 +19,8 @@ var forgeRuntimeCallSupervisor = util.CallForgeSupervisor
 
 var forgeRuntimeJobIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_.-]{1,80}$`)
 var forgeRuntimeRevisionPattern = regexp.MustCompile(`^[0-9a-f]{40}$`)
+var forgeRuntimeUIHostIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_.-]{1,80}$`)
+var forgeRuntimeUIHostCapabilityPattern = regexp.MustCompile(`^[a-z][a-z0-9.-]{0,95}$`)
 
 type forgeRuntimeStatusData struct {
 	Available bool            `json:"available"`
@@ -36,6 +39,84 @@ type forgeRuntimeApprovalRequest struct {
 type forgeRuntimeShutdownRequest struct {
 	JobID          string `json:"jobId"`
 	TargetRevision string `json:"targetRevision"`
+}
+
+type forgeRuntimeUIHostInvokeRequest struct {
+	HostID     string          `json:"hostId"`
+	Capability string          `json:"capability"`
+	Input      json.RawMessage `json:"input,omitempty"`
+}
+
+type forgeRuntimeUIHostsData struct {
+	Available bool              `json:"available"`
+	Hosts     []json.RawMessage `json:"hosts"`
+}
+
+type forgeRuntimeUIHostsResponse struct {
+	Hosts []json.RawMessage `json:"hosts"`
+}
+
+func forgeRuntimeUIHosts(c *gin.Context) {
+	ret := util.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+	if !requireForgeRuntimeWebUI(c, ret) {
+		return
+	}
+	if !util.IsForgeMode() {
+		ret.Data = forgeRuntimeUIHostsData{Available: false, Hosts: make([]json.RawMessage, 0)}
+		return
+	}
+	payload, err := forgeRuntimeCallSupervisor(http.MethodGet, "/ui-hosts", nil)
+	if err != nil {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return
+	}
+	var response forgeRuntimeUIHostsResponse
+	if err = json.Unmarshal(payload, &response); err != nil || response.Hosts == nil {
+		ret.Code = -1
+		ret.Msg = "Forge Supervisor 返回无效的 UI Host 列表"
+		return
+	}
+	ret.Data = forgeRuntimeUIHostsData{Available: true, Hosts: response.Hosts}
+}
+
+func forgeRuntimeInvokeUIHost(c *gin.Context) {
+	ret := util.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+	if !requireForgeRuntimeMutation(c, ret) {
+		return
+	}
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 64*1024)
+	decoder := json.NewDecoder(c.Request.Body)
+	decoder.DisallowUnknownFields()
+	var request forgeRuntimeUIHostInvokeRequest
+	if err := decoder.Decode(&request); err != nil {
+		ret.Code = -1
+		ret.Msg = "无效的 UI Host 调用请求"
+		return
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		ret.Code = -1
+		ret.Msg = "无效的 UI Host 调用请求"
+		return
+	}
+	request.HostID = strings.TrimSpace(request.HostID)
+	request.Capability = strings.TrimSpace(request.Capability)
+	if !forgeRuntimeUIHostIDPattern.MatchString(request.HostID) ||
+		!forgeRuntimeUIHostCapabilityPattern.MatchString(request.Capability) {
+		ret.Code = -1
+		ret.Msg = "无效的 UI Host 或能力标识"
+		return
+	}
+	if len(request.Input) == 0 {
+		request.Input = json.RawMessage(`{}`)
+	} else if !json.Valid(request.Input) {
+		ret.Code = -1
+		ret.Msg = "无效的 UI Host 能力参数"
+		return
+	}
+	forwardForgeRuntimeUIHostRequest(ret, request)
 }
 
 func forgeRuntimeStatus(c *gin.Context) {
@@ -150,6 +231,27 @@ func forwardForgeRuntimeRequest(ret *util.Result, endpoint string, body any) {
 		return
 	}
 	ret.Data = payload
+}
+
+func forwardForgeRuntimeUIHostRequest(ret *util.Result, request forgeRuntimeUIHostInvokeRequest) {
+	payload, err := forgeRuntimeCallSupervisor(http.MethodPost, "/ui-hosts/invoke", request)
+	if err == nil {
+		ret.Data = payload
+		return
+	}
+	ret.Code = -1
+	var supervisorError *util.ForgeSupervisorHTTPError
+	if errors.As(err, &supervisorError) {
+		ret.Data = supervisorError.Payload
+		var errorPayload struct {
+			Error string `json:"error"`
+		}
+		if json.Unmarshal(supervisorError.Payload, &errorPayload) == nil && errorPayload.Error != "" {
+			ret.Msg = errorPayload.Error
+			return
+		}
+	}
+	ret.Msg = err.Error()
 }
 
 // forgeRuntimeShutdown 仅接受同一 Forge Supervisor 的回环请求，并在响应后优雅关闭 Kernel。

@@ -218,11 +218,32 @@ const runFrontendUpdate = (root, _changedPaths, run = execFileSync) => {
     return {tests: "skipped"};
 };
 
-const probePages = async (port, fetchImpl) => {
+// readWorkspaceApiToken 读取 Forge workspace 的 API token（conf/conf.json 的 api.token），
+// 供页面探针在实例启用访问授权（accessAuthCode）时携带 Authorization: Token 认证。
+// 读取失败或字段缺失时返回 undefined（探针退化为无凭据探测并如实报告失败）。
+const readWorkspaceApiToken = (workspace) => {
+    if (typeof workspace !== "string" || workspace.length === 0) {
+        return undefined;
+    }
+    try {
+        const confPath = path.join(workspace, "conf", "conf.json");
+        if (!fs.existsSync(confPath)) {
+            return undefined;
+        }
+        const conf = JSON.parse(fs.readFileSync(confPath, "utf8"));
+        const token = conf?.api?.token;
+        return typeof token === "string" && token.length > 0 ? token : undefined;
+    } catch {
+        return undefined;
+    }
+};
+
+const probePages = async (port, fetchImpl, headers = {}) => {
     const results = [];
     for (const pagePath of PAGE_PATHS) {
         const response = await fetchImpl(`http://127.0.0.1:${port}${pagePath}`, {
             signal: AbortSignal.timeout(5_000),
+            headers,
         });
         if (!response.ok) {
             throw new Error(`Forge page probe ${pagePath} returned HTTP ${response.status}`);
@@ -383,7 +404,12 @@ const runPostCommitGate = async (root = repoRoot, dependencies = {}, trigger = "
             supervisorJob: kernelResult.job?.id || after.job?.id || null,
         };
         await runtime.probeKernel(Number(ownership.port), fetchImpl);
-        const pages = await (dependencies.probePages || probePages)(Number(ownership.port), fetchImpl);
+        const authToken = readWorkspaceApiToken(ownership.workspace);
+        const pages = await (dependencies.probePages || probePages)(
+            Number(ownership.port),
+            fetchImpl,
+            authToken ? {Authorization: `Token ${authToken}`} : {},
+        );
         operation.health = {
             supervisor: {
                 status: "passed",
@@ -471,6 +497,7 @@ module.exports = {
     isFrontendRuntimePath,
     probePages,
     readGateState,
+    readWorkspaceApiToken,
     retryFailedPostCommitGate,
     runFrontendUpdate,
     runPrePushGate,

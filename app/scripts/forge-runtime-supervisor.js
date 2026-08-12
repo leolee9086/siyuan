@@ -4,6 +4,7 @@ const fs = require("fs");
 const http = require("http");
 const path = require("path");
 const {spawn} = require("child_process");
+const {UIHostRegistry, writeUIHostError} = require("./forge-ui-host-registry");
 
 const SUPERVISOR_TOKEN_HEADER = "x-s-forge-supervisor-token";
 const DEFAULT_RETAINED_VERSIONS = 4;
@@ -254,6 +255,11 @@ class ForgeRuntimeSupervisor {
         this.closing = false;
         this.expectedKernelExit = false;
         this.pendingProtectedApproval = undefined;
+        this.uiHosts = new UIHostRegistry({
+            fetchImpl: (...args) => this.fetchImpl(...args),
+            now: () => this.now(),
+            onChange: () => this.persistState(),
+        });
         this.ownsRuntime = false;
         this.lifecycle = "initializing";
         this.lifecycleError = "";
@@ -331,8 +337,21 @@ class ForgeRuntimeSupervisor {
             activeVersion: this.activeVersion || null,
             job: this.currentJob || null,
             latestIncident: this.latestIncident || null,
+            uiHosts: this.uiHosts.status(),
             retainedVersions: this.listVersions(),
         };
+    }
+
+    async registerUIHost(descriptor) {
+        return this.uiHosts.register(descriptor);
+    }
+
+    async listUIHosts() {
+        return this.uiHosts.list();
+    }
+
+    async invokeUIHost(request) {
+        return this.uiHosts.invoke(request);
     }
 
     claimRuntimeOwnership() {
@@ -391,7 +410,7 @@ class ForgeRuntimeSupervisor {
             return;
         }
         const cliAllowed = (request.method === "GET" && request.url === "/status") ||
-            (request.method === "POST" && request.url === "/restart");
+            (request.method === "POST" && ["/restart", "/ui-hosts/register"].includes(request.url));
         if (!hasSupervisorToken && !cliAllowed) {
             response.statusCode = 403;
             response.end(JSON.stringify({error: "CLI credential is not permitted for this Supervisor action"}));
@@ -399,6 +418,31 @@ class ForgeRuntimeSupervisor {
         }
         if (request.method === "GET" && request.url === "/status") {
             response.end(JSON.stringify(this.status()));
+            return;
+        }
+        if (request.method === "GET" && request.url === "/ui-hosts") {
+            try {
+                response.end(JSON.stringify(await this.listUIHosts()));
+            } catch (error) {
+                writeUIHostError(response, error);
+            }
+            return;
+        }
+        if (request.method === "POST" && request.url === "/ui-hosts/register") {
+            try {
+                const host = await this.registerUIHost(await readRequestJSON(request));
+                response.end(JSON.stringify({host}));
+            } catch (error) {
+                writeUIHostError(response, error);
+            }
+            return;
+        }
+        if (request.method === "POST" && request.url === "/ui-hosts/invoke") {
+            try {
+                response.end(JSON.stringify(await this.invokeUIHost(await readRequestJSON(request))));
+            } catch (error) {
+                writeUIHostError(response, error);
+            }
             return;
         }
         if (request.method === "POST" && request.url === "/approve-protected-tests") {

@@ -8,7 +8,9 @@ const {
     COMMIT_RUNTIME_HOOKS,
     installCommitRuntimeHooks,
     isFrontendRuntimePath,
+    probePages,
     readGateState,
+    readWorkspaceApiToken,
     retryFailedPostCommitGate,
     runFrontendUpdate,
     runPrePushGate,
@@ -67,6 +69,43 @@ const runtimeMocks = ({base, head, failRestart = false}) => {
         probePages: async () => [{path: "/", status: 200}],
     };
 };
+
+test("Page probes carry the workspace API token when provided", async () => {
+    const calls = [];
+    const fetchImpl = async (url, options) => {
+        calls.push({url, headers: options?.headers});
+        return {ok: true, status: 200};
+    };
+    const pages = await probePages(6806, fetchImpl, {Authorization: "Token abc123"});
+    assert.equal(pages.length, 6);
+    assert.equal(calls.length, 6);
+    for (const call of calls) {
+        assert.equal(call.headers.Authorization, "Token abc123");
+    }
+});
+
+test("Page probes omit credentials when no token is provided", async () => {
+    const calls = [];
+    const fetchImpl = async (url, options) => {
+        calls.push({headers: options?.headers});
+        return {ok: true, status: 200};
+    };
+    await probePages(6806, fetchImpl, {});
+    for (const call of calls) {
+        assert.equal(call.headers.Authorization, undefined);
+    }
+});
+
+test("Workspace API token is read from conf/api/token and absent configs yield undefined", () => {
+    const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "s-forge-gate-conf-"));
+    assert.equal(readWorkspaceApiToken(workspace), undefined);
+    fs.mkdirSync(path.join(workspace, "conf"), {recursive: true});
+    fs.writeFileSync(path.join(workspace, "conf", "conf.json"), JSON.stringify({api: {token: "secret-token"}}));
+    assert.equal(readWorkspaceApiToken(workspace), "secret-token");
+    fs.writeFileSync(path.join(workspace, "conf", "conf.json"), JSON.stringify({api: {token: ""}}));
+    assert.equal(readWorkspaceApiToken(workspace), undefined);
+    assert.equal(readWorkspaceApiToken(undefined), undefined);
+});
 
 test("Frontend runtime path classification excludes tooling-only changes", () => {
     assert.equal(isFrontendRuntimePath("app/src/index.ts"), true);

@@ -666,6 +666,8 @@ func ServeAPI(ginServer *gin.Engine) {
 	// 以下接口为 S-forge 额外扩展，官方 siyuan-note/siyuan 中不存在
 	ginServer.Handle("POST", "/api/s-forge/forge/runtime/shutdown", forgeRuntimeShutdown)
 	ginServer.Handle("POST", "/api/s-forge/forge/runtime/status", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, forgeRuntimeStatus)
+	ginServer.Handle("POST", "/api/s-forge/forge/runtime/uiHosts", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, forgeRuntimeUIHosts)
+	ginServer.Handle("POST", "/api/s-forge/forge/runtime/invokeUIHost", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, forgeRuntimeInvokeUIHost)
 	ginServer.Handle("POST", "/api/s-forge/forge/runtime/restart", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, forgeRuntimeRestart)
 	ginServer.Handle("POST", "/api/s-forge/forge/runtime/approveProtectedTests", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, forgeRuntimeApproveProtectedTests)
 	ginServer.Handle("POST", "/api/s-forge/forge/runtime/rejectProtectedTests", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, forgeRuntimeRejectProtectedTests)

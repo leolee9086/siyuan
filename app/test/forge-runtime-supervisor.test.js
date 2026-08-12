@@ -26,6 +26,9 @@ const {
     timingSafeTokenEqual,
     validateRestartPolicy,
 } = require("../scripts/forge-runtime-supervisor");
+const {UI_HOST_INSPECT_WINDOWS} = require("../scripts/forge-ui-host-contract");
+const {createForgeUIHostControl} = require("../electron/forge-ui-host-control");
+const {UIHostRegistry} = require("../scripts/forge-ui-host-registry");
 
 const temporaryRoot = () => fs.mkdtempSync(path.join(os.tmpdir(), "s-forge-supervisor-"));
 const productionRestartPolicyPath = path.resolve(__dirname, "../../kernel/forge_restart_test_policy.json");
@@ -841,6 +844,133 @@ test("Protected test diff pauses restart until a matching human approval arrives
     assert.equal(job.protectedTestApproval.state, "approved");
     assert.equal(job.state, "running");
     assert.throws(() => supervisor.approveProtectedTests(job.id, source.revision), /no matching/);
+});
+
+test("Supervisor UI Host registry distinguishes absent, unavailable, offline, and successful capability calls", async (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "s-forge-ui-host-supervisor-"));
+    const supervisor = new ForgeRuntimeSupervisor({
+        repoRoot: root,
+        runtimeDir: path.join(root, "runtime"),
+        workspace: path.join(root, "workspace"),
+        port: 6806,
+    });
+    supervisor.activeVersion = {revision: "a".repeat(40)};
+    supervisor.lifecycle = "ready";
+    supervisor.kernelProcess = {exitCode: null};
+    fs.mkdirSync(supervisor.runtimeDir, {recursive: true});
+    t.after(() => fs.rmSync(root, {recursive: true, force: true}));
+
+    assert.deepEqual(await supervisor.listUIHosts(), {hosts: []});
+    await assert.rejects(
+        () => supervisor.invokeUIHost({hostId: "missing", capability: UI_HOST_INSPECT_WINDOWS}),
+        (error) => error.errorCode === "ui_host_absent",
+    );
+
+    const control = await createForgeUIHostControl({
+        hostId: "electron-test",
+        kind: "electron",
+        platform: "win32",
+        capabilityHandlers: {
+            [UI_HOST_INSPECT_WINDOWS]: async () => ({windows: [{id: 1}]}),
+        },
+    });
+    t.after(() => control.close());
+
+    const registered = await supervisor.registerUIHost(control.descriptor);
+    assert.equal(registered.state, "online");
+    assert.equal(supervisor.status().uiHosts[0].controlURL, undefined);
+    assert.equal(supervisor.status().uiHosts[0].token, undefined);
+    const persistedState = fs.readFileSync(supervisor.statePath, "utf8");
+    assert.equal(persistedState.includes(control.descriptor.controlURL), false);
+    assert.equal(persistedState.includes(control.descriptor.token), false);
+
+    await assert.rejects(
+        () => supervisor.invokeUIHost({hostId: "electron-test", capability: "ui.windows.reload"}),
+        (error) => error.errorCode === "ui_host_capability_unavailable",
+    );
+    const result = await supervisor.invokeUIHost({
+        hostId: "electron-test",
+        capability: UI_HOST_INSPECT_WINDOWS,
+        input: {},
+    });
+    assert.deepEqual(result, {
+        capability: UI_HOST_INSPECT_WINDOWS,
+        result: {windows: [{id: 1}]},
+    });
+
+    await control.close();
+    await assert.rejects(
+        () => supervisor.invokeUIHost({hostId: "electron-test", capability: UI_HOST_INSPECT_WINDOWS}),
+        (error) => error.errorCode === "ui_host_offline",
+    );
+    assert.equal(supervisor.status().uiHosts[0].state, "offline");
+});
+
+test("Supervisor UI Host control routes keep registration separate from Kernel query and invocation credentials", async (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "s-forge-ui-host-routes-"));
+    const supervisor = new ForgeRuntimeSupervisor({
+        repoRoot: root,
+        runtimeDir: path.join(root, "runtime"),
+        workspace: path.join(root, "workspace"),
+        port: 6806,
+        token: "kernel-token",
+        cliToken: "cli-token",
+    });
+    fs.mkdirSync(supervisor.runtimeDir, {recursive: true});
+    await supervisor.startControlServer();
+    t.after(async () => {
+        await supervisor.close();
+        fs.rmSync(root, {recursive: true, force: true});
+    });
+
+    const empty = await fetch(`${supervisor.controlURL}/ui-hosts`, {
+        headers: {[SUPERVISOR_TOKEN_HEADER]: "kernel-token"},
+    });
+    assert.equal(empty.status, 200);
+    assert.deepEqual(await empty.json(), {hosts: []});
+
+    const cliQuery = await fetch(`${supervisor.controlURL}/ui-hosts`, {
+        headers: {[SUPERVISOR_TOKEN_HEADER]: "cli-token"},
+    });
+    assert.equal(cliQuery.status, 403);
+
+    const cliInvoke = await fetch(`${supervisor.controlURL}/ui-hosts/invoke`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json", [SUPERVISOR_TOKEN_HEADER]: "cli-token"},
+        body: JSON.stringify({hostId: "missing", capability: UI_HOST_INSPECT_WINDOWS}),
+    });
+    assert.equal(cliInvoke.status, 403);
+
+    const invalidRegistration = await fetch(`${supervisor.controlURL}/ui-hosts/register`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json", [SUPERVISOR_TOKEN_HEADER]: "cli-token"},
+        body: JSON.stringify({kind: "electron"}),
+    });
+    assert.equal(invalidRegistration.status, 400);
+    assert.equal((await invalidRegistration.json()).errorCode, "ui_host_invalid_request");
+});
+
+test("UI Host registry distinguishes malformed responses from transport outages", async () => {
+    const descriptor = {
+        schemaVersion: 1,
+        id: "invalid-response-host",
+        kind: "test",
+        platform: "test-os",
+        capabilities: [UI_HOST_INSPECT_WINDOWS],
+        controlURL: "http://127.0.0.1:49152",
+        token: "c".repeat(64),
+    };
+    const registry = new UIHostRegistry({
+        fetchImpl: async () => new Response("not-json", {status: 200}),
+        now: () => new Date("2026-08-13T00:00:00.000Z"),
+    });
+    const status = await registry.register(descriptor);
+    assert.equal(status.state, "offline");
+    assert.match(status.lastError, /invalid response/);
+    await assert.rejects(
+        () => registry.invoke({hostId: descriptor.id, capability: UI_HOST_INSPECT_WINDOWS}),
+        (error) => error.errorCode === "ui_host_invalid_response" && error.statusCode === 502,
+    );
 });
 
 test("Graceful Kernel shutdown carries the exact restart job and candidate revision", async () => {

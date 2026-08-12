@@ -9,6 +9,7 @@ const {
     FORGE_LAUNCH_ACK_TOKEN_ENV,
     FORGE_LAUNCH_ACK_URL_ENV,
 } = require("../electron/forge-kernel-attach");
+const {validateUIHostDescriptor} = require("./forge-ui-host-contract");
 
 const DEFAULT_STARTUP_GRACE_MS = 1_500;
 const DEFAULT_UI_READY_TIMEOUT_MS = 60_000;
@@ -38,6 +39,9 @@ const readAcknowledgement = (request) => new Promise((resolve, reject) => {
             const payload = JSON.parse(body || "{}");
             if (!["ready", "rejected"].includes(payload.state)) {
                 throw new Error("Electron launch acknowledgement has an invalid state");
+            }
+            if (payload.uiHost !== undefined) {
+                payload.uiHost = validateUIHostDescriptor(payload.uiHost);
             }
             resolve(payload);
         } catch (error) {
@@ -295,7 +299,9 @@ const launchElectronMain = async ({
             throw new Error("Electron launch acknowledgement has an invalid state");
         }
         if (acknowledgement.state === "rejected") {
-            throw new Error(`Electron rejected the main interface request: ${acknowledgement.reason || "no reason reported"}`);
+            const error = new Error(`Electron rejected the main interface request: ${acknowledgement.reason || "no reason reported"}`);
+            error.uiHost = acknowledgement.uiHost;
+            throw error;
         }
         launchAccepted = true;
     } finally {
@@ -361,11 +367,11 @@ const openForgeBrowserInterface = async ({
     try {
         await launchBrowser({url, reportError});
         report(`[forge] opened independent system browser at ${url}`);
-        return {kind: "browser", url};
+        return {kind: "browser", url, uiHosts: []};
     } catch (error) {
         reportError(`[forge] independent system browser launch failed: ${error.message}`);
         reportError(`[forge] open this address manually: ${url}`);
-        return {kind: "browser-error", url, error};
+        return {kind: "browser-error", url, error, uiHosts: []};
     }
 };
 
@@ -374,6 +380,7 @@ const openForgeElectronInterface = async ({
     port,
     resolveElectron = resolveElectronLaunch,
     launchElectron = launchElectronMain,
+    registerUIHost = async () => undefined,
     report = console.log,
     reportError = console.error,
 }) => {
@@ -397,15 +404,39 @@ const openForgeElectronInterface = async ({
             });
             const action = result.forwarded ? "forwarded to the running Electron instance" : "started";
             report(`[forge] Electron main interface ${action} for ${url}`);
-            return {kind: "electron", url, forwarded: result.forwarded};
+            const uiHosts = result.acknowledgement.uiHost ? [result.acknowledgement.uiHost] : [];
+            for (const descriptor of uiHosts) {
+                try {
+                    await registerUIHost(descriptor);
+                } catch (registrationError) {
+                    reportError(`[forge] UI Host registration failed: ${registrationError.message}`);
+                    return {
+                        kind: "electron",
+                        url,
+                        forwarded: result.forwarded,
+                        uiHosts: [],
+                        uiHostRegistrationError: registrationError,
+                    };
+                }
+            }
+            return {kind: "electron", url, forwarded: result.forwarded, uiHosts};
         } catch (error) {
             reportError(`[forge] Electron main interface launch failed: ${error.message}`);
-            return {kind: "electron-error", url, error};
+            const uiHosts = [];
+            if (error.uiHost) {
+                try {
+                    await registerUIHost(error.uiHost);
+                    uiHosts.push(error.uiHost);
+                } catch (registrationError) {
+                    reportError(`[forge] UI Host registration failed: ${registrationError.message}`);
+                }
+            }
+            return {kind: "electron-error", url, error, uiHosts};
         }
     } else {
         const error = new Error(electronLaunch.reason);
         reportError(`[forge] Electron main interface is not ready: ${error.message}`);
-        return {kind: "electron-error", url, error};
+        return {kind: "electron-error", url, error, uiHosts: []};
     }
 };
 
@@ -417,13 +448,14 @@ const openForgeInterface = async ({
     resolveElectron = resolveElectronLaunch,
     launchElectron = launchElectronMain,
     launchBrowser = launchSystemBrowser,
+    registerUIHost = async () => undefined,
     report = console.log,
     reportError = console.error,
 }) => {
     const url = forgeURL(port);
     if (disabled || mode === "none") {
         report("[forge] automatic UI launch disabled by --no-browser");
-        return {kind: "disabled", url};
+        return {kind: "disabled", url, uiHosts: []};
     }
     if (mode === "browser") {
         return openForgeBrowserInterface({port, launchBrowser, report, reportError});
@@ -431,7 +463,15 @@ const openForgeInterface = async ({
     if (mode !== "electron") {
         throw new Error(`unknown Forge interface mode: ${mode}`);
     }
-    return openForgeElectronInterface({root, port, resolveElectron, launchElectron, report, reportError});
+    return openForgeElectronInterface({
+        root,
+        port,
+        resolveElectron,
+        launchElectron,
+        registerUIHost,
+        report,
+        reportError,
+    });
 };
 
 module.exports = {
