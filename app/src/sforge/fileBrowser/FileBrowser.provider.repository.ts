@@ -99,10 +99,20 @@ export async function listFileBrowserProviders() {
 export async function openFileBrowserProviderSession(request: FileBrowserProviderSessionOpenRequest) {
     const payload = normalizeSessionOpenRequest(request);
     const response = await fetchSyncPost(SESSION_OPEN_ENDPOINT, payload);
-    return parseFileBrowserProviderSession(
+    const session = parseFileBrowserProviderSession(
         requireFileBrowserResponseData(response, "打开文件 provider 会话"),
         request.provider,
     );
+    if (request.endpoint) {
+        try {
+            const endpoint = new URL(request.endpoint);
+            const path = endpoint.pathname.replace(/^\/+|\/+$/g, "");
+            session.label = path ? `${endpoint.host}/${decodeURIComponent(path)}` : endpoint.host;
+        } catch {
+            // Kernel 的 provider 校验会返回明确的 endpoint 错误。
+        }
+    }
+    return session;
 }
 
 /** 关闭精确 session；成功响应必须回显同一个 provider/session。 */
