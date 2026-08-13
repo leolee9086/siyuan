@@ -95,7 +95,21 @@ describe("file browser provider repository", () => {
             readOnly: false,
             descriptor: {
                 id: "webdav", displayName: "WebDAV", kind: "file-share", sessionMode: "configured",
-                sessionLabel: "WebDAV 会话", capabilities: ["list"],
+                sessionLabel: "WebDAV 会话",
+                sessionConfig: {
+                    readOnly: true,
+                    endpointTransport: "https-or-confirmed-private-http",
+                    fields: [
+                        {target: "endpoint", key: "endpoint", label: "WebDAV 地址",
+                            input: "url", required: true, placeholder: "https://dav.example.com/files",
+                            autocomplete: "url"},
+                        {target: "credential", key: "username", label: "用户名",
+                            input: "text", autocomplete: "username"},
+                        {target: "credential", key: "password", label: "密码",
+                            input: "password", requiredWith: ["username"], autocomplete: "current-password"},
+                    ],
+                },
+                capabilities: ["list"],
             },
         }});
         const request = {
@@ -118,7 +132,27 @@ describe("file browser provider repository", () => {
             readOnly: true,
             descriptor: {
                 id: "s3", displayName: "S3", kind: "object-store", sessionMode: "configured",
-                sessionLabel: "对象存储会话", capabilities: ["list"],
+                sessionLabel: "对象存储会话",
+                sessionConfig: {
+                    readOnly: true,
+                    endpointTransport: "https-or-confirmed-private-http",
+                    fields: [
+                        {target: "endpoint", key: "endpoint", label: "S3 地址",
+                            input: "url", required: true, placeholder: "https://s3.example.com",
+                            autocomplete: "url"},
+                        {target: "option", key: "region", label: "区域",
+                            input: "text", defaultValue: "us-east-1", placeholder: "us-east-1"},
+                        {target: "option", key: "bucket", label: "Bucket",
+                            input: "text", placeholder: "留空以列出全部 Bucket"},
+                        {target: "option", key: "pathStyle", label: "使用 Path-style 地址",
+                            input: "checkbox"},
+                        {target: "credential", key: "accessKey", label: "Access Key",
+                            input: "text", required: true, autocomplete: "username"},
+                        {target: "credential", key: "secretKey", label: "Secret Key",
+                            input: "password", required: true, autocomplete: "current-password"},
+                    ],
+                },
+                capabilities: ["list"],
             },
         }});
         const {openFileBrowserProviderSession} = await import(
