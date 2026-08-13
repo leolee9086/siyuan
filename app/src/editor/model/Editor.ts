@@ -239,7 +239,9 @@ export class Editor<
             return;
         }
         const lastElement = this.editor.protyle.wysiwyg.element.lastElementChild;
-        const hidden = lastElement?.getAttribute("data-eof") !== "2";
+        // 仅当非"显示全部"且滚动模式下才按 EOF 状态隐藏底部反链；showAll 或非滚动模式保持可见。
+        const hidden = !this.editor.protyle.block.showAll && this.editor.protyle.block.scroll &&
+            lastElement?.getAttribute("data-eof") !== "2";
         if (this.backlinkElement.classList.contains("fn__none") === hidden) {
             return;
         }
