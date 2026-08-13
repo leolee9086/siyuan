@@ -36,12 +36,8 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
     public status: Record<string, BacklinkStatusItem> = {};
     private dirty = false;
     private isDestroyed = false;
-    private focusRefreshTimer: number | undefined;
     private restoreScrollTimer: number | undefined;
-    private readonly handleFocusOut = () => {
-        window.clearTimeout(this.focusRefreshTimer);
-        this.focusRefreshTimer = window.setTimeout(() => this.refreshIfVisible());
-    };
+    private ownerFocusoutListener?: (event: FocusEvent) => void;
 
     constructor(options: {
         app: AppFacade,
@@ -83,11 +79,19 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
         if (this.type === "bottom") {
             this.element.classList.add("sy__backlink--bottom");
             this.element.tabIndex = -1;
-            this.element.addEventListener("focusout", this.handleFocusOut);
+            // focusout 挂在所属编辑器上：仅当焦点真正移出该编辑器（relatedTarget 不在其内或为空）时
+            // 才按脏标记刷新，焦点在正文与嵌套反链编辑器之间移动不触发刷新。
+            this.ownerFocusoutListener = (event: FocusEvent) => {
+                if (!event.relatedTarget || !this.ownerProtyle?.element.contains(event.relatedTarget as Node)) {
+                    this.refreshIfVisible(true);
+                }
+            };
+            this.ownerProtyle?.element.addEventListener("focusout", this.ownerFocusoutListener);
         }
         const backlinkSort = window.siyuan.config.editor.backlinkSort;
         const backmentionSort = window.siyuan.config.editor.backmentionSort;
         this.element.innerHTML = `<div class="block__icons">
+    ${this.type === "bottom" ? `<span data-type="bLayout" class="block__icon block__icon--show fn__flex-center backlinkList__toggle ariaLabel" data-position="north" aria-label="${window.siyuan.languages.collapse}"><svg><use xlink:href="#iconDown"></use></svg></span>` : ""}
     <div class="block__logo fn__flex-1${this.type === "bottom" ? " fn__pointer" : ""}"${this.type === "bottom" ? ' data-type="backlink"' : ""}>${siyuanI18n.backlinks}</div>
     <span class="counter listCount" style="margin-left: 0"></span>
     <span class="fn__space"></span>
@@ -98,20 +102,19 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
     <span class="fn__space"></span>
     <span data-type="sort" data-sort="${backlinkSort}" class="block__icon ariaLabel" data-position="north" aria-label="${window.siyuan.languages.sort}"><svg><use xlink:href='#iconSort'></use></svg></span>
     <span class="fn__space"></span>
-    <span data-type="expand" class="block__icon ariaLabel" data-position="north" aria-label="${window.siyuan.languages.expand}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.expand.custom)}">
+    <span data-type="expand" class="block__icon ariaLabel" data-position="north" aria-label="${window.siyuan.languages.expand}${this.type === "bottom" ? "" : updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.expand.custom)}">
         <svg><use xlink:href="#iconExpand"></use></svg>
     </span>
     <span class="fn__space"></span>
-    <span data-type="collapse" class="block__icon ariaLabel" data-position="north" aria-label="${window.siyuan.languages.collapse}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.collapse.custom)}">
+    <span data-type="collapse" class="block__icon ariaLabel" data-position="north" aria-label="${window.siyuan.languages.collapse}${this.type === "bottom" ? "" : updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.collapse.custom)}">
         <svg><use xlink:href="#iconContract"></use></svg>
     </span>
-    <span class="${this.type === "bottom" ? "" : "fn__none "}fn__space"></span>
-    <span data-type="bLayout" class="${this.type === "bottom" ? "" : "fn__none "}block__icon ariaLabel" data-position="north" aria-label="${window.siyuan.languages.collapse}"><svg><use xlink:href='#iconDown'></use></svg></span>
     <span class="${this.type === "pin" ? "" : "fn__none "}fn__space"></span>
     <span data-type="min" class="${this.type === "pin" ? "" : "fn__none "}block__icon ariaLabel" data-position="north" aria-label="${window.siyuan.languages.min}${updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom)}"><svg><use xlink:href='#iconMin'></use></svg></span>
 </div>
 <div class="backlinkList fn__flex-1"></div>
 <div class="block__icons">
+    ${this.type === "bottom" ? `<span data-type="layout" class="block__icon block__icon--show fn__flex-center backlinkList__toggle ariaLabel" data-position="north" aria-label="${window.siyuan.languages.collapse}"><svg><use xlink:href="#iconDown"></use></svg></span>` : ""}
     <div class="block__logo fn__flex-1 fn__pointer" data-type="mention">${siyuanI18n.mentions}</div>
     <span class="counter listMCount" style="margin-left: 0;"></span>
     <span class="fn__space"></span>
@@ -127,10 +130,10 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
     <span data-type="mCollapse" class="block__icon b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.collapse}">
         <svg><use xlink:href="#iconContract"></use></svg>
     </span>
-    <span class="fn__space"></span>
+    ${this.type === "bottom" ? "" : `<span class="fn__space"></span>
     <span data-type="layout" class="block__icon b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.down}">
         <svg><use xlink:href="#iconDown"></use></svg>
-    </span>
+    </span>`}
 </div>
 <div class="backlinkMList fn__flex-1"></div>`;
 
@@ -428,10 +431,12 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                     this.toggleItem(item, isBackmention);
                 }
             });
+            this.updateBottomBacklinkSpacing();
             return;
         }
         tree.element.querySelectorAll(".protyle").forEach(item => item.classList.add("fn__none"));
         tree.element.querySelectorAll(".b3-list-item__arrow").forEach(item => item.classList.remove("b3-list-item__arrow--open"));
+        this.updateBottomBacklinkSpacing();
     }
 
     private handelCallback() {
@@ -629,6 +634,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                 }
             });
             svgElement.removeAttribute("disabled");
+            this.updateBottomBacklinkSpacing();
         } else {
             const keyword = isMention ? this.inputsElement[1].value : this.inputsElement[0].value;
             fetchPost(isMention ? "/api/ref/getBackmentionDoc" : "/api/ref/getBacklinkDoc", {
@@ -642,6 +648,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
                 }
                 svgElement.removeAttribute("disabled");
                 svgElement.classList.add("b3-list-item__arrow--open");
+                this.updateBottomBacklinkSpacing();
                 const editorElement = document.createElement("div");
                 editorElement.style.minHeight = "auto";
                 editorElement.setAttribute("data-defid", this.blockId);
@@ -690,6 +697,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
             return;
         }
         element.classList.add("fn__rotate");
+        this.showBottomLoading();
         // 首次查询尚无响应中的 box，需从承载该根文档的编辑器确定加密数据源。
         let notebookId = this.notebookId;
         const contextRootId = this.rootId || this.blockId;
@@ -781,6 +789,7 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
         this.inputsElement[1].value = data.mk;
         this.tree.updateData(data.backlinks);
         this.mTree.updateData(data.backmentions);
+        this.updateBottomBacklinkSpacing();
 
         const countElement = this.element.querySelector(".listCount");
         if (data.linkRefsCount === 0) {
@@ -910,11 +919,35 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
     }
 
     /** Focus and observer paths share the same visibility-aware refresh boundary. */
-    public refreshIfVisible() {
+    public refreshIfVisible(ignoreFocus = false) {
         if (this.type !== "bottom" || this.isDestroyed || this.element.classList.contains("fn__none")) {
             return;
         }
+        if (!ignoreFocus && this.ownerProtyle?.element.contains(document.activeElement)) {
+            return;
+        }
         this.refreshDirty();
+    }
+
+    /** Bottom panels replace their lists with a centered loading placeholder while a request is in flight. */
+    private showBottomLoading() {
+        if (this.type !== "bottom" || this.isDestroyed) {
+            return;
+        }
+        const loadingHTML = '<div class="backlinkList__loading"><img width="32px" height="32px" src="/stage/loading-pure.svg"></div>';
+        this.tree.element.innerHTML = loadingHTML;
+        this.mTree.element.innerHTML = loadingHTML;
+        this.updateBottomBacklinkSpacing();
+    }
+
+    /** Bottom panels keep a divider gap between the last expanded result and the mentions toolbar. */
+    private updateBottomBacklinkSpacing() {
+        if (this.type !== "bottom" || this.isDestroyed) {
+            return;
+        }
+        const lastItem = this.tree.element.querySelector(":scope > .b3-list > .b3-list-item:last-of-type");
+        this.tree.element.classList.toggle("backlinkList--divider-spacing",
+            !lastItem || !lastItem.querySelector(".b3-list-item__arrow--open"));
     }
 
     /** Executes one deferred refresh only when no request is already rendering this panel. */
@@ -933,9 +966,10 @@ export class Backlink extends Model<AppFacade, LayoutTab> {
             return;
         }
         this.isDestroyed = true;
-        window.clearTimeout(this.focusRefreshTimer);
         window.clearTimeout(this.restoreScrollTimer);
-        this.element.removeEventListener("focusout", this.handleFocusOut);
+        if (this.ownerFocusoutListener) {
+            this.ownerProtyle?.element.removeEventListener("focusout", this.ownerFocusoutListener);
+        }
         this.editors.forEach(item => item.destroy());
         this.editors = [];
         this.dispose();

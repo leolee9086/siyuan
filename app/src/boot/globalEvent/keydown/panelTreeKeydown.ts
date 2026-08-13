@@ -52,6 +52,12 @@ export const panelTreeKeydown = (app: AppFacade, event: KeyboardEvent) => {
     if (!config) {
         return false;
     }
+    // 底部反链面板不再拦截折叠/展开快捷键：底部工具栏不提示这些快捷键，
+    // 命中时把事件交还编辑器自身处理，避免面板与正文折叠互相干扰。
+    if (bottomBacklink && (matchHotKey(config.keymap.editor.general.collapse.custom, event) ||
+        matchHotKey(config.keymap.editor.general.expand.custom, event))) {
+        return false;
+    }
     if (!matchHotKey(config.keymap.editor.general.collapse.custom, event) &&
         !matchHotKey(config.keymap.editor.general.expand.custom, event) &&
         !event.key.startsWith("Arrow") && event.key !== "Enter") {
