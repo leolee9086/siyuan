@@ -55,6 +55,7 @@ const {
     createElectronWindowInspectHandler,
     createForgeUIHostControl,
 } = require("./forge-ui-host-control");
+const {presentMainWindow} = require("./main-window-presentation");
 
 process.noAsar = true;
 const appDir = path.dirname(app.getAppPath());
@@ -1164,18 +1165,11 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
 
     // 主界面事件监听
     currentWindow.once("ready-to-show", () => {
-        if (isOpenAsHidden()) {
-            currentWindow.minimize();
-        } else {
-            currentWindow.show();
-            if (windowState.isMaximized) {
-                currentWindow.maximize();
-            } else {
-                currentWindow.unmaximize();
-            }
-        }
+        presentMainWindow(currentWindow, {
+            openAsHidden: isOpenAsHidden(),
+            maximized: windowState.isMaximized,
+        });
         closeBootWindow();
-        createOrShowMagiWindow(currentWindow);
     });
     // 菜单
     const productName = "SiYuan";
@@ -1244,16 +1238,10 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
         }
         startupDiagnostics.rendererReadyAt = new Date().toISOString();
         cleanupBeforeReady();
-        if (isOpenAsHidden()) {
-            currentWindow.minimize();
-        } else {
-            currentWindow.show();
-            if (windowState.isMaximized) {
-                currentWindow.maximize();
-            } else {
-                currentWindow.unmaximize();
-            }
-        }
+        presentMainWindow(currentWindow, {
+            openAsHidden: isOpenAsHidden(),
+            maximized: windowState.isMaximized,
+        });
         acknowledgeLaunch({
             state: "ready",
             disposition: "created",

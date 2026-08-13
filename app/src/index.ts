@@ -102,6 +102,7 @@ import {
 import {getSForgeState} from "./config/sforge.global";
 import {FORGE_RUNTIME_CONTROL} from "./config/sforge.symbols";
 import type {ForgeRuntimeElectronContinuityResult} from "./sforge/forgeRuntime/types";
+import {installAppConfiguration} from "./boot/installAppConfiguration";
 
 const forgeRuntimeElectronContinuityMessageID = "forgeRuntimeElectronContinuity";
 
@@ -474,9 +475,7 @@ export class App {
         fetchPost("/api/system/getConf", {}, async (response) => {
             addScriptSync(`${Constants.PROTYLE_CDN}/js/lute/lute.min.js?v=${Constants.SIYUAN_VERSION}`, "protyleLuteScript");
             addScript(`${Constants.PROTYLE_CDN}/js/protyle-html.js?v=${Constants.SIYUAN_VERSION}`, "protyleWcHtmlScript");
-            const config = response.data.conf;
-            window.siyuan.config = config;
-            window.siyuan.isPublish = response.data.isPublish;
+            const config = installAppConfiguration(response.data.conf, response.data.isPublish);
             setBodyHighlight();
             await loadPlugins(this);
             await this.inNotePluginManager.init(this);
@@ -515,7 +514,6 @@ export class App {
                         });
                     });
         });
-        setNoteBook();
         initBlockPopover(this);
     }
 }

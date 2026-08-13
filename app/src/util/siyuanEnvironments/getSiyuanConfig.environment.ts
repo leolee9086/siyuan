@@ -8,7 +8,7 @@ import { isCenterLayout } from "./getSiyuanConfig.guard";
  */
 export const getSiyuanConfig = () => {
     if (!window.siyuan?.config) {
-        throw ("[getConfig] window.siyuan.config 不存在");
+        throw new Error("App 启动配置尚未完成：window.siyuan.config 未由 /api/system/getConf 注入");
     }
     return window.siyuan.config;
 };
