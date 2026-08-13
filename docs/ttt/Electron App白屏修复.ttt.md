@@ -95,13 +95,30 @@ webRequestTimeline:
 
 **注意**：11:08 实例是「getNetwork 成功 → loadURL 调用 → 主帧卡住」，本次是「getNetwork 响应未回 → loadURL 从未调用」——两次故障都在 `getNetwork→loadMainURL` 链上但表现不同，可能同源或不同根因，需继续以本次实证为准。
 
-### 2026-08-13 11:32 已实施修复（针对实证断点）
+### 2026-08-13 11:43 错误纠正：11:29 的「getNetwork 断点」是我打点造成的假断点
 
-1. **[`main.js`](app/electron/main.js:1090) `net.fetch(getNetwork)` 增加 5 秒超时兜底**：原实现无超时，`getNetwork` 响应挂起时 `.then(loadMainURL)` 永不执行（本次白屏的直接断点）。修复后 5 秒超时/失败都强制 `loadMainURL()`，与上游 `setProxy` 5 秒兜底风格一致。
-2. **webRequest 拦截器健壮性**：`onBeforeSendHeaders`/`onHeadersReceived` 增加 try/catch + `responseHeaders` 判空，回调抛错不再挂起请求（此前会无 `did-fail-load` 永久挂起）。
-3. **导航诊断 webRequest 打点**（`startup.webRequestTimeline`）：已生效——本次就是靠它实证了「getNetwork 发出但响应未回」。
+**真相**：11:29 重启后「getNetwork 响应未回 → loadURL 从未调用」的断点**是我自己的 webRequest 打点代码造成的**——Electron `webRequest.onBeforeRequest` 回调必须调用 `callback()`，否则该 session 所有请求永久阻塞；我在 `main-navigation-diagnostics.js` 注册的 `(details) => {...}` 从不调用 callback → 整个 session 挂起 → getNetwork 挂起。**该打点已全部撤销，main.js 与 main-navigation-diagnostics.js 均恢复基线**。
 
-**待重启验证**：用户重启 `pnpm forge` 后，若白屏消失 → 断点确认；若仍白屏 → 读新 `webRequestTimeline` 看 `getNetwork` 是否仍无 `on-completed`，或断点转移到主帧请求。
+**教训（必须遵守）**：
+1. 向代码加任何「诊断打点」前，先确认它不会改变被观察行为（webRequest 回调不调 callback 会阻塞请求）；
+2. 围绕自己制造的断点加「兜底修复」是双重错误——先撤销打点验证基线，再判断断点真伪；
+3. 本 TTT 中「11:32 已实施修复」一节（getNetwork 超时兜底、webRequest try/catch、webRequestTimeline 打点）**全部无效，已撤销**，不得作为后续依据。
+
+**当前唯一未被污染的实证断点**：11:08 实例——`loadURL` 执行、主帧 `did-start-navigation` 后 60 秒无提交/失败/控制台事件，且 TTT 记录 NetworkService 到 6806 有 Established 连接（TCP 已建连但主帧无提交）。已排除：证书（`setCertificateVerifyProc` 无卡死分支）、端口协议、平台判定。根因仍指向渲染进程网络栈的未知环节，需在不污染现场的前提下获取实时证据。
+
+### 2026-08-13 11:54 根因确认：回环地址被系统代理劫持（代理并非排除项）
+
+**推翻此前「代理已排除」结论**。TTT 第 75 行「NetworkService 到 7890 连接为零」是**错误时点的误判**——`mode:"system"` 下 Chromium 把回环 HTTPS 交给系统代理，代理连接在 TLS 阶段挂起、不产生到 7890 的 Established 连接，因此「连接为零」不能证明代理未参与。
+
+**完整证据链（全部实证）**：
+1. 内核日志：`detected system proxy from probe [http://127.0.0.1:7890]` + `use network proxy [http://127.0.0.1:7890]`（`autoDetectProxy=true`，verge-mihomo 7890 被内核探测并启用）；
+2. [`kernel/api/system.go:110`](kernel/api/system.go:110) `getNetwork` 返回 `maskedConf.System.NetworkProxy`（**手动配置，空**），不返回 `EffectiveProxyURL`（自动探测的 7890）——与 `setNetworkProxy` 用 `EffectiveProxyURL` 不一致；
+3. Electron [`main.js:322`](app/electron/main.js:322) 收到空代理 → `setProxy("://")` → `mode:"system"` → 渲染进程主帧 `https://127.0.0.1:6806` 走系统代理 → mihomo 对回环 HTTPS 挂起（不提交不失败）；
+4. 主进程 `net.fetch(getNetwork)` 走独立网络栈不受影响 → 解释了「getNetwork 成功但主帧挂起」。
+
+**修复**：[`main.js`](app/electron/main.js:321) `setProxy` 增加 `proxyBypassRules: "<local>"`——回环地址永远直连，不经任何代理（无论系统代理还是显式代理）。这是根治：内核本地 HTTPS 服务在 127.0.0.1，本就不该走代理。
+
+**待验证**：重启 `pnpm forge`；若 `ui.windows.inspect` 显示主帧提交（`mainDocumentCommittedAt` 非空）+ `rendererReadyAt` 非空，则白屏解决。**次要修复（可选）**：`getNetwork` 返回 `EffectiveProxyURL` 使 Electron 获知真实代理（但与 bypass 修复重复，非必须）。
 
 ### 2026-08-13 17:18 启动日志逐条根因分析（`pnpm forge` 报错现场）
 

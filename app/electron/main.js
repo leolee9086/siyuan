@@ -319,12 +319,16 @@ const windowNavigate = (currentWindow, windowType) => {
 };
 
 const setProxy = (proxyURL, webContents) => {
+    // 回环地址永远直连，不经任何代理：内核本地 HTTPS 服务在 127.0.0.1，
+    // 若交给系统代理（如 verge-mihomo），回环 HTTPS 请求会被代理挂起
+    // （不提交、不失败、无 did-fail-load），表现为启动白屏。
+    const proxyBypassRules = "<local>";
     if (proxyURL.startsWith("://")) {
         console.log("network proxy [system]");
-        return webContents.session.setProxy({mode: "system"});
+        return webContents.session.setProxy({mode: "system", proxyBypassRules});
     }
     console.log("network proxy [" + proxyURL + "]");
-    return webContents.session.setProxy({proxyRules: proxyURL});
+    return webContents.session.setProxy({proxyRules: proxyURL, proxyBypassRules});
 };
 
 const hotKey2Electron = (key) => {
@@ -1106,56 +1110,43 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
 
     // 发起互联网服务请求时绕过安全策略 https://github.com/siyuan-note/siyuan/issues/5516
     currentWindow.webContents.session.webRequest.onBeforeSendHeaders((details, cb) => {
-        try {
-            if (-1 < details.url.toLowerCase().indexOf("bili")) {
-                // B 站不移除 Referer https://github.com/siyuan-note/siyuan/issues/94
-                cb({requestHeaders: details.requestHeaders});
-                return;
-            }
-
-            if (-1 < details.url.toLowerCase().indexOf("douyin")) {
-                // 抖音不移除 Referer，iframe 块内登录依赖 Referer 校验 https://github.com/siyuan-note/siyuan/issues/18070
-                cb({requestHeaders: details.requestHeaders});
-                return;
-            }
-
-            if (-1 < details.url.toLowerCase().indexOf("youtube")) {
-                // YouTube 设置 Referer https://github.com/siyuan-note/siyuan/issues/16319
-                details.requestHeaders["Referer"] = "https://b3log.org/siyuan/";
-                cb({requestHeaders: details.requestHeaders});
-                return;
-            }
-
-            for (let key in details.requestHeaders) {
-                if ("referer" === key.toLowerCase()) {
-                    delete details.requestHeaders[key];
-                }
-            }
+        if (-1 < details.url.toLowerCase().indexOf("bili")) {
+            // B 站不移除 Referer https://github.com/siyuan-note/siyuan/issues/94
             cb({requestHeaders: details.requestHeaders});
-        } catch (error) {
-            // webRequest 回调抛错会让请求永久挂起且无 did-fail-load（主进程回调内异常，
-            // 渲染进程无感知），表现为启动白屏。任何异常都必须放行请求，不得挂起。
-            writeLog("onBeforeSendHeaders callback failed, forwarding request: " + error.message);
-            cb({requestHeaders: details.requestHeaders});
+            return;
         }
+
+        if (-1 < details.url.toLowerCase().indexOf("douyin")) {
+            // 抖音不移除 Referer，iframe 块内登录依赖 Referer 校验 https://github.com/siyuan-note/siyuan/issues/18070
+            cb({requestHeaders: details.requestHeaders});
+            return;
+        }
+
+        if (-1 < details.url.toLowerCase().indexOf("youtube")) {
+            // YouTube 设置 Referer https://github.com/siyuan-note/siyuan/issues/16319
+            details.requestHeaders["Referer"] = "https://b3log.org/siyuan/";
+            cb({requestHeaders: details.requestHeaders});
+            return;
+        }
+
+        for (let key in details.requestHeaders) {
+            if ("referer" === key.toLowerCase()) {
+                delete details.requestHeaders[key];
+            }
+        }
+        cb({requestHeaders: details.requestHeaders});
     });
     currentWindow.webContents.session.webRequest.onHeadersReceived((details, cb) => {
-        try {
-            const responseHeaders = details.responseHeaders || {};
-            for (let key in responseHeaders) {
-                if ("x-frame-options" === key.toLowerCase()) {
-                    delete responseHeaders[key];
-                } else if ("content-security-policy" === key.toLowerCase()) {
-                    delete responseHeaders[key];
-                } else if ("access-control-allow-origin" === key.toLowerCase()) {
-                    delete responseHeaders[key];
-                }
+        for (let key in details.responseHeaders) {
+            if ("x-frame-options" === key.toLowerCase()) {
+                delete details.responseHeaders[key];
+            } else if ("content-security-policy" === key.toLowerCase()) {
+                delete details.responseHeaders[key];
+            } else if ("access-control-allow-origin" === key.toLowerCase()) {
+                delete details.responseHeaders[key];
             }
-            cb({responseHeaders});
-        } catch (error) {
-            writeLog("onHeadersReceived callback failed, forwarding response: " + error.message);
-            cb({responseHeaders: details.responseHeaders});
         }
+        cb({responseHeaders: details.responseHeaders});
     });
 
     currentWindow.webContents.on("did-finish-load", () => {
