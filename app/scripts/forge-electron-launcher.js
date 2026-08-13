@@ -260,6 +260,11 @@ const waitForElectronLaunch = async ({
     while (true) {
         const launch = await query();
         if (launch && ["ready", "rejected"].includes(launch.state)) {
+            if (launch.state === "rejected") {
+                const error = new Error(`Electron rejected the main interface request: ${launch.reason || "no reason reported"}`);
+                error.launch = launch;
+                throw error;
+            }
             return launch;
         }
         if (now() >= deadline) {
