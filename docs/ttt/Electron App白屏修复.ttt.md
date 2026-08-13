@@ -106,19 +106,27 @@ webRequestTimeline:
 
 **当前唯一未被污染的实证断点**：11:08 实例——`loadURL` 执行、主帧 `did-start-navigation` 后 60 秒无提交/失败/控制台事件，且 TTT 记录 NetworkService 到 6806 有 Established 连接（TCP 已建连但主帧无提交）。已排除：证书（`setCertificateVerifyProc` 无卡死分支）、端口协议、平台判定。根因仍指向渲染进程网络栈的未知环节，需在不污染现场的前提下获取实时证据。
 
-### 2026-08-13 11:54 根因确认：回环地址被系统代理劫持（代理并非排除项）
+### 2026-08-13 12:20 纠正：代理与白屏无因果（此前记录作废）
 
-**推翻此前「代理已排除」结论**。TTT 第 75 行「NetworkService 到 7890 连接为零」是**错误时点的误判**——`mode:"system"` 下 Chromium 把回环 HTTPS 交给系统代理，代理连接在 TLS 阶段挂起、不产生到 7890 的 Established 连接，因此「连接为零」不能证明代理未参与。
+**用户权威判定 + 事实**：代理与白屏**无任何关系**。「内核探测到系统代理 7890」「getNetwork 返回空代理配置」「setProxy 走 system 模式」这些事实**均为独立成立**，但我从未**证实**主帧挂起与代理之间存在因果——把两个独立事实强行关联为因果链是错误推断。此前「11:54 根因确认：回环地址被系统代理劫持」一节**全部作废**，`setProxy` bypass 修改已撤销，main.js 恢复基线。
 
-**完整证据链（全部实证）**：
-1. 内核日志：`detected system proxy from probe [http://127.0.0.1:7890]` + `use network proxy [http://127.0.0.1:7890]`（`autoDetectProxy=true`，verge-mihomo 7890 被内核探测并启用）；
-2. [`kernel/api/system.go:110`](kernel/api/system.go:110) `getNetwork` 返回 `maskedConf.System.NetworkProxy`（**手动配置，空**），不返回 `EffectiveProxyURL`（自动探测的 7890）——与 `setNetworkProxy` 用 `EffectiveProxyURL` 不一致；
-3. Electron [`main.js:322`](app/electron/main.js:322) 收到空代理 → `setProxy("://")` → `mode:"system"` → 渲染进程主帧 `https://127.0.0.1:6806` 走系统代理 → mihomo 对回环 HTTPS 挂起（不提交不失败）；
-4. 主进程 `net.fetch(getNetwork)` 走独立网络栈不受影响 → 解释了「getNetwork 成功但主帧挂起」。
+**教训**：白屏断点（主帧 `did-start-navigation` 后无提交/失败）的真实成因仍未知。代理、证书、端口、平台均已排除（TTT 结论 + 用户权威确认）。不得再把「环境存在代理」当作「代理导致挂起」的证据。
 
-**修复**：[`main.js`](app/electron/main.js:321) `setProxy` 增加 `proxyBypassRules: "<local>"`——回环地址永远直连，不经任何代理（无论系统代理还是显式代理）。这是根治：内核本地 HTTPS 服务在 127.0.0.1，本就不该走代理。
+### 2026-08-13 12:27 静态验证穷尽结论（新增实证）
 
-**待验证**：重启 `pnpm forge`；若 `ui.windows.inspect` 显示主帧提交（`mainDocumentCommittedAt` 非空）+ `rendererReadyAt` 非空，则白屏解决。**次要修复（可选）**：`getNetwork` 返回 `EffectiveProxyURL` 使 Electron 获知真实代理（但与 bypass 修复重复，非必须）。
+以下环节全部经代码/产物验证排除，均非根因：
+- **编译产物**：`stage/build/app/common.685f65dead05b94b7de5.js` 中 `const platform = false ? 0 : "electron"; const isBrowser = platform !== "electron";` → `isBrowser=false`，`siyuan-ready-to-show` 走 else 分支发送，平台判定正确；
+- **windowNavigate**（`main.js:289` `will-navigate`）：`loadURL` 是主进程 API，不触发 `will-navigate`；即使触发，`/stage/build/app/` 匹配 `windowType==="app"` 直接 return 不 preventDefault；
+- **setCertificateVerifyProc**（`main.js:1644`）：在 `app.whenReady()` 回调内先注册（1644 行），`initMainWindow`（2501 行）后执行，顺序正确；127.0.0.1 回调 0 放行，无卡死分支。
+
+**剩余差异**：同一代码路径下，05:01 隔离实例 7 秒完整渲染，11:08 真实实例主帧挂起 60 秒。所有静态可验证环节已排除，差异指向**运行时环境**（持久 session 状态、Profile 缓存、Electron 网络服务进程状态）。定位需在不污染现场的前提下获取运行时网络证据（如 `chrome://net-internals`、session 持久化状态对比），本次未达成。
+
+### 2026-08-13 12:38 渲染进程 DevTools 诊断（用户建议，已实施）
+
+- **改动**：[`main.js`](app/electron/main.js:1162) 在 `initMainWindow` 中无条件 `openDevTools({mode:"detach"})`，并将渲染进程 `console-message` / `did-fail-load` / `certificate-error` 转主进程 `writeLog`。
+- **目的**：白屏实例的主帧在 `did-start-navigation` 后无任何主进程事件——渲染进程侧（网络请求、控制台、TLS 证书）是唯一未观测的视角。DevTools 打开后可直接观察渲染进程 Network 面板的主帧请求状态（pending/failed/完成），console 面板的错误。
+- **验证方式**：重启 `pnpm forge` 后观察 DevTools 的 Network/Console 面板与主进程日志的 `[renderer-console:*]` / `[renderer-did-fail-load]` 行。
+- **注意**：该改动是诊断性（只读），若验证完成需评估是否保留（建议保留 console 转发，DevTools 打开可改为仅诊断期）。
 
 ### 2026-08-13 17:18 启动日志逐条根因分析（`pnpm forge` 报错现场）
 

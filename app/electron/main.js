@@ -319,16 +319,12 @@ const windowNavigate = (currentWindow, windowType) => {
 };
 
 const setProxy = (proxyURL, webContents) => {
-    // 回环地址永远直连，不经任何代理：内核本地 HTTPS 服务在 127.0.0.1，
-    // 若交给系统代理（如 verge-mihomo），回环 HTTPS 请求会被代理挂起
-    // （不提交、不失败、无 did-fail-load），表现为启动白屏。
-    const proxyBypassRules = "<local>";
     if (proxyURL.startsWith("://")) {
         console.log("network proxy [system]");
-        return webContents.session.setProxy({mode: "system", proxyBypassRules});
+        return webContents.session.setProxy({mode: "system"});
     }
     console.log("network proxy [" + proxyURL + "]");
-    return webContents.session.setProxy({proxyRules: proxyURL, proxyBypassRules});
+    return webContents.session.setProxy({proxyRules: proxyURL});
 };
 
 const hotKey2Electron = (key) => {
@@ -1163,6 +1159,18 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
         }
     });
 
+    // 白屏诊断：无条件打开 DevTools，并将渲染进程控制台/加载失败/证书错误转主进程日志。
+    currentWindow.webContents.openDevTools({mode: "detach"});
+    currentWindow.webContents.on("console-message", (_event, level, message, line, sourceId) => {
+        writeLog(`[renderer-console:${level}] ${message} (${sourceId}:${line})`);
+    });
+    currentWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+        writeLog(`[renderer-did-fail-load] code=${errorCode} desc=${errorDescription} url=${validatedURL} main=${isMainFrame}`);
+    });
+    currentWindow.webContents.on("certificate-error", (event, url, error, certificate, callback) => {
+        writeLog(`[renderer-certificate-error] url=${url} error=${error}`);
+        callback(true);
+    });
     if (windowState.isDevToolsOpened) {
         currentWindow.webContents.openDevTools({mode: "bottom"});
     }
