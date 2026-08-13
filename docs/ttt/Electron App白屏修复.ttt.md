@@ -18,6 +18,8 @@
 - 不以普通浏览器结果代替 Electron 宿主结果，不以 `siyuan-ready-to-show` 超时结果代替首个失败原因。
 - 不用构建、重启、清缓存或回退代码掩盖当前现场。
 - 所有失败显式记录最终 URL、主帧加载状态和首个异常。
+- Service Worker 已由当前 Profile 的缓存实证排除，不再作为本次回归的根因或解释。
+- `webContents.getURL()` 为空只表示主窗口仍是初始 `about:blank`；在捕获主帧导航事件之前，不把目标 URL、重定向 URL或认证页写成已显示地址。
 
 ## 验证检查清单
 
@@ -26,14 +28,27 @@
 - [x] 确认当前工作空间配置了访问密码；无会话访问 App 入口返回 `302 /check-auth`。
 - [x] 确认认证页包含 Electron IPC `siyuan-ready-to-show`，正常认证页不应等待完整 `new App()`。
 - [x] 确认 2026-08-12 15:12 的真实主进程日志只记录 60 秒就绪超时，没有主 URL 失败记录。
-- [x] 捕获隔离真实 Electron attach 实例的最终 URL、DOM、控制台首错、请求失败和截图。
+- [x] 捕获隔离 Electron attach 实例的最终 URL、DOM、控制台首错、请求失败和截图；该实例不代表当前真实 Profile 与窗口。
 - [x] 确认认证页 Electron IPC 可用，`siyuan-ready-to-show` 被主进程消费并清理监听器，不存在认证页就绪协议缺失。
-- [x] 确认主窗口首绘会无条件创建并前置显示 `magi-app` 窗口；主 `app` 窗口因此被遮蔽，隐藏启动时还会保持最小化。
+- [x] 确认隔离实例曾无条件创建并前置显示 `magi-app` 窗口；这解释隔离实例的双窗口现象，不解释当前真实主窗口停留 `about:blank`。
 - [x] 完成认证后 `app` bundle 的隔离 Electron 诊断；该结果只说明隔离实例，不作为当前 PID `4912` 的验收证据。
 - [x] 为已证实断点增加聚焦测试并完成最小修复；主窗口展示与 Renderer 配置顺序测试均已通过。
 - [ ] 在真实 Forge Electron 窗口完成启动验收，确认不再白屏且就绪协议闭合。
 
 ## 🟢 近期计划
+
+### 纠错与当前现场（2026-08-13 15:xx）
+
+- 当前仓库 HEAD 为 `6ce4088843`；Supervisor PID `39472`、Kernel PID `35148`、Electron 主进程 PID `19200` 均在运行。Kernel 活跃二进制记录的源码 revision 为 `06f6feac42`，不能把当前工作树 HEAD 与已运行进程版本混写。
+- 用户截图中的深色窗口是 `boot.html` 启动窗；60 秒后出现的白色窗口是主 `BrowserWindow`。UI Host 的上一次现场读取为 `url=null`、`loading=true`、`didFinishLoadAt=null`、`rendererReadyAt=null`，因此白色内容是尚未提交文档的初始 `about:blank`，不是 `/check-auth`、App 页面或 Service Worker 页面。
+- Kernel 的 HTTP `/stage/build/app/` 可在毫秒级返回 `302 /check-auth`，认证页可返回完整 HTML；真实 Electron 入口使用 HTTPS，OpenSSL 已确认当前端口可完成 TLS 1.3 握手。两种协议的结果必须分开记录。
+- 隔离 Profile 在 13:01 使用同一 `electron/main.js --attach-kernel=true` 路径成功进入完整 App；14:00 的默认 Profile 冷启动停在 `about:blank`。隔离成功仅排除静态入口和通用 Renderer 代码必然失败，未证明默认 Profile 的真实启动链正常。
+- 当前最早可证实断点是：`currentWindow.loadURL(https://127.0.0.1:6806/stage/build/app/...)` 已调用，但主帧没有已记录的提交、完成或失败事件。现有代码在 `loadURL` 之前缺少完整导航观测，并在 60 秒后错误展示 `about:blank`，造成白屏和审计断裂。
+- 先前将 Magi 遮挡、Renderer 配置顺序或 Service Worker描述为“真实白屏根因”的表述均已撤销；它们是已修复的独立问题或已排除假设，不构成当前真实窗口根因。
+
+- [-] **Phase 3A: 主导航断点闭环 (P0)**
+  - **行动**: 在调用 `loadURL` 前安装主帧导航、重定向、提交、DOM、加载失败和控制台首错记录；删除通用 `ready-to-show` 与 60 秒强制展示 `about:blank` 路径；超时时显示包含目标 URL、当前 URL和阶段的明确错误。
+  - **验收标准**: 任一启动结果都能被归类为认证页就绪、App 就绪、主帧导航失败、Renderer 初始化失败或明确超时；不再出现没有地址与原因的白色主窗口。
 
 ### Phase 1 当前证据 (2026-08-13 12:28)
 
@@ -59,7 +74,7 @@
 - 只读进程核对确认 PID `4912` 的真实命令行为 `electron.exe app/electron/main.js --workspace=... --port=6806 --attach-kernel=true`，不是 `desktop` 入口；Supervisor、Kernel、主进程和 Renderer 均保持原进程在线。
 - 只读连接核对确认 Electron NetworkService PID `29988` 只有两条到 `127.0.0.1:6806` 的 `Established` 连接，到本地代理 `127.0.0.1:7890` 的连接为零；`7890` 的监听进程为 `verge-mihomo-alpha.exe`。因此本地代理未参与当前导航，不能把代理规则作为本次白屏原因或修复依据。
 
-- [-] **Phase 3: 真实 App 验收与收口 (P1)**
+- [ ] **Phase 3: 真实 App 验收与收口 (P1)**
   - **背景**: 单元测试和隔离探针不等同于当前 Forge 主窗口验收。
   - **行动**: 只检查当前 PID `4912` 对应的真实主窗口；在用户明确确认重新加载时机后加载修复版本，核对认证页、认证提交、App 渲染和就绪回执。
   - **验收标准**: 未认证时真实主窗口停留认证页；认证成功后同一窗口进入完整 App；记住认证的既有会话可直接进入 App；全程无额外 Magi 前置窗口、白屏或 60 秒强制显示。
@@ -82,12 +97,12 @@
 
 ## 🏁 已归档/已完成
 
-- [x] **Phase 2: 最小修复与聚焦回归** [已完成 2026-08-13]
-  - **完成情况**: 删除隐式 Magi 前置窗口；统一主窗口展示策略；恢复配置先于笔记本响应的启动契约；同步回调回归和隔离 Electron 代码路径检查通过。当前 PID `4912` 的真实窗口验收仍属于 Phase 3。
+- [x] **Phase 2: 两个独立缺陷的最小修复与聚焦回归** [已完成 2026-08-13，非白屏根因闭环]
+  - **完成情况**: 删除隔离实例中的隐式 Magi 前置窗口；恢复配置先于笔记本响应的启动契约；同步回调回归和隔离 Electron 代码路径检查通过。这些结果不证明当前真实主窗口白屏已修复。
   - **成果文件**: `app/electron/main-window-presentation.js`、`app/test/electron-main-window-presentation.test.js`、`app/src/boot/installAppConfiguration.ts`、`app/test/boot/installAppConfiguration.test.ts`、`app/src/util/siyuanEnvironments/getSiyuanConfig.environment.ts`、`app/test/util/siyuanEnvironments/getSiyuanConfig.environment.test.ts`。
 
-- [x] **Phase 1: 还原真实白屏状态** [已完成 2026-08-13]
-  - **完成情况**: 隔离 Electron 先复现双窗口遮蔽，再以同一真实入口验证删除隐式 Magi 创建后的单窗口完整 App；已保存导航、DOM、控制台、主进程窗口状态与截图证据。
+- [x] **Phase 1: 隔离实例诊断** [已完成 2026-08-13，证据边界已纠正]
+  - **完成情况**: 隔离 Electron 复现过双窗口遮蔽，并验证隔离 Profile 可进入完整 App；已保存该隔离实例的导航、DOM、控制台与截图。当前真实 Profile 的白屏现场由 Phase 3A 单独追踪。
   - **成果文件**: `.forge-runtime/diagnostics/electron-white-screen-probe.json`、`.forge-runtime/diagnostics/electron-white-screen-probe.png`、`app/electron/main.js`、`app/electron/main-window-presentation.js`。
 
 - [x] **Phase 0: 入口与现场边界确认** [已完成 2026-08-13]
