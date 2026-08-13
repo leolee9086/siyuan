@@ -8,7 +8,7 @@
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
   "upstreamTip": "d1bdd0e6606ddf0be4bbb7e0dc19e1efe8420e9e",
   "candidateBranch": "multipleAI",
-  "candidateHead": "5ccb83bbbcd8e71a164e5c43129b37b7c9fe019d",
+  "candidateHead": "732f76379bb8515169c0942f13bfcceaac101222",
   "candidateCreatedAt": "2026-07-29T14:15:25+08:00",
   "mainRepository": "D:/dev/s-forge",
   "mainBranch": "multipleAI",
@@ -46,7 +46,7 @@
   "mergeCommitCount": 83,
   "revertCommitCount": 0,
   "stablePatchIdCount": 1277,
-  "mappedUpstreamCommitCount": 18,
+  "mappedUpstreamCommitCount": 19,
   "auditGrouping": {
     "mode": "optional",
     "fixedSize": null,

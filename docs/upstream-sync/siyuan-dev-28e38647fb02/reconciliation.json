@@ -1,36 +1,36 @@
 {
   "schemaVersion": 1,
-  "sourceHead": "ecff339266b0492ce51609330834c3d2816939b7",
+  "sourceHead": "732f76379bb8515169c0942f13bfcceaac101222",
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
   "upstreamTip": "d1bdd0e6606ddf0be4bbb7e0dc19e1efe8420e9e",
   "summary": {
     "total": 1360,
     "stateCounts": {
       "topology-integrated": 2,
-      "delivery-integrated": 16,
+      "delivery-integrated": 17,
       "delivery-git-integrated": 0,
       "delivery-in-progress": 0,
       "semantic-verified": 0,
       "audit-in-progress": 0,
       "audit-blocked": 0,
-      "audit-pending": 1342
+      "audit-pending": 1341
     },
     "semanticVerifiedPrefix": {
-      "count": 6,
-      "through": "446be135969fc9676fd810968ba2f646a2ad9d55",
+      "count": 7,
+      "through": "ab15722b032a53257c3ed6c3f076014335f72abe",
       "blocker": {
-        "topoIndex": 7,
-        "sha": "ab15722b032a53257c3ed6c3f076014335f72abe",
-        "subject": ":art: Refine document-bottom backlinks https://github.com/siyuan-note/siyuan/issues/18319"
+        "topoIndex": 8,
+        "sha": "5bc3cdc055c2eca1367c0d8180468a5805de3a37",
+        "subject": ":construction_worker: Run E2E tests in macOS CD"
       }
     },
     "deliveryIntegratedPrefix": {
-      "count": 6,
-      "through": "446be135969fc9676fd810968ba2f646a2ad9d55",
+      "count": 7,
+      "through": "ab15722b032a53257c3ed6c3f076014335f72abe",
       "blocker": {
-        "topoIndex": 7,
-        "sha": "ab15722b032a53257c3ed6c3f076014335f72abe",
-        "subject": ":art: Refine document-bottom backlinks https://github.com/siyuan-note/siyuan/issues/18319"
+        "topoIndex": 8,
+        "sha": "5bc3cdc055c2eca1367c0d8180468a5805de3a37",
+        "subject": ":construction_worker: Run E2E tests in macOS CD"
       }
     },
     "topologyIntegratedPrefix": {
@@ -112,6 +112,7 @@
       "5437866299dba896b41b356abf4d28f059c9d89c",
       "b8543f5b959a94b830db45853751a52222a3df2b",
       "446be135969fc9676fd810968ba2f646a2ad9d55",
+      "ab15722b032a53257c3ed6c3f076014335f72abe",
       "30e2e49de7f4539f7939d645bf7905ad38c6f69b",
       "025c6fe50afa5465a4ad58c0772682da6da058b0",
       "c9a93d53d53da90cbca2f45bc9fbf21e978070ec",
@@ -130,6 +131,7 @@
       "5437866299dba896b41b356abf4d28f059c9d89c",
       "b8543f5b959a94b830db45853751a52222a3df2b",
       "446be135969fc9676fd810968ba2f646a2ad9d55",
+      "ab15722b032a53257c3ed6c3f076014335f72abe",
       "30e2e49de7f4539f7939d645bf7905ad38c6f69b",
       "025c6fe50afa5465a4ad58c0772682da6da058b0",
       "c9a93d53d53da90cbca2f45bc9fbf21e978070ec",
@@ -150,7 +152,6 @@
       "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8"
     ],
     "pending": [
-      "ab15722b032a53257c3ed6c3f076014335f72abe",
       "5bc3cdc055c2eca1367c0d8180468a5805de3a37",
       "b10e729f7b703c01062f6ffe6f30e40f06b252fb",
       "2489652a55b1b0cfc40f2d24927b38a30827174b",
@@ -2856,7 +2857,8 @@
       "D003",
       "D004",
       "D005",
-      "D006"
+      "D006",
+      "D007"
     ],
     "checkpointIds": [
       "M001",
@@ -3152,18 +3154,45 @@
       "topoIndex": 7,
       "sha": "ab15722b032a53257c3ed6c3f076014335f72abe",
       "subject": ":art: Refine document-bottom backlinks https://github.com/siyuan-note/siyuan/issues/18319",
-      "state": "audit-pending",
-      "nextAction": "audit-upstream-behavior",
+      "state": "delivery-integrated",
+      "nextAction": "create-topology-checkpoint",
       "audit": {
-        "status": "pending",
-        "disposition": null,
-        "seriesId": null,
-        "localCommits": [],
-        "mappingEvidence": [],
-        "codeEvidence": [],
-        "testEvidence": []
+        "status": "verified",
+        "disposition": "ported-semantic",
+        "seriesId": "document-bottom-backlinks-18319",
+        "localCommits": [
+          "7eb6f64e15adcea23f3c7690ab1b8a0cee2cc8e0"
+        ],
+        "mappingEvidence": [
+          {
+            "localCommit": "7eb6f64e15adcea23f3c7690ab1b8a0cee2cc8e0",
+            "declaredDisposition": "semantic-port",
+            "series": "siyuan-dev-28e38647fb02/document-bottom-backlinks-18319",
+            "audit": "docs/upstream-sync/siyuan-dev-28e38647fb02/commits.jsonl",
+            "patchId": null
+          }
+        ],
+        "codeEvidence": [
+          "app/src/layout/dock/Backlink.ts (bLayout toggle in toolbar head, bottom mentions layout toggle, showBottomLoading, updateBottomBacklinkSpacing, ownerProtyle focusout listener with relatedTarget check, refreshIfVisible(ignoreFocus), bottom expand/collapse without hotkey tips, destroy cleanup)",
+          "app/src/editor/model/Editor.ts (updateBacklinkVisibility hidden condition adds !block.showAll && block.scroll)",
+          "app/src/boot/globalEvent/keydown/panelTreeKeydown.ts (bottom backlink returns false for collapse/expand hotkeys)",
+          "app/src/protyle/ui/padding.ts (backlinkData fixed left/right 24/16)"
+        ],
+        "testEvidence": [
+          "pnpm exec vitest --run test/layout/dock/panelTreeKeydown.bottomBacklink.test.ts test/layout/dock/backlinkKeyboard.router.test.ts test/layout/dock/backlinkToolbar.router.test.ts: 3 files, 16 tests passed (3 new for hotkey ownership)",
+          "pnpm exec vitest --run test/editor/Editor.lifecycle.test.ts test/layout/LayoutDomain.contract.test.ts: passed",
+          "pnpm run typecheck:protyle-contract: passed",
+          "git diff --check: passed"
+        ]
       },
-      "deliveries": [],
+      "deliveries": [
+        {
+          "deliveryId": "D007",
+          "status": "integrated",
+          "integrationCommit": "732f76379bb8515169c0942f13bfcceaac101222",
+          "runtimeGateStatus": "passed"
+        }
+      ],
       "topologyCheckpoints": []
     },
     {

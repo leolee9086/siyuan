@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
-  "sourceHead": "ecff339266b0492ce51609330834c3d2816939b7",
+  "sourceHead": "732f76379bb8515169c0942f13bfcceaac101222",
   "upstreamBase": "86b4734f0bd2c9046de97fd29cae47c8fb308fdb",
   "upstreamTip": "d1bdd0e6606ddf0be4bbb7e0dc19e1efe8420e9e",
   "semanticVerified": {
-    "count": 18,
+    "count": 19,
     "shas": [
       "ccb8331c9e9264884938e3bd56417c1f1ee5d4c0",
       "e18111e76a36b7cc9d74bcc5d20572914fa2c6d8",
@@ -12,6 +12,7 @@
       "5437866299dba896b41b356abf4d28f059c9d89c",
       "b8543f5b959a94b830db45853751a52222a3df2b",
       "446be135969fc9676fd810968ba2f646a2ad9d55",
+      "ab15722b032a53257c3ed6c3f076014335f72abe",
       "30e2e49de7f4539f7939d645bf7905ad38c6f69b",
       "025c6fe50afa5465a4ad58c0772682da6da058b0",
       "c9a93d53d53da90cbca2f45bc9fbf21e978070ec",
@@ -27,7 +28,7 @@
     ]
   },
   "deliveryIntegrated": {
-    "count": 18,
+    "count": 19,
     "deliveryIds": [
       "D001",
       "D002R",
@@ -35,13 +36,15 @@
       "D003",
       "D004",
       "D005",
-      "D006"
+      "D006",
+      "D007"
     ],
     "shas": [
       "484e3782963cae4095bfcd71add5e168fb51d5e3",
       "5437866299dba896b41b356abf4d28f059c9d89c",
       "b8543f5b959a94b830db45853751a52222a3df2b",
       "446be135969fc9676fd810968ba2f646a2ad9d55",
+      "ab15722b032a53257c3ed6c3f076014335f72abe",
       "30e2e49de7f4539f7939d645bf7905ad38c6f69b",
       "025c6fe50afa5465a4ad58c0772682da6da058b0",
       "c9a93d53d53da90cbca2f45bc9fbf21e978070ec",
@@ -71,9 +74,8 @@
     ]
   },
   "pending": {
-    "count": 1342,
+    "count": 1341,
     "shas": [
-      "ab15722b032a53257c3ed6c3f076014335f72abe",
       "5bc3cdc055c2eca1367c0d8180468a5805de3a37",
       "b10e729f7b703c01062f6ffe6f30e40f06b252fb",
       "2489652a55b1b0cfc40f2d24927b38a30827174b",
@@ -2780,30 +2782,30 @@
     "total": 1360,
     "stateCounts": {
       "topology-integrated": 2,
-      "delivery-integrated": 16,
+      "delivery-integrated": 17,
       "delivery-git-integrated": 0,
       "delivery-in-progress": 0,
       "semantic-verified": 0,
       "audit-in-progress": 0,
       "audit-blocked": 0,
-      "audit-pending": 1342
+      "audit-pending": 1341
     },
     "semanticVerifiedPrefix": {
-      "count": 6,
-      "through": "446be135969fc9676fd810968ba2f646a2ad9d55",
+      "count": 7,
+      "through": "ab15722b032a53257c3ed6c3f076014335f72abe",
       "blocker": {
-        "topoIndex": 7,
-        "sha": "ab15722b032a53257c3ed6c3f076014335f72abe",
-        "subject": ":art: Refine document-bottom backlinks https://github.com/siyuan-note/siyuan/issues/18319"
+        "topoIndex": 8,
+        "sha": "5bc3cdc055c2eca1367c0d8180468a5805de3a37",
+        "subject": ":construction_worker: Run E2E tests in macOS CD"
       }
     },
     "deliveryIntegratedPrefix": {
-      "count": 6,
-      "through": "446be135969fc9676fd810968ba2f646a2ad9d55",
+      "count": 7,
+      "through": "ab15722b032a53257c3ed6c3f076014335f72abe",
       "blocker": {
-        "topoIndex": 7,
-        "sha": "ab15722b032a53257c3ed6c3f076014335f72abe",
-        "subject": ":art: Refine document-bottom backlinks https://github.com/siyuan-note/siyuan/issues/18319"
+        "topoIndex": 8,
+        "sha": "5bc3cdc055c2eca1367c0d8180468a5805de3a37",
+        "subject": ":construction_worker: Run E2E tests in macOS CD"
       }
     },
     "topologyIntegratedPrefix": {
