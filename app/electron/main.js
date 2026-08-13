@@ -1099,7 +1099,7 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
             loadMainURL();
         });
     }).catch((e) => {
-        // getNetwork 失败也要继续加载主界面，避免主窗口不加载导致卡在启动页
+        // getNetwork 失败或超时也要继续加载主界面，避免主窗口不加载导致卡在启动页
         writeLog("getNetwork failed, load main UI without proxy: " + e.message);
         loadMainURL();
     });

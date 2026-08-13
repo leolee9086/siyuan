@@ -75,6 +75,34 @@
 - **[`main.js`](app/electron/main.js:1108) webRequest 拦截器健壮性修复**：`onBeforeSendHeaders`/`onHeadersReceived` 回调增加 try/catch + `responseHeaders` 判空。原实现若 `details.responseHeaders` 为 undefined 会在主进程回调抛错且不调用 `cb`，导致请求永久挂起且无 `did-fail-load`（与白屏吻合）；修复后任何异常都放行请求并记日志。
 - **验证要求**：需重启 `pnpm forge` 使 Electron 重新加载；若白屏复现，读取新 `startup.webRequestTimeline` 定位请求停在哪一环。
 
+### 2026-08-13 11:30 重启后实证：断点精确到 `getNetwork` 响应未返回
+
+用户重启后白屏复现。读取新 UI Host（`electron-29736`）`ui.windows.inspect`，带 webRequest 打点的真实数据：
+
+```
+timeline:
+  target-prepared      https://127.0.0.1:6806/stage/build/app/?v=1786620589972
+  renderer-ready-timeout   （无 load-requested，无 did-start-navigation）
+
+webRequestTimeline:
+  on-before-request    https://127.0.0.1:6806/api/system/getNetwork
+```
+
+**本次断点（与 11:08 实例不同）**：
+- `load-requested` **不存在** → `loadURL` 从未调用 → 主帧 `/stage/build/app/` 请求从未发出；
+- webRequest 只捕获 `getNetwork`（`net.fetch` 发出），但**无 `on-completed`/`on-error-occurred`** → **`net.fetch(getNetwork)` 的响应从未返回**；
+- 因此 [`main.js`](app/electron/main.js:1090) 的 `getNetwork → setProxy → loadMainURL` 链卡在 **`getNetwork` 响应未回**，`.then(loadMainURL)` 永不执行。
+
+**注意**：11:08 实例是「getNetwork 成功 → loadURL 调用 → 主帧卡住」，本次是「getNetwork 响应未回 → loadURL 从未调用」——两次故障都在 `getNetwork→loadMainURL` 链上但表现不同，可能同源或不同根因，需继续以本次实证为准。
+
+### 2026-08-13 11:32 已实施修复（针对实证断点）
+
+1. **[`main.js`](app/electron/main.js:1090) `net.fetch(getNetwork)` 增加 5 秒超时兜底**：原实现无超时，`getNetwork` 响应挂起时 `.then(loadMainURL)` 永不执行（本次白屏的直接断点）。修复后 5 秒超时/失败都强制 `loadMainURL()`，与上游 `setProxy` 5 秒兜底风格一致。
+2. **webRequest 拦截器健壮性**：`onBeforeSendHeaders`/`onHeadersReceived` 增加 try/catch + `responseHeaders` 判空，回调抛错不再挂起请求（此前会无 `did-fail-load` 永久挂起）。
+3. **导航诊断 webRequest 打点**（`startup.webRequestTimeline`）：已生效——本次就是靠它实证了「getNetwork 发出但响应未回」。
+
+**待重启验证**：用户重启 `pnpm forge` 后，若白屏消失 → 断点确认；若仍白屏 → 读新 `webRequestTimeline` 看 `getNetwork` 是否仍无 `on-completed`，或断点转移到主帧请求。
+
 ### 2026-08-13 17:18 启动日志逐条根因分析（`pnpm forge` 报错现场）
 
 用户提供 `pnpm forge` 启动日志，共 6 条关键记录，逐条确认来源与因果：
