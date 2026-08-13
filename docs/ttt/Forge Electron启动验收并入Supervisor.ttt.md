@@ -1,8 +1,11 @@
 # Forge Electron 启动验收并入 Supervisor (TikTocTak)
 
-> **状态**: 进行中
+> **状态**: 已完成（ack 竞态消除；白屏是独立问题，见下）
 > **创建日期**: 2026-08-13
+> **完成日期**: 2026-08-13
 > **目标**: 删除 forge-electron-launcher 的一次性 ack 服务器，Electron 启动验收（ready/rejected）与 UI Host 注册直连长生命周期的 ForgeRuntimeSupervisor，从结构上消除「双 60 秒超时 + ack 端口生命周期」竞态（即 `ECONNREFUSED 127.0.0.1:51106` 根因）。
+>
+> **重要边界（实测确认）**: ack 合并**消除了 `ECONNREFUSED`**（`.forge-runtime/state.json` 已记录 `lastElectronLaunch.state="rejected"` 回执），但**白屏问题依旧**——白屏的真正根因是「`siyuan-ready-to-show` 从未发出」，与 ack 竞态无因果。白屏需按 `docs/ttt/Electron App白屏修复.ttt.md` Phase 3A 单独追踪。
 
 ## 背景与根因
 
@@ -82,3 +85,15 @@
 2. 全仓库无 `FORGE_LAUNCH_ACK` 残留引用。
 3. `pnpm forge` 启动日志不再出现 `Forge launch acknowledgement failed: connect ECONNREFUSED`。
 4. Electron 就绪/超时/UI Host 注册均能通过 Supervisor 完成，无一次性端口。
+
+## ✅ 实施完成（2026-08-13）
+
+- **完成清单**：
+  - `app/scripts/forge-runtime-supervisor.js`：新增 `POST /launch/ready` 端点（`recordElectronLaunch`，幂等，UI Host 随回执直接注册）、`lastElectronLaunch` 状态（`status()` 输出并持久化）、`supervisor.json` 记录 `supervisorToken` 供 reuse 分支注入。
+  - `app/electron/forge-kernel-attach.js`：删除全部 `FORGE_LAUNCH_ACK_*` 协议，新增 `S_FORGE_SUPERVISOR_URL/TOKEN` env、`x-s-forge-supervisor-token` 头、`resolveForgeSupervisorContext`、`sendForgeLaunchAcknowledgement`（POST Supervisor `/launch/ready`）。
+  - `app/scripts/forge-electron-launcher.js`：删除 `createLaunchAcknowledgement`（一次性 ack 服务器）及全部关联代码；`launchElectronMain` 注入 Supervisor 凭据；`waitForElectronLaunch` 轮询 Supervisor `/status` 判定 ready/rejected/超时。
+  - `app/scripts/forge-start.js`：两处 `openForgeInterface` 调用注入 `supervisor: {url, token}`。
+  - `app/electron/main.js`：改用 `resolveForgeSupervisorContext`，`acknowledgeForgeLaunch`/`announceForgeUIHost` 直连 Supervisor。
+  - 测试：`forge-electron-launcher.test.js` 重写为 Supervisor 模型；`forge-runtime-supervisor.test.js` 新增 `/launch/ready` 幂等/状态/UI Host 注册/非法 state 测试。
+- **验证**：`node --test test/forge-electron-launcher.test.js test/forge-runtime-supervisor.test.js` = **68/68 通过**；`node --check` 全部通过；全仓库 `FORGE_LAUNCH_ACK` 残留 = 0。
+- **实测边界**：`.forge-runtime/state.json` 的 `lastElectronLaunch.state="rejected"` 证明 Supervisor 直连已生效（`ECONNREFUSED` 消失），但 `rejected` 本身表明 `siyuan-ready-to-show` 未发出——**白屏根因独立，按 `Electron App白屏修复.ttt.md` Phase 3A 追踪**。

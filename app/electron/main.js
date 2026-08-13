@@ -1106,43 +1106,56 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
 
     // 发起互联网服务请求时绕过安全策略 https://github.com/siyuan-note/siyuan/issues/5516
     currentWindow.webContents.session.webRequest.onBeforeSendHeaders((details, cb) => {
-        if (-1 < details.url.toLowerCase().indexOf("bili")) {
-            // B 站不移除 Referer https://github.com/siyuan-note/siyuan/issues/94
-            cb({requestHeaders: details.requestHeaders});
-            return;
-        }
-
-        if (-1 < details.url.toLowerCase().indexOf("douyin")) {
-            // 抖音不移除 Referer，iframe 块内登录依赖 Referer 校验 https://github.com/siyuan-note/siyuan/issues/18070
-            cb({requestHeaders: details.requestHeaders});
-            return;
-        }
-
-        if (-1 < details.url.toLowerCase().indexOf("youtube")) {
-            // YouTube 设置 Referer https://github.com/siyuan-note/siyuan/issues/16319
-            details.requestHeaders["Referer"] = "https://b3log.org/siyuan/";
-            cb({requestHeaders: details.requestHeaders});
-            return;
-        }
-
-        for (let key in details.requestHeaders) {
-            if ("referer" === key.toLowerCase()) {
-                delete details.requestHeaders[key];
+        try {
+            if (-1 < details.url.toLowerCase().indexOf("bili")) {
+                // B 站不移除 Referer https://github.com/siyuan-note/siyuan/issues/94
+                cb({requestHeaders: details.requestHeaders});
+                return;
             }
+
+            if (-1 < details.url.toLowerCase().indexOf("douyin")) {
+                // 抖音不移除 Referer，iframe 块内登录依赖 Referer 校验 https://github.com/siyuan-note/siyuan/issues/18070
+                cb({requestHeaders: details.requestHeaders});
+                return;
+            }
+
+            if (-1 < details.url.toLowerCase().indexOf("youtube")) {
+                // YouTube 设置 Referer https://github.com/siyuan-note/siyuan/issues/16319
+                details.requestHeaders["Referer"] = "https://b3log.org/siyuan/";
+                cb({requestHeaders: details.requestHeaders});
+                return;
+            }
+
+            for (let key in details.requestHeaders) {
+                if ("referer" === key.toLowerCase()) {
+                    delete details.requestHeaders[key];
+                }
+            }
+            cb({requestHeaders: details.requestHeaders});
+        } catch (error) {
+            // webRequest 回调抛错会让请求永久挂起且无 did-fail-load（主进程回调内异常，
+            // 渲染进程无感知），表现为启动白屏。任何异常都必须放行请求，不得挂起。
+            writeLog("onBeforeSendHeaders callback failed, forwarding request: " + error.message);
+            cb({requestHeaders: details.requestHeaders});
         }
-        cb({requestHeaders: details.requestHeaders});
     });
     currentWindow.webContents.session.webRequest.onHeadersReceived((details, cb) => {
-        for (let key in details.responseHeaders) {
-            if ("x-frame-options" === key.toLowerCase()) {
-                delete details.responseHeaders[key];
-            } else if ("content-security-policy" === key.toLowerCase()) {
-                delete details.responseHeaders[key];
-            } else if ("access-control-allow-origin" === key.toLowerCase()) {
-                delete details.responseHeaders[key];
+        try {
+            const responseHeaders = details.responseHeaders || {};
+            for (let key in responseHeaders) {
+                if ("x-frame-options" === key.toLowerCase()) {
+                    delete responseHeaders[key];
+                } else if ("content-security-policy" === key.toLowerCase()) {
+                    delete responseHeaders[key];
+                } else if ("access-control-allow-origin" === key.toLowerCase()) {
+                    delete responseHeaders[key];
+                }
             }
+            cb({responseHeaders});
+        } catch (error) {
+            writeLog("onHeadersReceived callback failed, forwarding response: " + error.message);
+            cb({responseHeaders: details.responseHeaders});
         }
-        cb({responseHeaders: details.responseHeaders});
     });
 
     currentWindow.webContents.on("did-finish-load", () => {

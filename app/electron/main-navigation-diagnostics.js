@@ -9,6 +9,7 @@ const createMainNavigationDiagnostics = (webContents, {
     maxTimelineEntries = DEFAULT_MAX_TIMELINE_ENTRIES,
     now = () => new Date().toISOString(),
 } = {}) => {
+    const session = webContents.session;
     if (!webContents || typeof webContents.on !== "function" || typeof webContents.removeListener !== "function") {
         throw new TypeError("Main navigation diagnostics require Electron webContents.");
     }
@@ -35,6 +36,7 @@ const createMainNavigationDiagnostics = (webContents, {
         firstConsoleError: null,
         lastLoadFailure: null,
         lastRendererExit: null,
+        webRequestTimeline: [],
         timelineDroppedCount: 0,
         timeline: [],
     };
@@ -160,6 +162,55 @@ const createMainNavigationDiagnostics = (webContents, {
             sourceId: state.firstConsoleError.sourceId,
         }, at);
     });
+    // 主帧请求的 webRequest 生命周期：用于区分「请求未发出」「请求到达内核但响应未回」
+    // 「响应被拦截器/网络栈卡住」「请求失败」——这些在 did-start-navigation 后无
+    // 提交事件时是唯一定位依据（白屏排查）。
+    let targetOrigin = null;
+    const recordWebRequest = (phase, details, extra = {}) => {
+        const url = nonEmptyString(details?.url);
+        if (!url || !targetOrigin || !url.startsWith(targetOrigin)) {
+            return;
+        }
+        const entry = {
+            sequence: state.webRequestTimeline.length + 1,
+            at: now(),
+            phase,
+            url,
+            webContentsId: Number.isInteger(details.webContentsId) ? details.webContentsId : null,
+            ...extra,
+        };
+        state.webRequestTimeline.push(entry);
+        if (state.webRequestTimeline.length > maxTimelineEntries) {
+            state.webRequestTimeline.shift();
+        }
+    };
+    if (session && typeof session.webRequest?.onBeforeRequest === "function") {
+        session.webRequest.onBeforeRequest((details) => {
+            recordWebRequest("on-before-request", details, {resourceType: details.resourceType});
+        });
+        session.webRequest.onBeforeSendHeaders((details) => {
+            recordWebRequest("on-before-send-headers", details);
+        });
+        session.webRequest.onHeadersReceived((details) => {
+            recordWebRequest("on-headers-received", details, {
+                statusCode: Number.isInteger(details.statusCode) ? details.statusCode : null,
+                statusLine: details.statusLine || null,
+            });
+        });
+        session.webRequest.onResponseStarted((details) => {
+            recordWebRequest("on-response-started", details, {
+                statusCode: Number.isInteger(details.statusCode) ? details.statusCode : null,
+                fromCache: Boolean(details.fromCache),
+            });
+        });
+        session.webRequest.onCompleted((details) => {
+            recordWebRequest("on-completed", details, {statusCode: Number.isInteger(details.statusCode) ? details.statusCode : null});
+        });
+        session.webRequest.onErrorOccurred((details) => {
+            recordWebRequest("on-error-occurred", details, {error: details.error || null});
+        });
+    }
+
     listen("render-process-gone", (_event, details = {}) => {
         const at = now();
         state.lastRendererExit = {
@@ -188,6 +239,11 @@ const createMainNavigationDiagnostics = (webContents, {
             const at = now();
             state.targetURL = normalizedTarget;
             state.targetPreparedAt = at;
+            try {
+                targetOrigin = new URL(normalizedTarget).origin;
+            } catch (_error) {
+                targetOrigin = null;
+            }
             appendTimeline("target-prepared", {url: normalizedTarget}, at);
         }
         return normalizedTarget;

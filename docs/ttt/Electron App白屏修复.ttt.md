@@ -50,6 +50,31 @@
   - **行动**: 在调用 `loadURL` 前安装主帧导航、重定向、提交、DOM、加载失败和控制台首错记录；删除通用 `ready-to-show` 与 60 秒强制展示 `about:blank` 路径；超时时显示包含目标 URL、当前 URL和阶段的明确错误。
   - **验收标准**: 任一启动结果都能被归类为认证页就绪、App 就绪、主帧导航失败、Renderer 初始化失败或明确超时；不再出现没有地址与原因的白色主窗口。
 
+### 2026-08-13 11:08 现场导航断点（`ui.windows.inspect` 实证）
+
+通过 Supervisor `/ui-hosts/invoke` 调用在线 UI Host（`electron-15396-cff7c31121d3544b`）的 `ui.windows.inspect`，获取当前白屏窗口**第一手导航时间线**：
+
+```
+11:08:13.573  target-prepared      https://127.0.0.1:6806/stage/build/app/?v=1786619293573
+11:08:13.587  load-requested       （currentWindow.loadURL 调用）
+11:08:13.593  did-start-navigation （主帧导航开始）
+11:09:13.582  renderer-ready-timeout（60 秒超时）
+```
+
+**此后无任何事件**：无 `did-frame-navigate`（主文档提交）、无 `dom-ready`、无 `did-finish-load`、无 `did-fail-load`、无 `did-fail-provisional-load`、无控制台错误、无渲染器崩溃。窗口 `url=null`（仍为初始 about:blank）、`renderer.state="loading"` 持续 60+ 秒。
+
+**断点定位**：`loadURL` 后主帧开始导航，但**主文档请求卡在「已发出、未响应」阶段**——既未提交也未失败。已排除的候选（见本 TTT 既有结论，不得推翻）：代理（NetworkService 到 `127.0.0.1:6806` 有 Established 连接、到 `127.0.0.1:7890` 为零）、Service Worker（缓存实证排除）、TLS 证书（`setCertificateVerifyProc` 已放行 127.0.0.1 自签）、端口/协议（`https://127.0.0.1:6806` 与导航目标一致）、渲染层平台判定（webpack 注入 `__SFORGE_PLATFORM__="electron"`，`isBrowser=false`）。
+
+**2026-08-13 11:16 错误尝试与纠正**：曾错误提出「session 代理劫持主帧请求」假设并实施 `setProxy` 回环 bypass 修改——该假设直接违反本 TTT 第 75 行「代理已排除」的既有结论。**该修改已撤销，main.js 恢复基线**。教训：动手前必须重读 TTT 既有排除结论，禁止重复已排除的候选。
+
+**下一步（需运行时证据）**：由于代理、证书、端口、平台均已排除，导航挂起指向运行时网络栈行为。需捕获：主帧请求在 `webRequest.onBeforeRequest`/`onSendHeaders`/`onResponseStarted` 的触发情况、NetworkService 到 6806 的实际连接与 TLS 握手状态、以及 `did-start-navigation` 后是否伴随 `did-create-window`/`did-redirect-navigation`。这些需在 Electron 主进程内打点或在重启后抓取，属于独立调查节点。
+
+### 2026-08-13 11:25 诊断增量 + 拦截器健壮性修复
+
+- **[`main-navigation-diagnostics.js`](app/electron/main-navigation-diagnostics.js) 增加 webRequest 阶段打点**：`state.webRequestTimeline` 记录主帧（targetOrigin 匹配）请求的 `on-before-request`/`on-before-send-headers`/`on-headers-received`/`on-response-started`/`on-completed`/`on-error-occurred`。重启后 `ui.windows.inspect` 的 `startup.webRequestTimeline` 可直接区分：请求未发出 / 到达内核但响应未回 / 被拦截器卡住 / 请求失败。
+- **[`main.js`](app/electron/main.js:1108) webRequest 拦截器健壮性修复**：`onBeforeSendHeaders`/`onHeadersReceived` 回调增加 try/catch + `responseHeaders` 判空。原实现若 `details.responseHeaders` 为 undefined 会在主进程回调抛错且不调用 `cb`，导致请求永久挂起且无 `did-fail-load`（与白屏吻合）；修复后任何异常都放行请求并记日志。
+- **验证要求**：需重启 `pnpm forge` 使 Electron 重新加载；若白屏复现，读取新 `startup.webRequestTimeline` 定位请求停在哪一环。
+
 ### 2026-08-13 17:18 启动日志逐条根因分析（`pnpm forge` 报错现场）
 
 用户提供 `pnpm forge` 启动日志，共 6 条关键记录，逐条确认来源与因果：
