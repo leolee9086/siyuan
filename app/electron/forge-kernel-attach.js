@@ -4,6 +4,7 @@ const path = require("path");
 const FORGE_LAUNCH_ACK_URL_ENV = "S_FORGE_LAUNCH_ACK_URL";
 const FORGE_LAUNCH_ACK_TOKEN_ENV = "S_FORGE_LAUNCH_ACK_TOKEN";
 const FORGE_LAUNCH_ACK_HEADER = "x-s-forge-launch-token";
+const FORGE_LAUNCH_UI_HOST_READY = "ui-host-ready";
 const FORGE_TOKEN_PATTERN = /^[0-9a-f]{64}$/;
 
 const commandArgument = (argv, name) => {
@@ -151,10 +152,17 @@ const sendForgeLaunchAcknowledgement = (launchContext, payload, requestImpl = ht
     request.end(body);
 });
 
+const sendForgeUIHostReady = (launchContext, uiHost, requestImpl = http.request) =>
+    sendForgeLaunchAcknowledgement(launchContext, {
+        type: FORGE_LAUNCH_UI_HOST_READY,
+        uiHost,
+    }, requestImpl);
+
 module.exports = {
     FORGE_LAUNCH_ACK_HEADER,
     FORGE_LAUNCH_ACK_TOKEN_ENV,
     FORGE_LAUNCH_ACK_URL_ENV,
+    FORGE_LAUNCH_UI_HOST_READY,
     FORGE_TOKEN_PATTERN,
     assertAttachedKernelOptions,
     canReuseWorkspaceWindow,
@@ -164,5 +172,6 @@ module.exports = {
     resolveForgeLaunchContext,
     sameWorkspacePath,
     sendForgeLaunchAcknowledgement,
+    sendForgeUIHostReady,
     shouldSpawnKernel,
 };

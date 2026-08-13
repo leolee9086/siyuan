@@ -30,9 +30,9 @@
 - [x] 确认 2026-08-12 15:12 的真实主进程日志只记录 60 秒就绪超时，没有主 URL 失败记录。
 - [x] 捕获隔离 Electron attach 实例的最终 URL、DOM、控制台首错、请求失败和截图；该实例不代表当前真实 Profile 与窗口。
 - [x] 确认认证页 Electron IPC 可用，`siyuan-ready-to-show` 被主进程消费并清理监听器，不存在认证页就绪协议缺失。
-- [x] 确认隔离实例曾无条件创建并前置显示 `magi-app` 窗口；这解释隔离实例的双窗口现象，不解释当前真实主窗口停留 `about:blank`。
+- [x] 隔离实例曾观察到自动创建并前置显示 `magi-app` 窗口；该观察没有建立 Magi 窗口与当前真实白屏之间的因果关系，也不构成修改既有启动契约的依据。
 - [x] 完成认证后 `app` bundle 的隔离 Electron 诊断；该结果只说明隔离实例，不作为当前 PID `4912` 的验收证据。
-- [x] 为已证实断点增加聚焦测试并完成最小修复；主窗口展示与 Renderer 配置顺序测试均已通过。
+- [x] 为 Renderer 配置顺序增加聚焦测试；主窗口 Magi 自动创建不再列为已证实断点或白屏修复。
 - [ ] 在真实 Forge Electron 窗口完成启动验收，确认不再白屏且就绪协议闭合。
 
 ## 🟢 近期计划
@@ -44,7 +44,7 @@
 - Kernel 的 HTTP `/stage/build/app/` 可在毫秒级返回 `302 /check-auth`，认证页可返回完整 HTML；真实 Electron 入口使用 HTTPS，OpenSSL 已确认当前端口可完成 TLS 1.3 握手。两种协议的结果必须分开记录。
 - 隔离 Profile 在 13:01 使用同一 `electron/main.js --attach-kernel=true` 路径成功进入完整 App；14:00 的默认 Profile 冷启动停在 `about:blank`。隔离成功仅排除静态入口和通用 Renderer 代码必然失败，未证明默认 Profile 的真实启动链正常。
 - 当前最早可证实断点是：`currentWindow.loadURL(https://127.0.0.1:6806/stage/build/app/...)` 已调用，但主帧没有已记录的提交、完成或失败事件。现有代码在 `loadURL` 之前缺少完整导航观测，并在 60 秒后错误展示 `about:blank`，造成白屏和审计断裂。
-- 先前将 Magi 遮挡、Renderer 配置顺序或 Service Worker描述为“真实白屏根因”的表述均已撤销；它们是已修复的独立问题或已排除假设，不构成当前真实窗口根因。
+- 先前将 Magi 窗口自动创建描述为白屏根因或独立缺陷均缺少产品契约与当前窗口因果证据；`06f6feac42` 对该行为的删除已经恢复，不再把它列为修复成果。Renderer 配置顺序与 Service Worker 结论同样不得代替当前窗口证据。
 
 - [-] **Phase 3A: 主导航断点闭环 (P0)**
   - **行动**: 在调用 `loadURL` 前安装主帧导航、重定向、提交、DOM、加载失败和控制台首错记录；删除通用 `ready-to-show` 与 60 秒强制展示 `about:blank` 路径；超时时显示包含目标 URL、当前 URL和阶段的明确错误。
@@ -54,8 +54,8 @@
 
 - 隔离 Electron 主进程 PID `32728` 附着当前 6806 Kernel，主文档最终 URL 为 `/check-auth?to=/stage/build/app/`；DOM `readyState=complete`、认证输入框聚焦、Renderer 未崩溃、无失败请求或页面异常。
 - 认证页运行域中 `require`、`require("electron")`、`ipcRenderer` 与 `ipcRenderer.send` 均真实存在；采集时主进程 `siyuan-ready-to-show` 监听数量已回到 `0`，证明一次性就绪监听已由认证页消息消费并清理。
-- 同一次启动产生第二个 `/check-auth?to=/stage/build/magi-app/` 窗口；它可见且位于前台，主 `/stage/build/app/` 窗口已最小化。源代码对应 `ready-to-show` 中无条件调用 `createOrShowMagiWindow(currentWindow)`，而同文件已有 `siyuan-open-magi` 显式 IPC 入口。
-- 已删除启动时隐式 Magi 创建并提取唯一主窗口展示策略；尚待认证后 App bundle 复核和测试，未标记 Phase 1/2 完成。
+- 同一次隔离启动产生第二个 `/check-auth?to=/stage/build/magi-app/` 窗口；它可见且位于前台，主 `/stage/build/app/` 窗口已最小化。这只能描述该隔离实例的窗口状态，既没有证明当前真实白屏由此产生，也没有证明原有自动创建行为违反产品契约。
+- `06f6feac42` 在上述证据不足的情况下删除了 `ready-to-show` 中的 `createOrShowMagiWindow(currentWindow)`，并以“最小修复”记录。该删除现已恢复，相关测试名称中暗示“不打开其他界面”的错误断言也已移除。
 
 ### Phase 2 当前证据 (2026-08-13 12:44)
 
@@ -77,7 +77,7 @@
 - [ ] **Phase 3: 真实 App 验收与收口 (P1)**
   - **背景**: 单元测试和隔离探针不等同于当前 Forge 主窗口验收。
   - **行动**: 只检查当前 PID `4912` 对应的真实主窗口；在用户明确确认重新加载时机后加载修复版本，核对认证页、认证提交、App 渲染和就绪回执。
-  - **验收标准**: 未认证时真实主窗口停留认证页；认证成功后同一窗口进入完整 App；记住认证的既有会话可直接进入 App；全程无额外 Magi 前置窗口、白屏或 60 秒强制显示。
+  - **验收标准**: 未认证时真实主窗口停留认证页；认证成功后同一窗口进入完整 App；记住认证的既有会话可直接进入 App；Magi 窗口维持原有产品启动契约，不再用改变该行为掩盖白屏。
 
 ## 🟡 中期计划
 
@@ -97,8 +97,8 @@
 
 ## 🏁 已归档/已完成
 
-- [x] **Phase 2: 两个独立缺陷的最小修复与聚焦回归** [已完成 2026-08-13，非白屏根因闭环]
-  - **完成情况**: 删除隔离实例中的隐式 Magi 前置窗口；恢复配置先于笔记本响应的启动契约；同步回调回归和隔离 Electron 代码路径检查通过。这些结果不证明当前真实主窗口白屏已修复。
+- [x] **Phase 2: Renderer 配置顺序修复与聚焦回归** [已完成 2026-08-13，非白屏根因闭环]
+  - **完成情况**: 恢复配置先于笔记本响应的启动契约；同步回调回归和隔离 Electron 代码路径检查通过。无依据删除 Magi 自动创建的改动已从本节点撤销，不计入任何完成成果。这些结果不证明当前真实主窗口白屏已修复。
   - **成果文件**: `app/electron/main-window-presentation.js`、`app/test/electron-main-window-presentation.test.js`、`app/src/boot/installAppConfiguration.ts`、`app/test/boot/installAppConfiguration.test.ts`、`app/src/util/siyuanEnvironments/getSiyuanConfig.environment.ts`、`app/test/util/siyuanEnvironments/getSiyuanConfig.environment.test.ts`。
 
 - [x] **Phase 1: 隔离实例诊断** [已完成 2026-08-13，证据边界已纠正]

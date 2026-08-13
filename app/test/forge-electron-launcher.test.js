@@ -6,6 +6,7 @@ const test = require("node:test");
 const {EventEmitter} = require("node:events");
 const {
     browserLaunchCommand,
+    createLaunchAcknowledgement,
     FORGE_LAUNCH_ACK_HEADER,
     FORGE_LAUNCH_ACK_TOKEN_ENV,
     FORGE_LAUNCH_ACK_URL_ENV,
@@ -19,6 +20,7 @@ const {
     assertAttachedKernelOptions,
     canReuseWorkspaceWindow,
     commandArgument,
+    FORGE_LAUNCH_UI_HOST_READY,
     isValidKernelPort,
     resolveAttachKernelArgument,
     resolveForgeLaunchContext,
@@ -51,6 +53,16 @@ const createChild = () => {
     };
     return child;
 };
+
+const createUIHostDescriptor = (id = "electron-test") => ({
+    schemaVersion: 1,
+    id,
+    kind: "electron",
+    platform: "win32",
+    capabilities: ["ui.windows.inspect"],
+    controlURL: "http://127.0.0.1:49152",
+    token: "a".repeat(64),
+});
 
 test("Electron preflight requires a graphical session, built UI, and executable", () => {
     const fixture = createLaunchFixture();
@@ -124,6 +136,48 @@ test("Electron launch passes exact external Kernel ownership arguments", async (
     assert.equal(lateErrors.some((message) => message.includes("code=9")), true);
 });
 
+test("Electron can request the running single instance UI Host without attaching or reloading the Kernel", async () => {
+    const child = createChild();
+    const descriptor = createUIHostDescriptor("electron-running-instance");
+    let spawned;
+    const result = await launchElectronMain({
+        launch: {executable: "electron.exe", entry: "D:/repo/app/electron/main.js", appRoot: "D:/repo/app"},
+        workspace: "D:/repo/.dev-workspace",
+        port: 6810,
+        attachKernel: false,
+        readyTimeoutMs: 1_000,
+        spawnImpl: (command, args, options) => {
+            spawned = {command, args, options};
+            queueMicrotask(() => {
+                child.emit("exit", 0, null);
+                void fetch(options.env[FORGE_LAUNCH_ACK_URL_ENV], {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        [FORGE_LAUNCH_ACK_HEADER]: options.env[FORGE_LAUNCH_ACK_TOKEN_ENV],
+                    },
+                    body: JSON.stringify({
+                        state: "ready",
+                        disposition: "reused",
+                        port: 6810,
+                        uiHost: descriptor,
+                    }),
+                });
+            });
+            return child;
+        },
+    });
+
+    assert.deepEqual(spawned.args, [
+        "D:/repo/app/electron/main.js",
+        "--workspace=D:/repo/.dev-workspace",
+        "--port=6810",
+        "--attach-kernel=false",
+    ]);
+    assert.equal(result.forwarded, true);
+    assert.deepEqual(result.acknowledgement.uiHost, descriptor);
+});
+
 test("Electron launch acknowledgement context is loopback-only and separate from UI URLs", () => {
     const context = resolveForgeLaunchContext({
         [FORGE_LAUNCH_ACK_URL_ENV]: "http://127.0.0.1:49152/ready",
@@ -138,6 +192,83 @@ test("Electron launch acknowledgement context is loopback-only and separate from
         [FORGE_LAUNCH_ACK_URL_ENV]: "http://example.com:49152/ready",
         [FORGE_LAUNCH_ACK_TOKEN_ENV]: "b".repeat(64),
     }).error, /exact loopback/);
+});
+
+test("Electron launch channel accepts UI Host registration before the final renderer result", async (t) => {
+    const registered = [];
+    const channel = await createLaunchAcknowledgement({
+        timeoutMs: 1_000,
+        onUIHostReady: async (descriptor) => registered.push(descriptor),
+    });
+    t.after(() => channel.close());
+    const descriptor = createUIHostDescriptor("electron-early");
+
+    const hostResponse = await fetch(channel.url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            [FORGE_LAUNCH_ACK_HEADER]: channel.token,
+        },
+        body: JSON.stringify({type: FORGE_LAUNCH_UI_HOST_READY, uiHost: descriptor}),
+    });
+    assert.equal(hostResponse.status, 202);
+    assert.deepEqual(registered, [descriptor]);
+
+    let finalSettled = false;
+    void channel.wait().then(() => {
+        finalSettled = true;
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(finalSettled, false);
+
+    const finalResponse = await fetch(channel.url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            [FORGE_LAUNCH_ACK_HEADER]: channel.token,
+        },
+        body: JSON.stringify({state: "ready", disposition: "created", uiHost: descriptor}),
+    });
+    assert.equal(finalResponse.status, 202);
+    assert.equal((await channel.wait()).state, "ready");
+});
+
+test("Forge interface registers an early UI Host once while renderer readiness remains pending", async () => {
+    const descriptor = createUIHostDescriptor("electron-pending-renderer");
+    const registered = [];
+    let releaseRenderer;
+    const rendererResult = new Promise((resolve) => {
+        releaseRenderer = resolve;
+    });
+    let launchSettled = false;
+    const launching = openForgeInterface({
+        root: "D:/repo",
+        port: 6807,
+        resolveElectron: () => ({ready: true}),
+        launchElectron: async ({onUIHostReady}) => {
+            await onUIHostReady(descriptor);
+            return rendererResult;
+        },
+        registerUIHost: async (value) => registered.push(value),
+        report: () => undefined,
+        reportError: () => undefined,
+    });
+    void launching.then(() => {
+        launchSettled = true;
+    });
+
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(registered, [descriptor]);
+    assert.equal(launchSettled, false);
+
+    releaseRenderer({
+        forwarded: false,
+        acknowledgement: {state: "ready", disposition: "created", uiHost: descriptor},
+    });
+    const result = await launching;
+    assert.equal(result.kind, "electron");
+    assert.deepEqual(result.uiHosts, [descriptor]);
+    assert.deepEqual(registered, [descriptor]);
 });
 
 test("Generic child observation distinguishes forwarding, process errors, and early crashes", async (t) => {

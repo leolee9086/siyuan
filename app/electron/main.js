@@ -48,6 +48,7 @@ const {
     resolveForgeLaunchContext,
     sameWorkspacePath,
     sendForgeLaunchAcknowledgement,
+    sendForgeUIHostReady,
     shouldSpawnKernel,
 } = require("./forge-kernel-attach");
 const {
@@ -55,6 +56,7 @@ const {
     createElectronWindowInspectHandler,
     createForgeUIHostControl,
 } = require("./forge-ui-host-control");
+const {createMainNavigationDiagnostics} = require("./main-navigation-diagnostics");
 const {presentMainWindow} = require("./main-window-presentation");
 
 process.noAsar = true;
@@ -151,6 +153,13 @@ const ensureForgeUIHostControl = () => {
         forgeUIHostControlPromise = undefined;
     });
     return forgeUIHostControlPromise;
+};
+
+const announceForgeUIHost = (launchContext) => {
+    if (!forgeUIHostControl || !launchContext?.acknowledgement) {
+        return Promise.resolve(false);
+    }
+    return sendForgeUIHostReady(launchContext, forgeUIHostControl.descriptor);
 };
 
 // 开发环境下 Windows 需显式传入 Electron 可执行文件路径和 main.js 路径，否则 siyuan:// 会被当作相对路径
@@ -1014,17 +1023,12 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
         titleBarStyle: "hidden",
         icon: path.join(appDir, "stage", "icon-large.png"),
     });
+    const navigationDiagnostics = createMainNavigationDiagnostics(currentWindow.webContents, {
+        loadURL: (targetURL) => currentWindow.loadURL(targetURL),
+    });
     remote.enable(currentWindow.webContents);
     const currentWebContentsId = currentWindow.webContents.id;
-    const startupDiagnostics = {
-        createdAt: new Date().toISOString(),
-        loadRequestedAt: null,
-        didFinishLoadAt: null,
-        rendererReadyAt: null,
-        readyTimeoutAt: null,
-        lastLoadFailure: null,
-        lastRendererExit: null,
-    };
+    const startupDiagnostics = navigationDiagnostics.state;
     let launchAcknowledged = false;
     const acknowledgeLaunch = (payload) => {
         if (!launchContext || launchAcknowledged) {
@@ -1068,19 +1072,13 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
         currentWindow.setPosition(x, y);
     }
     currentWindow.webContents.userAgent = "SiYuan/" + appVer + " https://b3log.org/siyuan Electron " + currentWindow.webContents.userAgent;
+    navigationDiagnostics.prepareTarget(getServer(currentKernelPort) + "/stage/build/app/?v=" + Date.now());
 
     // 加载主界面。setProxy 用超时兜底包装：Electron 在某些系统代理配置下 session.setProxy 可能永久
     // pending（既不 resolve 也不 reject），会导致 loadURL 永不执行，主窗口卡在启动页无法显示。
     // 这里无论 setProxy 是否完成，最多等待 5 秒后强制加载主界面。
     const loadMainURL = () => {
-        startupDiagnostics.loadRequestedAt = new Date().toISOString();
-        void currentWindow.loadURL(getServer(currentKernelPort) + "/stage/build/app/?v=" + Date.now()).catch((error) => {
-            startupDiagnostics.lastLoadFailure = {
-                at: new Date().toISOString(),
-                errorCode: null,
-                errorDescription: error.message,
-                validatedURL: currentWindow.webContents.getURL() || null,
-            };
+        void navigationDiagnostics.loadTarget().catch((error) => {
             writeLog("load main UI failed: " + error.message);
             cleanupBeforeReady();
             acknowledgeLaunch({state: "rejected", reason: `main UI load failed: ${error.message}`});
@@ -1145,7 +1143,6 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
     });
 
     currentWindow.webContents.on("did-finish-load", () => {
-        startupDiagnostics.didFinishLoadAt = new Date().toISOString();
         let siyuanOpenURL = process.argv.find((arg) => arg.startsWith("siyuan://"));
         if (siyuanOpenURL) {
             if (currentWindow.isMinimized()) {
@@ -1170,6 +1167,7 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
             maximized: windowState.isMaximized,
         });
         closeBootWindow();
+        createOrShowMagiWindow(currentWindow);
     });
     // 菜单
     const productName = "SiYuan";
@@ -1206,21 +1204,10 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
         workspaceDir: requestedWorkspace,
         startupDiagnostics,
     });
-    currentWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
-        if (!isMainFrame) {
-            return;
-        }
-        startupDiagnostics.lastLoadFailure = {
-            at: new Date().toISOString(),
-            errorCode,
-            errorDescription,
-            validatedURL: validatedURL || null,
-        };
-    });
     // loadURL 后设置超时兜底：前端 app bundle 加载或初始化异常导致 siyuan-ready-to-show 迟迟不发时，
     // 强制销毁 boot 窗口并显示主窗口，避免永久卡在启动页
     readyToShowTimeout = setTimeout(() => {
-        startupDiagnostics.readyTimeoutAt = new Date().toISOString();
+        navigationDiagnostics.recordReadyTimeout();
         const hasBootWindow = attachedBootWindow ?
             !attachedBootWindow.isDestroyed() : Boolean(bootWindow && !bootWindow.isDestroyed());
         if (hasBootWindow) {
@@ -1236,7 +1223,7 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
         if (event.sender.id !== currentWebContentsId) {
             return;
         }
-        startupDiagnostics.rendererReadyAt = new Date().toISOString();
+        navigationDiagnostics.recordRendererReady();
         cleanupBeforeReady();
         presentMainWindow(currentWindow, {
             openAsHidden: isOpenAsHidden(),
@@ -1251,11 +1238,6 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
     };
     ipcMain.on("siyuan-ready-to-show", onMainUIReady);
     currentWindow.webContents.once("render-process-gone", (_event, details) => {
-        startupDiagnostics.lastRendererExit = {
-            at: new Date().toISOString(),
-            reason: details.reason,
-            exitCode: details.exitCode,
-        };
         cleanupBeforeReady();
         acknowledgeLaunch({
             state: "rejected",
@@ -1263,6 +1245,7 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
         });
     });
     currentWindow.once("closed", () => {
+        navigationDiagnostics.dispose();
         cleanupBeforeReady();
         acknowledgeLaunch({state: "rejected", reason: "main UI window closed before readiness"});
     });
@@ -1686,6 +1669,11 @@ app.whenReady().then(async () => {
                 reason: `UI Host startup failed: ${error.message}`,
             });
             return;
+        }
+        try {
+            await announceForgeUIHost(initialForgeLaunchContext);
+        } catch (error) {
+            writeLog("Forge UI Host early registration failed: " + error.message);
         }
     }
 
@@ -2655,6 +2643,11 @@ app.on("second-instance", async (event, argv, _workingDirectory, additionalData 
             writeLog("Forge UI Host startup failed for second instance: " + error.message);
             rejectSecondForgeLaunch(`UI Host startup failed: ${error.message}`);
             return;
+        }
+        try {
+            await announceForgeUIHost(secondForgeLaunchContext);
+        } catch (error) {
+            writeLog("Forge UI Host early registration failed for second instance: " + error.message);
         }
     }
     const foundWorkspace = workspaces.find(item => {

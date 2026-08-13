@@ -13,7 +13,7 @@ const createWindow = () => {
     };
 };
 
-test("main window presentation shows the normal App window without opening another surface", () => {
+test("main window presentation shows the normal App window", () => {
     const browserWindow = createWindow();
 
     assert.equal(presentMainWindow(browserWindow, {

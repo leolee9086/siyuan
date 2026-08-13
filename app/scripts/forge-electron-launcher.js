@@ -8,6 +8,7 @@ const {
     FORGE_LAUNCH_ACK_HEADER,
     FORGE_LAUNCH_ACK_TOKEN_ENV,
     FORGE_LAUNCH_ACK_URL_ENV,
+    FORGE_LAUNCH_UI_HOST_READY,
 } = require("../electron/forge-kernel-attach");
 const {validateUIHostDescriptor} = require("./forge-ui-host-contract");
 
@@ -37,6 +38,11 @@ const readAcknowledgement = (request) => new Promise((resolve, reject) => {
     request.once("end", () => {
         try {
             const payload = JSON.parse(body || "{}");
+            if (payload.type === FORGE_LAUNCH_UI_HOST_READY) {
+                payload.uiHost = validateUIHostDescriptor(payload.uiHost);
+                resolve(payload);
+                return;
+            }
             if (!["ready", "rejected"].includes(payload.state)) {
                 throw new Error("Electron launch acknowledgement has an invalid state");
             }
@@ -55,6 +61,7 @@ const createLaunchAcknowledgement = async ({
     timeoutMs = DEFAULT_UI_READY_TIMEOUT_MS,
     token = crypto.randomBytes(32).toString("hex"),
     createServer = http.createServer,
+    onUIHostReady = async () => undefined,
 } = {}) => {
     let resolveAcknowledgement;
     let rejectAcknowledgement;
@@ -82,6 +89,21 @@ const createLaunchAcknowledgement = async ({
             return;
         }
         void readAcknowledgement(request).then((payload) => {
+            if (payload.type === FORGE_LAUNCH_UI_HOST_READY) {
+                if (settled) {
+                    response.statusCode = 409;
+                    response.end(JSON.stringify({error: "Electron launch acknowledgement was already completed"}));
+                    return;
+                }
+                void Promise.resolve(onUIHostReady(payload.uiHost)).then(() => {
+                    response.statusCode = 202;
+                    response.end(JSON.stringify({accepted: true}));
+                }).catch((error) => {
+                    response.statusCode = 502;
+                    response.end(JSON.stringify({error: `UI Host registration failed: ${error.message}`}));
+                });
+                return;
+            }
             if (!finish(resolveAcknowledgement, payload)) {
                 response.statusCode = 409;
                 response.end(JSON.stringify({error: "Electron launch acknowledgement was already completed"}));
@@ -231,18 +253,20 @@ const launchElectronMain = async ({
     launch,
     workspace,
     port,
+    attachKernel = true,
     env = process.env,
     spawnImpl = spawn,
     readyTimeoutMs = DEFAULT_UI_READY_TIMEOUT_MS,
     createAcknowledgement = createLaunchAcknowledgement,
+    onUIHostReady = async () => undefined,
     reportError = console.error,
 }) => {
-    const ready = await createAcknowledgement({timeoutMs: readyTimeoutMs});
+    const ready = await createAcknowledgement({timeoutMs: readyTimeoutMs, onUIHostReady});
     const args = [
         launch.entry,
         `--workspace=${workspace}`,
         `--port=${port}`,
-        "--attach-kernel=true",
+        `--attach-kernel=${attachKernel}`,
     ];
     let child;
     try {
@@ -385,6 +409,38 @@ const openForgeElectronInterface = async ({
     reportError = console.error,
 }) => {
     const url = forgeURL(port);
+    const uiHosts = [];
+    const registrationPromises = new Map();
+    let uiHostRegistrationError;
+    const registerDescriptor = (descriptor) => {
+        const normalized = validateUIHostDescriptor(descriptor);
+        const existing = registrationPromises.get(normalized.id);
+        if (existing) {
+            if (existing.serialized !== JSON.stringify(normalized)) {
+                return Promise.reject(new Error(`UI Host ${normalized.id} sent conflicting descriptors`));
+            }
+            return existing.promise;
+        }
+        const serialized = JSON.stringify(normalized);
+        const promise = Promise.resolve(registerUIHost(normalized)).then(() => {
+            uiHosts.push(normalized);
+            return normalized;
+        }).catch((error) => {
+            uiHostRegistrationError ||= error;
+            registrationPromises.delete(normalized.id);
+            throw error;
+        });
+        registrationPromises.set(normalized.id, {serialized, promise});
+        return promise;
+    };
+    const registerAndReport = async (descriptor) => {
+        try {
+            return await registerDescriptor(descriptor);
+        } catch (error) {
+            reportError(`[forge] UI Host registration failed: ${error.message}`);
+            throw error;
+        }
+    };
     let electronLaunch;
     try {
         electronLaunch = resolveElectron({root});
@@ -400,16 +456,15 @@ const openForgeElectronInterface = async ({
                 launch: electronLaunch,
                 workspace: path.resolve(root, ".dev-workspace"),
                 port,
+                onUIHostReady: registerAndReport,
                 reportError,
             });
             const action = result.forwarded ? "forwarded to the running Electron instance" : "started";
             report(`[forge] Electron main interface ${action} for ${url}`);
-            const uiHosts = result.acknowledgement.uiHost ? [result.acknowledgement.uiHost] : [];
-            for (const descriptor of uiHosts) {
+            if (result.acknowledgement.uiHost) {
                 try {
-                    await registerUIHost(descriptor);
+                    await registerAndReport(result.acknowledgement.uiHost);
                 } catch (registrationError) {
-                    reportError(`[forge] UI Host registration failed: ${registrationError.message}`);
                     return {
                         kind: "electron",
                         url,
@@ -419,19 +474,25 @@ const openForgeElectronInterface = async ({
                     };
                 }
             }
-            return {kind: "electron", url, forwarded: result.forwarded, uiHosts};
+            const response = {kind: "electron", url, forwarded: result.forwarded, uiHosts};
+            if (uiHostRegistrationError) {
+                response.uiHostRegistrationError = uiHostRegistrationError;
+            }
+            return response;
         } catch (error) {
             reportError(`[forge] Electron main interface launch failed: ${error.message}`);
-            const uiHosts = [];
             if (error.uiHost) {
                 try {
-                    await registerUIHost(error.uiHost);
-                    uiHosts.push(error.uiHost);
-                } catch (registrationError) {
-                    reportError(`[forge] UI Host registration failed: ${registrationError.message}`);
+                    await registerAndReport(error.uiHost);
+                } catch (_registrationError) {
+                    // registerAndReport 已报告具体错误。
                 }
             }
-            return {kind: "electron-error", url, error, uiHosts};
+            const response = {kind: "electron-error", url, error, uiHosts};
+            if (uiHostRegistrationError) {
+                response.uiHostRegistrationError = uiHostRegistrationError;
+            }
+            return response;
         }
     } else {
         const error = new Error(electronLaunch.reason);
