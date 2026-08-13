@@ -466,6 +466,10 @@ const main = async () => {
             root: repoRoot,
             port: startup.port,
             mode: interfaceMode,
+            supervisor: {
+                url: startup.ownership.controlURL,
+                token: startup.ownership.supervisorToken || startup.ownership.cliToken,
+            },
             registerUIHost: (descriptor) => registerUIHostWithSupervisor(startup.ownership, descriptor),
         });
         return;
@@ -502,6 +506,10 @@ const main = async () => {
         root: repoRoot,
         port,
         mode: interfaceMode,
+        supervisor: {
+            url: supervisor.controlURL,
+            token: supervisor.token,
+        },
         registerUIHost: (descriptor) => supervisor.registerUIHost(descriptor),
     });
 };

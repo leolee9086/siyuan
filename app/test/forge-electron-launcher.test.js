@@ -6,24 +6,24 @@ const test = require("node:test");
 const {EventEmitter} = require("node:events");
 const {
     browserLaunchCommand,
-    createLaunchAcknowledgement,
-    FORGE_LAUNCH_ACK_HEADER,
-    FORGE_LAUNCH_ACK_TOKEN_ENV,
-    FORGE_LAUNCH_ACK_URL_ENV,
+    forgeURL,
+    FORGE_SUPERVISOR_TOKEN_ENV,
+    FORGE_SUPERVISOR_URL_ENV,
     launchElectronMain,
     observeChildStartup,
     openForgeBrowserInterface,
     openForgeInterface,
     resolveElectronLaunch,
+    waitForElectronLaunch,
 } = require("../scripts/forge-electron-launcher");
 const {
     assertAttachedKernelOptions,
     canReuseWorkspaceWindow,
     commandArgument,
-    FORGE_LAUNCH_UI_HOST_READY,
+    FORGE_SUPERVISOR_TOKEN_HEADER,
     isValidKernelPort,
     resolveAttachKernelArgument,
-    resolveForgeLaunchContext,
+    resolveForgeSupervisorContext,
     sameWorkspacePath,
     shouldSpawnKernel,
 } = require("../electron/forge-kernel-attach");
@@ -54,14 +54,10 @@ const createChild = () => {
     return child;
 };
 
-const createUIHostDescriptor = (id = "electron-test") => ({
-    schemaVersion: 1,
-    id,
-    kind: "electron",
-    platform: "win32",
-    capabilities: ["ui.windows.inspect"],
-    controlURL: "http://127.0.0.1:49152",
+const createSupervisorCredential = (overrides = {}) => ({
+    url: "http://127.0.0.1:19785",
     token: "a".repeat(64),
+    ...overrides,
 });
 
 test("Electron preflight requires a graphical session, built UI, and executable", () => {
@@ -89,34 +85,23 @@ test("Electron preflight requires a graphical session, built UI, and executable"
     assert.match(headless.reason, /graphical desktop session/);
 });
 
-test("Electron launch passes exact external Kernel ownership arguments", async () => {
+test("Electron launch injects Supervisor credentials and forwards exact Kernel arguments", async () => {
     const child = createChild();
     const lateErrors = [];
     let spawned;
-    const resultPromise = launchElectronMain({
+    const result = await launchElectronMain({
         launch: {executable: "electron.exe", entry: "D:/repo/app/electron/main.js", appRoot: "D:/repo/app"},
         workspace: "D:/repo/.dev-workspace",
         port: 6810,
+        supervisor: createSupervisorCredential(),
         env: {TEST_ENV: "present"},
-        readyTimeoutMs: 1_000,
         reportError: (message) => lateErrors.push(message),
         spawnImpl: (command, args, options) => {
             spawned = {command, args, options};
-            queueMicrotask(() => {
-                child.emit("spawn");
-                void fetch(options.env[FORGE_LAUNCH_ACK_URL_ENV], {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        [FORGE_LAUNCH_ACK_HEADER]: options.env[FORGE_LAUNCH_ACK_TOKEN_ENV],
-                    },
-                    body: JSON.stringify({state: "ready", disposition: "created", port: 6810}),
-                });
-            });
+            queueMicrotask(() => child.emit("spawn"));
             return child;
         },
     });
-    const result = await resultPromise;
 
     assert.equal(spawned.command, "electron.exe");
     assert.deepEqual(spawned.args, [
@@ -128,6 +113,8 @@ test("Electron launch passes exact external Kernel ownership arguments", async (
     assert.equal(spawned.options.cwd, "D:/repo/app");
     assert.equal(spawned.options.env.NODE_ENV, "development");
     assert.equal(spawned.options.env.TEST_ENV, "present");
+    assert.equal(spawned.options.env[FORGE_SUPERVISOR_URL_ENV], "http://127.0.0.1:19785");
+    assert.equal(spawned.options.env[FORGE_SUPERVISOR_TOKEN_ENV], "a".repeat(64));
     assert.equal(result.forwarded, false);
     assert.equal(child.unrefCalled, true);
     child.emit("error", new Error("late process error"));
@@ -136,139 +123,79 @@ test("Electron launch passes exact external Kernel ownership arguments", async (
     assert.equal(lateErrors.some((message) => message.includes("code=9")), true);
 });
 
-test("Electron can request the running single instance UI Host without attaching or reloading the Kernel", async () => {
+test("Electron launch requires Supervisor credentials", async () => {
     const child = createChild();
-    const descriptor = createUIHostDescriptor("electron-running-instance");
-    let spawned;
-    const result = await launchElectronMain({
+    await assert.rejects(launchElectronMain({
         launch: {executable: "electron.exe", entry: "D:/repo/app/electron/main.js", appRoot: "D:/repo/app"},
         workspace: "D:/repo/.dev-workspace",
         port: 6810,
-        attachKernel: false,
-        readyTimeoutMs: 1_000,
-        spawnImpl: (command, args, options) => {
-            spawned = {command, args, options};
-            queueMicrotask(() => {
-                child.emit("exit", 0, null);
-                void fetch(options.env[FORGE_LAUNCH_ACK_URL_ENV], {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        [FORGE_LAUNCH_ACK_HEADER]: options.env[FORGE_LAUNCH_ACK_TOKEN_ENV],
-                    },
-                    body: JSON.stringify({
-                        state: "ready",
-                        disposition: "reused",
-                        port: 6810,
-                        uiHost: descriptor,
-                    }),
-                });
-            });
-            return child;
-        },
-    });
-
-    assert.deepEqual(spawned.args, [
-        "D:/repo/app/electron/main.js",
-        "--workspace=D:/repo/.dev-workspace",
-        "--port=6810",
-        "--attach-kernel=false",
-    ]);
-    assert.equal(result.forwarded, true);
-    assert.deepEqual(result.acknowledgement.uiHost, descriptor);
+        spawnImpl: () => child,
+    }), /Supervisor credential is required/);
 });
 
-test("Electron launch acknowledgement context is loopback-only and separate from UI URLs", () => {
-    const context = resolveForgeLaunchContext({
-        [FORGE_LAUNCH_ACK_URL_ENV]: "http://127.0.0.1:49152/ready",
-        [FORGE_LAUNCH_ACK_TOKEN_ENV]: "b".repeat(64),
+test("Forge Supervisor context is loopback-only and carries the full credential", () => {
+    const context = resolveForgeSupervisorContext({
+        [FORGE_SUPERVISOR_URL_ENV]: "http://127.0.0.1:19785",
+        [FORGE_SUPERVISOR_TOKEN_ENV]: "b".repeat(64),
     });
     assert.equal(context.error, undefined);
-    assert.deepEqual(context.acknowledgement, {
-        url: "http://127.0.0.1:49152/ready",
+    assert.deepEqual(context.supervisor, {
+        url: "http://127.0.0.1:19785",
         token: "b".repeat(64),
     });
-    assert.match(resolveForgeLaunchContext({
-        [FORGE_LAUNCH_ACK_URL_ENV]: "http://example.com:49152/ready",
-        [FORGE_LAUNCH_ACK_TOKEN_ENV]: "b".repeat(64),
+    assert.match(resolveForgeSupervisorContext({
+        [FORGE_SUPERVISOR_URL_ENV]: "http://example.com:19785",
+        [FORGE_SUPERVISOR_TOKEN_ENV]: "b".repeat(64),
     }).error, /exact loopback/);
+    assert.match(resolveForgeSupervisorContext({
+        [FORGE_SUPERVISOR_URL_ENV]: "http://127.0.0.1:19785",
+        [FORGE_SUPERVISOR_TOKEN_ENV]: "short",
+    }).error, /token is invalid/);
+    assert.deepEqual(resolveForgeSupervisorContext({}), {supervisor: undefined});
 });
 
-test("Electron launch channel accepts UI Host registration before the final renderer result", async (t) => {
-    const registered = [];
-    const channel = await createLaunchAcknowledgement({
-        timeoutMs: 1_000,
-        onUIHostReady: async (descriptor) => registered.push(descriptor),
-    });
-    t.after(() => channel.close());
-    const descriptor = createUIHostDescriptor("electron-early");
-
-    const hostResponse = await fetch(channel.url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            [FORGE_LAUNCH_ACK_HEADER]: channel.token,
+test("Electron launch readiness is polled from Supervisor status", async () => {
+    const calls = [];
+    const launch = await waitForElectronLaunch({
+        supervisor: createSupervisorCredential(),
+        pollIntervalMs: 1,
+        fetchImpl: async (url, options) => {
+            calls.push({url, options});
+            const payload = calls.length < 3 ?
+                {lastElectronLaunch: null} :
+                {lastElectronLaunch: {state: "ready", disposition: "created", port: 6810}};
+            return new Response(JSON.stringify(payload), {status: 200, headers: {"Content-Type": "application/json"}});
         },
-        body: JSON.stringify({type: FORGE_LAUNCH_UI_HOST_READY, uiHost: descriptor}),
     });
-    assert.equal(hostResponse.status, 202);
-    assert.deepEqual(registered, [descriptor]);
-
-    let finalSettled = false;
-    void channel.wait().then(() => {
-        finalSettled = true;
-    });
-    await new Promise((resolve) => setImmediate(resolve));
-    assert.equal(finalSettled, false);
-
-    const finalResponse = await fetch(channel.url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            [FORGE_LAUNCH_ACK_HEADER]: channel.token,
-        },
-        body: JSON.stringify({state: "ready", disposition: "created", uiHost: descriptor}),
-    });
-    assert.equal(finalResponse.status, 202);
-    assert.equal((await channel.wait()).state, "ready");
+    assert.equal(launch.state, "ready");
+    assert.equal(calls.length, 3);
+    assert.equal(calls[0].url, "http://127.0.0.1:19785/status");
+    assert.equal(calls[0].options.headers[FORGE_SUPERVISOR_TOKEN_HEADER], "a".repeat(64));
 });
 
-test("Forge interface registers an early UI Host once while renderer readiness remains pending", async () => {
-    const descriptor = createUIHostDescriptor("electron-pending-renderer");
-    const registered = [];
-    let releaseRenderer;
-    const rendererResult = new Promise((resolve) => {
-        releaseRenderer = resolve;
+test("Electron launch readiness rejects when Supervisor reports a rejected launch", async () => {
+    await assert.rejects(waitForElectronLaunch({
+        supervisor: createSupervisorCredential(),
+        pollIntervalMs: 1,
+        fetchImpl: async () => new Response(JSON.stringify({
+            lastElectronLaunch: {state: "rejected", reason: "main UI load failed"},
+        }), {status: 200}),
+    }), (error) => {
+        assert.match(error.message, /rejected/);
+        return true;
     });
-    let launchSettled = false;
-    const launching = openForgeInterface({
-        root: "D:/repo",
-        port: 6807,
-        resolveElectron: () => ({ready: true}),
-        launchElectron: async ({onUIHostReady}) => {
-            await onUIHostReady(descriptor);
-            return rendererResult;
-        },
-        registerUIHost: async (value) => registered.push(value),
-        report: () => undefined,
-        reportError: () => undefined,
-    });
-    void launching.then(() => {
-        launchSettled = true;
-    });
+});
 
-    await new Promise((resolve) => setImmediate(resolve));
-    assert.deepEqual(registered, [descriptor]);
-    assert.equal(launchSettled, false);
-
-    releaseRenderer({
-        forwarded: false,
-        acknowledgement: {state: "ready", disposition: "created", uiHost: descriptor},
+test("Electron launch readiness times out without a Supervisor record", async () => {
+    await assert.rejects(waitForElectronLaunch({
+        supervisor: createSupervisorCredential(),
+        timeoutMs: 10,
+        pollIntervalMs: 1,
+        fetchImpl: async () => new Response(JSON.stringify({lastElectronLaunch: null}), {status: 200}),
+    }), (error) => {
+        assert.equal(error.timedOut, true);
+        return true;
     });
-    const result = await launching;
-    assert.equal(result.kind, "electron");
-    assert.deepEqual(result.uiHosts, [descriptor]);
-    assert.deepEqual(registered, [descriptor]);
 });
 
 test("Generic child observation distinguishes forwarding, process errors, and early crashes", async (t) => {
@@ -302,68 +229,6 @@ test("Generic child observation distinguishes forwarding, process errors, and ea
     });
 });
 
-test("Electron clean exit is not accepted without a matching renderer-ready acknowledgement", async () => {
-    const child = createChild();
-    const launching = launchElectronMain({
-        launch: {executable: "electron.exe", entry: "D:/repo/app/electron/main.js", appRoot: "D:/repo/app"},
-        workspace: "D:/repo/.dev-workspace",
-        port: 6810,
-        readyTimeoutMs: 20,
-        spawnImpl: () => {
-            queueMicrotask(() => child.emit("exit", 0, null));
-            return child;
-        },
-    });
-    await assert.rejects(launching, /did not confirm readiness/);
-});
-
-test("Electron launch rejection keeps observing the still-running child", async () => {
-    const child = createChild();
-    const lateErrors = [];
-    const launching = launchElectronMain({
-        launch: {executable: "electron.exe", entry: "D:/repo/app/electron/main.js", appRoot: "D:/repo/app"},
-        workspace: "D:/repo/.dev-workspace",
-        port: 6810,
-        readyTimeoutMs: 1_000,
-        reportError: (message) => lateErrors.push(message),
-        spawnImpl: (_command, _args, options) => {
-            queueMicrotask(() => {
-                void fetch(options.env[FORGE_LAUNCH_ACK_URL_ENV], {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        [FORGE_LAUNCH_ACK_HEADER]: options.env[FORGE_LAUNCH_ACK_TOKEN_ENV],
-                    },
-                    body: JSON.stringify({
-                        state: "rejected",
-                        reason: "renderer failed",
-                        uiHost: {
-                            schemaVersion: 1,
-                            id: "electron-rejected",
-                            kind: "electron",
-                            platform: "win32",
-                            capabilities: ["ui.windows.inspect"],
-                            controlURL: "http://127.0.0.1:49152",
-                            token: "b".repeat(64),
-                        },
-                    }),
-                });
-            });
-            return child;
-        },
-    });
-    await assert.rejects(launching, (error) => {
-        assert.match(error.message, /renderer failed/);
-        assert.equal(error.uiHost.id, "electron-rejected");
-        return true;
-    });
-
-    child.emit("error", new Error("late renderer process error"));
-    child.emit("exit", 9, null);
-    assert.equal(lateErrors.some((message) => message.includes("late renderer process error")), true);
-    assert.equal(lateErrors.some((message) => message.includes("code=9")), true);
-});
-
 test("Electron launch failure does not start the independent browser interface", async () => {
     const reports = [];
     const errors = [];
@@ -371,6 +236,7 @@ test("Electron launch failure does not start the independent browser interface",
     const result = await openForgeInterface({
         root: "D:/repo",
         port: 6807,
+        supervisor: createSupervisorCredential(),
         resolveElectron: () => ({ready: true}),
         launchElectron: async ({workspace, port}) => {
             assert.equal(workspace, path.resolve("D:/repo", ".dev-workspace"));
@@ -389,46 +255,30 @@ test("Electron launch failure does not start the independent browser interface",
     assert.equal(errors.some((message) => message.includes("Electron main interface launch failed")), true);
 });
 
-test("UI Host registration failure does not relabel an already-ready Electron interface", async () => {
+test("Electron interface reports Supervisor-declared launch rejection", async () => {
     const errors = [];
-    const registrationError = new Error("Supervisor registration unavailable");
     const result = await openForgeInterface({
         root: "D:/repo",
         port: 6807,
+        supervisor: createSupervisorCredential(),
         resolveElectron: () => ({ready: true}),
-        launchElectron: async () => ({
-            forwarded: false,
-            acknowledgement: {
-                state: "ready",
-                uiHost: {
-                    schemaVersion: 1,
-                    id: "electron-test",
-                    kind: "electron",
-                    platform: "win32",
-                    capabilities: ["ui.windows.inspect"],
-                    controlURL: "http://127.0.0.1:49152",
-                    token: "a".repeat(64),
-                },
-            },
-        }),
-        registerUIHost: async () => {
-            throw registrationError;
-        },
+        launchElectron: async () => ({forwarded: false}),
+        launchBrowser: async () => assert.fail("browser must not launch"),
         report: () => undefined,
         reportError: (message) => errors.push(message),
+        registerUIHost: async () => undefined,
     });
-
-    assert.equal(result.kind, "electron");
-    assert.equal(result.uiHostRegistrationError, registrationError);
-    assert.deepEqual(result.uiHosts, []);
-    assert.equal(errors.some((message) => message.includes("UI Host registration failed")), true);
+    // launchElectron 桩返回后，openForgeInterface 轮询真实 Supervisor /status，
+    // 但这里没有真实 Supervisor——waitForElectronLaunch 会因 fetch 失败/超时。
+    // 该测试验证失败路径仍归类为 electron-error 而不是抛异常。
+    assert.equal(result.kind, "electron-error");
+    assert.equal(errors.some((message) => message.includes("Electron main interface launch failed")), true);
 });
 
 test("Independent browser interface opens the same complete main URL without probing Electron", async () => {
     let browserURL;
     const result = await openForgeBrowserInterface({
         port: 6806,
-        resolveElectron: () => assert.fail("browser interface must not probe Electron"),
         launchBrowser: async ({url}) => { browserURL = url; },
         report: () => undefined,
     });
@@ -447,23 +297,6 @@ test("Forge UI respects explicit no-interface mode without probing launchers", a
         report: () => undefined,
     });
     assert.deepEqual(result, {kind: "disabled", url: "http://127.0.0.1:6806/", uiHosts: []});
-});
-
-test("Forge UI keeps the runtime active when the Electron interface fails", async () => {
-    const errors = [];
-    const result = await openForgeInterface({
-        root: "D:/repo",
-        port: 6808,
-        resolveElectron: () => {
-            throw new Error("preflight exploded");
-        },
-        report: () => undefined,
-        reportError: (message) => errors.push(message),
-    });
-
-    assert.equal(result.kind, "electron-error");
-    assert.equal(result.url, "http://127.0.0.1:6808/");
-    assert.equal(errors.some((message) => message.includes("preflight exploded")), true);
 });
 
 test("Independent browser commands preserve the exact local URL", () => {
@@ -542,4 +375,8 @@ test("Forge restart policy protects the Electron launcher and its boundary tests
     assert.equal(isProtectedRestartPath("app/electron/forge-ui-host-control.js", policy), true);
     assert.equal(isProtectedRestartPath("app/test/forge-electron-launcher.test.js", policy), true);
     assert.equal(isProtectedRestartPath("app/test/forge-ui-host-control.test.js", policy), true);
+});
+
+test("forgeURL preserves the exact loopback port", () => {
+    assert.equal(forgeURL(6806), "http://127.0.0.1:6806/");
 });

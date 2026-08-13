@@ -250,6 +250,7 @@ class ForgeRuntimeSupervisor {
         this.latestIncident = undefined;
         this.controlServer = undefined;
         this.controlURL = "";
+        this.lastElectronLaunch = undefined;
         this.switching = false;
         this.recovering = false;
         this.closing = false;
@@ -337,9 +338,37 @@ class ForgeRuntimeSupervisor {
             activeVersion: this.activeVersion || null,
             job: this.currentJob || null,
             latestIncident: this.latestIncident || null,
+            lastElectronLaunch: this.lastElectronLaunch || null,
             uiHosts: this.uiHosts.status(),
             retainedVersions: this.listVersions(),
         };
+    }
+
+    // Electron 启动验收回执（ready/rejected）。该回执是幂等的最终结论：
+    // Supervisor 长活，不存在一次性 ack 服务器那种「迟到回执撞上已关端口」的竞态。
+    async recordElectronLaunch(body) {
+        const state = body && ["ready", "rejected"].includes(body.state) ? body.state : undefined;
+        if (!state) {
+            const error = new Error("Electron launch acknowledgement has an invalid state");
+            error.statusCode = 400;
+            throw error;
+        }
+        const recorded = {
+            state,
+            reason: typeof body.reason === "string" ? body.reason.slice(0, 1000) : "",
+            disposition: ["created", "reused"].includes(body.disposition) ? body.disposition : undefined,
+            port: Number.isInteger(body.port) ? body.port : undefined,
+            workspace: typeof body.workspace === "string" ? body.workspace.slice(0, 1000) : undefined,
+            uiHostId: body.uiHost?.id || undefined,
+            at: this.now().toISOString(),
+        };
+        // UI Host 描述符随回执携带时直接注册，不再经 launcher 中转。
+        if (body.uiHost) {
+            await this.registerUIHost(body.uiHost);
+        }
+        this.lastElectronLaunch = recorded;
+        this.persistState();
+        return recorded;
     }
 
     async registerUIHost(descriptor) {
@@ -363,6 +392,9 @@ class ForgeRuntimeSupervisor {
             port: Number(this.port),
             controlURL: this.controlURL,
             cliToken: this.cliToken,
+            // Electron 作为本设备可信进程需要全权限（含 /restart），
+            // 因此在所有权描述符中同时记录 supervisorToken 供 reuse 分支注入。
+            supervisorToken: this.token,
             startedAt: this.now().toISOString(),
         };
         let descriptor;
@@ -410,7 +442,7 @@ class ForgeRuntimeSupervisor {
             return;
         }
         const cliAllowed = (request.method === "GET" && request.url === "/status") ||
-            (request.method === "POST" && ["/restart", "/ui-hosts/register"].includes(request.url));
+            (request.method === "POST" && ["/restart", "/ui-hosts/register", "/launch/ready"].includes(request.url));
         if (!hasSupervisorToken && !cliAllowed) {
             response.statusCode = 403;
             response.end(JSON.stringify({error: "CLI credential is not permitted for this Supervisor action"}));
@@ -442,6 +474,18 @@ class ForgeRuntimeSupervisor {
                 response.end(JSON.stringify(await this.invokeUIHost(await readRequestJSON(request))));
             } catch (error) {
                 writeUIHostError(response, error);
+            }
+            return;
+        }
+        if (request.method === "POST" && request.url === "/launch/ready") {
+            try {
+                const recorded = await this.recordElectronLaunch(await readRequestJSON(request));
+                response.statusCode = 202;
+                response.end(JSON.stringify({accepted: true, launch: recorded}));
+            } catch (error) {
+                const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 400;
+                response.statusCode = statusCode;
+                response.end(JSON.stringify({error: error.message}));
             }
             return;
         }

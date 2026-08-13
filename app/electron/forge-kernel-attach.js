@@ -1,11 +1,10 @@
 const http = require("http");
 const path = require("path");
 
-const FORGE_LAUNCH_ACK_URL_ENV = "S_FORGE_LAUNCH_ACK_URL";
-const FORGE_LAUNCH_ACK_TOKEN_ENV = "S_FORGE_LAUNCH_ACK_TOKEN";
-const FORGE_LAUNCH_ACK_HEADER = "x-s-forge-launch-token";
-const FORGE_LAUNCH_UI_HOST_READY = "ui-host-ready";
-const FORGE_TOKEN_PATTERN = /^[0-9a-f]{64}$/;
+const FORGE_SUPERVISOR_URL_ENV = "S_FORGE_SUPERVISOR_URL";
+const FORGE_SUPERVISOR_TOKEN_ENV = "S_FORGE_SUPERVISOR_TOKEN";
+const FORGE_SUPERVISOR_TOKEN_HEADER = "x-s-forge-supervisor-token";
+const FORGE_SUPERVISOR_TOKEN_PATTERN = /^[0-9a-f]{64}$/;
 
 const commandArgument = (argv, name) => {
     const prefix = `${name}=`;
@@ -99,42 +98,47 @@ const canReuseWorkspaceWindow = ({
     return true;
 };
 
-const resolveForgeLaunchContext = (env = process.env) => {
-    const acknowledgementURL = String(env[FORGE_LAUNCH_ACK_URL_ENV] || "").trim();
-    const acknowledgementToken = String(env[FORGE_LAUNCH_ACK_TOKEN_ENV] || "").trim();
-    if (!acknowledgementURL && !acknowledgementToken) {
-        return {acknowledgement: undefined};
+// Electron 启动验收直连 Supervisor：Supervisor 是长生命周期管理面，
+// 不存在一次性 ack 服务器那种「迟到回执撞上已关端口」的竞态。
+const resolveForgeSupervisorContext = (env = process.env) => {
+    const supervisorURL = String(env[FORGE_SUPERVISOR_URL_ENV] || "").trim();
+    const supervisorToken = String(env[FORGE_SUPERVISOR_TOKEN_ENV] || "").trim();
+    if (!supervisorURL && !supervisorToken) {
+        return {supervisor: undefined};
     }
-    if (!FORGE_TOKEN_PATTERN.test(acknowledgementToken)) {
-        return {error: "Forge launch acknowledgement token is invalid."};
+    if (!FORGE_SUPERVISOR_TOKEN_PATTERN.test(supervisorToken)) {
+        return {error: "Forge Supervisor token is invalid."};
     }
     let parsed;
     try {
-        parsed = new URL(acknowledgementURL);
+        parsed = new URL(supervisorURL);
     } catch (_error) {
-        return {error: "Forge launch acknowledgement URL is invalid."};
+        return {error: "Forge Supervisor URL is invalid."};
     }
     if (parsed.protocol !== "http:" || parsed.hostname !== "127.0.0.1" || !parsed.port ||
-        parsed.pathname !== "/ready" || parsed.username || parsed.password || parsed.search || parsed.hash) {
-        return {error: "Forge launch acknowledgement must use an exact loopback URL."};
+        parsed.username || parsed.password || parsed.search || parsed.hash) {
+        return {error: "Forge Supervisor URL must be an exact loopback URL."};
     }
     return {
-        acknowledgement: {url: parsed.toString(), token: acknowledgementToken},
+        supervisor: {
+            url: parsed.origin,
+            token: supervisorToken,
+        },
     };
 };
 
 const sendForgeLaunchAcknowledgement = (launchContext, payload, requestImpl = http.request) => new Promise((resolve, reject) => {
-    if (!launchContext?.acknowledgement) {
+    if (!launchContext?.supervisor) {
         resolve(false);
         return;
     }
     const body = JSON.stringify(payload);
-    const request = requestImpl(launchContext.acknowledgement.url, {
+    const request = requestImpl(`${launchContext.supervisor.url}/launch/ready`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "Content-Length": Buffer.byteLength(body),
-            [FORGE_LAUNCH_ACK_HEADER]: launchContext.acknowledgement.token,
+            [FORGE_SUPERVISOR_TOKEN_HEADER]: launchContext.supervisor.token,
         },
         timeout: 3_000,
     }, (response) => {
@@ -154,22 +158,21 @@ const sendForgeLaunchAcknowledgement = (launchContext, payload, requestImpl = ht
 
 const sendForgeUIHostReady = (launchContext, uiHost, requestImpl = http.request) =>
     sendForgeLaunchAcknowledgement(launchContext, {
-        type: FORGE_LAUNCH_UI_HOST_READY,
+        state: "ready",
         uiHost,
     }, requestImpl);
 
 module.exports = {
-    FORGE_LAUNCH_ACK_HEADER,
-    FORGE_LAUNCH_ACK_TOKEN_ENV,
-    FORGE_LAUNCH_ACK_URL_ENV,
-    FORGE_LAUNCH_UI_HOST_READY,
-    FORGE_TOKEN_PATTERN,
+    FORGE_SUPERVISOR_TOKEN_ENV,
+    FORGE_SUPERVISOR_TOKEN_HEADER,
+    FORGE_SUPERVISOR_TOKEN_PATTERN,
+    FORGE_SUPERVISOR_URL_ENV,
     assertAttachedKernelOptions,
     canReuseWorkspaceWindow,
     commandArgument,
     isValidKernelPort,
     resolveAttachKernelArgument,
-    resolveForgeLaunchContext,
+    resolveForgeSupervisorContext,
     sameWorkspacePath,
     sendForgeLaunchAcknowledgement,
     sendForgeUIHostReady,

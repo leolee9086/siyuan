@@ -50,6 +50,29 @@
   - **行动**: 在调用 `loadURL` 前安装主帧导航、重定向、提交、DOM、加载失败和控制台首错记录；删除通用 `ready-to-show` 与 60 秒强制展示 `about:blank` 路径；超时时显示包含目标 URL、当前 URL和阶段的明确错误。
   - **验收标准**: 任一启动结果都能被归类为认证页就绪、App 就绪、主帧导航失败、Renderer 初始化失败或明确超时；不再出现没有地址与原因的白色主窗口。
 
+### 2026-08-13 17:18 启动日志逐条根因分析（`pnpm forge` 报错现场）
+
+用户提供 `pnpm forge` 启动日志，共 6 条关键记录，逐条确认来源与因果：
+
+1. `E rhy.go:81: get version info failed: TLS handshake timeout`（17:18:39）
+   - 来源: [`kernel/util/rhy.go`](kernel/util/rhy.go:74) 的 `getRhyResult0()`，由 6 小时一次的 `RefreshRhyResultJob`（[`kernel/job/cron.go`](kernel/job/cron.go:35)）异步触发，请求 `https://siyuan-sync.b3logfile.com/apis/siyuan/version?ver=3.7.3`。
+   - 根因: 当时外部网络到 b3log 云端的 TLS 握手受限（超时）。
+   - 因果: **与 Electron 白屏无关**。该调用运行在独立 goroutine（singleflight 包装），失败只影响云端版本/集市哈希缓存，不阻塞内核启动。日志末尾 17:18:50-52 gse 词典正常加载即内核继续启动的旁证。
+2. `I dominance.go:216: 行动计划中选`（17:18:46）: 内核 agent 决策日志，属正常启动过程，与本次报错无因果。
+3. `[forge] Electron main interface launch failed: Electron main interface did not confirm readiness within 60000ms`
+   - 来源: [`app/scripts/forge-electron-launcher.js`](app/scripts/forge-electron-launcher.js:128) 的 `createLaunchAcknowledgement` 60 秒计时器（launcher 侧）。
+   - 根因: Electron 主进程在 60 秒内未向 ack 服务器回执 `siyuan-ready-to-show`（认证页或 App bundle 均未就绪）。
+4. `siyuan-ready-to-show timeout, force showing main window`
+   - 来源: [`app/electron/main.js`](app/electron/main.js:1209) 的 `readyToShowTimeout` 兜底（main.js 侧），与第 3 条同源（同一个就绪未达成），此时强制显示主窗口。
+5. `Forge launch acknowledgement failed: connect ECONNREFUSED 127.0.0.1:51106`
+   - 来源: [`app/electron/main.js`](app/electron/main.js:125) 的 `acknowledgeForgeLaunch` 失败 catch，POST 到 launcher 创建的 ack 服务器 `http://127.0.0.1:51106/ready`。
+   - 根因: **双 60 秒超时竞态**。launcher 侧超时先触发（spawn 前即创建 ack 服务器，计时起点更早），随后在 [`forge-electron-launcher.js`](app/scripts/forge-electron-launcher.js:337) 的 `finally` 中执行 `ready.close()` 关闭 51106 服务器；main.js 侧超时晚一步触发，再发 `{state:"rejected"}` 时端口已关闭 → `ECONNREFUSED`。该 ack 丢失使 Supervisor 无法获知 Electron 的 rejected 结论，但 Electron 本身已尽力显示窗口，与白屏无因果。
+6. gse 词典加载（17:18:50-52）: 内核正常启动的独立日志。
+
+结论:
+- 白屏主断点仍是 TTT 已记录的「`loadURL` 已调用但主帧无提交/完成/失败事件」（`app/electron/main.js` 1087 行 `net.fetch(getNetwork)` → `loadMainURL` 链的导航长期 pending），本日志未推翻该结论，`siyuan-ready-to-show` 未回执是白屏的下游表现而非根因。
+- 新增一个**独立代码缺陷**（P2 候选）: launcher 与 main.js 各持有独立的 60 秒就绪超时且 ack 服务器生命周期由 launcher 独占，双超时存在竞态导致 ECONNREFUSED。即使白屏修复，该竞态依然存在；建议将 ack 服务器关闭延迟到进程退出或由 main.js 单方面声明 rejected 后 launcher 再收尾。
+
 ### Phase 1 当前证据 (2026-08-13 12:28)
 
 - 隔离 Electron 主进程 PID `32728` 附着当前 6806 Kernel，主文档最终 URL 为 `/check-auth?to=/stage/build/app/`；DOM `readyState=complete`、认证输入框聚焦、Renderer 未崩溃、无失败请求或页面异常。

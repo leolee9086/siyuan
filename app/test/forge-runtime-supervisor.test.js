@@ -950,6 +950,106 @@ test("Supervisor UI Host control routes keep registration separate from Kernel q
     assert.equal((await invalidRegistration.json()).errorCode, "ui_host_invalid_request");
 });
 
+test("Supervisor records Electron launch readiness idempotently and persists it in status", async (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "s-forge-launch-ready-"));
+    const supervisor = new ForgeRuntimeSupervisor({
+        repoRoot: root,
+        runtimeDir: path.join(root, "runtime"),
+        workspace: path.join(root, "workspace"),
+        port: 6806,
+        token: "kernel-token",
+        cliToken: "cli-token",
+    });
+    fs.mkdirSync(supervisor.runtimeDir, {recursive: true});
+    await supervisor.startControlServer();
+    t.after(async () => {
+        await supervisor.close();
+        fs.rmSync(root, {recursive: true, force: true});
+    });
+
+    const payload = {
+        state: "ready",
+        disposition: "created",
+        port: 6806,
+        workspace: "D:/repo/.dev-workspace",
+    };
+    const ready = await fetch(`${supervisor.controlURL}/launch/ready`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json", [SUPERVISOR_TOKEN_HEADER]: "kernel-token"},
+        body: JSON.stringify(payload),
+    });
+    assert.equal(ready.status, 202);
+    const readyBody = await ready.json();
+    assert.equal(readyBody.accepted, true);
+    assert.equal(readyBody.launch.state, "ready");
+
+    // 幂等：重复回执仍 202。
+    const repeated = await fetch(`${supervisor.controlURL}/launch/ready`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json", [SUPERVISOR_TOKEN_HEADER]: "kernel-token"},
+        body: JSON.stringify(payload),
+    });
+    assert.equal(repeated.status, 202);
+
+    const status = await fetch(`${supervisor.controlURL}/status`, {
+        headers: {[SUPERVISOR_TOKEN_HEADER]: "kernel-token"},
+    });
+    const statusBody = await status.json();
+    assert.equal(statusBody.lastElectronLaunch.state, "ready");
+    assert.equal(statusBody.lastElectronLaunch.port, 6806);
+    assert.equal(statusBody.lastElectronLaunch.workspace, "D:/repo/.dev-workspace");
+
+    // 非法 state 拒绝。
+    const invalid = await fetch(`${supervisor.controlURL}/launch/ready`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json", [SUPERVISOR_TOKEN_HEADER]: "kernel-token"},
+        body: JSON.stringify({state: "bogus"}),
+    });
+    assert.equal(invalid.status, 400);
+});
+
+test("Supervisor registers a UI Host carried with the Electron launch readiness", async (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "s-forge-launch-ui-host-"));
+    const supervisor = new ForgeRuntimeSupervisor({
+        repoRoot: root,
+        runtimeDir: path.join(root, "runtime"),
+        workspace: path.join(root, "workspace"),
+        port: 6806,
+        token: "kernel-token",
+        cliToken: "cli-token",
+    });
+    fs.mkdirSync(supervisor.runtimeDir, {recursive: true});
+    await supervisor.startControlServer();
+    t.after(async () => {
+        await supervisor.close();
+        fs.rmSync(root, {recursive: true, force: true});
+    });
+
+    const descriptor = {
+        schemaVersion: 1,
+        id: "electron-launch-carried",
+        kind: "electron",
+        platform: "win32",
+        capabilities: [UI_HOST_INSPECT_WINDOWS],
+        controlURL: "http://127.0.0.1:49152",
+        token: "c".repeat(64),
+    };
+    const ready = await fetch(`${supervisor.controlURL}/launch/ready`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json", [SUPERVISOR_TOKEN_HEADER]: "kernel-token"},
+        body: JSON.stringify({state: "ready", uiHost: descriptor}),
+    });
+    assert.equal(ready.status, 202);
+    const status = await fetch(`${supervisor.controlURL}/ui-hosts`, {
+        headers: {[SUPERVISOR_TOKEN_HEADER]: "kernel-token"},
+    });
+    const hostsBody = await status.json();
+    assert.equal(hostsBody.hosts.length, 1);
+    assert.equal(hostsBody.hosts[0].id, "electron-launch-carried");
+    // 描述符中的 token 必须被去敏，不暴露在状态中。
+    assert.equal(JSON.stringify(hostsBody.hosts).includes("c".repeat(64)), false);
+});
+
 test("UI Host registry distinguishes malformed responses from transport outages", async () => {
     const descriptor = {
         schemaVersion: 1,

@@ -40,24 +40,6 @@ const fs = require("fs");
 const gNet = require("net");
 const childProcess = require("child_process");
 const remote = require("@electron/remote/main");
-const {
-    assertAttachedKernelOptions,
-    canReuseWorkspaceWindow,
-    commandArgument,
-    resolveAttachKernelArgument,
-    resolveForgeSupervisorContext,
-    sameWorkspacePath,
-    sendForgeLaunchAcknowledgement,
-    sendForgeUIHostReady,
-    shouldSpawnKernel,
-} = require("./forge-kernel-attach");
-const {
-    UI_HOST_INSPECT_WINDOWS,
-    createElectronWindowInspectHandler,
-    createForgeUIHostControl,
-} = require("./forge-ui-host-control");
-const {createMainNavigationDiagnostics} = require("./main-navigation-diagnostics");
-const {presentMainWindow} = require("./main-window-presentation");
 
 process.noAsar = true;
 const appDir = path.dirname(app.getAppPath());
@@ -78,9 +60,6 @@ const expectedRendererExitIds = new Set();
 const expectedKernelExitPorts = new Set();
 const handledCrashWebContents = new Set();
 const kernelProcesses = new Map();
-const attachedKernelStarts = new Map();
-const attachedKernelPortReservations = new Map();
-const attachedBootWindows = new Map();
 let bootWindow;
 let latestActiveWindow;
 let firstOpen = false;
@@ -95,8 +74,6 @@ let gracefulSystemShutdownPromise;
 let keepAppOpenDuringSystemShutdown = false;
 let updateInstallPromise;
 let keepAppOpenDuringUpdate = false;
-let forgeUIHostControl;
-let forgeUIHostControlPromise;
 const openDialogSingletons = new Set();
 const isOpenAsHidden = function () {
     return 1 === workspaces.length && openAsHidden;
@@ -113,57 +90,10 @@ if (process.platform === "win32") {
     app.setAppUserModelId("org.b3log.siyuan");
 }
 
-const initialForgeLaunchContext = resolveForgeSupervisorContext(process.env);
-const singleInstanceData = initialForgeLaunchContext.error ?
-    {forgeLaunchError: initialForgeLaunchContext.error} :
-    {forgeLaunchContext: initialForgeLaunchContext};
-if (!app.requestSingleInstanceLock(singleInstanceData)) {
+if (!app.requestSingleInstanceLock()) {
     app.quit();
     return;
 }
-
-const acknowledgeForgeLaunch = (launchContext, payload) => {
-    // 启动验收直连长生命周期的 Forge Supervisor（POST /launch/ready），
-    // 不再经一次性 ack 服务器中转；Supervisor 长活因此不存在关闭竞态。
-    const acknowledgement = forgeUIHostControl ? {...payload, uiHost: forgeUIHostControl.descriptor} : payload;
-    void sendForgeLaunchAcknowledgement(launchContext, acknowledgement).catch((error) => {
-        writeLog("Forge launch acknowledgement failed: " + error.message);
-    });
-};
-
-const ensureForgeUIHostControl = () => {
-    if (forgeUIHostControl) {
-        return Promise.resolve(forgeUIHostControl);
-    }
-    if (forgeUIHostControlPromise) {
-        return forgeUIHostControlPromise;
-    }
-    forgeUIHostControlPromise = createForgeUIHostControl({
-        capabilityHandlers: {
-            [UI_HOST_INSPECT_WINDOWS]: createElectronWindowInspectHandler({
-                BrowserWindow,
-                getWorkspaces: () => workspaces,
-                getMagiWindows: () => magiWindows,
-                getBootWindows: () => [bootWindow, ...attachedBootWindows.values()].filter(Boolean),
-            }),
-        },
-    }).then((control) => {
-        forgeUIHostControl = control;
-        writeLog(`Forge UI Host ready [id=${control.descriptor.id}, capabilities=${control.descriptor.capabilities.join(",")}]`);
-        return control;
-    }).finally(() => {
-        forgeUIHostControlPromise = undefined;
-    });
-    return forgeUIHostControlPromise;
-};
-
-const announceForgeUIHost = (launchContext) => {
-    if (!forgeUIHostControl || !launchContext?.supervisor) {
-        return Promise.resolve(false);
-    }
-    // UI Host 描述符随 ready 回执直达 Supervisor /launch/ready，Supervisor 直接注册。
-    return sendForgeUIHostReady(launchContext, forgeUIHostControl.descriptor);
-};
 
 // 开发环境下 Windows 需显式传入 Electron 可执行文件路径和 main.js 路径，否则 siyuan:// 会被当作相对路径
 if (isDevEnv && process.defaultApp && process.argv.length >= 2) {
@@ -217,7 +147,7 @@ if (!app.isPackaged) {
 
 for (let i = argStart; i < process.argv.length; i++) {
     let arg = process.argv[i];
-    if (arg.startsWith("--workspace=") || arg.startsWith("--openAsHidden") || arg.startsWith("--port=") || arg.startsWith("--safe-mode=") || arg.startsWith("--lang=") || arg.startsWith("--attach-kernel=") || arg.startsWith("siyuan://")) {
+    if (arg.startsWith("--workspace=") || arg.startsWith("--openAsHidden") || arg.startsWith("--port=") || arg.startsWith("--safe-mode=") || arg.startsWith("--lang=") || arg.startsWith("siyuan://")) {
         // 跳过内置参数
         if (arg.startsWith("--openAsHidden")) {
             openAsHidden = true;
@@ -230,12 +160,8 @@ for (let i = argStart; i < process.argv.length; i++) {
     writeLog("command line switch [" + arg + "]");
 }
 
-// 解析命令行参数，参数需以 `name=value` 形式传入 https://github.com/siyuan-note/siyuan/issues/14748
-const getArg = (name) => commandArgument(process.argv, name);
-const attachKernelArgument = resolveAttachKernelArgument(process.argv);
-
 try {
-    firstOpen = !getArg("--workspace") && !fs.existsSync(path.join(confDir, "workspace.json"));
+    firstOpen = !fs.existsSync(path.join(confDir, "workspace.json"));
     if (!fs.existsSync(confDir)) {
         fs.mkdirSync(confDir, {mode: 0o755, recursive: true});
     }
@@ -244,6 +170,15 @@ try {
     require("electron").dialog.showErrorBox("创建配置目录失败 Failed to create config directory", "思源需要在用户家目录下创建配置文件夹（~/.config/siyuan），请确保该路径具有写入权限。\n\nSiYuan needs to create a configuration folder (~/.config/siyuan) in the user's home directory. Please make sure that the path has write permissions.");
     app.exit();
 }
+
+// 解析命令行参数，参数需以 `name=value` 形式传入 https://github.com/siyuan-note/siyuan/issues/14748
+const getArg = (name) => {
+    for (let i = 0; i < process.argv.length; i++) {
+        if (process.argv[i].startsWith(name)) {
+            return process.argv[i].split("=")[1];
+        }
+    }
+};
 
 // 检测上次打开的工作空间是否丢失 https://github.com/siyuan-note/siyuan/issues/14748
 let lastWorkspaceMissing = false;
@@ -907,30 +842,10 @@ const showErrorWindow = (titleZh, titleEn, content, emoji = "⚠️") => {
     return errWindow.id;
 };
 
-const findWorkspaceWindow = (port, requestedWorkspace) => {
-    if (!requestedWorkspace) {
-        return undefined;
-    }
-    return workspaces.find((item) => item.port.toString() === String(port) &&
-        sameWorkspacePath(item.workspaceDir, requestedWorkspace));
-};
-
-const initMainWindow = (currentKernelPort = kernelPort, launchContext, requestedWorkspace = "") => {
+const initMainWindow = (currentKernelPort = kernelPort) => {
     if (!app.isReady()) {
         writeLog("initMainWindow: app not ready, skipping");
         return;
-    }
-    const existingWorkspace = findWorkspaceWindow(currentKernelPort, requestedWorkspace);
-    if (existingWorkspace && existingWorkspace.browserWindow && !existingWorkspace.browserWindow.isDestroyed()) {
-        writeLog(`reusing attached workspace window [workspace=${requestedWorkspace}, port=${currentKernelPort}]`);
-        showWindow(existingWorkspace.browserWindow);
-        acknowledgeForgeLaunch(launchContext, {
-            state: "ready",
-            disposition: "reused",
-            port: Number(currentKernelPort),
-            workspace: requestedWorkspace,
-        });
-        return existingWorkspace.browserWindow;
     }
 
     // 恢复主窗体状态
@@ -1026,47 +941,7 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
         titleBarStyle: "hidden",
         icon: path.join(appDir, "stage", "icon-large.png"),
     });
-    const navigationDiagnostics = createMainNavigationDiagnostics(currentWindow.webContents, {
-        loadURL: (targetURL) => currentWindow.loadURL(targetURL),
-    });
     remote.enable(currentWindow.webContents);
-    const currentWebContentsId = currentWindow.webContents.id;
-    const startupDiagnostics = navigationDiagnostics.state;
-    let launchAcknowledged = false;
-    const acknowledgeLaunch = (payload) => {
-        if (!launchContext || launchAcknowledged) {
-            return;
-        }
-        launchAcknowledged = true;
-        acknowledgeForgeLaunch(launchContext, payload);
-    };
-    const attachedBootWindow = attachedBootWindows.get(String(currentKernelPort));
-    const closeBootWindow = () => {
-        if (attachedBootWindow) {
-            if (!attachedBootWindow.isDestroyed()) {
-                attachedBootWindow.destroy();
-            }
-            if (attachedBootWindows.get(String(currentKernelPort)) === attachedBootWindow) {
-                attachedBootWindows.delete(String(currentKernelPort));
-            }
-            return;
-        }
-        if (bootWindow && !bootWindow.isDestroyed()) {
-            bootWindow.destroy();
-        }
-    };
-    let readyToShowTimeout;
-    let onMainUIReady;
-    const cleanupBeforeReady = () => {
-        if (readyToShowTimeout) {
-            clearTimeout(readyToShowTimeout);
-            readyToShowTimeout = undefined;
-        }
-        if (onMainUIReady) {
-            ipcMain.removeListener("siyuan-ready-to-show", onMainUIReady);
-        }
-        closeBootWindow();
-    };
 
     if (resetToCenter) {
         currentWindow.center();
@@ -1075,17 +950,12 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
         currentWindow.setPosition(x, y);
     }
     currentWindow.webContents.userAgent = "SiYuan/" + appVer + " https://b3log.org/siyuan Electron " + currentWindow.webContents.userAgent;
-    navigationDiagnostics.prepareTarget(getServer(currentKernelPort) + "/stage/build/app/?v=" + Date.now());
 
     // 加载主界面。setProxy 用超时兜底包装：Electron 在某些系统代理配置下 session.setProxy 可能永久
     // pending（既不 resolve 也不 reject），会导致 loadURL 永不执行，主窗口卡在启动页无法显示。
     // 这里无论 setProxy 是否完成，最多等待 5 秒后强制加载主界面。
     const loadMainURL = () => {
-        void navigationDiagnostics.loadTarget().catch((error) => {
-            writeLog("load main UI failed: " + error.message);
-            cleanupBeforeReady();
-            acknowledgeLaunch({state: "rejected", reason: `main UI load failed: ${error.message}`});
-        });
+        currentWindow.loadURL(getServer(currentKernelPort) + "/stage/build/app/?v=" + Date.now());
     };
     net.fetch(getServer(currentKernelPort) + "/api/system/getNetwork", {method: "POST"}).then((response) => {
         return response.json();
@@ -1165,11 +1035,19 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
 
     // 主界面事件监听
     currentWindow.once("ready-to-show", () => {
-        presentMainWindow(currentWindow, {
-            openAsHidden: isOpenAsHidden(),
-            maximized: windowState.isMaximized,
-        });
-        closeBootWindow();
+        if (isOpenAsHidden()) {
+            currentWindow.minimize();
+        } else {
+            currentWindow.show();
+            if (windowState.isMaximized) {
+                currentWindow.maximize();
+            } else {
+                currentWindow.unmaximize();
+            }
+        }
+        if (bootWindow && !bootWindow.isDestroyed()) {
+            bootWindow.destroy();
+        }
         createOrShowMagiWindow(currentWindow);
     });
     // 菜单
@@ -1202,55 +1080,35 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
     });
     workspaces.push({
         browserWindow: currentWindow,
-        webContentsId: currentWebContentsId,
+        webContentsId: currentWindow.webContents.id,
         port: currentKernelPort,
-        workspaceDir: requestedWorkspace,
-        startupDiagnostics,
     });
     // loadURL 后设置超时兜底：前端 app bundle 加载或初始化异常导致 siyuan-ready-to-show 迟迟不发时，
     // 强制销毁 boot 窗口并显示主窗口，避免永久卡在启动页
-    readyToShowTimeout = setTimeout(() => {
-        navigationDiagnostics.recordReadyTimeout();
-        const hasBootWindow = attachedBootWindow ?
-            !attachedBootWindow.isDestroyed() : Boolean(bootWindow && !bootWindow.isDestroyed());
-        if (hasBootWindow) {
+    const readyToShowTimeout = setTimeout(() => {
+        if (bootWindow && !bootWindow.isDestroyed()) {
             if (!currentWindow.isDestroyed()) {
                 writeLog("siyuan-ready-to-show timeout, force showing main window");
                 currentWindow.show();
             }
+            bootWindow.destroy();
         }
-        cleanupBeforeReady();
-        acknowledgeLaunch({state: "rejected", reason: "main UI did not signal readiness within 60000ms"});
     }, 60000);
-    onMainUIReady = (event) => {
-        if (event.sender.id !== currentWebContentsId) {
-            return;
+    ipcMain.once("siyuan-ready-to-show", () => {
+        clearTimeout(readyToShowTimeout); // 正常收到信号则取消超时兜底
+        if (isOpenAsHidden()) {
+            currentWindow.minimize();
+        } else {
+            currentWindow.show();
+            if (windowState.isMaximized) {
+                currentWindow.maximize();
+            } else {
+                currentWindow.unmaximize();
+            }
         }
-        navigationDiagnostics.recordRendererReady();
-        cleanupBeforeReady();
-        presentMainWindow(currentWindow, {
-            openAsHidden: isOpenAsHidden(),
-            maximized: windowState.isMaximized,
-        });
-        acknowledgeLaunch({
-            state: "ready",
-            disposition: "created",
-            port: Number(currentKernelPort),
-            workspace: requestedWorkspace,
-        });
-    };
-    ipcMain.on("siyuan-ready-to-show", onMainUIReady);
-    currentWindow.webContents.once("render-process-gone", (_event, details) => {
-        cleanupBeforeReady();
-        acknowledgeLaunch({
-            state: "rejected",
-            reason: `renderer exited before readiness: ${details.reason}`,
-        });
-    });
-    currentWindow.once("closed", () => {
-        navigationDiagnostics.dispose();
-        cleanupBeforeReady();
-        acknowledgeLaunch({state: "rejected", reason: "main UI window closed before readiness"});
+        if (bootWindow && !bootWindow.isDestroyed()) {
+            bootWindow.destroy();
+        }
     });
 };
 
@@ -1341,305 +1199,209 @@ const createOrShowMagiWindow = (mainWindow) => {
     magiWindows.set(mainWindow.id, magiWindow);
 };
 
-const initKernelOnce = (workspace, port, lang, safeMode, attachKernel = false) => {
-    let startupBootWindow;
-    let discardStartupBootWindow = () => undefined;
-    return new Promise((resolve) => {
-        void (async () => {
-            try {
-                try {
-                    assertAttachedKernelOptions({attachKernel, workspace, port});
-                } catch (error) {
-                    writeLog("invalid attached Kernel options: " + error.message);
-                    showErrorWindow("连接开发内核失败", "Failed to attach development Kernel", `<div>${error.message}</div>`);
-                    resolve(false);
-                    return;
-                }
-                let currentKernelPort = attachKernel ? String(port) : kernelPort;
-                startupBootWindow = new BrowserWindow({
-                    show: false,
-                    width: Math.floor(screen.getPrimaryDisplay().size.width / 2),
-                    height: Math.floor(screen.getPrimaryDisplay().workAreaSize.height / 2),
-                    frame: false,
-                    backgroundColor: "#1e1e1e",
-                    resizable: false,
-                    icon: path.join(appDir, "stage", "icon-large.png"),
-                    webPreferences: {
-                        webSecurity: false,
-                    },
-                });
-                discardStartupBootWindow = () => {
-                    if (startupBootWindow && !startupBootWindow.isDestroyed()) {
-                        startupBootWindow.destroy();
-                    }
-                    if (attachedBootWindows.get(String(currentKernelPort)) === startupBootWindow) {
-                        attachedBootWindows.delete(String(currentKernelPort));
-                    }
-                    if (bootWindow === startupBootWindow) {
-                        bootWindow = undefined;
-                    }
-                };
-                if (!attachKernel) {
-                    bootWindow = startupBootWindow;
-                }
-                let bootIndex = path.join(appDir, "app", "electron", "boot.html");
-                if (isDevEnv) {
-                    bootIndex = path.join(appDir, "electron", "boot.html");
-                }
-                await startupBootWindow.loadFile(bootIndex, {query: {v: appVer, port: currentKernelPort}});
-                if (openAsHidden) {
-                    startupBootWindow.minimize();
-                } else {
-                    startupBootWindow.show();
-                }
+const initKernel = (workspace, port, lang, safeMode) => {
+    return new Promise(async (resolve) => {
+        bootWindow = new BrowserWindow({
+            show: false,
+            width: Math.floor(screen.getPrimaryDisplay().size.width / 2),
+            height: Math.floor(screen.getPrimaryDisplay().workAreaSize.height / 2),
+            frame: false,
+            backgroundColor: "#1e1e1e",
+            resizable: false,
+            icon: path.join(appDir, "stage", "icon-large.png"),
+            webPreferences: {
+                webSecurity: false,
+            },
+        });
+        let bootIndex = path.join(appDir, "app", "electron", "boot.html");
+        if (isDevEnv) {
+            bootIndex = path.join(appDir, "electron", "boot.html");
+        }
+        bootWindow.loadFile(bootIndex, {query: {v: appVer, port: kernelPort}});
+        if (openAsHidden) {
+            bootWindow.minimize();
+        } else {
+            bootWindow.show();
+        }
 
-                const kernelName = "win32" === process.platform ? "SiYuan-Kernel.exe" : "SiYuan-Kernel";
-                const kernelPath = path.join(appDir, "kernel", kernelName);
-                if (!attachKernel && !fs.existsSync(kernelPath)) {
-                    showErrorWindow("内核程序丢失", "Kernel program is missing", `<div>内核程序丢失，请重新安装思源，并将思源内核程序加入杀毒软件信任列表。</div><div>The kernel program is not found, please reinstall SiYuan and add SiYuan Kernel prgram into the trust list of your antivirus software.</div><div><i>${kernelPath}</i></div>`);
-                    discardStartupBootWindow();
-                    resolve(false);
-                    return;
-                }
+        const kernelName = "win32" === process.platform ? "SiYuan-Kernel.exe" : "SiYuan-Kernel";
+        const kernelPath = path.join(appDir, "kernel", kernelName);
+        if (!fs.existsSync(kernelPath)) {
+            showErrorWindow("内核程序丢失", "Kernel program is missing", `<div>内核程序丢失，请重新安装思源，并将思源内核程序加入杀毒软件信任列表。</div><div>The kernel program is not found, please reinstall SiYuan and add SiYuan Kernel prgram into the trust list of your antivirus software.</div><div><i>${kernelPath}</i></div>`);
+            bootWindow.destroy();
+            resolve(false);
+            return;
+        }
 
-                if (!attachKernel && (!isDevEnv || workspaces.length > 0)) {
-                    if (port && "" !== port) {
-                        kernelPort = port;
-                    } else {
-                        const getAvailablePort = () => {
-                            // https://gist.github.com/mikeal/1840641
-                            return new Promise((portResolve, portReject) => {
-                                const server = gNet.createServer();
-                                server.on("error", error => {
-                                    writeLog(error);
-                                    kernelPort = "";
-                                    portReject();
-                                });
-                                server.listen(0, () => {
-                                    kernelPort = server.address().port;
-                                    server.close(() => portResolve(kernelPort));
-                                });
-                            });
-                        };
-                        await getAvailablePort();
-                    }
-                }
-                if (!attachKernel) {
-                    currentKernelPort = kernelPort;
-                }
-                writeLog("got kernel port [" + currentKernelPort + "]");
-                if (!currentKernelPort) {
-                    discardStartupBootWindow();
-                    resolve(false);
-                    return;
-                }
-                if (attachKernel) {
-                    const conflictingWorkspace = workspaces.find((item) => item.port.toString() === currentKernelPort.toString() &&
-                        item.workspaceDir && !sameWorkspacePath(item.workspaceDir, workspace));
-                    if (conflictingWorkspace) {
-                        writeLog(`rejected attached Kernel port ${currentKernelPort} for a different workspace`);
-                        discardStartupBootWindow();
-                        resolve(false);
-                        return;
-                    }
-                    attachedBootWindows.set(String(currentKernelPort), startupBootWindow);
-                }
-                const spawnKernel = shouldSpawnKernel({attachKernel, isDevEnv, workspaceCount: workspaces.length});
-                const cmds = ["serve", "--port", currentKernelPort, "--wd", appDir, "--attach-ui"];
-                if (isDevEnv) {
-                    cmds.push("--mode", "forge");
-                }
-                if (workspace && "" !== workspace) {
-                    cmds.push("--workspace", workspace);
-                }
-                if (lang && "" !== lang) {
-                    cmds.push("--lang", lang);
-                }
-                if (safeMode) {
-                    cmds.push("--safe-mode", "true");
-                }
-                const kernelAction = attachKernel ? "attaching to externally managed kernel" :
-                    spawnKernel ? "booting kernel" : "using development kernel";
-                let cmd = `ui version [${appVer}], ${kernelAction} [${kernelPath} ${cmds.join(" ")}]`;
-                writeLog(cmd);
-                if (spawnKernel) {
-                    const kernelProcess = childProcess.spawn(kernelPath, cmds, {
-                        detached: false, // 桌面端内核进程不再以游离模式拉起 https://github.com/siyuan-note/siyuan/issues/6336
-                        stdio: "ignore",
-                    },);
-
-                    const kernelPortKey = currentKernelPort.toString();
-                    kernelProcesses.set(kernelPortKey, kernelProcess);
-                    writeLog("booted kernel process [pid=" + kernelProcess.pid + ", port=" + currentKernelPort + "]");
-                    kernelProcess.on("close", (code, signal) => {
-                        if (kernelProcesses.get(kernelPortKey) === kernelProcess) {
-                            kernelProcesses.delete(kernelPortKey);
-                        }
-                        const expectedExit = expectedKernelExitPorts.delete(kernelPortKey);
-                        writeLog(`kernel [pid=${kernelProcess.pid}, port=${currentKernelPort}] exited with code [${code}], signal [${signal}], expected [${expectedExit}]`);
-                        if (0 !== code && !expectedExit) {
-                            let errorWindowId;
-                            switch (code) {
-                                case 20:
-                                    errorWindowId = showErrorWindow("数据库不可用", "The database is unavailable", "<div>无法访问数据库文件，请查看 工作空间/temp/siyuan.log 获取详细报错信息</div><div>Cannot access the database file. Please check workspace/temp/siyuan.log for detailed error information.</div>");
-                                    break;
-                                case 21:
-                                    errorWindowId = showErrorWindow("监听端口 " + currentKernelPort + " 失败", "Failed to listen to port " + currentKernelPort, "<div>监听 " + currentKernelPort + " 端口失败，请确保程序拥有网络权限并不受防火墙和杀毒软件阻止。</div><div>Failed to listen to port " + currentKernelPort + ", please make sure the program has network permissions and is not blocked by firewalls and antivirus software.</div>");
-                                    break;
-                                case 24: // 工作空间已被锁定，尝试切换到第一个打开的工作空间
-                                    if (workspaces && 0 < workspaces.length) {
-                                        showWindow(workspaces[0].browserWindow);
-                                    }
-
-                                    errorWindowId = showErrorWindow("工作空间已被锁定", "The workspace is locked", "<div>该工作空间正在被使用，请尝试在任务管理器中结束 SiYuan-Kernel 进程或者重启操作系统后再启动思源。</div><div>The workspace is being used, please try to end the SiYuan-Kernel process in the task manager or restart the operating system and then start SiYuan.</div>");
-                                    break;
-                                case 25:
-                                    errorWindowId = showErrorWindow("初始化工作空间失败", "Failed to create workspace directory", "<div>工作空间文件夹权限不足，请查看 工作空间/temp/siyuan.log 获取详细报错信息</div><div>Insufficient permissions for the workspace folder. Please check workspace/temp/siyuan.log for detailed error information.</div>");
-                                    break;
-                                case 26:
-                                    errorWindowId = showErrorWindow("已成功避免潜在的数据损坏", "Successfully avoid potential data corruption", "<div>工作空间下的文件正在被第三方软件（比如同步网盘、杀毒软件等）打开占用，继续使用会导致数据损坏，思源内核已经安全退出。</div><div>请将工作空间移动到其他路径后再打开，停止同步盘同步工作空间，并将工作空间加入杀毒软件信任列表。如果以上步骤无法解决问题，请参考<a href=\"https://ld246.com/article/1684586140917\" target=\"_blank\">这里</a>或者<a href=\"https://ld246.com/article/1649901726096\" target=\"_blank\">发帖</a>寻求帮助。</div><div>The files in the workspace are being opened and occupied by third-party software (such as synchronized network disk, antivirus software, etc.), continuing to use it will cause data corruption, and the SiYuan Kernel is already safe shutdown.</div><div>Move the workspace to another path and open it again, stop the network disk to sync the workspace, and add the workspace to the antivirus software trust list. If the above steps do not resolve the issue, please look for help or report bugs <a href=\"https://liuyun.io/article/1686530886208\" target=\"_blank\">here</a>.</div>", "🚒");
-                                    break;
-                                case 0:
-                                    break;
-                                default:
-                                    errorWindowId = showErrorWindow("内核因未知原因退出", "The kernel exited for unknown reasons", `<div>思源内核因未知原因退出 [code=${code}]，请尝试重启操作系统后再启动思源。如果该问题依然发生，请检查杀毒软件是否阻止思源内核启动。</div><div>SiYuan Kernel exited for unknown reasons [code=${code}], please try to reboot your operating system and then start SiYuan again. If occurs this problem still, please check your anti-virus software whether kill the SiYuan Kernel.</div>`);
-                                    break;
-                            }
-
-                            exitApp(currentKernelPort, errorWindowId);
-                            discardStartupBootWindow();
-                            resolve(false);
-                        }
+        if (!isDevEnv || workspaces.length > 0) {
+            if (port && "" !== port) {
+                kernelPort = port;
+            } else {
+                const getAvailablePort = () => {
+                    // https://gist.github.com/mikeal/1840641
+                    return new Promise((portResolve, portReject) => {
+                        const server = gNet.createServer();
+                        server.on("error", error => {
+                            writeLog(error);
+                            kernelPort = "";
+                            portReject();
+                        });
+                        server.listen(0, () => {
+                            kernelPort = server.address().port;
+                            server.close(() => portResolve(kernelPort));
+                        });
                     });
-                }
+                };
+                await getAvailablePort();
+            }
+        }
+        writeLog("got kernel port [" + kernelPort + "]");
+        if (!kernelPort) {
+            bootWindow.destroy();
+            resolve(false);
+            return;
+        }
+        const currentKernelPort = kernelPort;
+        const cmds = ["serve", "--port", currentKernelPort, "--wd", appDir, "--attach-ui"];
+        if (isDevEnv) {
+            cmds.push("--mode", "forge");
+        }
+        if (workspace && "" !== workspace) {
+            cmds.push("--workspace", workspace);
+        }
+        if (lang && "" !== lang) {
+            cmds.push("--lang", lang);
+        }
+        if (safeMode) {
+            cmds.push("--safe-mode", "true");
+        }
+        let cmd = `ui version [${appVer}], booting kernel [${kernelPath} ${cmds.join(" ")}]`;
+        writeLog(cmd);
+        if (!isDevEnv || workspaces.length > 0) {
+            const kernelProcess = childProcess.spawn(kernelPath, cmds, {
+                detached: false, // 桌面端内核进程不再以游离模式拉起 https://github.com/siyuan-note/siyuan/issues/6336
+                stdio: "ignore",
+            },);
 
-                let apiData;
-                let count = 0;
-                writeLog("checking kernel version");
-                for (; ;) {
-                    try {
-                        const apiResult = await net.fetch(getServer(currentKernelPort) + "/api/system/version");
-                        apiData = await apiResult.json();
-                        break;
-                    } catch (e) {
-                        writeLog("get kernel version failed: " + e.message);
-                        if (14 < ++count) {
-                            writeLog("get kernel ver failed");
-                            showErrorWindow("获取内核服务端口失败", "Failed to Obtain Kernel Service Port", "<div>获取内核服务端口失败，请确保程序拥有网络权限并不受防火墙和杀毒软件阻止。</div><div>Failed to obtain kernel service port. Please ensure SiYuan has network permissions and is not blocked by firewalls or antivirus software.</div>");
-                            discardStartupBootWindow();
-                            resolve(false);
-                            return;
-                        }
-                        await sleep(500);
-                    }
+            const kernelPortKey = currentKernelPort.toString();
+            kernelProcesses.set(kernelPortKey, kernelProcess);
+            writeLog("booted kernel process [pid=" + kernelProcess.pid + ", port=" + currentKernelPort + "]");
+            kernelProcess.on("close", (code, signal) => {
+                if (kernelProcesses.get(kernelPortKey) === kernelProcess) {
+                    kernelProcesses.delete(kernelPortKey);
                 }
+                const expectedExit = expectedKernelExitPorts.delete(kernelPortKey);
+                writeLog(`kernel [pid=${kernelProcess.pid}, port=${currentKernelPort}] exited with code [${code}], signal [${signal}], expected [${expectedExit}]`);
+                if (0 !== code && !expectedExit) {
+                    let errorWindowId;
+                    switch (code) {
+                        case 20:
+                            errorWindowId = showErrorWindow("数据库不可用", "The database is unavailable", "<div>无法访问数据库文件，请查看 工作空间/temp/siyuan.log 获取详细报错信息</div><div>Cannot access the database file. Please check workspace/temp/siyuan.log for detailed error information.</div>");
+                            break;
+                        case 21:
+                            errorWindowId = showErrorWindow("监听端口 " + currentKernelPort + " 失败", "Failed to listen to port " + currentKernelPort, "<div>监听 " + currentKernelPort + " 端口失败，请确保程序拥有网络权限并不受防火墙和杀毒软件阻止。</div><div>Failed to listen to port " + currentKernelPort + ", please make sure the program has network permissions and is not blocked by firewalls and antivirus software.</div>");
+                            break;
+                        case 24: // 工作空间已被锁定，尝试切换到第一个打开的工作空间
+                            if (workspaces && 0 < workspaces.length) {
+                                showWindow(workspaces[0].browserWindow);
+                            }
 
-                if (0 === apiData.code) {
-                    writeLog("got kernel version [" + apiData.data + "]");
-                    if (!attachKernel && !isDevEnv && apiData.data !== appVer) {
-                        writeLog(`kernel [${apiData.data}] is running, shutdown it now and then start kernel [${appVer}]`);
-                        requestKernelExit(currentKernelPort);
-                        discardStartupBootWindow();
-                        resolve(false);
-                    } else {
-                        let progressing = false;
-                        const bootShowStart = Date.now();
-                        // 启动超时兜底，防止内核异常时永久卡在 boot 轮询。数据同步、首次全量索引重建、
-                        // 数据库版本变更触发的全表重建都发生在 SetBooted() 之前，会计入此循环，故给足余量
-                        const bootTimeout = 300000;
-                        while (!progressing) {
-                            if (Date.now() - bootShowStart > bootTimeout) {
-                                writeLog("boot progress timeout after " + bootTimeout + "ms, exiting boot");
-                                showErrorWindow("启动超时", "Boot timeout",
-                                    "<div>内核启动超时，请查看 工作空间/temp/siyuan.log 获取详细报错信息，或尝试重启思源。</div>" +
-                                    "<div>Kernel boot timed out. Please check workspace/temp/siyuan.log for details, or try restarting SiYuan.</div>");
-                                if (!attachKernel) {
-                                    requestKernelExit(currentKernelPort);
-                                }
-                                discardStartupBootWindow();
-                                resolve(false);
-                                progressing = true;
-                                break;
-                            }
-                            try {
-                                const progressResult = await net.fetch(getServer(currentKernelPort) + "/api/system/bootProgress");
-                                const progressData = await progressResult.json();
-                                if (progressData.data.progress >= 100) {
-                                    // 内核完成后等待动画快进收尾（200ms）再进入主窗口
-                                    await sleep(200);
-                                    resolve(currentKernelPort);
-                                    progressing = true;
-                                } else {
-                                    await sleep(100);
-                                }
-                            } catch (e) {
-                                writeLog("get boot progress failed: " + e.message);
-                                if (!attachKernel) {
-                                    requestKernelExit(currentKernelPort);
-                                }
-                                discardStartupBootWindow();
-                                resolve(false);
-                                progressing = true;
-                            }
-                        }
+                            errorWindowId = showErrorWindow("工作空间已被锁定", "The workspace is locked", "<div>该工作空间正在被使用，请尝试在任务管理器中结束 SiYuan-Kernel 进程或者重启操作系统后再启动思源。</div><div>The workspace is being used, please try to end the SiYuan-Kernel process in the task manager or restart the operating system and then start SiYuan.</div>");
+                            break;
+                        case 25:
+                            errorWindowId = showErrorWindow("初始化工作空间失败", "Failed to create workspace directory", "<div>工作空间文件夹权限不足，请查看 工作空间/temp/siyuan.log 获取详细报错信息</div><div>Insufficient permissions for the workspace folder. Please check workspace/temp/siyuan.log for detailed error information.</div>");
+                            break;
+                        case 26:
+                            errorWindowId = showErrorWindow("已成功避免潜在的数据损坏", "Successfully avoid potential data corruption", "<div>工作空间下的文件正在被第三方软件（比如同步网盘、杀毒软件等）打开占用，继续使用会导致数据损坏，思源内核已经安全退出。</div><div>请将工作空间移动到其他路径后再打开，停止同步盘同步工作空间，并将工作空间加入杀毒软件信任列表。如果以上步骤无法解决问题，请参考<a href=\"https://ld246.com/article/1684586140917\" target=\"_blank\">这里</a>或者<a href=\"https://ld246.com/article/1649901726096\" target=\"_blank\">发帖</a>寻求帮助。</div><div>The files in the workspace are being opened and occupied by third-party software (such as synchronized network disk, antivirus software, etc.), continuing to use it will cause data corruption, and the SiYuan Kernel is already safe shutdown.</div><div>Move the workspace to another path and open it again, stop the network disk to sync the workspace, and add the workspace to the antivirus software trust list. If the above steps do not resolve the issue, please look for help or report bugs <a href=\"https://liuyun.io/article/1686530886208\" target=\"_blank\">here</a>.</div>", "🚒");
+                            break;
+                        case 0:
+                            break;
+                        default:
+                            errorWindowId = showErrorWindow("内核因未知原因退出", "The kernel exited for unknown reasons", `<div>思源内核因未知原因退出 [code=${code}]，请尝试重启操作系统后再启动思源。如果该问题依然发生，请检查杀毒软件是否阻止思源内核启动。</div><div>SiYuan Kernel exited for unknown reasons [code=${code}], please try to reboot your operating system and then start SiYuan again. If occurs this problem still, please check your anti-virus software whether kill the SiYuan Kernel.</div>`);
+                            break;
                     }
-                } else {
-                    writeLog(`get kernel version failed: ${apiData.code}, ${apiData.msg}`);
-                    discardStartupBootWindow();
+
+                    exitApp(currentKernelPort, errorWindowId);
+                    bootWindow.destroy();
                     resolve(false);
                 }
-            } catch (error) {
-                writeLog("Kernel initialization failed: " + error.message);
-                discardStartupBootWindow();
-                resolve(false);
+            });
+        }
+
+        let apiData;
+        let count = 0;
+        writeLog("checking kernel version");
+        for (; ;) {
+            try {
+                const apiResult = await net.fetch(getServer(currentKernelPort) + "/api/system/version");
+                apiData = await apiResult.json();
+                break;
+            } catch (e) {
+                writeLog("get kernel version failed: " + e.message);
+                if (14 < ++count) {
+                    writeLog("get kernel ver failed");
+                    showErrorWindow("获取内核服务端口失败", "Failed to Obtain Kernel Service Port", "<div>获取内核服务端口失败，请确保程序拥有网络权限并不受防火墙和杀毒软件阻止。</div><div>Failed to obtain kernel service port. Please ensure SiYuan has network permissions and is not blocked by firewalls or antivirus software.</div>");
+                    bootWindow.destroy();
+                    resolve(false);
+                    return;
+                }
+                await sleep(500);
             }
-        })();
+        }
+
+        if (0 === apiData.code) {
+            writeLog("got kernel version [" + apiData.data + "]");
+            if (!isDevEnv && apiData.data !== appVer) {
+                writeLog(`kernel [${apiData.data}] is running, shutdown it now and then start kernel [${appVer}]`);
+                requestKernelExit(currentKernelPort);
+                bootWindow.destroy();
+                resolve(false);
+            } else {
+                let progressing = false;
+                const bootShowStart = Date.now();
+                // 启动超时兜底，防止内核异常时永久卡在 boot 轮询。数据同步、首次全量索引重建、
+                // 数据库版本变更触发的全表重建都发生在 SetBooted() 之前，会计入此循环，故给足余量
+                const bootTimeout = 300000;
+                while (!progressing) {
+                    if (Date.now() - bootShowStart > bootTimeout) {
+                        writeLog("boot progress timeout after " + bootTimeout + "ms, exiting boot");
+                        showErrorWindow("启动超时", "Boot timeout",
+                            "<div>内核启动超时，请查看 工作空间/temp/siyuan.log 获取详细报错信息，或尝试重启思源。</div>" +
+                            "<div>Kernel boot timed out. Please check workspace/temp/siyuan.log for details, or try restarting SiYuan.</div>");
+                        requestKernelExit(currentKernelPort);
+                        bootWindow.destroy();
+                        resolve(false);
+                        progressing = true;
+                        break;
+                    }
+                    try {
+                        const progressResult = await net.fetch(getServer(currentKernelPort) + "/api/system/bootProgress");
+                        const progressData = await progressResult.json();
+                        if (progressData.data.progress >= 100) {
+                            // 内核完成后等待动画快进收尾（200ms）再进入主窗口
+                            await sleep(200);
+                            resolve(currentKernelPort);
+                            progressing = true;
+                        } else {
+                            await sleep(100);
+                        }
+                    } catch (e) {
+                        writeLog("get boot progress failed: " + e.message);
+                        requestKernelExit(currentKernelPort);
+                        bootWindow.destroy();
+                        resolve(false);
+                        progressing = true;
+                    }
+                }
+            }
+        } else {
+            writeLog(`get kernel version failed: ${apiData.code}, ${apiData.msg}`);
+            resolve(false);
+        }
     });
 };
 
-const initKernel = (workspace, port, lang, safeMode, attachKernel = false) => {
-    if (!attachKernel) {
-        return initKernelOnce(workspace, port, lang, safeMode, false);
-    }
-    const resolvedWorkspace = path.resolve(typeof workspace === "string" ? workspace : "");
-    const normalizedWorkspace = process.platform === "win32" ? resolvedWorkspace.toLowerCase() : resolvedWorkspace;
-    const portKey = String(port);
-    const existingPortReservation = attachedKernelPortReservations.get(portKey);
-    if (existingPortReservation) {
-        if (existingPortReservation.workspace !== normalizedWorkspace) {
-            writeLog(`rejected attached Kernel startup reservation conflict [workspace=${workspace}, port=${port}]`);
-            return Promise.resolve(false);
-        }
-        writeLog(`reusing attached Kernel startup reservation [workspace=${workspace}, port=${port}]`);
-        return existingPortReservation.promise;
-    }
-    const conflictingWorkspace = workspaces.find((item) => item.port.toString() === portKey &&
-        item.workspaceDir && !sameWorkspacePath(item.workspaceDir, workspace));
-    if (conflictingWorkspace) {
-        writeLog(`rejected attached Kernel startup for an active different workspace [workspace=${workspace}, port=${port}]`);
-        return Promise.resolve(false);
-    }
-    const key = `${normalizedWorkspace}\u0000${port}`;
-    const existing = attachedKernelStarts.get(key);
-    if (existing) {
-        writeLog(`reusing attached Kernel startup [workspace=${workspace}, port=${port}]`);
-        return existing;
-    }
-    const startup = initKernelOnce(workspace, port, lang, safeMode, true).finally(() => {
-        if (attachedKernelStarts.get(key) === startup) {
-            attachedKernelStarts.delete(key);
-        }
-        const reservation = attachedKernelPortReservations.get(portKey);
-        if (reservation?.promise === startup) {
-            attachedKernelPortReservations.delete(portKey);
-        }
-    });
-    attachedKernelStarts.set(key, startup);
-    attachedKernelPortReservations.set(portKey, {workspace: normalizedWorkspace, promise: startup});
-    return startup;
-};
-
-app.whenReady().then(async () => {
+app.whenReady().then(() => {
     // Trust self-signed TLS certificates for local HTTPS server
     session.defaultSession.setCertificateVerifyProc((request, callback) => {
         if (request.hostname === "127.0.0.1" || request.hostname === "localhost") {
@@ -1648,37 +1410,6 @@ app.whenReady().then(async () => {
             callback(-3); // default Chromium handling
         }
     });
-
-    if (attachKernelArgument.error) {
-        writeLog("invalid attach Kernel argument: " + attachKernelArgument.error);
-        showErrorWindow("连接开发内核失败", "Failed to attach development Kernel", `<div>${attachKernelArgument.error}</div>`);
-        acknowledgeForgeLaunch(initialForgeLaunchContext, {state: "rejected", reason: attachKernelArgument.error});
-        return;
-    }
-    if (attachKernelArgument.enabled && initialForgeLaunchContext.error) {
-        writeLog("invalid Forge launch context: " + initialForgeLaunchContext.error);
-        showErrorWindow("连接开发内核失败", "Failed to attach development Kernel", `<div>${initialForgeLaunchContext.error}</div>`);
-        acknowledgeForgeLaunch(initialForgeLaunchContext, {state: "rejected", reason: initialForgeLaunchContext.error});
-        return;
-    }
-    if (attachKernelArgument.enabled) {
-        try {
-            await ensureForgeUIHostControl();
-        } catch (error) {
-            writeLog("Forge UI Host startup failed: " + error.message);
-            showErrorWindow("连接工坊界面宿主失败", "Failed to connect Forge UI Host", `<div>${error.message}</div>`);
-            acknowledgeForgeLaunch(initialForgeLaunchContext, {
-                state: "rejected",
-                reason: `UI Host startup failed: ${error.message}`,
-            });
-            return;
-        }
-        try {
-            await announceForgeUIHost(initialForgeLaunchContext);
-        } catch (error) {
-            writeLog("Forge UI Host early registration failed: " + error.message);
-        }
-    }
 
     // 渲染进程崩溃监听，只有工作空间主窗口的非预期崩溃才会触发安全模式。
     app.on("render-process-gone", (event, webContents, details) => {
@@ -2225,7 +1956,7 @@ app.whenReady().then(async () => {
         if (!foundWorkspace) {
             initKernel(data.workspace, "", "").then((startedKernelPort) => {
                 if (startedKernelPort) {
-                    initMainWindow(startedKernelPort, undefined, data.workspace);
+                    initMainWindow(startedKernelPort);
                 }
             });
         }
@@ -2382,12 +2113,12 @@ app.whenReady().then(async () => {
         ipcMain.on("siyuan-first-init", (event, data) => {
             initKernel(data.workspace, "", data.lang).then((startedKernelPort) => {
                 if (startedKernelPort) {
-                    initMainWindow(startedKernelPort, undefined, data.workspace);
+                    initMainWindow(startedKernelPort);
                 }
             });
             firstOpenWindow.destroy();
         });
-    } else if (appCrashInfo && !attachKernelArgument.enabled) {
+    } else if (appCrashInfo) {
         // 上次工作空间渲染进程崩溃，弹出安全模式选择窗口。
         const safeModeWindow = new BrowserWindow({
             width: Math.floor(screen.getPrimaryDisplay().size.width * 0.55),
@@ -2433,7 +2164,7 @@ app.whenReady().then(async () => {
             initKernel(data.workspace, "", data.lang, data.safeMode).then((startedKernelPort) => {
                 if (startedKernelPort) {
                     clearAppCrashInfo();
-                    initMainWindow(startedKernelPort, undefined, data.workspace);
+                    initMainWindow(startedKernelPort);
                 }
             });
             safeModeWindow.destroy();
@@ -2473,11 +2204,11 @@ app.whenReady().then(async () => {
         missingWorkspaceWindow.show();
         // 选择工作空间后启动内核
         ipcMain.on("siyuan-select-workspace", (event, data) => {
-                initKernel(data.workspace, "", data.lang).then((startedKernelPort) => {
-                    if (startedKernelPort) {
-                        initMainWindow(startedKernelPort, undefined, data.workspace);
-                    }
-                });
+            initKernel(data.workspace, "", data.lang).then((startedKernelPort) => {
+                if (startedKernelPort) {
+                    initMainWindow(startedKernelPort);
+                }
+            });
             missingWorkspaceWindow.destroy();
         });
     } else {
@@ -2497,18 +2228,9 @@ app.whenReady().then(async () => {
         if (lang) {
             writeLog("got arg [--lang=" + lang + "]");
         }
-        initKernel(workspace, port, lang, safeMode, attachKernelArgument.enabled).then((startedKernelPort) => {
+        initKernel(workspace, port, lang, safeMode).then((startedKernelPort) => {
             if (startedKernelPort) {
-                initMainWindow(
-                    startedKernelPort,
-                    attachKernelArgument.enabled ? initialForgeLaunchContext : undefined,
-                    workspace || "",
-                );
-            } else if (attachKernelArgument.enabled) {
-                acknowledgeForgeLaunch(initialForgeLaunchContext, {
-                    state: "rejected",
-                    reason: "attached Kernel did not become ready",
-                });
+                initMainWindow(startedKernelPort);
             }
         });
     }
@@ -2588,105 +2310,46 @@ app.on("open-url", async (event, url) => { // for macOS
     }
 });
 
-app.on("second-instance", async (event, argv, _workingDirectory, additionalData = {}) => {
+app.on("second-instance", (event, argv) => {
     writeLog("second-instance [" + argv + "]");
-    const secondForgeLaunchContext = additionalData.forgeLaunchContext || {};
-    const rejectSecondForgeLaunch = (reason) => {
-        acknowledgeForgeLaunch(secondForgeLaunchContext, {state: "rejected", reason});
-    };
-    if (additionalData.forgeLaunchError) {
-        writeLog("invalid second-instance Forge launch context: " + additionalData.forgeLaunchError);
-        rejectSecondForgeLaunch(additionalData.forgeLaunchError);
-        return;
-    }
     if (updateInstallPromise) {
         writeLog("ignored second instance while installing update");
-        rejectSecondForgeLaunch("Electron is installing an update");
         return;
     }
-    const secondAttachKernelArgument = resolveAttachKernelArgument(argv);
-    if (secondAttachKernelArgument.error) {
-        writeLog("invalid second-instance attach Kernel argument: " + secondAttachKernelArgument.error);
-        showErrorWindow("连接开发内核失败", "Failed to attach development Kernel", `<div>${secondAttachKernelArgument.error}</div>`);
-        rejectSecondForgeLaunch(secondAttachKernelArgument.error);
-        return;
-    }
-    let workspace = commandArgument(argv, "--workspace");
+    let workspace = argv.find((arg) => arg.startsWith("--workspace="));
     if (workspace) {
+        workspace = workspace.split("=")[1];
         writeLog("got second-instance arg [--workspace=" + workspace + "]");
     }
-    let port = commandArgument(argv, "--port");
+    let port = argv.find((arg) => arg.startsWith("--port="));
     if (port) {
+        port = port.split("=")[1];
         writeLog("got second-instance arg [--port=" + port + "]");
     } else {
         port = 0;
     }
-    let lang = commandArgument(argv, "--lang");
+    let lang = argv.find((arg) => arg.startsWith("--lang="));
     if (lang) {
+        lang = lang.split("=")[1];
         writeLog("got second-instance arg [--lang=" + lang + "]");
     } else {
         lang = "";
     }
-    try {
-        assertAttachedKernelOptions({
-            attachKernel: secondAttachKernelArgument.enabled,
-            workspace,
-            port,
-        });
-    } catch (error) {
-        writeLog("invalid second-instance attached Kernel options: " + error.message);
-        showErrorWindow("连接开发内核失败", "Failed to attach development Kernel", `<div>${error.message}</div>`);
-        rejectSecondForgeLaunch(error.message);
-        return;
-    }
-    if (secondAttachKernelArgument.enabled) {
-        try {
-            await ensureForgeUIHostControl();
-        } catch (error) {
-            writeLog("Forge UI Host startup failed for second instance: " + error.message);
-            rejectSecondForgeLaunch(`UI Host startup failed: ${error.message}`);
-            return;
-        }
-        try {
-            await announceForgeUIHost(secondForgeLaunchContext);
-        } catch (error) {
-            writeLog("Forge UI Host early registration failed for second instance: " + error.message);
-        }
-    }
     const foundWorkspace = workspaces.find(item => {
-        const browserWindow = item.browserWindow;
-        const webContents = browserWindow?.webContents;
-        const reusable = workspace && canReuseWorkspaceWindow({
-            attachKernel: secondAttachKernelArgument.enabled,
-            requestedPort: port,
-            currentPort: item.port,
-            requestedWorkspace: workspace,
-            currentWorkspace: item.workspaceDir,
-            windowURL: webContents && !webContents.isDestroyed() ? webContents.getURL() : "",
-            windowDestroyed: !browserWindow || browserWindow.isDestroyed(),
-            webContentsDestroyed: !webContents || webContents.isDestroyed(),
-        });
-        if (!reusable) {
-            return false;
+        if (item.browserWindow && !item.browserWindow.isDestroyed()) {
+            if (workspace && workspace === item.workspaceDir) {
+                showWindow(item.browserWindow);
+                return true;
+            }
         }
-        showWindow(browserWindow);
-        return true;
     });
     if (foundWorkspace) {
-        acknowledgeForgeLaunch(secondForgeLaunchContext, {
-            state: "ready",
-            disposition: "reused",
-            port: Number(foundWorkspace.port),
-            workspace,
-        });
         return;
     }
     if (workspace) {
-        initKernel(workspace, port, lang, false, secondAttachKernelArgument.enabled).then((startedKernelPort) => {
+        initKernel(workspace, port, lang).then((startedKernelPort) => {
             if (startedKernelPort) {
-                initMainWindow(startedKernelPort, secondForgeLaunchContext, workspace);
-            } else {
-                rejectSecondForgeLaunch("attached Kernel did not become ready");
+                initMainWindow(startedKernelPort);
             }
         });
         return;
