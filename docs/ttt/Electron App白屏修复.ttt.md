@@ -173,6 +173,16 @@ Magi 窗口 (id=3):  url=https://127.0.0.1:6806/stage/build/magi-app/?v=...  vis
 - **已按用户指示**：在 `initTransformerEnv` 顶部加 `return` 临时注释加载（`transformer.ts:205-208`），用于诊断验证。确认根因后需恢复。
 - **注意**：该文件 lint 本就超限（302/300 行），注释后 305 行——既有问题，非本次引入。
 
+**排除结论（用户验证 09:38）**：注释 transformers.js 加载后白屏依旧——transformers.js 与白屏无因果，**已恢复加载**（`transformer.ts` 还原）。至此排除清单：setProxy 前序、backgroundThrottling、transformers.js、代理（从未有据）、证书、端口、平台、编译产物。主窗口与 Magi 的差异仍在主窗口 webContents 自身。
+
+### 2026-08-14 09:53 事实收敛：console 失联（用户多次确认）
+
+用户多次确认：**主窗口 console 失联，输入指令后没有任何输出**；DevTools 也失联（Magi 的能打开，主窗口的不能）。
+
+**收敛结论**：主窗口渲染进程**从未执行任何 JS**（console 无输出 = JS 未跑），`did-start-navigation` 后 HTML 从未提交（无 did-frame-navigate）→ JS 无执行环境。五个事实一致：console 失联、DevTools 失联、无 did-frame-navigate、无 console error、渲染进程 alive 但 loading。
+
+**方向**：主帧 HTML 响应从未到达渲染进程，且主窗口 webContents 的 DevTools/console 通道同时失效——主窗口 webContents 在导航后处于「活着但通道全断」状态。Magi（同 session 同内核）正常。差异仍在主窗口 webContents 创建/初始化路径。
+
 ### 2026-08-13 17:18 启动日志逐条根因分析（`pnpm forge` 报错现场）
 
 用户提供 `pnpm forge` 启动日志，共 6 条关键记录，逐条确认来源与因果：

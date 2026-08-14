@@ -1160,6 +1160,7 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
     });
 
     // 白屏诊断：无条件打开 DevTools，并将渲染进程关键事件转主进程日志（只读埋点，不干预请求）。
+    writeLog("[renderer-nav] instrumentation installed for window id=" + currentWindow.id);
     try {
         currentWindow.webContents.openDevTools({mode: "bottom"});
     } catch (error) {
@@ -1176,29 +1177,36 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
         callback(true);
     });
     // 全事件埋点：捕获导航生命周期与渲染进程状态，区分「请求未回」/「渲染进程卡死」/「事件未触发」。
+    // 事件同时写入 startupDiagnostics.timeline，使 ui.windows.inspect 可读（不依赖终端日志）。
+    const recordDiagnostic = (type, details = {}) => {
+        writeLog(`[renderer-nav] ${type} ${JSON.stringify(details)}`);
+        if (startupDiagnostics && Array.isArray(startupDiagnostics.timeline)) {
+            startupDiagnostics.timeline.push({sequence: startupDiagnostics.timeline.length + 1, at: new Date().toISOString(), type, ...details});
+        }
+    };
     currentWindow.webContents.on("did-start-navigation", (details, url, isSameDocument, isMainFrame) => {
-        writeLog(`[renderer-nav] did-start-navigation url=${url} same=${isSameDocument} main=${isMainFrame}`);
+        recordDiagnostic("renderer-did-start-navigation", {url, same: isSameDocument, main: isMainFrame});
     });
     currentWindow.webContents.on("did-navigate", (_event, url, httpResponseCode, httpStatusText) => {
-        writeLog(`[renderer-nav] did-navigate url=${url} code=${httpResponseCode} text=${httpStatusText}`);
+        recordDiagnostic("renderer-did-navigate", {url, code: httpResponseCode, text: httpStatusText});
     });
     currentWindow.webContents.on("did-navigate-in-page", (_event, url, isMainFrame) => {
-        writeLog(`[renderer-nav] did-navigate-in-page url=${url} main=${isMainFrame}`);
+        recordDiagnostic("renderer-did-navigate-in-page", {url, main: isMainFrame});
     });
     currentWindow.webContents.on("did-stop-loading", () => {
-        writeLog("[renderer-nav] did-stop-loading");
+        recordDiagnostic("renderer-did-stop-loading", {});
     });
     currentWindow.webContents.on("did-fail-provisional-load", (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
-        writeLog(`[renderer-nav] did-fail-provisional-load code=${errorCode} desc=${errorDescription} url=${validatedURL} main=${isMainFrame}`);
+        recordDiagnostic("renderer-did-fail-provisional-load", {code: errorCode, desc: errorDescription, url: validatedURL, main: isMainFrame});
     });
     currentWindow.webContents.on("unresponsive", () => {
-        writeLog("[renderer-nav] unresponsive");
+        recordDiagnostic("renderer-unresponsive", {});
     });
     currentWindow.webContents.on("responsive", () => {
-        writeLog("[renderer-nav] responsive");
+        recordDiagnostic("renderer-responsive", {});
     });
     currentWindow.webContents.on("destroyed", () => {
-        writeLog("[renderer-nav] destroyed");
+        recordDiagnostic("renderer-destroyed", {});
     });
     if (windowState.isDevToolsOpened) {
         currentWindow.webContents.openDevTools({mode: "bottom"});

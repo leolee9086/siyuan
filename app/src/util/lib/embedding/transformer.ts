@@ -202,10 +202,6 @@ const logWebGPUInfo = async () => {
 // =========== Transformer 环境初始化 ===========
 
 const initTransformerEnv = async () => {
-    // TODO(诊断): transformers.js 动态加载被暂时注释，用于排查 Electron 主窗口白屏
-    // （加载大体积 WASM/模型可能阻塞渲染进程导致导航挂起、console/DevTools 失联）。
-    // 确认根因后需恢复此加载。
-    return;
     console.log("[Transformer] ========== 开始初始化Transformer环境 ==========");
 
     // 先检查WebGPU环境
