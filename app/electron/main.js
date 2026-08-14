@@ -106,10 +106,12 @@ remote.initialize();
 
 // Electron 相关文件夹名称改为 `SiYuan-Electron` https://github.com/siyuan-note/siyuan/issues/3349
 // getPath("userData") 会创建空的 SiYuan 目录，改为 app.getPath("appData")
-if ("1" === process.env.FORGE_FRESH_USER_DATA) {
-    // 白屏诊断实验（仅诊断期）：使用独立全新 userData 隔离持久 profile 状态。
-    // 路径固定，便于认证后二次启动验证完整 App；真实 profile 不受影响。验证后按结论移除或调整。
-    const freshUserData = path.join(app.getPath("temp"), "s-forge-white-screen-fresh");
+if ("1" === process.env.FORGE_FRESH_USER_DATA || process.env.FORGE_USER_DATA_DIR) {
+    // 白屏诊断实验（仅诊断期）：使用独立 userData 隔离/二分持久 profile 状态。
+    // FORGE_USER_DATA_DIR 指定任意路径；FORGE_FRESH_USER_DATA=1 用固定全新路径。
+    // 真实 profile 不受影响。验证后按结论移除或调整。
+    const freshUserData = process.env.FORGE_USER_DATA_DIR ||
+        path.join(app.getPath("temp"), "s-forge-white-screen-fresh");
     app.setPath("userData", freshUserData);
     console.log("[white-screen-probe] fresh userData [" + freshUserData + "]");
 } else {

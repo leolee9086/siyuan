@@ -37,6 +37,27 @@
 
 ## 🟢 近期计划
 
+### 2026-08-14 18:31 Test 3 结论：profile 持久状态确认为触发因素（硬件排除）
+
+**实验**：真实 `pnpm forge` 流程 + `FORGE_FRESH_USER_DATA=1`（userData 重定向到 `%TEMP%\s-forge-white-screen-fresh`，真实 profile 未动）。main.js 增加两个环境变量门控（仅诊断期）：`FORGE_FRESH_USER_DATA=1`（固定全新路径）与 `FORGE_USER_DATA_DIR=<path>`（任意路径，用于二分）；另有 `FORGE_DISABLE_GPU=1`（默认不生效，本次未使用）。
+
+**实证**（`ui.windows.inspect`，实例 `electron-28056`，18:28:40 启动，硬件加速开启——进程树含 GPU 进程）：
+
+```
+target-prepared → load-requested → did-start-navigation → did-redirect-navigation(302→/check-auth)
+→ did-frame-navigate(HTTP 200，主文档提交) → renderer-ready(认证页 siyuan-ready-to-show)
+→ dom-ready → did-finish-load，全程约 300ms
+```
+
+主窗口 `state=ready`、`loading=false`、URL=`/check-auth`（全新 profile 无认证 cookie，符合预期）；Magi 窗口正常创建。
+
+**结论**：
+- 同一代码、同一内核、同一 launcher 流程、同一硬件加速条件下，**全新 userData 完整提交、真实 userData（`%APPDATA%\Electron-Electron`）主帧挂死** → 触发因素是真实 profile 的持久状态，硬件/GPU 加速问题排除（GPU 进程在两种情况下都存在且加速开启）。
+- 挂起签名与「渲染进程主线程空闲阻塞（0 CPU）、首帧不画、DevTools/console 通道全断」一致，profile 状态通过某个未知环节在**首次导航提交前**卡死渲染进程。
+- **纠正**：此前口头推断「Electron 42.6.1 升级（07-13）与排查起点（08-13）时间上吻合」无依据（间隔一个月，且无白屏首现日期，app.log 最早只能回溯 08-13 06:00），作废，不再作为候选依据。
+
+**下一步（profile 状态二分定位）**：以真实 profile 副本做反向二分（每次移除一组状态，重启观察提交/挂起）。候选组按常见度排序：`GPUCache`/`DawnGraphiteCache`/`DawnWebGPUCache`（GPU 缓存）→ `Code Cache`/`Cache` → `Network`（Cookies/Network Persistent State/TransportSecurity）→ `Preferences`（含 DevTools 状态）→ `Local Storage`/`Session Storage`/`WebStorage`/`IndexedDB`。真实 profile 本体全程不动。
+
 ### 纠错与当前现场（2026-08-13 15:xx）
 
 - 当前仓库 HEAD 为 `6ce4088843`；Supervisor PID `39472`、Kernel PID `35148`、Electron 主进程 PID `19200` 均在运行。Kernel 活跃二进制记录的源码 revision 为 `06f6feac42`，不能把当前工作树 HEAD 与已运行进程版本混写。
