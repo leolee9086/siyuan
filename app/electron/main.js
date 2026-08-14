@@ -1087,22 +1087,10 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
             acknowledgeLaunch({state: "rejected", reason: `main UI load failed: ${error.message}`});
         });
     };
-    net.fetch(getServer(currentKernelPort) + "/api/system/getNetwork", {method: "POST"}).then((response) => {
-        return response.json();
-    }).then((response) => {
-        const setProxyDone = setProxy(`${response.data.proxy.scheme}://${response.data.proxy.host}:${response.data.proxy.port}`, currentWindow.webContents);
-        Promise.race([
-            Promise.resolve(setProxyDone),
-            new Promise((resolve) => setTimeout(resolve, 5000)), // setProxy 永久 pending 时的超时兜底
-        ]).then(loadMainURL).catch(() => {
-            writeLog("setProxy failed, load main UI without proxy");
-            loadMainURL();
-        });
-    }).catch((e) => {
-        // getNetwork 失败或超时也要继续加载主界面，避免主窗口不加载导致卡在启动页
-        writeLog("getNetwork failed, load main UI without proxy: " + e.message);
-        loadMainURL();
-    });
+    // 白屏诊断实验：主窗口直接 loadURL（跳过 getNetwork→setProxy 前序），
+    // 与 Magi 窗口的加载路径对齐——Magi 直接 loadURL 成功，主窗口经 setProxy 前序挂起。
+    // 若此实验下主窗口正常加载，则根因是 setProxy 对主窗口 session 的副作用。
+    loadMainURL();
 
     // 发起互联网服务请求时绕过安全策略 https://github.com/siyuan-note/siyuan/issues/5516
     currentWindow.webContents.session.webRequest.onBeforeSendHeaders((details, cb) => {

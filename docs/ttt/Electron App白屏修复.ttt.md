@@ -128,6 +128,36 @@ webRequestTimeline:
 - **验证方式**：重启 `pnpm forge` 后观察 DevTools 的 Network/Console 面板与主进程日志的 `[renderer-console:*]` / `[renderer-did-fail-load]` 行。
 - **注意**：该改动是诊断性（只读），若验证完成需评估是否保留（建议保留 console 转发，DevTools 打开可改为仅诊断期）。
 
+### 2026-08-14 07:42 决定性对比：Magi 成功 vs 主窗口挂起（用户观察 + inspect 实证）
+
+用户观察：**magi-desktop 正常加载，主界面未加载；Magi 的 DevTools 打开了，主界面的没打开**。
+
+`ui.windows.inspect` 实证（07:37 实例）：
+```
+Magi 窗口 (id=3):  url=https://127.0.0.1:6806/stage/build/magi-app/?v=...  visible=true  loading=false（加载完成）
+主窗口 (id=2):    url=null  visible=true  loading=true
+  timeline: target-prepared → load-requested → did-start-navigation → renderer-ready-timeout（主帧从未提交）
+```
+
+**证伪**：Magi 与主窗口同一内核、同一 session（defaultSession）、同一 NetworkService、同一 `127.0.0.1:6806`——Magi 成功即证明代理/TLS/网络栈/session/内核全部正常。主窗口挂起必然源于**主窗口 webContents 自身**。
+
+**两个未解释现象**：
+1. 主窗口 `openDevTools`（`main.js:1163` 无条件执行）无效——Magi 的 DevTools 打开（用户手动或默认），主窗口没有；
+2. 主窗口 `did-start-navigation` 后渲染进程 `loading=true` 持续挂起，无 `render-process-gone`、无 `did-fail-load`。
+
+**排除**：`/stage/build/app/` 与 `/stage/build/magi-app/` 内核响应一致（均 401 无会话/正常 200 有会话）；`setProxy` 前序（Magi 无此前序但同 session 成功）。
+
+**指向**：主窗口 webContents 的渲染进程在导航后处于异常挂起态（活着但不提交），且 DevTools 对其无效。下一步需在渲染进程内观察（DevTools 打开后 Network/Console），或对比主窗口与 Magi 窗口创建参数的差异（`show:false` vs `show:true` 是唯一显著差异）。
+
+### 2026-08-14 09:05 决定性实验：主窗口跳过 setProxy 前序直接 loadURL
+
+- **依据**：Magi 窗口直接 `loadURL`（无 `getNetwork→setProxy` 前序）成功；主窗口经 `getNetwork→setProxy→loadMainURL` 链挂起。两者同 session/同内核/同 NetworkService。
+- **修改**：[`main.js`](app/electron/main.js:1090) 主窗口加载链临时改为**直接 `loadMainURL()`**（跳过 getNetwork/setProxy）。
+- **判定**：重启 `pnpm forge` 后——
+  - 若主窗口正常加载（`rendererReadyAt` 非空、`siyuan-ready-to-show` 发出）：根因 = `setProxy`（或其前序）对主窗口 session 的副作用，保留此修改或改为异步/延迟 setProxy；
+  - 若仍白屏（`did-start-navigation` 后挂起）：根因在主窗口 webContents 自身（与 Magi 的差异不在加载链），需从 webPreferences/创建参数对比。
+- **注意**：此修改是实验性，验证后需根据结果决定保留、调整或恢复原链。
+
 ### 2026-08-13 17:18 启动日志逐条根因分析（`pnpm forge` 报错现场）
 
 用户提供 `pnpm forge` 启动日志，共 6 条关键记录，逐条确认来源与因果：
