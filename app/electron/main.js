@@ -106,17 +106,7 @@ remote.initialize();
 
 // Electron 相关文件夹名称改为 `SiYuan-Electron` https://github.com/siyuan-note/siyuan/issues/3349
 // getPath("userData") 会创建空的 SiYuan 目录，改为 app.getPath("appData")
-if ("1" === process.env.FORGE_FRESH_USER_DATA || process.env.FORGE_USER_DATA_DIR) {
-    // 白屏诊断实验（仅诊断期）：使用独立 userData 隔离/二分持久 profile 状态。
-    // FORGE_USER_DATA_DIR 指定任意路径；FORGE_FRESH_USER_DATA=1 用固定全新路径。
-    // 真实 profile 不受影响。验证后按结论移除或调整。
-    const freshUserData = process.env.FORGE_USER_DATA_DIR ||
-        path.join(app.getPath("temp"), "s-forge-white-screen-fresh");
-    app.setPath("userData", freshUserData);
-    console.log("[white-screen-probe] fresh userData [" + freshUserData + "]");
-} else {
-    app.setPath("userData", path.join(app.getPath("appData"), app.getName() + "-Electron"));
-}
+app.setPath("userData", path.join(app.getPath("appData"), app.getName() + "-Electron"));
 
 if (process.platform === "win32") {
     // Windows 需要设置 AppUserModelId 才能正确显示应用名称和应用图标 https://github.com/siyuan-note/siyuan/issues/17022
@@ -217,13 +207,6 @@ app.commandLine.appendSwitch("enable-features", "PlatformHEVCDecoderSupport");
 app.commandLine.appendSwitch("xdg-portal-required-version", "4");
 // 本地 HTTPS 页面加载 HTTP 外链图时，禁止自动升级为 HTTPS
 app.commandLine.appendSwitch("disable-features", "AutoupgradeMixedContent");
-
-// 白屏诊断实验（仅诊断期）：FORGE_DISABLE_GPU=1 时禁用硬件加速，
-// 用于区分「GPU 通道挂起」与其他根因。默认不生效，验证后按结论保留或移除。
-if ("1" === process.env.FORGE_DISABLE_GPU) {
-    app.disableHardwareAcceleration();
-    console.log("[white-screen-probe] hardware acceleration disabled (FORGE_DISABLE_GPU=1)");
-}
 
 // Support set Chromium command line arguments on the desktop https://github.com/siyuan-note/siyuan/issues/9696
 writeLog("app is packaged [" + app.isPackaged + "], command line args [" + process.argv.join(", ") + "]");
