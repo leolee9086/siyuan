@@ -1,4 +1,4 @@
-nn# Electron App 白屏修复执行跟踪 (TikTocTak)
+# Electron App 白屏修复执行跟踪 (TikTocTak)
 
 > **状态**: 进行中
 > **创建日期**: 2026-08-13
