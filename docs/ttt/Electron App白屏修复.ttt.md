@@ -166,6 +166,13 @@ Magi 窗口 (id=3):  url=https://127.0.0.1:6806/stage/build/magi-app/?v=...  vis
 
 **记录失真纠正**：本 TTT 曾把「本地代理未参与当前导航」曲解为「代理已排除」并反复归因代理——这是错误的记录与归因。实际是：代理从未被排除，也不断被无依据归因。已纠正，后续不得再把代理作为候选。
 
+### 2026-08-14 09:25 transformers.js 加载排查（用户指示注释）
+
+- **定位**：[`transformer.ts:204`](app/src/util/lib/embedding/transformer.ts:204) `initTransformerEnv` 动态加载 `/stage/protyle/js/transformers.js`（`transformer.ts:212`、`256`），由 `embeddingText` 懒触发（`getExtractor` → `初始化Promise`）。
+- **结论**：加载是**懒触发**（用户实际使用 embedding 功能时才执行），**非启动必经路径**——启动白屏与 transformers.js 加载无直接因果。
+- **已按用户指示**：在 `initTransformerEnv` 顶部加 `return` 临时注释加载（`transformer.ts:205-208`），用于诊断验证。确认根因后需恢复。
+- **注意**：该文件 lint 本就超限（302/300 行），注释后 305 行——既有问题，非本次引入。
+
 ### 2026-08-13 17:18 启动日志逐条根因分析（`pnpm forge` 报错现场）
 
 用户提供 `pnpm forge` 启动日志，共 6 条关键记录，逐条确认来源与因果：
