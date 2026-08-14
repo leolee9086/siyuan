@@ -158,15 +158,13 @@ Magi 窗口 (id=3):  url=https://127.0.0.1:6806/stage/build/magi-app/?v=...  vis
   - 若仍白屏（`did-start-navigation` 后挂起）：根因在主窗口 webContents 自身（与 Magi 的差异不在加载链），需从 webPreferences/创建参数对比。
 - **注意**：此修改是实验性，验证后需根据结果决定保留、调整或恢复原链。
 
-### 2026-08-14 09:08 实验结论与下一个待验证假设
+### 2026-08-14 09:13 实验结论与假设撤销（扩展阅读修正）
 
-**实验结论（用户验证）**：主窗口跳过 `getNetwork→setProxy` 直接 `loadURL` 仍白屏——setProxy 前序与白屏无因果，已恢复原链。setProxy 彻底排除。
+**实验结论（用户验证）**：主窗口跳过 `getNetwork→setProxy` 直接 `loadURL` 仍白屏——setProxy 前序与白屏无因果，已恢复原链。
 
-**下一个待验证假设（未证实）**：主窗口 `show:false` 创建，导航在显示前发出；若隐藏期渲染进程被节流（`backgroundThrottling` 默认 true），导航请求被挂起，显示后不恢复 → 白屏。Magi `show:true` 立即显示无节流 → 成功。这能解释「同 session 同内核下 Magi 成功、主窗口挂起」及「显示后仍挂起」（导航早已在隐藏期被挂起）。
+**假设撤销（扩展阅读）**：曾假设「主窗口 `show:false` 隐藏期导航被 `backgroundThrottling` 节流挂起」并加 `backgroundThrottling: false`。经 electron.d.ts 扩展阅读确认：`backgroundThrottling` 官方定义是「页面后台化时节流动画和定时器，并影响 Page Visibility API」——节流的是动画/定时器，不是网络导航。假设无依据，修改已撤销。
 
-**已实施**：[`main.js`](app/electron/main.js:1021) 主窗口 webPreferences 加 `backgroundThrottling: false`。
-
-**验证方式**：重启 `pnpm forge`。若主窗口正常加载 → 假设成立；若仍白屏 → 该假设排除，需继续对比主窗口与 Magi 的创建参数（`show` 之外无差异，则问题在 webContents 生命周期时序）。
+**记录失真纠正**：本 TTT 曾把「本地代理未参与当前导航」曲解为「代理已排除」并反复归因代理——这是错误的记录与归因。实际是：代理从未被排除，也不断被无依据归因。已纠正，后续不得再把代理作为候选。
 
 ### 2026-08-13 17:18 启动日志逐条根因分析（`pnpm forge` 报错现场）
 

@@ -1020,7 +1020,6 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
             webviewTag: true,
             webSecurity: false,
             contextIsolation: false,
-            backgroundThrottling: false, // 主窗口 show:false 创建期间导航会被节流挂起（Magi show:true 无此问题）；禁用节流使隐藏期导航正常完成
             autoplayPolicy: "user-gesture-required" // 桌面端禁止自动播放多媒体 https://github.com/siyuan-note/siyuan/issues/7587
         },
         frame: "darwin" === process.platform,
@@ -1160,8 +1159,12 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
         }
     });
 
-    // 白屏诊断：无条件打开 DevTools，并将渲染进程控制台/加载失败/证书错误转主进程日志。
-    currentWindow.webContents.openDevTools({mode: "detach"});
+    // 白屏诊断：无条件打开 DevTools，并将渲染进程关键事件转主进程日志（只读埋点，不干预请求）。
+    try {
+        currentWindow.webContents.openDevTools({mode: "bottom"});
+    } catch (error) {
+        writeLog("[renderer-devtools] openDevTools failed: " + error.message);
+    }
     currentWindow.webContents.on("console-message", (_event, level, message, line, sourceId) => {
         writeLog(`[renderer-console:${level}] ${message} (${sourceId}:${line})`);
     });
@@ -1171,6 +1174,31 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
     currentWindow.webContents.on("certificate-error", (event, url, error, certificate, callback) => {
         writeLog(`[renderer-certificate-error] url=${url} error=${error}`);
         callback(true);
+    });
+    // 全事件埋点：捕获导航生命周期与渲染进程状态，区分「请求未回」/「渲染进程卡死」/「事件未触发」。
+    currentWindow.webContents.on("did-start-navigation", (details, url, isSameDocument, isMainFrame) => {
+        writeLog(`[renderer-nav] did-start-navigation url=${url} same=${isSameDocument} main=${isMainFrame}`);
+    });
+    currentWindow.webContents.on("did-navigate", (_event, url, httpResponseCode, httpStatusText) => {
+        writeLog(`[renderer-nav] did-navigate url=${url} code=${httpResponseCode} text=${httpStatusText}`);
+    });
+    currentWindow.webContents.on("did-navigate-in-page", (_event, url, isMainFrame) => {
+        writeLog(`[renderer-nav] did-navigate-in-page url=${url} main=${isMainFrame}`);
+    });
+    currentWindow.webContents.on("did-stop-loading", () => {
+        writeLog("[renderer-nav] did-stop-loading");
+    });
+    currentWindow.webContents.on("did-fail-provisional-load", (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+        writeLog(`[renderer-nav] did-fail-provisional-load code=${errorCode} desc=${errorDescription} url=${validatedURL} main=${isMainFrame}`);
+    });
+    currentWindow.webContents.on("unresponsive", () => {
+        writeLog("[renderer-nav] unresponsive");
+    });
+    currentWindow.webContents.on("responsive", () => {
+        writeLog("[renderer-nav] responsive");
+    });
+    currentWindow.webContents.on("destroyed", () => {
+        writeLog("[renderer-nav] destroyed");
     });
     if (windowState.isDevToolsOpened) {
         currentWindow.webContents.openDevTools({mode: "bottom"});
