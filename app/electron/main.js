@@ -1081,10 +1081,37 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
     // pending（既不 resolve 也不 reject），会导致 loadURL 永不执行，主窗口卡在启动页无法显示。
     // 这里无论 setProxy 是否完成，最多等待 5 秒后强制加载主界面。
     const loadMainURL = () => {
-        void navigationDiagnostics.loadTarget().catch((error) => {
-            writeLog("load main UI failed: " + error.message);
-            cleanupBeforeReady();
-            acknowledgeLaunch({state: "rejected", reason: `main UI load failed: ${error.message}`});
+        // 白屏根因修复：启动时清除 defaultSession 的全部 Service Worker 注册。
+        // 这是对浏览器默认行为的有意干预，原因与边界如下：
+        // 1. 桌面端不使用 Service Worker：registerServiceWorker 的 isBrowser 守卫使 Electron
+        //    环境从不主动注册；移动端/浏览器端的 PWA 离线缓存与桌面无关。此处仅作用于
+        //    Electron 主进程的 defaultSession，不影响浏览器端行为。
+        // 2. 但 profile 中可能残留历史误注册：3.7.1-alpha 时期的桌面构建曾在无守卫时注册过
+        //    scope 为整个 origin 的 SW。Chromium 对持久化注册不随应用版本自愈，每次启动都会
+        //    重新拉起该 SW，即使当前版本从不注册也无法消除。
+        // 3. 故障链：启动时 Chromium 拉起残留 SW（脚本校验 + install/activate 缓存操作），
+        //    首个进入 scope 的主帧导航会等待 SW 就绪；若 SW 启动卡死（已实证：真实 profile
+        //    在 1.4GB 残留 CacheStorage 下复现，隔离/全新 profile 正常），导航永不提交，
+        //    主窗口白屏假死且无任何失败事件。排查过程见
+        //    docs/ttt/Electron App白屏修复.ttt.md。
+        // 4. 干预方式与范围：clearStorageData 仅清除 serviceworkers 存储（注册表，KB 级），
+        //    不触碰 Cookies、CacheStorage 等用户数据；每次启动执行一次，幂等且开销可忽略，
+        //    使任何来源的误注册（历史残留或未来回归）都无法再阻塞首个主帧导航。
+        // 5. 超时兜底：与 setProxy 同理，清理异常 pending 时 5 秒后放行加载；
+        //    清理失败仅记日志，不阻塞主界面启动。
+        const clearServiceWorkers = session.defaultSession.clearStorageData({storages: ["serviceworkers"]});
+        clearServiceWorkers.catch((error) => {
+            writeLog("clear service workers failed: " + error.message);
+        });
+        void Promise.race([
+            clearServiceWorkers,
+            new Promise((resolve) => setTimeout(resolve, 5000)), // 清理永久 pending 时的超时兜底
+        ]).finally(() => {
+            void navigationDiagnostics.loadTarget().catch((error) => {
+                writeLog("load main UI failed: " + error.message);
+                cleanupBeforeReady();
+                acknowledgeLaunch({state: "rejected", reason: `main UI load failed: ${error.message}`});
+            });
         });
     };
     net.fetch(getServer(currentKernelPort) + "/api/system/getNetwork", {method: "POST"}).then((response) => {
