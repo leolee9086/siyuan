@@ -106,6 +106,24 @@ describe("Agent session repository", () => {
         }));
     });
 
+    it("retries once with the authoritative revision when a save conflicts", async () => {
+        vi.mocked(fetchSyncPost)
+            .mockResolvedValueOnce({code: -1, msg: "agent session revision conflict", data: {revision: 5}})
+            .mockResolvedValueOnce({code: 0, data: {revision: 6}, msg: ""});
+        const revisions = createAgentSessionRevisionState();
+
+        await saveAgentSession(revisions, requestHeaders, {
+            id: "20260801000000-conflict1", title: "Conflict", createdAt: 1, updatedAt: 1,
+        });
+
+        // 冲突响应携带服务端权威修订，第二次保存以其为新基准。
+        expect(fetchSyncPost).toHaveBeenCalledTimes(2);
+        expect(vi.mocked(fetchSyncPost).mock.calls[1]?.[1]).toEqual(expect.objectContaining({
+            expectedRevision: 5,
+        }));
+        expect(getAgentSessionRevision(revisions, "20260801000000-conflict1")).toBe(6);
+    });
+
     it("propagates a pending save failure to load and remove", async () => {
         let completeSave: (value: IWebSocketData) => void;
         const saveResponse = new Promise<IWebSocketData>((resolve) => {

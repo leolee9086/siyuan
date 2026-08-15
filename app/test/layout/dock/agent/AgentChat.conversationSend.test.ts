@@ -12,6 +12,7 @@ const createAgentChatRequestContext = vi.hoisted(() => vi.fn(() => ({
     conversation: {kind: "native-agent", sessionId: "session-1"},
     signal: new AbortController().signal,
 })));
+const isAgentConversationControlError = vi.hoisted(() => vi.fn());
 
 vi.mock("../../../../src/layout/dock/agent/chat/message/sending/imports", () => ({
     getSelectedModel,
@@ -21,6 +22,7 @@ vi.mock("../../../../src/layout/dock/agent/chat/message/sending/imports", () => 
     handleConfigError,
     setStreaming,
     isActiveAgentPanelRequest,
+    isAgentConversationControlError,
 }));
 vi.mock("../../../../src/layout/dock/agent/chat/message/sending/AgentChat.send.helpers", () => ({
     startOutgoingAgentTurn,
@@ -83,6 +85,7 @@ function createRuntime(state: AgentConversationState, ids: string[] = ["input-1"
             repository: {
 				getRevision: vi.fn(() => revision),
                 newSessionId: vi.fn(() => ids.shift() || "generated-id"),
+                load: vi.fn(async () => ({id: "session-1", revision: 9})),
             },
         },
         composer: {clear: vi.fn()},
@@ -159,5 +162,40 @@ describe("AgentChat conversation sending", () => {
         });
         expect(controller.submit).not.toHaveBeenCalled();
         expect(runtime.editingQueueInputID).toBe("");
+    });
+
+    it("refreshes the authoritative revision and retries once on a session revision conflict", async () => {
+        const {runtime, controller} = createRuntime(createState());
+        const conflict = Object.assign(new Error("agent session revision conflict"), {
+            reason: "session_revision_conflict", queueVersion: 8, status: 409,
+        });
+        isAgentConversationControlError.mockImplementation((value: unknown) =>
+            value instanceof Error && typeof (value as {reason?: unknown}).reason === "string" &&
+            typeof (value as {queueVersion?: unknown}).queueVersion === "number" &&
+            typeof (value as {status?: unknown}).status === "number");
+        controller.submit
+            .mockRejectedValueOnce(conflict)
+            .mockResolvedValueOnce({inputID: "input-1", queueVersion: 9});
+
+        const result = await submitAgentChatConversation(runtime, createRequest());
+
+        // 冲突后重新加载权威会话刷新本地修订，并以同一 inputID 幂等重试。
+        expect(runtime.sessionPorts.repository.load).toHaveBeenCalledWith("session-1");
+        expect(controller.submit).toHaveBeenCalledTimes(2);
+        expect(controller.submit.mock.calls[1]![0]).toMatchObject({inputID: "input-1", message: "new input"});
+        expect(result).toBeUndefined();
+        expect(runtime.capabilities.showMessage).not.toHaveBeenCalled();
+    });
+
+    it("does not retry non-conflict submission failures", async () => {
+        const {runtime, controller} = createRuntime(createState());
+        isAgentConversationControlError.mockReturnValue(false);
+        controller.submit.mockRejectedValueOnce(new Error("model unavailable"));
+
+        await submitAgentChatConversation(runtime, createRequest());
+
+        expect(controller.submit).toHaveBeenCalledTimes(1);
+        expect(runtime.sessionPorts.repository.load).not.toHaveBeenCalled();
+        expect(runtime.capabilities.showMessage).toHaveBeenCalledWith("model unavailable", 4000);
     });
 });

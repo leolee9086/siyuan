@@ -470,6 +470,9 @@ func writeAgentControlError(c *gin.Context, err error, queueVersion int64) {
 		status, reason = http.StatusConflict, "queue_version_conflict"
 	case errors.Is(err, agentqueue.ErrNotPending), errors.Is(err, agentqueue.ErrSemanticsMismatch):
 		status, reason = http.StatusConflict, "input_already_promoted"
+	case errors.Is(err, agent.ErrSessionConflict):
+		// 会话修订冲突（多面板同会话并发保存/提交）：以 409 结构化返回，前端据此刷新权威修订并重试。
+		status, reason = http.StatusConflict, "session_revision_conflict"
 	case errors.Is(err, agentqueue.ErrInputNotFound):
 		status, reason = http.StatusNotFound, "input_not_found"
 	case errors.Is(err, agentqueue.ErrExpectedTurnIDRequired), errors.Is(err, agentqueue.ErrExpectedTurnIDForbidden),

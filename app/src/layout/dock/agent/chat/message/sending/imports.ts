@@ -124,3 +124,7 @@ export type {AgentConversationSubmitInput};
 import type {AgentConversationObserver} from "../../../runtime/conversation/agentConversation.types";
 /** 导出 adapter 观察器协议。 */
 export type {AgentConversationObserver};
+/** 用途：识别结构化控制错误；使用范围：提交冲突自愈；解耦评估：复用控制层唯一错误守卫，不复制协议字段判断。 */
+import {isAgentConversationControlError} from "../../../request/control/AgentConversationControl.guard";
+/** 导出结构化控制错误守卫。 */
+export {isAgentConversationControlError};

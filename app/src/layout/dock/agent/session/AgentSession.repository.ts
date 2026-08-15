@@ -75,13 +75,24 @@ export async function saveAgentSession(
     const baseRevision = snapshot.expectedRevision ?? observedRevision ?? snapshot.revision ?? 0;
     const previous = revisionState.pendingSaves.get(snapshot.id);
     // @柯里化：当前不可变快照需要接收同会话前序保存提交的修订。
-    const persist = async (expectedRevision: number) => {
+    const persist = async (expectedRevision: number, retried = false) => {
         snapshot.expectedRevision = expectedRevision;
         const response = await fetchSyncPost(
             "/api/ai/agent/saveSession",
             snapshot,
             requestHeaders({scope: "checkpoint"}),
         );
+        // 多面板展示同一会话时会话事件会驱动多个面板并发保存同一快照，CAS 冲突是预期行为：
+        // 用服务端权威修订刷新本地水位并以新修订重试一次，避免确认/完成状态保存永久失败。
+        const conflictRevision = response && response.code !== 0 && !retried &&
+            typeof response.data === "object" && response.data !== null &&
+            "revision" in response.data && typeof response.data.revision === "number"
+            ? response.data.revision
+            : null;
+        if (conflictRevision !== null) {
+            revisionState.revisions.set(snapshot.id, conflictRevision);
+            return persist(conflictRevision, true);
+        }
         const data = requireAgentAPIData<{revision?: number; session?: AgentSession}>(
             response,
             "Save agent session",

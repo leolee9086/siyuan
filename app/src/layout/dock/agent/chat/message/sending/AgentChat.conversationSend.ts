@@ -20,6 +20,8 @@ import {saveSession} from "./imports";
 import {setStreaming} from "./imports";
 /** 用途：建立请求内流式用户条目；使用范围：不使用 session events 的 adapter；解耦评估：复用现有条目与 DOM 原子投影。 */
 import {startOutgoingAgentTurn} from "./AgentChat.send.helpers";
+/** 用途：识别结构化控制错误；使用范围：提交修订冲突自愈；解耦评估：复用控制层唯一错误守卫。 */
+import {isAgentConversationControlError} from "./imports";
 /** 用途：创建请求取消上下文；使用范围：不使用 session events 的 adapter；解耦评估：复用现有迟到事件隔离协议。 */
 import {createAgentChatRequestContext} from "./AgentChat.send.helpers";
 /** 用途：约束 Composer 发送快照；使用范围：统一输入构造；解耦评估：直接引用收集函数的推导类型避免重复协议。 */
@@ -148,15 +150,18 @@ async function ensureSessionEventSubscription(runtime: AgentChatRuntime) {
 /** 为新 admission、排队编辑和重新生成建立稳定身份字段。 */
 function createSessionEventIdentity(
     runtime: AgentChatRuntime,
-    options: Readonly<{userEntryID?: string; regenerate?: boolean}>,
+    options: Readonly<{userEntryID?: string; inputID?: string; delivery?: "queue" | "steer" | "turn";
+        regenerate?: boolean}>,
 ) {
     const editingInputID = options.regenerate ? "" : runtime.editingQueueInputID;
-    const inputID = editingInputID || runtime.sessionPorts.repository.newSessionId();
+    // 重试提交必须复用首次 inputID，服务端按 inputID 幂等去重，避免冲突重试造成重复执行。
+    const inputID = options.inputID || editingInputID || runtime.sessionPorts.repository.newSessionId();
     const userEntryID = options.userEntryID || runtime.sessionPorts.repository.newSessionId();
     const identity = {
         inputID,
         userEntryID,
         ...(editingInputID ? {delivery: "queue" as const} : {}),
+        ...(options.delivery ? {delivery: options.delivery} : {}),
         ...(options.regenerate ? {regenerate: true} : {}),
     };
     return {editingInputID, identity};
@@ -166,7 +171,9 @@ function createSessionEventIdentity(
 async function submitSessionEventInput(
     runtime: AgentChatRuntime,
     request: NonNullable<ReturnType<typeof collectAgentChatSendData>>,
-    options: Readonly<{userEntryID?: string; regenerate?: boolean}> = {},
+    options: Readonly<{userEntryID?: string; inputID?: string; delivery?: "queue" | "steer" | "turn";
+        regenerate?: boolean}> = {},
+    retried = false,
 ) {
     await ensureSessionEventSubscription(runtime);
     const conversationController = requireConversationController(runtime);
@@ -196,6 +203,17 @@ async function submitSessionEventInput(
         runtime.promptSourceController.closeActions();
         return true;
     } catch (error) {
+        // 多面板展示同一会话时本地修订可能落后于磁盘权威值：先用权威会话刷新修订，
+        // 再以同一输入幂等重试一次（复用首次 inputID，服务端按 inputID 去重），仍失败才提示用户。
+        if (!retried && isAgentConversationRevisionConflict(error)) {
+            await runtime.sessionPorts.repository.load(runtime.sessionId);
+            return submitSessionEventInput(runtime, request, {
+                ...options,
+                inputID: identity.inputID,
+                userEntryID: identity.userEntryID,
+                ...(identity.delivery ? {delivery: identity.delivery} : {}),
+            }, true);
+        }
         const message = error instanceof Error ? error.message : String(error);
         runtime.capabilities.showMessage?.(message, 4000);
         return false;
@@ -212,6 +230,14 @@ function settleRegenerationAdmission(runtime: AgentChatRuntime, admitted: boolea
     if (!admitted) {
         setStreaming(runtime, false);
     }
+}
+
+/** 判断提交失败是否为会话修订冲突（多面板并发保存/提交导致的 CAS 冲突）。 */
+function isAgentConversationRevisionConflict(error: unknown) {
+    if (isAgentConversationControlError(error)) {
+        return error.status === 409 && error.reason === "session_revision_conflict";
+    }
+    return error instanceof Error && error.message.includes("revision conflict");
 }
 
 /** 提交由 adapter 请求自身产生增量事件的普通 turn。 */

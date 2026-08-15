@@ -34,8 +34,8 @@ function createRuntime(overrides: Partial<AgentChatRuntime> = {}) {
     return runtime;
 }
 
-function wsData(sessionID: string, action: string) {
-    return {cmd: "agentSessionChanged", data: {sessionID, action}};
+function wsData(sessionID: string, action: string): IWebSocketData {
+    return {code: 0, msg: "", cmd: "agentSessionChanged", data: {sessionID, action}};
 }
 
 describe("AgentChat websocket session mirroring", () => {
