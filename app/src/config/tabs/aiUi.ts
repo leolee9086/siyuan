@@ -767,31 +767,45 @@ const renderFetchedModels = (dialog: Dialog, models: string[], current: string):
     const normalizedModels = [...new Set(models.map((model) => model.trim()).filter(Boolean))];
     const missing = Boolean(current) && !normalizedModels.includes(current);
     const modelInput = document.createElement("input");
-    modelInput.className = "b3-select fn__flex-1";
+    modelInput.className = "b3-text-field fn__flex-1";
     modelInput.id = "aiModelName";
     modelInput.type = "text";
     modelInput.spellcheck = false;
-    modelInput.readOnly = true;
-    modelInput.placeholder = window.siyuan.languages.selectModel;
+    // 既可从供应商返回的列表中选择，也可直接输入自定义模型名称
+    modelInput.placeholder = "选择或输入模型名称";
     modelInput.value = current;
     const openMenu = () => openAvailableModelMenu(modelInput, normalizedModels);
-    modelInput.addEventListener("click", openMenu);
+    // 输入框保持可编辑，仅通过下拉按钮或 Enter/ArrowDown 展开供应商模型列表
     modelInput.addEventListener("keydown", (event) => {
-        if (["Enter", " ", "ArrowDown"].includes(event.key)) {
+        if (["Enter", "ArrowDown"].includes(event.key)) {
             event.preventDefault();
             openMenu();
         }
     });
+    const dropdownBtn = document.createElement("button");
+    dropdownBtn.type = "button";
+    dropdownBtn.className = "b3-button b3-button--outline fn__flex-center";
+    dropdownBtn.title = window.siyuan.languages.selectModel;
+    dropdownBtn.innerHTML = `<svg><use xlink:href="#iconDown"></use></svg>`;
+    dropdownBtn.addEventListener("click", openMenu);
+    const wrapper = document.createElement("div");
+    wrapper.className = "fn__flex fn__flex-1";
+    wrapper.style.minWidth = "0";
+    wrapper.id = "aiModelNameWrapper";
+    wrapper.appendChild(modelInput);
+    wrapper.appendChild(dropdownBtn);
     const warningEl = dialog.element.querySelector<HTMLElement>("#aiModelAvailabilityWarning");
-    modelInput.addEventListener("change", () => {
+    modelInput.addEventListener("input", () => {
         if (warningEl) {
             warningEl.textContent = "";
             warningEl.classList.add("fn__none");
         }
     });
-    inputEl.replaceWith(modelInput);
+    // 输入框可能位于上次生成的 wrapper 内（多次拉取时），替换整个 wrapper 避免嵌套
+    const container = inputEl.closest<HTMLElement>("#aiModelNameWrapper") ?? inputEl;
+    container.replaceWith(wrapper);
     if (warningEl) {
-        warningEl.textContent = missing ? "当前模型不在供应商返回的列表中，可能不可用，建议检查。" : "";
+        warningEl.textContent = missing ? "该模型不在供应商返回的列表中，若是自定义模型请确认名称拼写正确，否则可能无法使用。" : "";
         warningEl.classList.toggle("fn__none", !missing);
     }
     return missing;
@@ -833,6 +847,9 @@ const openAvailableModelMenu = (modelInput: HTMLInputElement, models: string[]) 
     <span class="b3-list-item__text">${Lute.EscapeHTMLStr(model)}</span>
     ${model === modelInput.value ? '<svg class="b3-menu__checked"><use xlink:href="#iconSelect"></use></svg>' : ""}
 </div>`).join("")}
+        <div class="b3-list-item b3-list-item--narrow fn__none" data-custom-model="true">
+            <span class="b3-list-item__text"></span>
+        </div>
         <div class="b3-list--empty fn__none" data-type="empty">${window.siyuan.languages.emptyContent}</div>
     </div>
 </div>`,
@@ -840,23 +857,53 @@ const openAvailableModelMenu = (modelInput: HTMLInputElement, models: string[]) 
             const listElement = element.querySelector<HTMLElement>(".b3-list");
             const searchInput = element.querySelector<HTMLInputElement>("input");
             const emptyElement = element.querySelector<HTMLElement>("[data-type='empty']");
+            const customElement = element.querySelector<HTMLElement>("[data-custom-model]");
             const selectModel = (item: HTMLElement) => {
-                modelInput.value = item.dataset.model;
-                modelInput.dispatchEvent(new Event("change"));
+                if (item.dataset.customModel !== undefined) {
+                    // 自定义模型入口：将当前搜索词作为模型名称
+                    const keyword = (searchInput?.value ?? "").trim();
+                    if (!keyword) {
+                        return;
+                    }
+                    item.dataset.model = keyword;
+                }
+                modelInput.value = item.dataset.model ?? "";
+                modelInput.dispatchEvent(new Event("input"));
                 menu.close();
                 modelInput.focus();
             };
             const filterModels = () => {
                 const keyword = searchInput.value.toLowerCase().trim();
                 let firstVisibleItem: HTMLElement;
+                let visibleNormalCount = 0;
                 listElement.querySelectorAll<HTMLElement>(".b3-list-item").forEach((item) => {
                     item.classList.remove("b3-list-item--focus");
+                    if (item.dataset.customModel !== undefined) {
+                        return;
+                    }
                     const hidden = !item.dataset.model.toLowerCase().includes(keyword);
                     item.classList.toggle("fn__none", hidden);
-                    if (!hidden && !firstVisibleItem) {
-                        firstVisibleItem = item;
+                    if (!hidden) {
+                        visibleNormalCount++;
+                        if (!firstVisibleItem) {
+                            firstVisibleItem = item;
+                        }
                     }
                 });
+                // 搜索无匹配时显示自定义模型入口，回车或点击即可使用当前输入作为模型名称
+                if (customElement) {
+                    const showCustom = visibleNormalCount === 0 && keyword !== "";
+                    customElement.classList.toggle("fn__none", !showCustom);
+                    if (showCustom) {
+                        const customTextEl = customElement.querySelector(".b3-list-item__text");
+                        if (customTextEl) {
+                            customTextEl.textContent = `使用「${(searchInput?.value ?? "").trim()}」作为自定义模型名称`;
+                        }
+                        if (!firstVisibleItem) {
+                            firstVisibleItem = customElement;
+                        }
+                    }
+                }
                 firstVisibleItem?.classList.add("b3-list-item--focus");
                 emptyElement.classList.toggle("fn__none", !!firstVisibleItem);
             };
@@ -926,9 +973,9 @@ const openModelDialog = (root: HTMLElement, providerId: string, modelId: string 
         <div class="fn__flex config-wrap" style="overflow: visible !important;">
             <button class="b3-button b3-button--outline fn__flex-center" id="aiModelFetchBtn" title="${window.siyuan.languages.fetchAvailableModels}"><svg style="margin-right: 4px;"><use xlink:href="#iconRefresh"></use></svg>${window.siyuan.languages.fetchAvailableModels}</button>
             <span class="fn__space"></span>
-            <input class="b3-text-field fn__flex-1" id="aiModelName" type="text" spellcheck="false" value="${Lute.EscapeHTMLStr(initialModel.name)}"/>
+            <input class="b3-text-field fn__flex-1" id="aiModelName" type="text" spellcheck="false" placeholder="选择或输入模型名称" value="${Lute.EscapeHTMLStr(initialModel.name)}"/>
         </div>
-        <div id="aiModelAvailabilityWarning" class="b3-label__text fn__none" style="color: var(--b3-theme-error);">当前模型不在供应商返回的列表中，可能不可用，建议检查。</div>
+        <div id="aiModelAvailabilityWarning" class="b3-label__text fn__none" style="color: var(--b3-theme-error);">该模型不在供应商返回的列表中，若是自定义模型请确认名称拼写正确，否则可能无法使用。</div>
     </div>
     <div class="b3-label b3-label--inner">
         <div class="config-name">${window.siyuan.languages.customDisplayName}</div>
