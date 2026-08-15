@@ -28,8 +28,16 @@ export function onWsMessage(runtime: AgentChatRuntime, data: IWebSocketData) {
     if (payload.sessionID !== runtime.sessionId || runtime.isStreaming) {
         return;
     }
-    // streamStart：发起实例的流已开始，本实例进入镜像锁定态，并加载流开始前的快照、显示对话中占位条。
+    // 本实例已订阅该会话的事件流时，事件流是权威实时源（tool_call/tool_progress 等进度事件
+    // 都在其中），磁盘快照重载或镜像占位会清掉已投影的实时进度卡片，因此跳过镜像分支。
+    const controller = runtime.conversationController;
+    const eventStreamActive = controller !== null && controller.state.sessionID === payload.sessionID &&
+        controller.state.connected;
+    // streamStart：发起实例的流已开始。未订阅事件流的实例进入镜像锁定态，并加载流开始前的快照、显示对话中占位条。
     if (payload.action === "streamStart") {
+        if (eventStreamActive) {
+            return;
+        }
         runtime.mirrorLocked = true;
         void reloadFromDisk(runtime);
         return;

@@ -37,7 +37,6 @@ import {createTaskFromDirectory, createTaskFromFiles} from "./chat/session/files
 /** 用途：配置浮窗关闭能力；使用范围：公开门面；解耦评估：显式回调保存在公开状态。 */
 import {setFloatingCopyOptions} from "./chat/ui/lifecycle/AgentChat.facade";
 /** 用途：把会话加载到浮窗副本；使用范围：副本初始化；解耦评估：函数显式接收独立副本和会话。 */
-import {loadSessionForFloating} from "./chat/session/switching/AgentChat.sessionLoad";
 /** 用途：释放运行时资源；使用范围：门面销毁；解耦评估：集中释放避免遗漏监听器。 */
 import {disposeAgentChatRuntime} from "./chat/ui/lifecycle/AgentChat.dispose";
 /** 用途：插入块引用；使用范围：公开门面；解耦评估：门面仅转发显式运行时。 */
@@ -405,13 +404,8 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> implements Agen
         try {
             await copy.ready();
             copy.setFloatingCopyOptions();
-            // 仅复制会话副本需要从存储加载会话快照，空白副本保持欢迎页。
-            const session = !options.blankSession && this.entries.length > 0
-                ? await this.sessionPorts.repository.load(this.sessionId)
-                : null;
-            if (session) {
-                loadSessionForFloating(copy, session);
-            }
+            // 会话副本的初始快照已由副本 initSessions 通过 initialConversation 加载；
+            // 不再重复加载磁盘快照，避免覆盖副本订阅会话事件流后已投影的实时进度。
             return copy;
         } catch (error) {
             copy.destroy();

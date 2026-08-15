@@ -44,12 +44,30 @@ function applyToolCallEvent(runtime: AgentChatRuntime, event: Extract<ISSEResult
 
 /** 投影工具进度事件，网页搜索和通用工具分别更新各自卡片。 */
 function applyToolProgressEvent(runtime: AgentChatRuntime, event: Extract<ISSEResult, {type: "tool_progress"}>) {
+    // 事件流重放窗口截断或视图重载后，工具调用记录与卡片可能缺失；
+    // 进度事件按需补建记录和起始卡片，保证进行中进度始终可见。
+    ensureToolCallRecord(runtime, event);
+    if (!findToolCallCard(runtime, event.callID)) {
+        if (event.name === "web_search") {
+            appendWebSearchCall(runtime, {type: "tool_call", name: "web_search", callID: event.callID,
+                arguments: {query: webSearchQuery(runtime, event.callID)}});
+        } else {
+            appendToolCall(runtime, {type: "tool_call", name: event.name, callID: event.callID, arguments: {}});
+        }
+    }
     // 网页搜索进度包含查询与结果预览，不能使用通用工具进度模板。
     if (event.name === "web_search") {
         updateWebSearchProgress(runtime, event);
         return;
     }
     updateToolCallProgress(runtime, event);
+}
+
+/** 工具调用记录缺失时补建，使进度与结果事件能定位到参数上下文。 @同步豁免: 生命周期 */
+function ensureToolCallRecord(runtime: AgentChatRuntime, event: Extract<ISSEResult, {type: "tool_progress"}>) {
+    if (!findCurrentToolCall(runtime, event.callID, event.name)) {
+        runtime.currentToolCalls.push({id: event.callID, name: event.name, arguments: {}});
+    }
 }
 
 /** 投影工具完成事件，并排除由独立交互领域处理的工具。 */
