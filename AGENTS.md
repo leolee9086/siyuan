@@ -11,7 +11,7 @@
 - **主要差异**（详见 `docs/SFORGE.md`）：
   - **forge 模式（工坊模式）**：本分叉新增的运行模式，不属于上游。工作空间默认在源码目录内（`.dev-workspace`），支持多 clone 并行开发互不干扰；启动示例：`go run . serve --workspace=../.dev-workspace --mode forge --wd=../app`（Electron 开发环境也以 `--mode forge` 启动内核）。
   - **Forge 运行时与 Supervisor**：`.forge-runtime/` 下的内核热替换、健康检查、页面探测机制，以及 `.githooks/` 提交门禁（见第 5 章）。
-  - **多 AI（MAGI）与 agent 运行时**：`kernel/agent/`（Go 侧 AI agent 运行时）、`app/src/agent/`、`app/src/magi/`；前端构建目标新增 `magi-app` / `magi-desktop` / `magi-mobile` / `magi-identity`。
+  - **多 AI（MAGI）与 agent 运行时**：`kernel/agent/`（Go 侧 AI agent 运行时，与上游共享的模块，本地持续重点开发）、`app/src/agent/`、`app/src/magi/`（后两者为本地独有,app/src/agent为上游单文件内容的拆分重构版本）；前端构建目标新增 `magi-app` / `magi-desktop` / `magi-mobile` / `magi-identity`。
   - **Vue 化 UI**：部分 UI 组件迁移到 Vue 实现（`@vitejs/plugin-vue`、`vue-tsc`）；TypeScript 使用严格模式。
   - **fork 依赖**：如 `leolee9086/lute` 替换 `88250/lute`（支持 `((id1 id2 id3 "text"))` 多 ID 块引用语法），见 `kernel/go.mod` 的 `replace` 指令。
   - **本地包**：`packages/caliburRouter`（Zod 边界的 UI 路由）、`packages/dehaze`（WebGPU 图像去雾）、`kernelSDKTS`（思源内核 API 客户端）、`extensions/`（个人插件）。
@@ -34,7 +34,7 @@
 
 **架构（上游）：** Go 内核（`kernel/`）+ TypeScript 前端（`app/`），另有一个独立的 `export` 构建产物（全局 `Protyle`，入口 `src/protyle/method.ts`），用于在导出的 HTML / PDF 预览中渲染富内容。版本号读取自 `kernel/go.mod`、`app/package.json`、`kernel/util/working.go`。
 
-**架构（分叉扩展）：** 在标准 webpack 产物（`app` / `desktop` / `mobile` / `export`）之外，新增 `magi-app` / `magi-desktop` / `magi-mobile` / `magi-identity` / `protyle-app` / `agent-app` 等构建目标；内核侧新增 `kernel/agent/`（AI agent 运行时）、`kernel/mcp/`（MCP 服务器）与 Forge Supervisor 相关逻辑；前端引入 Vue 组件与 CaliburRouter 路由边界。
+**架构（分叉扩展）：** 在标准 webpack 产物（`app` / `desktop` / `mobile` / `export`）之外，新增 `magi-app` / `magi-desktop` / `magi-mobile` / `magi-identity` / `protyle-app` / `agent-app` 等构建目标；`kernel/agent/`（AI agent 运行时）与 `kernel/mcp/`（MCP 服务器）为上游与本地共享的模块，本地在其上持续扩展；另有 Forge Supervisor 相关逻辑；前端引入 Vue 组件与 CaliburRouter 路由边界。
 
 ---
 
@@ -133,7 +133,7 @@ SiYuan 横跨多个仓库。本仓库（分叉）继承上游的架构与依赖�
 | `util/` | 横切关注点：`working.go`（工作空间、`Boot()`）、`lute.go`、`i18n.go`、`websocket.go`（melody 推送）、`result.go`（API 信封） |
 | `plugin/` | 插件子系统（内核侧） |
 | `mcp/` | MCP（模型上下文协议）服务器 |
-| `agent/` | **AI agent 运行时（分叉重点开发区域）** |
+| `agent/` | **AI agent 运行时（上游与本地共享的模块，本地重点开发区域）** |
 | `mobile/`、`harmony/` | `//go:build mobile` gomobile 绑定，用于 Android/iOS/HarmonyOS |
 
 ### 前端（`app/src/`）要点（上游）
@@ -148,7 +148,7 @@ SiYuan 横跨多个仓库。本仓库（分叉）继承上游的架构与依赖�
 | `layout/Model.ts` | 所有 UI 绑定的 WebSocket 客户端 |
 | `constants.ts` | 全局常量（版本、ID、存储键） |
 
-**分叉前端扩展：** `app/src/agent/`（agent 聊天界面）、`app/src/magi/`（多 AI 面板）、`app/test/`（测试套件，见第 5 章）。
+**分叉前端扩展：** `app/src/agent/`（agent 聊天界面，本地独有）、`app/src/magi/`（多 AI 面板，本地独有）、`app/test/`（测试套件，见第 5 章）。
 
 ---
 
