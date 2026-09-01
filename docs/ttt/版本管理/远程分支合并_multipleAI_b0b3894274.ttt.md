@@ -669,4 +669,10 @@ ai.go 的 Vision 类型/字段、av.go 的 GetCurrentView/ViewID、embeddedBlock
 - 新增 `app/test/protyle/breadcrumbDynamicLoadingMenu.test.ts`，锁定 incomplete range 的 `loadAllContent -> keepLazyLoad` 顺序、loadAll 回调、实际字段 toggle 和完整边界隐藏 load-all；新增 `app/test/protyle/shiftSelectionDynamicLoading.test.ts`，通过真实 Selection 与跨两屏几何范围验证 `keepLoadedContent=true` 不提示、false 提示。验证通过：UI Vitest 2 files / 4 tests；既有 Node dynamic loading suite 8 suites / 24 tests；entry catalog Node 30/30；相关 `git diff --check` clean。
 - TypeScript 复核：`imports.ts`、`menuItems.misc.ts`、Shift owner、i18n declaration 和两条新增测试均 0 条诊断。全量 `pnpm exec tsc --noEmit --pretty false --incremental false` 仍是 21,252 行既有 strict baseline；该 release 条目现为 verified，其余 218 项继续保持逐项审计状态，未据此宣称 release 完成。
 
+## 2026-09-01 GitHub 中转交付记录
 
+- 双父合并提交 `ae1c99cc37f39373b2b903591e6f4d4e16881302` 已生成，父提交为本地基线 `1ee848992427cb4242d11956451fc83a2d454938` 与上游 `b0b38942742e19ffa916fa5c62377212429d92f3`。
+- 主仓库 `D:\dev\s-forge` 的唯一未提交修改是在 `.gitignore` 增加 `.verify/`；逐行核对确认合并提交中的 `.gitignore` 已包含完全相同规则，因此该工作树修改已由合并结果吸收，无需创建重复代码变更。
+- 直接推送本地非裸主仓库会因目标正在检出 `multipleAI` 而被拒绝。交付改用 GitHub 裸远端 `leolee9086/siyuan` 中转：先推送合并仓库，再由主仓库 fetch 并在保护本地工作树修改后执行纯快进。
+- 本节只记录版本交付状态，不改变此前测试证据与尚存的全量严格类型基线结论。
+- 首次暂存命令因分号被命令执行器并入路径参数而在 `git add` 前失败，未产生暂存、提交或其他仓库修改；后续改用独立命令完成每一步。
