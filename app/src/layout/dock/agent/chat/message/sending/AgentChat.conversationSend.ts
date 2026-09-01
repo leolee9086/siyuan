@@ -26,6 +26,8 @@ import {isAgentConversationControlError} from "./imports";
 import {createAgentChatRequestContext} from "./AgentChat.send.helpers";
 /** 用途：约束 Composer 发送快照；使用范围：统一输入构造；解耦评估：直接引用收集函数的推导类型避免重复协议。 */
 import type {collectAgentChatSendData} from "./AgentChat.send.helpers";
+/** 用途：冻结本轮浏览器能力声明；使用范围：原生 Agent admission；解耦评估：注册表是能力清单的唯一事实源。 */
+import {listCapabilityManifests} from "../../../frontendCapabilities";
 
 /** 读取当前已注册执行控制器；目标切换后的迟到提交在这里终止。 */
 function requireConversationController(runtime: AgentChatRuntime) {
@@ -86,6 +88,7 @@ function createConversationInput(
         references: request.references,
         ...(request.editorContext ? {editorContext: request.editorContext} : {}),
         ...(request.pluginActions.length > 0 ? {pluginActions: request.pluginActions} : {}),
+        frontendCapabilities: listCapabilityManifests(),
         model: getSelectedModel(runtime),
         ...(runtime.selectedReasoningEffort ? {reasoningEffort: runtime.selectedReasoningEffort} : {}),
         ...(identity.regenerate ? {regenerate: true} : {}),

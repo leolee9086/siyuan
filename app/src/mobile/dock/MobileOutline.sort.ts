@@ -122,6 +122,20 @@ const moveOutlineItem = (outline: MobileOutlineElementPort, state: OutlineTouchD
 export function bindOutlineSort(outline: MobileOutlineSortPort) {
     const scrollElement = outline.tree.element;
     let touchDragState: OutlineTouchDragState | null = null;
+    let longPressTimer: number | undefined;
+    const cancelLongPressTimer = () => {
+        if (longPressTimer !== undefined) {
+            clearTimeout(longPressTimer);
+            longPressTimer = undefined;
+        }
+    };
+    const vibrateOutline = () => {
+        if (window.webkit?.messageHandlers.vibrate) {
+            window.webkit.messageHandlers.vibrate.postMessage("");
+        } else if (navigator.vibrate) {
+            navigator.vibrate(Constants.TIMEOUT_VIBRATION_DURATION);
+        }
+    };
     outline.element.addEventListener("touchstart", (event: TouchEvent) => {
         const editor = window.siyuan.mobile.editor?.protyle;
         if (window.siyuan.config.readonly || outline.element.getAttribute("data-loading") === "true" ||
@@ -133,6 +147,7 @@ export function bindOutlineSort(outline: MobileOutlineSortPort) {
         if (!liElement || liElement.tagName !== "LI") {
             return;
         }
+        cancelLongPressTimer();
         touchDragState = {
             selectedElement: liElement,
             startX: touch.clientX,
@@ -142,6 +157,19 @@ export function bindOutlineSort(outline: MobileOutlineSortPort) {
             startTime: Date.now() - (isMousePointerTouchEvent(event) ? Constants.TIMEOUT_LONGPRESS : 0),
             selectItem: null,
         };
+        // 上游 18347：长按后自动进入拖拽（无需移动），并震动反馈
+        if (!isMousePointerTouchEvent(event)) {
+            const state = touchDragState;
+            longPressTimer = window.setTimeout(() => {
+                if (touchDragState !== state || state.isDragging) {
+                    return;
+                }
+                state.isDragging = true;
+                state.selectedElement.style.opacity = "0.38";
+                state.ghostElement = createGhostElement(state.selectedElement, state.startX, state.startY);
+                vibrateOutline();
+            }, Constants.TIMEOUT_LONGPRESS);
+        }
     }, {passive: false});
     outline.element.addEventListener("touchmove", (event: TouchEvent) => {
         const state = touchDragState;
@@ -153,15 +181,21 @@ export function bindOutlineSort(outline: MobileOutlineSortPort) {
             const moved = Math.abs(touch.clientX - state.startX) > Constants.SIZE_DRAG_THRESHOLD ||
                 Math.abs(touch.clientY - state.startY) > Constants.SIZE_DRAG_THRESHOLD;
             if (Date.now() - state.startTime < Constants.TIMEOUT_LONGPRESS && moved) {
+                cancelLongPressTimer();
                 touchDragState = null;
                 return;
             }
             if (!moved) {
                 return;
             }
+            cancelLongPressTimer();
             state.isDragging = true;
             state.selectedElement.style.opacity = "0.38";
             state.ghostElement = createGhostElement(state.selectedElement, touch.clientX, touch.clientY);
+            // 非鼠标长按拖拽需震动（上游 18347）
+            if (!isMousePointerTouchEvent(event)) {
+                vibrateOutline();
+            }
         }
         event.preventDefault();
         event.stopPropagation();
@@ -179,6 +213,7 @@ export function bindOutlineSort(outline: MobileOutlineSortPort) {
         if (!state) {
             return;
         }
+        cancelLongPressTimer();
         stopScrollAnimation();
         state.selectedElement.style.opacity = "";
         state.ghostElement?.remove();
@@ -189,6 +224,7 @@ export function bindOutlineSort(outline: MobileOutlineSortPort) {
         touchDragState = null;
     });
     outline.element.addEventListener("touchcancel", () => {
+        cancelLongPressTimer();
         stopScrollAnimation();
         touchDragState?.ghostElement?.remove();
         if (touchDragState?.selectedElement) {
@@ -197,5 +233,23 @@ export function bindOutlineSort(outline: MobileOutlineSortPort) {
         clearDragIndicators(outline);
         touchDragState = null;
     });
+    // 上游 18347：滚动 / 指针取消 / 失焦时中止拖拽
+    const cancelOutlineDrag = () => {
+        cancelLongPressTimer();
+        stopScrollAnimation();
+        touchDragState?.ghostElement?.remove();
+        if (touchDragState?.selectedElement) {
+            touchDragState.selectedElement.style.opacity = "";
+        }
+        clearDragIndicators(outline);
+        touchDragState = null;
+    };
+    scrollElement.addEventListener("scroll", () => {
+        if (touchDragState && !touchDragState.isDragging) {
+            cancelOutlineDrag();
+        }
+    }, {passive: true});
+    outline.element.addEventListener("pointercancel", cancelOutlineDrag);
+    window.addEventListener("blur", cancelOutlineDrag);
     bindMousePointerTouchBridge(outline.element);
 }

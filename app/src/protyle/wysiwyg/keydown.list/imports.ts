@@ -22,13 +22,13 @@ import {
  * 使用范围：仅用于 [`executors.transform.helpers.ts`](app/src/protyle/wysiwyg/keydown.list/executors.transform.helpers.ts) 等列表转换辅助流程在键盘命令执行阶段提交批量转换事务；边界是不在本文件内承担事务参数组装、路由判断或编辑器状态提取。
  * 解耦评估：理论上可以把事务函数从转换执行器逐层作为参数注入，但当前列表转换调用链是静态模块组合，若强行透传会把同一事务依赖扩散到多个 helper 和执行器签名，增加样板且不减少真实耦合；事件发射也无法替代这种必须 await 的同步转换调用。因此通过本同层 imports 网关集中转发，是现有架构下更低耦合的方案。
  */
-import {turnsIntoOneTransaction} from "../transaction.turns";
+import {turnsIntoOneTransaction} from "../transaction/turns/container";
 /**
  * 用途：引入单节点列表类型互转事务函数，供当前列表键盘模块的转换辅助流程复用既有单节点转换实现。
  * 使用范围：仅用于 [`executors.transform.helpers.ts`](app/src/protyle/wysiwyg/keydown.list/executors.transform.helpers.ts) 在列表类型互转流程中提交单节点转换事务；边界是不在本文件内扩展事务语义，也不负责决定何时触发互转。
  * 解耦评估：理论上可把该函数由调用方参数传入，但 [`turnsOneInto()`](app/src/protyle/transaction.ts:936) 与 [`turnsIntoOneTransaction()`](app/src/protyle/transaction.ts:881) 共同构成当前列表转换层的稳定事务契约；若只对其中一部分做注入，helper 仍需了解事务细节，抽象边界不会更清晰。继续经由同层网关统一暴露，能把父级事务模块路径耦合限制在单点。
  */
-import {turnsOneInto} from "../transaction.turns";
+import {turnsOneInto} from "../transaction/turns/single";
 /**
  * 用途：引入基于属性的最近祖先查找函数，供列表执行器与 unified 状态提取流程复用统一的任务列表项定位逻辑。
  * 使用范围：仅用于 [`executors.ts`](app/src/protyle/wysiwyg/keydown.list/executors.ts) 的任务勾选执行路径，以及 [`unified/state.ts`](app/src/protyle/wysiwyg/keydown.list/unified/state.ts:21) 的状态提取流程；边界是不在本文件内扩展 DOM 遍历策略，也不承担事务提交或命令路由判断。

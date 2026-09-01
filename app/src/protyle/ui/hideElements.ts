@@ -1,6 +1,9 @@
 import { getAllEditor } from "../../layout/getAll";
+import {hideRectResizeHandles} from "../../asset/rectAnnotationResize";
 import {isIPhone} from "../../util/platform/functions";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {hideGutterElements} from "./gutterVisibility";
+import {closeSubElement} from "../toolbar/subElementLifecycle";
 import {hideAllGutters} from "./hideGutters";
 
 /**
@@ -53,6 +56,7 @@ export const hideElements = (panels: panelsType, protyle?: IProtyle, focusHide =
     }
     if (panels.includes("hint")) {
         clearTimeout(protyle.hint?.timeId);
+        protyle.hint?.deactivateEmojiPanel();
         protyle.hint?.element.classList.add("fn__none");
     }
     if (protyle.gutter && panels.includes("gutter")) {
@@ -64,11 +68,16 @@ export const hideElements = (panels: panelsType, protyle?: IProtyle, focusHide =
         });
     }
     //  不能 remove("protyle-wysiwyg--hl") 否则打开页签的时候 "cb-get-hl" 高亮会被移除
-    if (protyle.gutter && panels.includes("gutterOnly")) {
-        if (!isIPhone()) {
-            protyle.gutter.element.classList.add("fn__none");
+    if (panels.includes("gutterOnly")) {
+        const gutterElements: HTMLElement[] = [];
+        if (protyle.gutter) {
+            gutterElements.push(protyle.gutter.element);
         }
-        protyle.gutter.element.innerHTML = "";
+        const nestedGutter = protyle.contentElement.querySelector<HTMLElement>(".protyle-gutters:not(.fn__none)");
+        if (nestedGutter) {
+            gutterElements.push(nestedGutter);
+        }
+        hideGutterElements(gutterElements, !isIPhone());
     }
     if (protyle.toolbar && panels.includes("toolbar")) {
         protyle.toolbar.element.classList.add("fn__none");
@@ -79,10 +88,7 @@ export const hideElements = (panels: panelsType, protyle?: IProtyle, focusHide =
         if (!protyle.toolbar.isMultiSelectMode() &&
             (focusHide || !pinElement || (pinElement && pinElement.getAttribute("aria-label") === siyuanI18n.pin))) {
             protyle.toolbar.subElement.classList.add("fn__none");
-            if (protyle.toolbar.subElementCloseCB) {
-                protyle.toolbar.subElementCloseCB();
-                protyle.toolbar.subElementCloseCB = undefined;
-            }
+            closeSubElement(protyle.toolbar);
         }
     }
     if (panels.includes("select")) {
@@ -128,10 +134,7 @@ export const hideAllElements = (types: string[]) => {
                 if (!item.protyle.toolbar.isMultiSelectMode() &&
                     (!pinElement || (pinElement && pinElement.getAttribute("aria-label") === siyuanI18n.pin))) {
                     item.protyle.toolbar.subElement.classList.add("fn__none");
-                    if (item.protyle.toolbar.subElementCloseCB) {
-                        item.protyle.toolbar.subElementCloseCB();
-                        item.protyle.toolbar.subElementCloseCB = undefined;
-                    }
+                    closeSubElement(item.protyle.toolbar);
                 }
             }
         });
@@ -140,6 +143,7 @@ export const hideAllElements = (types: string[]) => {
         document.querySelectorAll(".pdf__util").forEach(item => {
             item.classList.add("fn__none");
         });
+        hideRectResizeHandles(document);
     }
     if (types.includes("gutter")) {
         hideAllGutters();

@@ -4,8 +4,10 @@ import {fetchSyncPost} from "../../../../util/network/fetch";
 import {Constants} from "../../../../constants";
 import {genTabHeaderHTML} from "../view/header";
 import {afterRenderGallery} from "../gallery/render";
+import {getCardStyle} from "../gallery/style";
+import {escapeAttr} from "../../../../util/DOM/escape";
 import {getRowHTML} from "../row";
-import {getBodyVirtualData} from "../virtualScroll";
+import {getAVSelectedItemPoints, getBodyVirtualData} from "../virtualScroll";
 import {beginAVRender, getAVLocateParams, isCurrentAVRender} from "../locate/state/state";
 import {prepareAVLocate} from "../locate/window/prepare";
 import {getKanbanTitleHTML} from "./getKanbanTitleHTML";
@@ -72,16 +74,10 @@ export const renderKanban = async (options: {
             fieldId: item.parentElement.getAttribute("data-id"),
         });
     });
-    const selectItemIds: IIds[] = [];
-    options.blockElement.querySelectorAll(".av__gallery-item--select").forEach(galleryItem => {
-        const fieldId = galleryItem.getAttribute("data-id");
-        if (fieldId) {
-            selectItemIds.push({
-                groupId: (hasClosestByClassName(galleryItem, "av__body") as HTMLElement).dataset.groupId || "",
-                fieldId
-            });
-        }
-    });
+    const selectItemIds: IIds[] = getAVSelectedItemPoints(options.blockElement).map(item => ({
+        groupId: item.groupID,
+        fieldId: item.itemID,
+    }));
     const pageSizes: { [key: string]: string } = {};
     const virtualData: { [key: string]: IAVVirtualData } = {};
     options.blockElement.querySelectorAll(".av__body").forEach((item: HTMLElement) => {
@@ -127,18 +123,24 @@ export const renderKanban = async (options: {
     if (!data) {
         const avPageSize = getPageSize(options.blockElement);
         const locateParams = getAVLocateParams(options.blockElement, !created && !snapshot);
+        const historical = !!created || !!snapshot;
         const response = await fetchSyncPost(created ? "/api/av/renderHistoryAttributeView" : (snapshot ? "/api/av/renderSnapshotAttributeView" : "/api/av/renderAttributeView"), {
             id: options.blockElement.getAttribute("data-av-id"),
             created,
             snapshot,
             pageSize: avPageSize.unGroupPageSize,
             groupPaging: avPageSize.groupPageSize,
-            viewID: locateParams?.viewID || options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) || "",
+            viewID: locateParams?.viewID || "",
+            ...(historical ? {carrierViewID: options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) || ""} : {}),
             query: resetData.query.trim(),
             blockID: options.blockElement.getAttribute("data-node-id"),
+            initialLayout: options.blockElement.getAttribute("data-av-type"),
             targetItemID: locateParams?.targetItemID || "",
             targetGroupID: locateParams?.targetGroupID || "",
         });
+        if (response.code !== 0) {
+            return;
+        }
         data = response.data;
     }
     if (!isCurrentAVRender(options.blockElement, renderToken)) {
@@ -168,9 +170,15 @@ export const renderKanban = async (options: {
         return;
     }
     const view = data.view as IAVKanban;
+    const groupKey = view.fields.find(item => item.id === view.group?.field);
+    const groupOptions = groupKey?.options || [];
+    const queryEmbedElement = hasClosestByAttribute(options.blockElement, "data-type", "NodeBlockQueryEmbed");
+    const groupDraggable = !options.protyle.disabled && !created && !snapshot && !queryEmbedElement &&
+        !["created", "date", "updated"].includes(groupKey?.type);
+    const groupConfig = escapeAttr(JSON.stringify(view.group));
     let bodyHTML = "";
     let isSelectGroup = false;
-    for (const group of view.groups) {
+    for (const [groupIndex, group] of view.groups.entries()) {
         if (group.groupHidden === 0) {
             let selectBg = "";
             if (group.fillColBackgroundColor) {
@@ -179,22 +187,22 @@ export const renderKanban = async (options: {
                 }
                 if (isSelectGroup) {
                     if (group.groupValue.mSelect && group.groupValue.mSelect.length > 0) {
-                        selectBg = `style="--b3-av-kanban-background: var(--b3-font-background${group.groupValue.mSelect[0].color});"`;
+                        selectBg = `style="--b3-av-kanban-background: var(--b3-font-background${escapeAttr(group.groupValue.mSelect[0].color)});"`;
                     } else {
                         selectBg = 'style="--b3-av-kanban-background: var(--b3-border-color);"';
                     }
                 }
             }
-            bodyHTML += `<div class="av__kanban-group${group.cardSize === 0 ? " av__kanban-group--small" : (group.cardSize === 2 ? " av__kanban-group--big" : "")}"${selectBg}>
-    ${getKanbanTitleHTML(group, group.cardCount)}
+            bodyHTML += `<div class="av__kanban-group${group.cardSize === 0 ? " av__kanban-group--small" : (group.cardSize === 2 ? " av__kanban-group--big" : "")}" data-group-id="${group.id}" data-previous-group-id="${view.groups[groupIndex - 1]?.id || ""}" data-group-config="${groupConfig}"${selectBg}>
+    ${getKanbanTitleHTML(group, group.cardCount, groupDraggable)}
     <div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}"${virtualData[group.id]?.locate ? ' data-av-locate-window="true"' : ""} class="av__body">${await getKanbanHTML(group, options.blockElement, virtualData[group.id])}</div>
 </div>`;
         }
     }
     if (options.renderAll) {
         options.blockElement.firstElementChild.outerHTML = `<div class="av__container fn__block">
-    ${genTabHeaderHTML(data, resetData.isSearching || !!resetData.query, !options.protyle.disabled && !hasClosestByAttribute(options.blockElement, "data-type", "NodeBlockQueryEmbed"))}
-    <div class="av__kanban${isSelectGroup ? " av__kanban--bg" : ""}">
+    ${genTabHeaderHTML(data, resetData.isSearching || !!resetData.query, !options.protyle.disabled && !queryEmbedElement)}
+    <div class="av__kanban${isSelectGroup ? " av__kanban--bg" : ""}" data-group-options="${escapeAttr(JSON.stringify(groupOptions))}" style="${getCardStyle(view)}">
         ${bodyHTML}
     </div>
     <div class="av__cursor" contenteditable="true">${Constants.ZWSP}</div>
@@ -202,6 +210,7 @@ export const renderKanban = async (options: {
     } else {
         const kanbanElement = options.blockElement.querySelector(".av__kanban");
         kanbanElement.innerHTML = bodyHTML;
+        (kanbanElement as HTMLElement).dataset.groupOptions = JSON.stringify(groupOptions);
         if (isSelectGroup) {
             kanbanElement.classList.add("av__kanban--bg");
         } else {

@@ -3,11 +3,15 @@ import { Constants } from "../../../constants";
 import { hasTopClosestByTag } from "../../../protyle/util/hasClosest";
 import { hideDragTip } from "../../../protyle/util/dragTip";
 import { fetchPost, fetchSyncPost } from "../../../util/network/fetch";
-import { getSiyuanConfig, setSiyuanDragElement } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { getSiyuanConfig, getSiyuanDragElement, setSiyuanDragElement } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { pathPosix } from "../../../util/file/pathName";
+import {isMoveTargetAllowed} from "../../../util/file/moveTarget";
+import {insertDocumentsSortPaths} from "../../../util/fileTreeMove";
+import {isCustomFileTreeList} from "../../../util/fileTreeSort";
 import { showMessage } from "../../../dialog/message";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { onLsHTMLHandler } from "./onLsHTML";
+import {getFileTreeChildList, updateMovedSubtree} from "../../../util/fileTreeMove";
 
 export const onDrop = async (files: FilesDomain, event: DragEvent) => {
     hideDragTip();
@@ -47,6 +51,15 @@ export const onDrop = async (files: FilesDomain, event: DragEvent) => {
 };
 
 const handleGutterDrop = (newElement: Element, gutterType: string, params: { toURL: string, toPath: string }) => {
+    const sourceElement = getSiyuanDragElement();
+    const sourceNotebookId = sourceElement?.getAttribute("data-notebook-id") ||
+        sourceElement?.closest("ul[data-url]")?.getAttribute("data-url") || "";
+    if (!isMoveTargetAllowed([sourceNotebookId], params.toURL)) {
+        showMessage(window.siyuan.languages._kernel[313]);
+        newElement.classList.remove("dragover", "dragover__bottom", "dragover__top");
+        setSiyuanDragElement(undefined);
+        return;
+    }
     const gutterTypes = gutterType.replace(Constants.SIYUAN_DROP_GUTTER, "").split(Constants.ZWSP);
     const type = gutterTypes[0];
     if (type && ["nodelistitem", "nodeheading"].includes(type)) {
@@ -120,7 +133,7 @@ const handleFileDrop = async (files: FilesDomain, event: DragEvent, newElement: 
     }
 
     if (newElement.classList.contains("dragover")) {
-        handleMoveDrop(newElement, params, fromPaths);
+        handleMoveDrop(newElement, params, fromPaths, selectFileElements);
         return;
     }
     if (newElement.classList.contains("dragover__bottom") || newElement.classList.contains("dragover__top")) {
@@ -129,7 +142,19 @@ const handleFileDrop = async (files: FilesDomain, event: DragEvent, newElement: 
     newElement.classList.remove("dragover", "dragover__bottom", "dragover__top");
 };
 
-const handleMoveDrop = (newElement: Element, params: { toURL: string, toPath: string }, fromPaths: string[]) => {
+const handleMoveDrop = (
+    newElement: Element,
+    params: { toURL: string, toPath: string },
+    fromPaths: string[],
+    sourceElements: HTMLElement[],
+) => {
+    const sourceNotebookIds = sourceElements.map((item) => item.getAttribute("data-notebook-id") ||
+        item.closest("ul[data-url]")?.getAttribute("data-url") || "");
+    if (fromPaths.length > 0 && !isMoveTargetAllowed(sourceNotebookIds, params.toURL)) {
+        showMessage(window.siyuan.languages._kernel[313]);
+        newElement.classList.remove("dragover", "dragover__bottom", "dragover__top");
+        return;
+    }
     if (fromPaths.length > 0) {
         fetchPost("/api/filetree/moveDocs", {
             toNotebook: params.toURL,
@@ -172,14 +197,13 @@ const getSelectedFiles = (files: FilesDomain, newElement: Element) => {
 };
 
 const handleSort = async (files: FilesDomain, newElement: Element, newUlElement: Element, selectRootElements: HTMLElement[], selectFileElements: HTMLElement[], fromPaths: string[], params: { toURL: string, toPath: string, oldScrollTop: number }) => {
-    const ulSort = newUlElement.getAttribute("data-sortmode");
     if (getSiyuanConfig().fileTree.sort === 6 && selectRootElements.length > 0 &&
         newElement.getAttribute("data-path") === "/") {
         handleRootSort(files, newElement, selectRootElements);
         return;
     }
 
-    if ((ulSort === "6" || (getSiyuanConfig().fileTree.sort === 6 && ulSort === "15")) && selectFileElements.length > 0) {
+    if (isCustomFileTreeList(newUlElement) && selectFileElements.length > 0) {
         await handleFileSort(files, newElement, selectFileElements, fromPaths, params);
     }
 };
@@ -211,25 +235,64 @@ const handleRootSort = (files: FilesDomain, newElement: Element, selectRootEleme
     });
 };
 
-const handleFileSort = async (files: FilesDomain, newElement: Element, selectFileElements: HTMLElement[], fromPaths: string[], params: { toURL: string, toPath: string, oldScrollTop: number }) => {
-    let hasMove = false;
+const handleFileSort = async (
+    files: FilesDomain,
+    newElement: Element,
+    selectFileElements: HTMLElement[],
+    fromPaths: string[],
+    params: { toURL: string, toPath: string, oldScrollTop: number },
+) => {
+    const sourceNotebookIds = selectFileElements.map((item) => item.getAttribute("data-notebook-id") ||
+        item.closest("ul[data-url]")?.getAttribute("data-url") || "");
+    if (!isMoveTargetAllowed(sourceNotebookIds, params.toURL)) {
+        showMessage(window.siyuan.languages._kernel[313]);
+        return;
+    }
     const toDir = pathPosix().dirname(params.toPath);
+    const newPaths = selectFileElements.map((item) =>
+        pathPosix().join(toDir, `${item.getAttribute("data-node-id") || ""}.sy`)
+    );
+    const siblingPaths = Array.from(newElement.parentElement?.children || []).reduce<string[]>((paths, item) => {
+        const itemPath = item.getAttribute("data-path");
+        if (item.tagName === "LI" && itemPath) {
+            paths.push(itemPath);
+        }
+        return paths;
+    }, []);
+    const newElementClassList = newElement.getAttribute("class") || "";
+    const sortedPaths = insertDocumentsSortPaths(
+        siblingPaths,
+        newPaths,
+        params.toPath,
+        newElementClassList.includes("dragover__bottom"),
+    );
+    if (!sortedPaths || (sortedPaths.length === siblingPaths.length &&
+        sortedPaths.every((itemPath, index) => itemPath === siblingPaths[index]))) {
+        return;
+    }
+
+    let hasMove = false;
     if (fromPaths.length > 0) {
-        await fetchSyncPost("/api/filetree/moveDocs", {
+        const moveResponse = await fetchSyncPost("/api/filetree/moveDocs", {
             toNotebook: params.toURL,
             fromPaths,
             toPath: toDir === "/" ? "/" : toDir + ".sy",
             callback: Constants.CB_MOVE_NOLIST,
         });
-        for (const item of selectFileElements) {
-            item.setAttribute("data-path", pathPosix().join(toDir, item.getAttribute("data-node-id") + ".sy"));
+        if (moveResponse.code !== 0) {
+            return;
         }
+        selectFileElements.forEach((item, index) => {
+            const fromPath = item.getAttribute("data-path");
+            if (!fromPath || !newPaths[index]) {
+                return;
+            }
+            updateMovedSubtree(item, getFileTreeChildList(item), fromPath, newPaths[index]);
+        });
         hasMove = true;
     }
-    const newElementClassList = newElement.getAttribute("class") || "";
     updateDOMPosition(newElement, selectFileElements, newElementClassList);
-
-    finalizeSort(files, newElement, params, toDir, hasMove);
+    finalizeSort(files, newElement, params, toDir, hasMove, sortedPaths);
 };
 
 const updateDOMPosition = (newElement: Element, selectFileElements: HTMLElement[], newElementClassList: string) => {
@@ -267,20 +330,20 @@ const updateDOMPosition = (newElement: Element, selectFileElements: HTMLElement[
     }
 };
 
-const finalizeSort = (files: FilesDomain, newElement: Element, params: { toURL: string, oldScrollTop: number }, toDir: string, hasMove: boolean) => {
+const finalizeSort = (
+    files: FilesDomain,
+    newElement: Element,
+    params: { toURL: string, oldScrollTop: number },
+    toDir: string,
+    hasMove: boolean,
+    sortedPaths: string[],
+) => {
     if (!newElement.parentElement) {
         return;
     }
-    const paths: string[] = [];
-    for (const item of Array.from(newElement.parentElement.children)) {
-        const path = item.getAttribute("data-path");
-        if (item.tagName === "LI" && path) {
-            paths.push(path);
-        }
-    }
     fetchPost("/api/filetree/changeSort", {
-        paths,
-        notebook: params.toURL
+        paths: sortedPaths,
+        notebook: params.toURL,
     }, () => onSortChanged(files, params, toDir, hasMove));
 };
 
@@ -300,5 +363,8 @@ const onListDocs = (files: FilesDomain, oldScrollTop: number, response: IWebSock
         showMessage(siyuanI18n.emptyContent);
         return;
     }
-    onLsHTMLHandler(files.element, response.data, oldScrollTop, () => files.refreshPublishAccessSwitch());
+    onLsHTMLHandler(files.element, response.data, oldScrollTop, (listElement) => {
+        files.restoreMovedExpandedItems(listElement, response.data.box);
+        files.refreshPublishAccessSwitch();
+    });
 };

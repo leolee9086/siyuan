@@ -32,7 +32,7 @@ import { updateTableTitle } from "../util/table/table.title.update";
 import {countSelectWord} from "../runtime/status.port";
 import {getBacklinkHeadingMore, loadBreadcrumb} from "./renderBacklink";
 import {commonClick} from "./commonClick";
-import {avClick} from "../render/av/action";
+import {avClick} from "../render/av/action/click";
 import {checkFold} from "../../block/fold/checkFold";
 import {openEmojiPanel, unicode2Emoji} from "../../emoji";
 import {globalClickHideMenu} from "../../boot/globalEvent/click";

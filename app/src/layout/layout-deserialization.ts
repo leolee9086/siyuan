@@ -40,6 +40,8 @@ import {
     handleUrlFileOpen,
     activateInitialTabs,
     handleCloseTabsOnStart,
+    handleTabStartupBlank,
+    shouldApplyTabStartup,
 } from "./layout-deserialization.layout";
 
 /** 存储需要移除的空Tab，在布局恢复完成后统一处理 */
@@ -227,13 +229,16 @@ export const JSONToLayout = (app: AppFacade, isStart: boolean): void => {
     JSONToCenter(app, uiLayoutConfig.layout, undefined);
     // 恢复Dock布局
     JSONToDock(uiLayoutConfig, app);
-    // 启动时移除未固定的Tab（根据配置）
-    handleCloseTabsOnStart(isStart);
+    const shouldApply = shouldApplyTabStartup(isStart);
+    // 启动时移除未固定的Tab（根据配置，mode 2）
+    handleCloseTabsOnStart(isStart, shouldApply);
     // 处理缺失插件的Tab
     handleMissingPluginTabs(app);
-    // 处理URL指定的文件打开，或激活初始Tab
+    // 处理URL指定的文件打开，或处理空白启动/激活初始Tab
     if (!handleUrlFileOpen(app)) {
-        activateInitialTabs(removedTabs);
+        if (!handleTabStartupBlank(app, shouldApply, removedTabs)) {
+            activateInitialTabs(removedTabs);
+        }
     }
     // 需在 switchTab 后通知布局就绪，否则插件读取到的当前 tab 永远为最后一个。
     afterLayoutReady(app);

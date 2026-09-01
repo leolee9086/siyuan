@@ -8,7 +8,9 @@
 
 import { setNoteBook } from "../../../util/file/pathName";
 import type { AppFacade } from "../../../app/AppFacade.types";
-import { handleCreateNotebook, handleUpdateDocInfo, handleRemove, handleMount, handleMove } from "./wsHandlers";
+import { handleCreateNotebook, handleUpdateDocInfo, handleRemove, handleMount } from "./wsHandlers";
+import { applyFileTreeMoves } from "../../../util/fileTreeMoveDom";
+import { normalizeFileTreeMoves } from "../../../util/fileTreeMove";
 import { handleRenameNotebook, handleCreate } from "./wsHandlers.rename";
 import { genDocAriaLabel, genNotebook } from "./htmlGenerators";
 import { updateItemArrowFromModule } from "./treeNavigation";
@@ -35,18 +37,34 @@ function buildHandlersMap(
     app: AppFacade,
     context: IFilesContext
 ): Record<string, () => void> {
+    const handleMoves = () => applyFileTreeMoves({
+    host: {
+        element: context.element,
+        getLeaf: context.getLeaf,
+        recordMovedExpandedDocIDs: context.recordMovedExpandedDocIDs,
+        updateDocActionElement: context.updateDocActionElement,
+        persistOpenPaths: context.persistOpenPaths,
+    },
+    moves: normalizeFileTreeMoves(data.data),
+    ...(data.callback ? {callback: data.callback} : {}),
+});
     return {
         /** 重新加载文档信息：更新文档的 aria-label 等元数据 */
         reloadDocInfo: () => handleUpdateDocInfo(context.element, data, genDocAriaLabel),
-        /** 移动文档：处理文档在文件树中的位置变更 */
-        moveDoc: () => handleMove(context.element, data, context.getLeaf.bind(context)),
+        /** 批量移动文档：同步文件树位置并保留已展开子树。 */
+        moveDoc: handleMoves,
+        moveDocs: handleMoves,
+
         /** 重新加载文件树：刷新整个笔记本列表 */
         reloadFiletree: () => setNoteBook(() => context.init(false)),
         /** 合并短时间内的笔记本顶层文档计数更新。 */
         reloadNotebookInfo: () => context.reloadNotebookInfo(),
         /** 挂载笔记本：添加笔记本到文件树并触发插件事件 */
         mount: () => {
-            handleMount(context.element, context.closeElement, data, genNotebook);
+            handleMount(context.element, context.closeElement, {
+                data: data.data,
+                ...(data.callback ? {callback: data.callback} : {}),
+            }, genNotebook);
             for (const item of app.plugins) {
                 item.eventBus.emit("opened-notebook", data);
             }

@@ -4,6 +4,10 @@ import {Constants} from "./imports";
 import {fetchPost} from "./imports";
 /** 用途：执行本地同步和内核提交。使用范围：事务命令主流程。解耦评估：复用现有唯一实现。 */
 import {promiseTransaction} from "./imports";
+/** 用途：在提交前按视图折叠上下文归一化事务。使用范围：所有编辑器事务。解耦评估：通过事务网关使用稳定视图状态协议。 */
+import {prepareViewFoldTransaction} from "./imports";
+/** 用途：清理标题编号展示标记。使用范围：事务落盘前。解耦评估：通过事务网关使用唯一编号规则。 */
+import {cleanHeadingNumberOperations} from "./imports";
 /** 用途：登记事务 undo；使用范围：提交前生命周期；解耦评估：同域直达唯一实现。 */
 import {registerTransactionUndo} from "./undo";
 /** 用途：断开插入后的旧观察器。使用范围：事务提交后置步骤。解耦评估：复用提交与嵌套同步共同的唯一生命周期实现。 */
@@ -20,9 +24,18 @@ export const transaction =
     /** @参数豁免: 遗留代码 - 保持现有公开事务 API 与全部调用点兼容 */
     (protyle: IProtyle, doOperations: IOperation[], undoOperations?: IOperation[],
                             options?: {skipSync?: boolean; callback?: () => void}) => {
+    if (protyle) {
+        const prepared = prepareViewFoldTransaction(protyle, doOperations, undoOperations);
+        doOperations = prepared.doOperations;
+        undoOperations = prepared.undoOperations;
+    }
+    // 视图折叠归一化可能消除所有操作，此时仅完成调用方回调，避免提交空事务。
     if (doOperations.length === 0) {
+        options?.callback?.();
         return;
     }
+    cleanHeadingNumberOperations(doOperations);
+    cleanHeadingNumberOperations(undoOperations);
     if (!protyle) {
         fetchPost("/api/transactions", {
             session: Constants.SIYUAN_APPID,

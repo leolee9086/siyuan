@@ -1,7 +1,7 @@
 import {editorConfigApi} from "../tabs/editorRuntime";
 import {fileConfigApi} from "../tabs/fileRuntime";
 import {flashcardConfigApi} from "../tabs/flashcardRuntime";
-import {aiConfigApi} from "../tabs/aiRuntime";
+import {aiConfigApi} from "../tabs/ai/aiRuntime";
 import {secretsConfigApi} from "../tabs/secretsVariablesRuntime";
 import {exportConfigApi} from "../tabs/exportRuntime";
 import {searchConfigApi} from "../tabs/searchRuntime";
@@ -9,18 +9,18 @@ import {appearanceConfigApi} from "../tabs/appearanceRuntime";
 import {mountSyncTabExtras, patchSyncConfig} from "../tabs/syncRuntime";
 import {mountAccessTab} from "../tabs/accessRuntime";
 import {collectAssetsTabSearchStrings, mountAssetsTab} from "../assets";
-import {collectBazaarTabSearchStrings, mountBazaarTab} from "../bazzar/bazaar";
+import {collectBazaarTabSearchStrings, mountBazaarTab} from "../bazaarTab";
 import {collectKeymapTabSearchStrings, mountKeymapTab} from "../tabs/keymapUi";
-import {isHuawei, isInHarmony} from "../../protyle/util/compatibility";
+import {isDisabledFeature, isHuawei, isInHarmony} from "../../protyle/util/compatibility";
+import {isBazaarAvailable} from "../../util/bazaarAvailability";
 import {isMobile} from "../../platform";
 import {createVueComponentLoader} from "../../util/vue/mount";
 import AIProfilesConfig from "../ai/AIProfilesConfig.vue";
-import {isDisabledFeature} from "../../protyle/util/compatibility";
 import {SettingBuilder, type SettingTab} from "./builder";
 import {registerEditorTab} from "../tabs/editorTab";
 import {registerFileTab} from "../tabs/fileTab";
 import {registerFlashcardTab} from "../tabs/flashcardTab";
-import {registerAiTab} from "../tabs/aiTab";
+import {registerAiTab} from "../tabs/ai/aiTab";
 import {registerSecretsVariablesTab} from "../tabs/secretsVariablesTab";
 import {registerExportTab} from "../tabs/exportTab";
 import {registerSearchTab} from "../tabs/searchTab";
@@ -77,7 +77,7 @@ const settingTabs = {
         id: "bazaar",
         icon: "iconBazaar",
         title: () => window.siyuan.languages.bazaar,
-        hidden: () => isMobile || !!(isHuawei() || isInHarmony()),
+        hidden: () => !isBazaarAvailable() || isMobile || !!(isHuawei() || isInHarmony()),
         searchStrings: collectBazaarTabSearchStrings,
         mount: mountBazaarTab,
     }),
@@ -91,8 +91,8 @@ const settingTabs = {
         id: "ai",
         icon: "iconSparkles",
         title: () => window.siyuan.languages.ai,
+        hidden: () => isDisabledFeature("ai") || (isMobile && isHuawei()),
         defaultSave: aiConfigApi.patch,
-        hidden: () => isMobile && (isHuawei() || isDisabledFeature("ai")),
     }, registerAiTab),
     AIProfiles: setting.panel({
         id: "AIProfiles",

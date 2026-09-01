@@ -69,7 +69,7 @@ const getPluginsStyle = () => {
     return pluginsStyle;
 };
 
-/** 作用: 注入插件 CSS; 意图: 确保插件样式即时生效; 调用时机: JS 加载后 */
+/** 作用: 注入插件 CSS; 意图: 确保插件样式即时生效; 调用时机: 插件 JS 加载前（上游调整），避免 onload 里插入的 DOM 先按无样式排版 */
 const insertPluginCSS = (item: IPluginData, pluginsStyle: HTMLElement) => {
     if (!item.css) {
         return;
@@ -180,6 +180,8 @@ export const loadPlugins = async (app: AppFacade, names?: string[], init = true)
         if (!shouldLoad) {
             continue;
         }
+        // 先插入 CSS，避免 onload 里插入的 DOM 在样式生效前先按无样式排版
+        insertPluginCSS(item, pluginsStyle);
         if (init) {
             void loadPluginJS(app, item).catch((error) => {
                 console.error(`plugin ${item.name} initialization error:`, error);
@@ -188,18 +190,18 @@ export const loadPlugins = async (app: AppFacade, names?: string[], init = true)
         if (!init) {
             await loadPluginJS(app, item);
         }
-        insertPluginCSS(item, pluginsStyle);
     }
 };
 
 /** @导出说明: 启用单个插件入口 */
 /** 作用: 启用单插件并触发后续 UI 初始化; 意图: 支持插件管理中的手动启用; 调用时机: 用户启用插件 */
 export const loadPlugin = async (app: AppFacade, item: IPluginData) => {
+    // 先插入 CSS，避免 onload 里插入的 DOM 在样式生效前先按无样式排版
+    insertPluginCSS(item, getPluginsStyle());
     const plugin = await loadPluginJS(app, item);
     if (!plugin) {
         return;
     }
-    insertPluginCSS(item, getPluginsStyle());
     afterLoadPlugin(plugin);
     saveLayout();
     refreshAllEditorToolbars();

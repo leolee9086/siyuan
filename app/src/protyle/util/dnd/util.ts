@@ -38,6 +38,7 @@ export const cleanupDragIndicators = (scope: ParentNode) => {
         item.style.removeProperty("--drag-line-left");
         item.style.removeProperty("--drag-base-bg");
         item.style.removeProperty("--drag-line-bg");
+        item.style.removeProperty("--b3-av-kanban-drag-height");
     });
 };
 
@@ -111,6 +112,7 @@ export const clearDragoverElement = (element?: Element | null) => {
         htmlElement.style.removeProperty("--drag-line-left");
         htmlElement.style.removeProperty("--drag-base-bg");
         htmlElement.style.removeProperty("--drag-line-bg");
+        htmlElement.style.removeProperty("--b3-av-kanban-drag-height");
     }
     hideDragTip();
 };

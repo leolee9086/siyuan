@@ -18,10 +18,14 @@ import { siyuanI18n } from "./imports";
 import { transaction } from "./imports";
 /** 用途：回写单元格值。使用范围：unbindBlock 菜单项。解耦评估：单元格更新逻辑由 cell 模块维护更可靠。 */
 import { updateCellsValue } from "./imports";
-/** 用途：构建字段编辑子菜单。使用范围：fields 菜单项。解耦评估：字段菜单已在独立模块内拆分完成，这里只负责接入结果。 */
-import { buildFieldEditSubmenu } from "./fields";
+/** 用途：构建选择工具栏与右键菜单共用的批量字段编辑子菜单。使用范围：右键菜单 fields 子菜单及对应工具栏字段编辑。解耦评估：子菜单由领域工厂统一生成，上下文菜单仅消费其返回的 IMenu[]，不直接依赖内部实现，适合通过共享模块复用。 */
+import { getAVEditFieldMenuItems } from "./imports";
 /** 用途：读取右键菜单共享上下文类型。使用范围：修改型菜单动作构建阶段。解耦评估：类型集中在同层 types.ts，能避免业务文件各自定义局部类型。 */
 import type { AttrViewContextmenuState } from "./types";
+/** 用途：读取绑定插入菜单项所需的上下文类型。使用范围：插入前后菜单的 bind 阶段。解耦评估：类型集中在同层 types.ts，能避免业务文件各自定义局部类型。 */
+import type { BindInsertMenuItemContext } from "./types";
+/** 用途：读取插入菜单动作共享上下文类型。使用范围：插入前后菜单的动作执行阶段。解耦评估：类型集中在同层 types.ts，能避免业务文件各自定义局部类型。 */
+import type { InsertMenuActionContext } from "./types";
 
 /**
  * 作用：根据插入方向计算新行应挂载到哪个 previousID 之后。
@@ -38,89 +42,68 @@ const getInsertPreviousID = (rowElement: HTMLElement, insertAfter: boolean) => {
 
 /**
  * 作用：执行插入前后菜单的真实插入动作。
- * 意图：点击和回车都会落到同一条插入逻辑，避免两套分支渐渐漂移。
+ * 意图：点击和回车都会落到同一条插入逻辑，避免两套分支渐渐漂移；通过上下文对象收敛 6 个同传参数，满足 max-params 约束。
  * 调用时机：插入菜单项上的 click / keydown 事件最终都会调用。
  * 问题/改进：当前仍直接读取 input 的字符串值并交给 parseInt，未附加额外的最小值纠正。
  */
-const runInsertRowsFromMenu = (
-    menu: Menu,
-    protyle: IProtyle,
-    blockElement: HTMLElement,
-    rowElement: HTMLElement,
-    insertAfter: boolean,
-    inputElement: HTMLInputElement,
-) => {
+const runInsertRowsFromMenu = (ctx: InsertMenuActionContext) => {
     insertRows({
-        blockElement,
-        protyle,
-        count: parseInt(inputElement.value, 10),
-        previousID: getInsertPreviousID(rowElement, insertAfter) ?? "",
-        groupID: rowElement.parentElement?.getAttribute("data-group-id") || "",
+        blockElement: ctx.blockElement,
+        protyle: ctx.protyle,
+        count: parseInt(ctx.inputElement.value, 10),
+        previousID: getInsertPreviousID(ctx.rowElement, ctx.insertAfter) ?? "",
+        groupID: ctx.rowElement.parentElement?.getAttribute("data-group-id") || "",
     });
-    menu.close();
+    ctx.menu.close();
 };
 
 /**
  * 作用：处理插入菜单项容器上的点击确认。
- * 意图：保持鼠标点击菜单项任意区域即可按当前输入值插入的旧交互，同时避免输入框已聚焦时误触发。
+ * 意图：保持鼠标点击菜单项任意区域即可按当前输入值插入的旧交互，同时避免输入框已聚焦时误触发；通过上下文对象收敛参数。
  * 调用时机：插入前后菜单项 bind 后添加的 click 事件触发时调用。
  * 问题/改进：当前仍依赖 `document.activeElement` 判断是否点击了输入框。
  */
-const handleInsertMenuClick = (
-    menu: Menu,
-    protyle: IProtyle,
-    blockElement: HTMLElement,
-    rowElement: HTMLElement,
-    insertAfter: boolean,
-    inputElement: HTMLInputElement,
-) => {
-    if (document.activeElement === inputElement) {
+const handleInsertMenuClick = (ctx: InsertMenuActionContext) => {
+    if (document.activeElement === ctx.inputElement) {
         return;
     }
-    runInsertRowsFromMenu(menu, protyle, blockElement, rowElement, insertAfter, inputElement);
+    runInsertRowsFromMenu(ctx);
 };
 
 /**
  * 作用：处理插入菜单项输入框上的回车确认。
- * 意图：保持原来“输入数量后回车直接插入”的快捷交互。
+ * 意图：保持原来“输入数量后回车直接插入”的快捷交互；上下文对象收敛 6 个同传参数，event 作为第二参数保持 ≤3。
  * 调用时机：插入前后菜单项 bind 后添加的 keydown 事件触发时调用。
  * 问题/改进：当前只处理 Enter，未额外拦截其它快捷键。
  */
-const handleInsertMenuKeydown = (
-    menu: Menu,
-    protyle: IProtyle,
-    blockElement: HTMLElement,
-    rowElement: HTMLElement,
-    insertAfter: boolean,
-    inputElement: HTMLInputElement,
-    event: KeyboardEvent,
-) => {
+const handleInsertMenuKeydown = (ctx: InsertMenuActionContext, event: KeyboardEvent) => {
     if (event.isComposing || event.key !== "Enter") {
         return;
     }
-    runInsertRowsFromMenu(menu, protyle, blockElement, rowElement, insertAfter, inputElement);
+    runInsertRowsFromMenu(ctx);
 };
 
 /**
  * 作用：给插入前后菜单项挂接输入框交互。
- * 意图：把 bind 内部的 DOM 监听逻辑抽成命名函数，避免菜单项定义处继续堆叠匿名回调。
+ * 意图：把 bind 内部的 DOM 监听逻辑抽成命名函数，避免菜单项定义处继续堆叠匿名回调；通过上下文对象收敛 6 个同传参数，并用闭包绑定输入框。
  * 调用时机：插入前后菜单项被菜单组件 bind 到真实 DOM 节点时调用。
  * 问题/改进：当前仍由菜单项本地管理事件监听，后续如菜单组件支持 declarative form，可进一步收敛。
  */
-const bindInsertMenuItem = (
-    menu: Menu,
-    protyle: IProtyle,
-    blockElement: HTMLElement,
-    rowElement: HTMLElement,
-    insertAfter: boolean,
-    element: HTMLElement,
-) => {
+const bindInsertMenuItem = (base: Omit<BindInsertMenuItemContext, "element">, element: HTMLElement) => {
     const inputCandidate = element.querySelector("input");
     if (!isHTMLInputElement(inputCandidate)) {
         return;
     }
-    element.addEventListener("click", handleInsertMenuClick.bind(undefined, menu, protyle, blockElement, rowElement, insertAfter, inputCandidate));
-    inputCandidate.addEventListener("keydown", handleInsertMenuKeydown.bind(undefined, menu, protyle, blockElement, rowElement, insertAfter, inputCandidate));
+    const actionCtx: InsertMenuActionContext = {
+        menu: base.menu,
+        protyle: base.protyle,
+        blockElement: base.blockElement,
+        rowElement: base.rowElement,
+        insertAfter: base.insertAfter,
+        inputElement: inputCandidate,
+    };
+    element.addEventListener("click", () => handleInsertMenuClick(actionCtx));
+    inputCandidate.addEventListener("keydown", (event: KeyboardEvent) => handleInsertMenuKeydown(actionCtx, event));
 };
 
 /**
@@ -141,7 +124,7 @@ ${menuLabel.replace("${x}", `<span class="fn__space"></span><input style="width:
 
 /**
  * 作用：构建单选场景下的插入前后菜单项。
- * 意图：这些动作只对单条记录有意义，因此从可编辑菜单的公共部分中独立出来单独管理。
+ * 意图：这些动作只对单条记录有意义，因此从可编辑菜单的公共部分中独立出来单独管理；通过上下文对象与 bind 部分应用避免多参。
  * 调用时机：`appendEditableContextmenuItems` 检测到单选后调用。
  * 问题/改进：当前插入数量输入仍固定为 64px 宽度，与旧实现一致。
  */
@@ -150,13 +133,25 @@ const appendSingleRowInsertItems = (menu: Menu, protyle: IProtyle, state: AttrVi
         id: state.viewType === "table" ? "insertRowBefore" : "insertItemBefore",
         icon: "iconBefore",
         label: buildInsertMenuLabel(state.viewType, false),
-        bind: bindInsertMenuItem.bind(undefined, menu, protyle, state.blockElement, state.keyRow.rowElement, false),
+        bind: bindInsertMenuItem.bind(undefined, {
+            menu,
+            protyle,
+            blockElement: state.blockElement,
+            rowElement: state.keyRow.rowElement,
+            insertAfter: false,
+        }),
     });
     menu.addItem({
         id: state.viewType === "table" ? "insertRowAfter" : "insertItemAfter",
         icon: "iconAfter",
         label: buildInsertMenuLabel(state.viewType, true),
-        bind: bindInsertMenuItem.bind(undefined, menu, protyle, state.blockElement, state.keyRow.rowElement, true),
+        bind: bindInsertMenuItem.bind(undefined, {
+            menu,
+            protyle,
+            blockElement: state.blockElement,
+            rowElement: state.keyRow.rowElement,
+            insertAfter: true,
+        }),
     });
 };
 
@@ -226,18 +221,24 @@ const handleAddToDatabaseTargetSelected = (
  * 调用时机：addToDatabase 菜单项点击后调用。
  * 问题/改进：当前仍使用第一条已选记录作为目标面板的定位锚点。
  */
+/**
+ * 作用：打开“添加到数据库”目标选择面板。
+ * 意图：保持原有菜单行为，并把后续事务提交回调绑定到当前多选上下文；通过对象参数适配严格类型。
+ * 调用时机：addToDatabase 菜单项点击后调用。
+ * 问题/改进：当前仍使用第一条已选记录作为目标面板的定位锚点。
+ */
 const handleAddToDatabaseClick = (protyle: IProtyle, state: AttrViewContextmenuState) => {
     const avID = state.blockElement.getAttribute("data-av-id");
     if (!avID) {
         return;
     }
-    openSearchAV(
+    openSearchAV({
         avID,
-        state.keyRow.rowElement,
-        handleAddToDatabaseTargetSelected.bind(undefined, protyle, state),
-        true,
-        state.blockElement.dataset.nodeId,
-    );
+        target: state.keyRow.rowElement,
+        callback: handleAddToDatabaseTargetSelected.bind(undefined, protyle, state),
+        purpose: "addToDatabase",
+        blockID: state.blockElement.dataset.nodeId,
+    });
 };
 
 /**
@@ -308,6 +309,6 @@ export const appendEditableContextmenuItems = (menu: Menu, protyle: IProtyle, st
         icon: "iconAttr",
         label: siyuanI18n.fields,
         type: "submenu",
-        submenu: buildFieldEditSubmenu(protyle, state),
+        submenu: getAVEditFieldMenuItems(protyle, state.blockElement),
     });
 };

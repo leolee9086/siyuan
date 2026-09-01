@@ -13,6 +13,9 @@ export async function requestAgentSSEResponse(request: AgentSSERequest) {
     if (request.sessionID) {
         body.sessionID = request.sessionID;
     }
+    if (request.blockHTML !== undefined) {
+        body.blockHTML = request.blockHTML;
+    }
     if (request.model) {
         body.model = request.model;
     }
@@ -28,6 +31,9 @@ export async function requestAgentSSEResponse(request: AgentSSERequest) {
     // 宿主实际暴露插件动作时才发送摘要，避免用空数组覆盖 Kernel 默认能力。
     if (request.pluginActions && request.pluginActions.length > 0) {
         body.pluginActions = request.pluginActions;
+    }
+    if (request.frontendCapabilities) {
+        body.frontendCapabilities = request.frontendCapabilities;
     }
     if (request.userEntryID) {
         body.userEntryID = request.userEntryID;

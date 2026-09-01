@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -172,6 +172,10 @@ func loadTree(localPath string, luteEngine *lute.Lute) (ret *parse.Tree, err err
 		return
 	}
 
+	return loadTreeByData(localPath, data, luteEngine)
+}
+
+func loadTreeByData(localPath string, data []byte, luteEngine *lute.Lute) (ret *parse.Tree, err error) {
 	// 加密笔记本的 .sy 是密文，需先解密。从路径反推 boxID，已解锁的加密笔记本用 fileKey 解密；
 	// 加密笔记本未解锁时返回错误（fail-closed）；非加密笔记本原样 data。
 	if boxID := extractBoxIDFromPath(localPath); boxID != "" && IsEncryptedBox(boxID) {
@@ -200,6 +204,7 @@ func loadTree(localPath string, luteEngine *lute.Lute) (ret *parse.Tree, err err
 
 var (
 	ErrBoxNotFound   = errors.New("notebook not found")
+	ErrBoxClosed     = errors.New("notebook closed")
 	ErrBlockNotFound = errors.New("block not found")
 	ErrTreeNotFound  = errors.New("tree not found")
 	ErrIndexing      = errors.New("indexing")
@@ -252,6 +257,18 @@ func LoadTreeByBlockIDWithReindexInBox(id, boxID string) (ret *parse.Tree, err e
 
 func LoadTreeByBlockID(id string) (ret *parse.Tree, err error) {
 	return loadTreeByBlockIDInBox(id, "")
+}
+
+// LoadTreeByBlockIDInExactBox 只在指定笔记本边界内加载块所在文档，boxID 为空时不遍历加密笔记本。
+func LoadTreeByBlockIDInExactBox(id, boxID string) (ret *parse.Tree, err error) {
+	if !ast.IsNodeIDPattern(id) {
+		return nil, ErrTreeNotFound
+	}
+	bt := treenode.GetBlockTreeInExactBox(id, boxID)
+	if bt == nil {
+		return nil, ErrTreeNotFound
+	}
+	return loadTreeByBlockTree(bt)
 }
 
 func loadTreeByBlockIDWithoutNotFoundLog(id string) (ret *parse.Tree, err error) {

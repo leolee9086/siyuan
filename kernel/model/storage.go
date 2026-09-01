@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -123,16 +123,19 @@ func setLocalStorage(val map[string]any) (err error) {
 }
 
 type Criterion struct {
-	Name         string                 `json:"name"`
-	Sort         int                    `json:"sort"`       // 0：按块类型（默认），1：按创建时间升序，2：按创建时间降序，3：按更新时间升序，4：按更新时间降序，5：按内容顺序（仅在按文档分组时）
+	Name string `json:"name"`
+	// 排序方式：0 按块类型（默认），1 按创建时间升序，2 按创建时间降序，3 按更新时间升序，4 按更新时间降序，
+	// 5 按内容顺序，6 按相关度升序，7 按相关度降序
+	Sort         int                    `json:"sort"`
 	Group        int                    `json:"group"`      // 0：不分组，1：按文档分组
 	HasReplace   bool                   `json:"hasReplace"` // 是否有替换
-	Method       int                    `json:"method"`     // 0：文本，1：查询语法，2：SQL，3：正则表达式
+	Method       int                    `json:"method"`     // 0：文本，1：查询语法，2：SQL，3：正则表达式，4：语义搜索
 	HPath        string                 `json:"hPath"`
 	IDPath       []string               `json:"idPath"`
 	K            string                 `json:"k"`            // 搜索关键字
 	R            string                 `json:"r"`            // 替换关键字
 	Types        *CriterionTypes        `json:"types"`        // 类型过滤选项
+	SubTypes     map[string]bool        `json:"subTypes"`     // 子类型过滤选项
 	ReplaceTypes *CriterionReplaceTypes `json:"replaceTypes"` // 替换类型过滤选项
 }
 
@@ -296,6 +299,13 @@ type RecentDoc struct {
 
 var recentDocLock = sync.Mutex{}
 
+// canPersistRecentDoc 仅允许全局块树中可确认属于普通笔记本的文档进入明文最近文档存储。
+// 加密笔记本使用独立块树，未知 ID 也按敏感数据处理，避免锁定时因无法解析归属而写入明文。
+func canPersistRecentDoc(rootID string) bool {
+	bt := treenode.GetBlockTree(rootID)
+	return bt != nil && !IsEncryptedBox(bt.BoxID)
+}
+
 func GetRecentDocs(sortBy string) (ret []*RecentDoc, err error) {
 	recentDocLock.Lock()
 	defer recentDocLock.Unlock()
@@ -304,6 +314,9 @@ func GetRecentDocs(sortBy string) (ret []*RecentDoc, err error) {
 
 // UpdateRecentDocOpenTime 更新文档打开时间（只在第一次从文档树加载到页签时调用）
 func UpdateRecentDocOpenTime(rootID string) (err error) {
+	if !canPersistRecentDoc(rootID) {
+		return
+	}
 	recentDocLock.Lock()
 	defer recentDocLock.Unlock()
 
@@ -341,6 +354,9 @@ func UpdateRecentDocOpenTime(rootID string) (err error) {
 
 // UpdateRecentDocViewTime 更新文档浏览时间
 func UpdateRecentDocViewTime(rootID string) (err error) {
+	if !canPersistRecentDoc(rootID) {
+		return
+	}
 	recentDocLock.Lock()
 	defer recentDocLock.Unlock()
 
@@ -383,6 +399,16 @@ func UpdateRecentDocCloseTime(rootID string) (err error) {
 
 // BatchUpdateRecentDocCloseTime 批量更新文档关闭时间
 func BatchUpdateRecentDocCloseTime(rootIDs []string) (err error) {
+	if len(rootIDs) == 0 {
+		return
+	}
+	filteredRootIDs := make([]string, 0, len(rootIDs))
+	for _, rootID := range rootIDs {
+		if canPersistRecentDoc(rootID) {
+			filteredRootIDs = append(filteredRootIDs, rootID)
+		}
+	}
+	rootIDs = filteredRootIDs
 	if len(rootIDs) == 0 {
 		return
 	}
@@ -458,6 +484,17 @@ func loadRecentDocsRaw() (ret []*RecentDoc, err error) {
 	return
 }
 
+func buildRecentDocsByTimeStmt(sortBy string, hiddenRootIDs []string, limit int) (stmt string, args []any) {
+	orderBy := "updated"
+	if "created" == sortBy {
+		orderBy = "created"
+	}
+	boxDocFilter, args := buildRootIDExclusionFilter(hiddenRootIDs)
+	stmt = "SELECT * FROM blocks WHERE type = 'd'" + boxDocFilter + " ORDER BY " + orderBy + " DESC, id DESC" +
+		fmt.Sprintf(" LIMIT %d", limit)
+	return
+}
+
 func getRecentDocs(sortBy string) (ret []*RecentDoc, err error) {
 	ret = []*RecentDoc{} // 初始化为空切片，确保 API 始终返回非 nil
 	recentDocs, err := loadRecentDocsRaw()
@@ -509,7 +546,9 @@ func getRecentDocs(sortBy string) (ret []*RecentDoc, err error) {
 	for rootID, doc := range mergedDocs {
 		if ial, ok := attrs[rootID]; ok {
 			if icon, ok := ial["icon"]; ok && icon != "" {
-				doc.Icon = icon
+				if filteredIcon, valid := util.FilterIconValue(icon); valid {
+					doc.Icon = filteredIcon
+				}
 			}
 		}
 		ret = append(ret, doc)
@@ -533,17 +572,10 @@ func getRecentDocs(sortBy string) (ret []*RecentDoc, err error) {
 
 	// 根据排序参数进行排序
 	switch sortBy {
-	case "updated": // 按更新时间排序
-		// 从数据库查询最近修改的文档
-		boxDocFilter, boxDocArgs := buildRootIDExclusionFilter(hiddenBoxDocRootIDs())
-		var sqlBlocks []*sql.Block
-		if "" == boxDocFilter {
-			sqlBlocks = sql.SelectBlocksRawStmt("SELECT * FROM blocks WHERE type = 'd' ORDER BY updated DESC", 1, Conf.FileTree.RecentDocsMaxListCount)
-		} else {
-			stmt := "SELECT * FROM blocks WHERE type = 'd'" + boxDocFilter + " ORDER BY updated DESC" +
-				fmt.Sprintf(" LIMIT %d", Conf.FileTree.RecentDocsMaxListCount)
-			sqlBlocks = sql.SelectBlocksRawStmtArgs(stmt, boxDocArgs, Conf.FileTree.RecentDocsMaxListCount)
-		}
+	case "created", "updated": // 按创建时间或更新时间排序
+		// 从数据库查询最近创建或修改的文档
+		stmt, boxDocArgs := buildRecentDocsByTimeStmt(sortBy, hiddenBoxDocRootIDs(), Conf.FileTree.RecentDocsMaxListCount)
+		sqlBlocks := sql.SelectBlocksRawStmtArgs(stmt, boxDocArgs, Conf.FileTree.RecentDocsMaxListCount)
 		ret = []*RecentDoc{}
 		if 1 > len(sqlBlocks) {
 			return
@@ -637,6 +669,9 @@ func normalizeRecentDocs(recentDocs []*RecentDoc) []*RecentDoc {
 	seen := make(map[string]struct{}, len(recentDocs))
 	deduplicated := make([]*RecentDoc, 0, len(recentDocs))
 	for _, doc := range recentDocs {
+		if doc == nil || !canPersistRecentDoc(doc.RootID) {
+			continue
+		}
 		if _, ok := seen[doc.RootID]; !ok {
 			seen[doc.RootID] = struct{}{}
 			deduplicated = append(deduplicated, doc)

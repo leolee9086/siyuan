@@ -21,6 +21,14 @@ export interface OpenAVMenuPanelOptions {
     cellElements?: HTMLElement[];
     data?: IAV;
     cb?: (avPanelElement: Element) => void;
+    /** 面板被关闭（含打开前旧面板被顶掉）后的回调，供调用方恢复自身状态。 */
+    destroyCallback?: () => void;
+    /** 保持宿主菜单不关闭，面板作为其延伸展示（多选、资源等场景）。 */
+    keepMenuOpen?: boolean;
+    /** 过滤器写入的替代事务动作（关联/汇总列候选过滤），缺省写视图过滤器。 */
+    filterOperation?: IAVFilterOperation;
+    /** 日期面板需用户显式确认才提交变更。 */
+    requireExplicitChange?: boolean;
 }
 
 /**

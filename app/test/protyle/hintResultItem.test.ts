@@ -49,18 +49,19 @@ describe("hint result item renderer", () => {
         assert.match(html, /<span class="b3-list-item__graphic popover__block" data-id="block-id">😀<\/span>/);
     });
 
-    it("preserves attributes, reference count and existing raw HTML semantics", () => {
+    it("keeps search highlighting but escapes block metadata markup", () => {
         const html = genHintItemHTML(block({
             alias: "<alias>",
             content: "<mark>match</mark>",
             memo: "<memo>",
-            name: "<name>",
+            name: "<mark>name</mark><name>",
             refCount: 3,
         }));
 
-        assert.match(html, /#iconN.*<name>/);
-        assert.match(html, /#iconA.*<alias>/);
-        assert.match(html, /#iconM.*<memo>/);
+        assert.match(html, /#iconN.*<mark>name<\/mark>&lt;name>/);
+        assert.match(html, /#iconA.*&lt;alias>/);
+        assert.match(html, /#iconM.*&lt;memo>/);
+        assert.doesNotMatch(html, /<name>|<alias>|<memo>/);
         assert.match(html, /aria-label="References">3<\/span>/);
         assert.match(html, /<span class="b3-list-item__text"><mark>match<\/mark><\/span>/);
     });

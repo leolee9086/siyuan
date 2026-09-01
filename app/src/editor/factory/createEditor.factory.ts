@@ -22,6 +22,5 @@ export function createEditor(options: IEditorOptions<AppFacade, ProtyleDomain>) 
         ...options,
         syncWindowModelHash: setModelsHash,
         createEditorEngine,
-        enterFullscreen: (element) => options.app.toggleFullscreen(element),
     });
 }

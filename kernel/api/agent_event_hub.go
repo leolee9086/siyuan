@@ -275,8 +275,11 @@ func init() {
 		return map[string]any{"token": event.Token, "turnID": event.TurnID}
 	})
 	registerAgentEventProjector("confirm", func(event agent.AgentEvent) map[string]any {
-		return map[string]any{"name": event.Name, "arguments": event.Arguments, "confirmID": event.ConfirmID,
-			"callID": event.CallID, "effects": event.Effects, "turnID": event.TurnID}
+		return map[string]any{
+			"name": event.Name, "arguments": event.Arguments, "confirmID": event.ConfirmID,
+			"callID": event.CallID, "effects": event.Effects, "forcedConfirm": event.ForcedConfirm,
+			"capabilityID": event.CapabilityID, "turnID": event.TurnID,
+		}
 	})
 	registerAgentEventProjector("confirm_resolved", func(event agent.AgentEvent) map[string]any {
 		return map[string]any{"name": event.Name, "confirmID": event.ConfirmID, "callID": event.CallID,
@@ -321,6 +324,15 @@ func init() {
 	registerAgentEventProjector("frontend_tool_resolved", func(event agent.AgentEvent) map[string]any {
 		return map[string]any{"callID": event.CallID, "status": event.Status,
 			"message": event.Message, "turnID": event.TurnID}
+	})
+	registerAgentEventProjector("browser_capability_call", func(event agent.AgentEvent) map[string]any {
+		return map[string]any{
+			"callID": event.CallID, "name": event.Name, "capabilityID": event.CapabilityID,
+			"generation": event.Generation, "arguments": event.Arguments, "turnID": event.TurnID,
+		}
+	})
+	registerAgentEventProjector(agent.AgentEventPermission, func(event agent.AgentEvent) map[string]any {
+		return map[string]any{"permissionMode": event.PermissionMode, "turnID": event.TurnID}
 	})
 	registerAgentEventProjector("snapshot", func(event agent.AgentEvent) map[string]any {
 		return map[string]any{"snapshotID": event.SnapshotID, "turnID": event.TurnID}

@@ -24,6 +24,7 @@ function resetAgentChatReloadState(runtime: AgentChatRuntime) {
     runtime.currentAssistantEntryId = "";
     runtime.currentContent = "";
     runtime.fullContent = "";
+    runtime.currentRoundID = "";
     runtime.currentToolCalls = [];
     runtime.pendingConfirms = [];
     runtime.currentThinkingSteps = [];
@@ -73,6 +74,8 @@ export function updateMetaFromSession(runtime: AgentChatRuntime, session: AgentS
     runtime.contextTokenBreakdown = session.contextTokenBreakdown ?? {};
     runtime.contextCachedTokens = session.contextCachedTokens ?? 0;
     runtime.contextLimit = session.contextLimit ?? 0;
+    runtime.permissionMode = session.permissionMode ?? "confirm";
+    runtime.permissionSelect.value = runtime.permissionMode;
     if (session.recoveryTurnID) {
         runtime.recoveryCommitTurnIDs.set(session.id, session.recoveryTurnID);
     }

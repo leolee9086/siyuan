@@ -1,8 +1,7 @@
 import {fetchPost} from "../../../util/network/fetch";
 import {addCol} from "./col/add/menu.factory";
 import {getColIconByType} from "./col/col.typeUtils";
-import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/DOM/escape";
-import * as dayjs from "dayjs";
+import {escapeAttr, escapeHtml} from "../../../util/DOM/escape";
 import {cellValueIsEmpty} from "./cell.value";
 import {popTextCell} from "./cell/edit";
 import {updateCellsValue} from "./cell.update";
@@ -17,11 +16,19 @@ import {dragUpload, editAssetItem} from "./asset";
 import {previewImages} from "../../preview/image";
 import {getPathForFile} from "../../../platform/electron/webUtils";
 import {isBrowser} from "../../../platform";
+import {isTouchDevice} from "../../../util/functions";
 import {Constants} from "../../../constants";
-import {getCompressURL, removeCompressURL} from "../../../util/assets/image";
+import {removeCompressURL} from "../../../util/assets/image";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {confirmDialog} from "../../../dialog/confirmDialog";
-import {genAVValueHTML} from "./value/render";
+import {
+    createEmptyAVValue,
+    genAVAttributeRowHTML,
+    getAVTemplateInteractiveElement,
+    isAVTemplateLink
+} from "./attributeValue";
+import {isLastPointerMouse} from "../../../util/touchDragBridge";
+import {hasDataTransferFiles} from "../../upload/localDropFiles";
 
 interface IAVAttributeTableData {
     avID: string;
@@ -45,28 +52,24 @@ interface IAVAttributeTableData {
 
 const attributeTableData = new WeakMap<HTMLElement, IAVAttributeTableData>();
 
-const createEmptyAVValue = (keyID: string, type: TAVCol, blockID?: string) => ({
-    type,
-    keyID,
-    blockID,
-    block: {id: "", content: ""},
-    text: {content: ""},
-    number: {content: 0, isNotEmpty: false, formattedContent: ""},
-    url: {content: ""},
-    phone: {content: ""},
-    email: {content: ""},
-    template: {content: ""},
-    date: {isNotEmpty: false, isNotEmpty2: false},
-    created: {isNotEmpty: false},
-    updated: {isNotEmpty: false},
-    checkbox: {checked: false},
-    mSelect: [],
-    mAsset: [],
-    relation: {blockIDs: [], contents: []},
-    rollup: {contents: []},
-} as IAVCellValue);
-
 let attributeViewRenderID = 0;
+
+const handleTemplateInteraction = (protyle: IProtyle, event: MouseEvent) => {
+    const templateInteractiveElement = getAVTemplateInteractiveElement(event.target);
+    if (!templateInteractiveElement) {
+        return false;
+    }
+    if (isAVTemplateLink(templateInteractiveElement)) {
+        const link = templateInteractiveElement.getAttribute("data-href") ||
+            templateInteractiveElement.getAttribute("href");
+        if (link) {
+            openLink(protyle.app, link, event, event.ctrlKey || event.metaKey);
+            event.preventDefault();
+        }
+    }
+    event.stopPropagation();
+    return true;
+};
 
 export const renderAVAttribute = (element: HTMLElement, id: string, protyle: IProtyle, cb?: (element: HTMLElement) => void,
                                   row?: { avID: string, itemID: string, valueID: string }) => {
@@ -86,6 +89,7 @@ export const renderAVAttribute = (element: HTMLElement, id: string, protyle: IPr
                     desc: string,
                     icon: string,
                     id: string,
+                    dateFormat?: TAVDateFormat,
                     options?: {
                         name: string,
                         color: string
@@ -107,24 +111,30 @@ export const renderAVAttribute = (element: HTMLElement, id: string, protyle: IPr
             let innerHTML = `<div class="custom-attr__avheader">
     <div class="block__logo block__logo--icon popover__block" style="max-width:calc(100% - 40px)" data-id='${JSON.stringify(table.blockIDs)}'>
         <svg class="block__logoicon"><use xlink:href="#iconDatabase"></use></svg>
-        <span class="fn__ellipsis">${table.avName || siyuanI18n.database}</span>
+        <span class="fn__ellipsis">${escapeHtml(table.avName || siyuanI18n.database)}</span>
     </div>
     <div class="fn__flex-1"></div>
     <span data-type="remove" data-row-id="${primaryValue?.blockID || ""}" class="block__icon block__icon--warning block__icon--show b3-tooltips__w b3-tooltips" aria-label="${siyuanI18n.removeAV}"><svg><use xlink:href="#iconTrashcan"></use></svg></span>
 </div>`;
             table.keyValues?.forEach(item => {
-                const value = item.values[0] || createEmptyAVValue(item.key.id, item.key.type, primaryValue?.blockID);
-                innerHTML += `<div class="block__icons av__row" data-id="${id}" data-col-id="${item.key.id}" data-empty="${cellValueIsEmpty(value)}"${item.key.type === "block" ? ' data-primary="true"' : ""}>
-    <div class="block__icon" draggable="true"><svg><use xlink:href="#iconDrag"></use></svg></div>
-    <div class="block__logo block__logo--icon ariaLabel fn__pointer" data-type="editCol" data-position="parentW" aria-label="${escapeAriaLabel(item.key.name)}<div class='ft__on-surface'>${escapeAriaLabel(item.key.desc)}</div>">
-        ${item.key.icon ? unicode2Emoji(item.key.icon, "block__logoicon", true) : `<svg class="block__logoicon"><use xlink:href="#${getColIconByType(item.key.type)}"></use></svg>`}
-        <span>${escapeHtml(item.key.name)}</span>
-    </div>
-    <div data-av-id="${table.avID}" data-col-id="${value.keyID}" data-row-id="${value.blockID}" data-id="${value.id}" data-type="${value.type}"${value.isDetached ? ' data-detached="true"' : ""}
-data-options="${item.key?.options ? escapeAttr(JSON.stringify(item.key.options)) : "[]"}"
-${["text", "number", "date", "url", "phone", "template", "email"].includes(value.type) ? "" : `placeholder="${siyuanI18n.empty}"`}
-class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"].includes(value.type) ? "" : " custom-attr__avvalue"}${["created", "updated"].includes(value.type) ? " custom-attr__avvalue--readonly" : ""}">${genAVValueHTML(value)}</div>
-</div>`;
+                const value = Object.assign(
+                    createEmptyAVValue(item.key.id, item.key.type, primaryValue?.blockID),
+                    item.values[0] || {}
+                );
+                innerHTML += genAVAttributeRowHTML({
+                    nodeID: id,
+                    avID: table.avID,
+                    keyID: item.key.id,
+                    type: item.key.type,
+                    name: item.key.name,
+                    desc: item.key.desc,
+                    icon: item.key.icon,
+                    typeIcon: getColIconByType(item.key.type),
+                    selectOptions: item.key.options,
+                    dateFormat: item.key.dateFormat,
+                    value,
+                    empty: cellValueIsEmpty(value),
+                });
             });
             innerHTML += `<div class="fn__hr"></div>
 <button data-type="addColumn" class="b3-button b3-button--cancel"><svg><use xlink:href="#iconAdd"></use></svg>${siyuanI18n.newCol}</button>
@@ -190,18 +200,21 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
                         }
                     }
                     targetElement.classList.remove("dragover__bottom", "dragover__top");
-                } else if (!window.siyuan.dragElement && event.dataTransfer.types[0] === "Files") {
+                } else if (!window.siyuan.dragElement && hasDataTransferFiles(event.dataTransfer.types)) {
                     const cellElement = element.querySelector(".custom-attr__avvalue--active") as HTMLElement;
                     if (cellElement) {
-                        if (event.dataTransfer.types[0] === "Files" && !isBrowser) {
+                        if (!isBrowser) {
                             const files: ILocalFiles[] = [];
                             for (let i = 0; i < event.dataTransfer.files.length; i++) {
                                 files.push({
                                     path: getPathForFile(event.dataTransfer.files[i]),
-                                    size: event.dataTransfer.files[i].size
+                                    size: event.dataTransfer.files[i].size,
+                                    isDir: event.dataTransfer.files[i].size === 0 &&
+                                        event.dataTransfer.files[i].type === "" &&
+                                        !event.dataTransfer.files[i].name.includes("."),
                                 });
                             }
-                            dragUpload(files, protyle, cellElement);
+                            dragUpload(files, protyle, cellElement, {x: event.clientX, y: event.clientY});
                         }
                     }
                 }
@@ -267,22 +280,47 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
             });
             element.addEventListener("paste", (event) => {
                 const files = event.clipboardData.files;
-                if (document.querySelector(".av__panel .b3-form__upload")) {
+                const assetCellElement = element.querySelector<HTMLElement>('.custom-attr__avvalue[data-type="mAsset"][data-active="true"]');
+                if (assetCellElement && document.querySelector(".av__panel .b3-form__upload")) {
+                    event.preventDefault();
+                    event.stopPropagation();
                     if (files && files.length > 0) {
-                        uploadFiles(protyle, files);
+                        uploadFiles(protyle, files, undefined, undefined, undefined, {
+                            source: "paste",
+                            target: "av-cell",
+                        });
                     } else {
                         const textPlain = event.clipboardData.getData("text/plain");
-                        const target = event.target as HTMLElement;
-                        const blockElement = hasClosestBlock(target);
-                        const cellsElement = hasClosestByAttribute(target, "data-type", "mAsset");
-                        if (blockElement && cellsElement && textPlain) {
-                            updateCellsValue(protyle, blockElement as HTMLElement, textPlain, [cellsElement], undefined, protyle.lute.Md2BlockDOM(textPlain));
+                        const blockElement = hasClosestBlock(assetCellElement);
+                        if (blockElement && textPlain) {
+                            updateCellsValue(protyle, blockElement as HTMLElement, textPlain, [assetCellElement],
+                                undefined, protyle.lute.Md2BlockDOM(textPlain));
                             document.querySelector(".av__panel")?.remove();
                         }
                     }
                 }
             });
             element.addEventListener("click", (event) => {
+                if (handleTemplateInteraction(protyle, event)) {
+                    return;
+                }
+                const databaseElement = hasClosestByClassName(event.target as HTMLElement, "popover__block");
+                if (databaseElement && isTouchDevice() && !isLastPointerMouse() &&
+                    hasClosestByClassName(databaseElement, "custom-attr__avheader")) {
+                    const blockElement = hasClosestBlock(databaseElement);
+                    const table = blockElement && attributeTableData.get(blockElement as HTMLElement);
+                    const databaseBlockID = table ? [...table.blockIDs].sort()[0] : "";
+                    if (databaseBlockID) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const dialogElement = hasClosestByClassName(databaseElement, "b3-dialog--open", true);
+                        if (dialogElement) {
+                            window.siyuan.dialogs.find(item => item.element === dialogElement)?.destroy();
+                        }
+                        openLink(protyle.app, `siyuan://blocks/${databaseBlockID}`, event);
+                        return;
+                    }
+                }
                 const backlinkToggleElement = hasClosestByAttribute(event.target as HTMLElement, "data-type", "av-backlinks-toggle");
                 if (backlinkToggleElement) {
                     const backlinksElement = hasClosestByClassName(backlinkToggleElement, "custom-attr__avbacklinks");
@@ -417,63 +455,19 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
                 attributeTableData.set(blockElement, table);
             }
         });
-        element.querySelectorAll(".b3-text-field--text").forEach((item: HTMLInputElement) => {
-            item.addEventListener("change", () => {
-                let value;
-                const type = item.parentElement.dataset.type;
-                if (["url", "text", "email", "phone"].includes(type)) {
-                    value = {
-                        [type]: {
-                            content: item.value
-                        }
-                    };
-                    if (type !== "text") {
-                        const linkElement = item.parentElement.querySelector("a");
-                        if (item.value) {
-                            linkElement.setAttribute("href", (type === "url" ? "" : (type === "email" ? "mailto:" : "tel:")) + item.value);
-                        } else {
-                            linkElement.removeAttribute("href");
-                        }
-                    }
-                } else if (type === "number") {
-                    if ("undefined" === item.value || !item.value) {
-                        value = {
-                            number: {
-                                content: null,
-                                isNotEmpty: false
-                            }
-                        };
-                    } else {
-                        value = {
-                            number: {
-                                content: parseFloat(item.value) || 0,
-                                isNotEmpty: true
-                            }
-                        };
-                    }
-                } else if (type === "block") {
-                    value = {
-                        block: {
-                            content: item.value,
-                            id: item.parentElement.dataset.detached === "true" ? "" : item.dataset.id,
-                        },
-                        isDetached: item.parentElement.dataset.detached === "true"
-                    };
+        if (element.dataset.avInputBound !== "true") {
+            element.dataset.avInputBound = "true";
+            element.addEventListener("change", (event) => {
+                const item = event.target as HTMLInputElement | HTMLTextAreaElement;
+                if (!item.classList.contains("b3-text-field--text") || !item.parentElement.dataset.avId) {
+                    return;
                 }
-                fetchPost("/api/av/setAttributeViewBlockAttr", {
-                    avID: item.parentElement.dataset.avId,
-                    keyID: item.parentElement.dataset.colId,
-                    itemID: item.parentElement.dataset.rowId,
-                    value
-                }, (setResponse) => {
-                    if (type === "number") {
-                        item.parentElement.querySelector(".fn__flex-center").textContent = setResponse.data.value.number.formattedContent;
-                    } else if (type === "block" && !item.value) {
-                        item.value = setResponse.data.value.block.content;
-                    }
-                });
+                const blockElement = hasClosestBlock(item);
+                if (blockElement) {
+                    updateCellsValue(protyle, blockElement as HTMLElement, item.value, [item.parentElement]);
+                }
             });
-        });
+        }
         renderAttributeViewBacklinks(element, id, renderID, row, cb);
     });
 };
@@ -558,7 +552,7 @@ const openEdit = (protyle: IProtyle, element: HTMLElement, event: MouseEvent) =>
                 w: rect.width,
             }, (unicode) => {
                 target.innerHTML = unicode2Emoji(unicode || window.siyuan.storage[Constants.LOCAL_IMAGES].file);
-            }, target.querySelector("img"));
+            }, target.querySelector("img"), {ownerElement: protyle.element});
             event.preventDefault();
             event.stopPropagation();
             return true;
@@ -596,17 +590,23 @@ const openEdit = (protyle: IProtyle, element: HTMLElement, event: MouseEvent) =>
             event.stopPropagation();
             event.preventDefault();
             break;
+        } else if (type === "number") {
+            popTextCell(protyle, [target], "number");
+            event.stopPropagation();
+            event.preventDefault();
+            break;
         } else if (type === "select" || type === "mSelect") {
             popTextCell(protyle, [target], target.getAttribute("data-type") as TAVCol);
             event.stopPropagation();
             event.preventDefault();
             break;
         } else if (type === "mAsset") {
-            element.querySelectorAll('.custom-attr__avvalue[data-type="mAsset"]').forEach(item => {
+            document.querySelectorAll('.custom-attr__avvalue[data-type="mAsset"][data-active="true"]').forEach(item => {
                 item.removeAttribute("data-active");
             });
             target.setAttribute("data-active", "true");
-            target.focus();
+            target.tabIndex = -1;
+            target.focus({preventScroll: true});
             popTextCell(protyle, [target], "mAsset");
             event.stopPropagation();
             event.preventDefault();
@@ -632,6 +632,9 @@ const openEdit = (protyle: IProtyle, element: HTMLElement, event: MouseEvent) =>
             event.preventDefault();
             break;
         } else if (type === "addColumn") {
+            if (protyle.databaseAttributePanel?.element.contains(target)) {
+                protyle.databaseAttributePanel.displayEmptyFields();
+            }
             const rowElements = blockElement.querySelectorAll(".av__row");
             const addMenu = addCol({
                 protyle,

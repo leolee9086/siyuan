@@ -1,9 +1,15 @@
 /**
- * 用途：引入 action 子目录网关依赖。
- * 使用范围：仅在完整复制模块中使用，负责复制接口、渲染、焦点和事务依赖。
- * 解耦评估：完整复制跨越网络、DOM 与事务，是一个完整副作用链，集中在单模块内比拆散更利于维护。
+ * 用途：引入 action 子目录网关依赖 - 渲染。
+ * 使用范围：仅在完整复制模块中使用，负责新副本的首渲染。
+ * 解耦评估：渲染依赖集中在单模块内比拆散更利于维护。
  */
 import { avRender } from "./imports";
+/**
+ * 用途：引入 action 子目录网关依赖 - 常量。
+ * 使用范围：仅在完整复制模块中使用，负责属性键名读取。
+ * 解耦评估：常量通过网关复用，避免在业务代码硬编码属性名。
+ */
+import { Constants } from "./imports";
 /**
  * 用途：调用“复制为完整副本”的后端接口。
  * 使用范围：仅在 duplicateCompletely 发起复制请求时使用。
@@ -38,9 +44,9 @@ import { transaction } from "./imports";
 /**
  * 构造完整复制后的临时 AV 节点。
  *
- * 意图：服务端返回新的 blockID / avID 后，需要先生成最小 AV 壳节点，再交给 avRender 补全内容。
+ * 意图：服务端返回新的 blockID / avID 后，生成保留当前视图选择和可见视图配置的最小 AV 壳节点，再交给 avRender 补全内容。
  * 调用时机：duplicateCompletely 收到复制接口响应后立即调用。
- * 问题/改进：当前默认复制为 table 视图壳节点，若未来后端返回实际视图类型，可改为动态注入。
+ * 问题/改进：若后端未来直接返回载体视图元数据，可减少这里对源 DOM 属性的读取。
  *
  * @param {IProtyle} protyle - 当前编辑器实例
  * @param {{ blockID: string, avID: string }} responseData - 接口返回的复制结果
@@ -48,7 +54,8 @@ import { transaction } from "./imports";
  */
 const buildDuplicatedAttrViewElement = (
     protyle: IProtyle,
-    responseData: { blockID: string, avID: string },
+    sourceElement: HTMLElement,
+    responseData: { blockID: string; avID: string },
 ) => {
     if (!protyle.lute) {
         return null;
@@ -61,6 +68,15 @@ const buildDuplicatedAttrViewElement = (
     if (!isHTMLElement(firstChild)) {
         return null;
     }
+    const viewID = sourceElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW);
+    const visibleViewIDs = sourceElement.getAttribute(Constants.CUSTOM_SY_AV_VISIBLE_VIEWS);
+    if (viewID) {
+        firstChild.setAttribute(Constants.CUSTOM_SY_AV_VIEW, viewID);
+    }
+    if (visibleViewIDs) {
+        firstChild.setAttribute(Constants.CUSTOM_SY_AV_VISIBLE_VIEWS, visibleViewIDs);
+    }
+    firstChild.setAttribute("data-av-type", sourceElement.getAttribute("data-av-type") || "table");
     return firstChild;
 };
 
@@ -109,7 +125,7 @@ const handleDuplicateCompletelyResponse = (
         return;
     }
     nodeElement.classList.remove("protyle-wysiwyg--select");
-    const duplicateElement = buildDuplicatedAttrViewElement(protyle, {
+    const duplicateElement = buildDuplicatedAttrViewElement(protyle, nodeElement, {
         blockID: responseData.blockID,
         avID: responseData.avID,
     });
@@ -117,21 +133,35 @@ const handleDuplicateCompletelyResponse = (
         return;
     }
 
+    const blockDOM = duplicateElement.outerHTML;
+    duplicateElement.setAttribute("data-render", "true");
     nodeElement.after(duplicateElement);
-    avRender(duplicateElement, protyle, () => {
-        focusBlock(duplicateElement);
-        scrollCenter(protyle);
-    });
-
     transaction(protyle, [{
         action: "insert",
-        data: duplicateElement.outerHTML,
+        data: blockDOM,
         id: responseData.blockID,
         previousID: nodeElement.dataset.nodeId,
     }], [{
         action: "delete",
         id: responseData.blockID,
-    }]);
+    }], {
+        /**
+         * 作用：清理临时渲染标记并在新块挂载后触发首渲染与焦点。
+         * 意图：保证插入后的 AV 块完成首次布局后再聚焦，避免滚动偏移错误。
+         * 调用时机：事务提交后的回调，由事务系统在 DOM 已插入后触发。
+         * 问题/改进：当前仍依赖 isConnected 二次校验，后续可由事务层统一保证可见性。
+         */
+        callback: () => {
+            duplicateElement.removeAttribute("data-render");
+            if (!duplicateElement.isConnected) {
+                return;
+            }
+            avRender(duplicateElement, protyle, () => {
+                focusBlock(duplicateElement);
+                scrollCenter(protyle);
+            });
+        },
+    });
 };
 
 /**
@@ -139,7 +169,7 @@ const handleDuplicateCompletelyResponse = (
  *
  * 意图：与“镜像副本”不同，完整副本会创建新的属性视图块和新的 AV 数据实体，供用户独立编辑。
  * 调用时机：gutter 菜单或快捷键触发“复制为完整副本”时调用。
- * 问题/改进：当前复制成功后的首屏视图类型固定为 table；若后端未来返回更多元数据，应同步丰富本地渲染壳。
+ * 问题/改进：复制后的视图元数据目前仍从源块 DOM 读取；后端若提供结构化元数据，可进一步减少 DOM 协议依赖。
  *
  * @param {IProtyle} protyle - 当前编辑器实例
  * @param {HTMLElement} nodeElement - 当前属性视图块

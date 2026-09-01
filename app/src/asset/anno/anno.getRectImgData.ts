@@ -108,15 +108,21 @@ function convertImageDataToDataUrl(imageData: ImageData) {
  * @param pdfObj - PDF实例对象
  * @returns 图像的data URL，失败时返回undefined
  */
-export async function getRectImgData(pdfObj: IPdfInstance) {
-    if (!rectElement) {
-        return;
+export async function getRectImgData(pdfObj: IPdfInstance, annotationElement?: HTMLElement) {
+    let target: HTMLElement | null | undefined = annotationElement;
+    if (!target) {
+        // 兼容旧调用：动态导入避免循环依赖
+        const { rectElement: globalRect } = await import("./state/selection");
+        target = globalRect as unknown as HTMLElement | null;
+        if (!target) {
+            return;
+        }
     }
-    const pageInfo = getPageInfo(rectElement);
+    const pageInfo = getPageInfo(target);
     if (!pageInfo) {
         return;
     }
-    const captureImageData = await extractRectImageData(pdfObj, pageInfo.pageNumber, rectElement);
+    const captureImageData = await extractRectImageData(pdfObj, pageInfo.pageNumber, target);
     if (!captureImageData) {
         return;
     }

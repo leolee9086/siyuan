@@ -24,6 +24,7 @@ const createBlockElement = () => {
     blockElement.setAttribute("data-av-id", "av-id");
     blockElement.setAttribute("data-node-id", "block-id");
     blockElement.setAttribute("custom-sy-av-view", "view-id");
+    blockElement.innerHTML = '<div class="av__views"></div>';
     return blockElement;
 };
 
@@ -48,6 +49,13 @@ const changeChecked = (menuElement: HTMLElement, type: string, checked: boolean)
 describe("AV layout bindings", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        Object.assign(window, {
+            siyuan: {
+                languages: new Proxy({}, {
+                    get: (_target, key) => String(key),
+                }),
+            },
+        });
     });
 
     it("commits common view toggles and updates the same view and field objects", () => {
@@ -80,7 +88,12 @@ describe("AV layout bindings", () => {
         mocks.getFieldsByData.mockReturnValue([]);
         const data = {
             viewType: "gallery",
-            view: {displayFieldName: false, fitImage: false},
+            view: {
+                coverFrom: 0,
+                displayFieldName: false,
+                fields: [],
+                fitImage: false,
+            },
         } as IAV;
         const protyle = {} as IProtyle;
         const menuElement = createMenuElement(true);
@@ -91,7 +104,7 @@ describe("AV layout bindings", () => {
 
         expect(mocks.submitAVLayoutSettingTransaction.mock.calls.slice(-2)).toEqual([
             [protyle, [{action: "setAttrViewFitImage", avID: "av-id", blockID: "block-id", data: true, viewID: "view-id"}], [{action: "setAttrViewFitImage", avID: "av-id", blockID: "block-id", data: false, viewID: "view-id"}]],
-            [protyle, [{action: "setAttrViewDisplayFieldName", avID: "av-id", blockID: "block-id", data: true}], [{action: "setAttrViewDisplayFieldName", avID: "av-id", blockID: "block-id", data: false}]],
+            [protyle, [{action: "setAttrViewDisplayFieldName", avID: "av-id", blockID: "block-id", data: true, viewID: "view-id"}], [{action: "setAttrViewDisplayFieldName", avID: "av-id", blockID: "block-id", data: false, viewID: "view-id"}]],
         ]);
         expect((data.view as IAVGallery).fitImage).toBe(true);
         expect((data.view as IAVGallery).displayFieldName).toBe(true);

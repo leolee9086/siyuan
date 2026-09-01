@@ -37,8 +37,33 @@ export const resetProtyleComposerContent = (runtime: AgentProtyleComposerRuntime
         throw new Error("Agent Protyle Composer requires an editable paragraph");
     }
     paragraph.classList.add("protyle-wysiwyg--empty");
-    paragraph.setAttribute("placeholder", window.siyuan.languages.agentInputPlaceholder);
+    // 上游协议：宿主可覆盖默认占位文案（如移动端短占位）。
+    paragraph.setAttribute("placeholder",
+        runtime.interaction.placeholder || window.siyuan.languages.agentInputPlaceholder);
     runtime.wysiwyg.element.appendChild(emptyElement);
+};
+
+/** @同步豁免: UI构建 初始草稿必须在首个观察器通知前同步写入编辑器。 */
+/** 按上游编辑态恢复协议装载初始内容：块 DOM 快照优先，Markdown 草稿次之，缺省回落标准空块。 */
+export const loadProtyleComposerInitialContent = (
+    runtime: AgentProtyleComposerRuntime,
+    initialContent: string | undefined,
+    initialBlockHTML: string | undefined,
+) => {
+    // 编辑恢复的主路径：直接还原发送时的块结构，并重置嵌入块后重新渲染。
+    if (initialBlockHTML) {
+        runtime.wysiwyg.element.innerHTML = initialBlockHTML;
+        resetProtyleEmbedBlocks(runtime.wysiwyg.element);
+        blockRender(runtime.protyle, runtime.wysiwyg.element);
+        return;
+    }
+    // 编辑恢复的降级路径：把 Markdown 草稿转换为块 DOM 后渲染。
+    if (initialContent) {
+        runtime.wysiwyg.element.innerHTML = runtime.protyle.lute.Md2BlockDOM(initialContent);
+        blockRender(runtime.protyle, runtime.wysiwyg.element);
+        return;
+    }
+    resetProtyleComposerContent(runtime);
 };
 
 /** @同步豁免: UI构建 输入变化后必须在当前观察器回调中同步刷新空状态类。 */

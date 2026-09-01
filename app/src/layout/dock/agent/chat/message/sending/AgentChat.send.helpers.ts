@@ -36,6 +36,8 @@ import type {AgentPanelConversation} from "./imports";
 import {handleSSEEvent} from "./imports";
 /** 用途：结算既有请求错误；使用范围：旧请求流失败回调；解耦评估：错误 UI 与回滚由响应领域集中维护。 */
 import {handleConfigError} from "./imports";
+/** 用途：冻结本轮浏览器能力声明；使用范围：旧请求流参数；解耦评估：纯查询经目录网关复用，不持有运行态。 */
+import {listCapabilityManifests} from "./imports";
 /** 用途：恢复会话互斥冲突；使用范围：旧请求流 409 回调；解耦评估：同目录冲突流程继续作为唯一恢复入口。 */
 import {handleConflictReject} from "./AgentChat.conflict";
 /** 用途：保留既有 MAGI 发送入口；使用范围：未注册本轮 controller 的 MAGI 分支；解耦评估：继续调用原传输边界，不经 native adapter 转发。 */
@@ -118,6 +120,7 @@ export const createAgentChatRequestContext = (chat: AgentChatRuntime) => {
     chat.requestStartTime = Date.now();
     chat.currentThinkingDuration = 0;
     chat.currentTurnID = "";
+    chat.currentRoundID = "";
     chat.abortController = new AbortController();
     return {
         conversation: {kind: chat.conversationKind, sessionId: chat.sessionId},
@@ -137,6 +140,7 @@ export async function dispatchAgentChatSSE(
     const {request, userEntryId, context} = input;
     await fetchAgentSSE({
         message: request.text,
+        ...(request.blockHTML !== undefined ? {blockHTML: request.blockHTML} : {}),
         language: requireSiyuanConfig().appearance.lang,
         references: request.references,
         /** 仅提交仍属于当前会话且未中止的 SSE 事件，丢弃切换后的迟到帧。 */
@@ -168,6 +172,7 @@ export async function dispatchAgentChatSSE(
         reasoningEffort: runtime.selectedReasoningEffort,
         ...(request.editorContext ? {editorContext: request.editorContext} : {}),
         ...(request.pluginActions ? {pluginActions: request.pluginActions} : {}),
+        frontendCapabilities: listCapabilityManifests(),
         userEntryID: userEntryId,
         contentRevision: runtime.sessionPorts.repository.getRevision(runtime.sessionId),
         requestHeaders: runtime.sessionPorts.requestHeaders({
@@ -222,6 +227,7 @@ export async function dispatchAgentChatWelcome(
         sessionID: runtime.sessionId,
         model: getSelectedModel(runtime),
         reasoningEffort: runtime.selectedReasoningEffort,
+        frontendCapabilities: listCapabilityManifests(),
         userEntryID: userEntryId,
         contentRevision: runtime.sessionPorts.repository.getRevision(runtime.sessionId),
         requestHeaders: runtime.sessionPorts.requestHeaders({

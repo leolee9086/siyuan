@@ -48,7 +48,6 @@ describe("Router Schema Validation Error Handling", () => {
         status: 200,
         headers: {},
         body: {
-          //@ts-expect-error
           message: 134,
         },
       },
@@ -57,6 +56,7 @@ describe("Router Schema Validation Error Handling", () => {
       captures: [],
       params: {},
       status: 200,
+      body: undefined,
       host:"example.com"
     };
 
@@ -87,7 +87,6 @@ describe("Router Schema Validation Error Handling", () => {
           message: "Hello",
           data: {
             //这里必须使用错误数据
-            //@ts-expect-error
             id: "this is not a number",
           },
         };
@@ -117,7 +116,6 @@ describe("Router Schema Validation Error Handling", () => {
         body: {
           message: "",
           data: {
-            //@ts-expect-error
             id: "测试",
           },
         },
@@ -127,6 +125,7 @@ describe("Router Schema Validation Error Handling", () => {
       captures: [],
       params: {},
       status: 200,
+      body: undefined,
       host:"example.com"
     };
 

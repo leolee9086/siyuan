@@ -24,6 +24,7 @@ import (
 	loader "github.com/pkoukk/tiktoken-go-loader"
 	"github.com/sashabaranov/go-openai"
 	tools "github.com/siyuan-note/siyuan/kernel/mcp/tools"
+	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 // tokenCounter 用 tiktoken 对文本进行 BPE 分词计数。encoder 单例化避免重复加载编码表。
@@ -35,6 +36,11 @@ var (
 	tokenCounterOnce sync.Once
 	globalCounter    *tokenCounter
 	tokenCounterErr  error
+)
+
+const (
+	estimatedLowDetailImageTokens  = 256
+	estimatedHighDetailImageTokens = 2048
 )
 
 // getTokenCounter 懒初始化全局单例 counter。modelName 用于选编码（GPT-4o→o200k_base，
@@ -105,6 +111,103 @@ func toolSource(name string) string {
 // <available_skills> 段单独的 token 数；realPromptTokens：OpenAI 返回的真实 prompt tokens。
 // 返回的 map 包含 system/skills/messages/nativeToolsDef/pluginToolsDef/mcpToolsDef/
 // nativeTool/pluginTool/mcpTool/other 共 10 个 key，other = realPromptTokens - 前 9 类之和。
+// estimateChatImageTokens 为不同 OpenAI 兼容提供商预留保守的图片输入预算。
+// low 使用较小固定值，auto/high 按高分辨率处理，避免完全忽略多模态上下文开销。
+func estimateChatImageTokens(message openai.ChatCompletionMessage) int {
+	total := 0
+	for _, part := range message.MultiContent {
+		if part.Type != openai.ChatMessagePartTypeImageURL || part.ImageURL == nil {
+			continue
+		}
+		if part.ImageURL.Detail == openai.ImageURLDetailLow {
+			total += estimatedLowDetailImageTokens
+		} else {
+			total += estimatedHighDetailImageTokens
+		}
+	}
+	return total
+}
+
+// estimateChatRequestTokens 估算一次 chat 请求的 token 总量（按分类 breakdown 汇总）。
+func estimateChatRequestTokens(model string, messages []openai.ChatCompletionMessage, tools []openai.Tool) int {
+	counter, err := getTokenCounter(model)
+	if err != nil {
+		counter = nil
+	}
+	breakdown := computeTokenBreakdown(counter, messages, tools, 0, 0)
+	total := 0
+	for _, value := range breakdown {
+		total += value
+	}
+	return total
+}
+
+func estimateProtocolRequestTokens(model, protocol string, messages []openai.ChatCompletionMessage,
+	checkpointMessages []AgentMessage, compaction *runtimeCompaction, tools []openai.Tool) int {
+	total := estimateChatRequestTokens(model, messages, tools)
+	if !util.IsOpenAIResponsesProtocol(protocol) {
+		return total
+	}
+	counter, err := getTokenCounter(model)
+	if err != nil {
+		counter = nil
+	}
+	for i := range checkpointMessages {
+		message := &checkpointMessages[i]
+		if len(message.ResponseOutput) == 0 {
+			continue
+		}
+		outputTokens := responseOutputTokenCost(model, message.ResponseOutput, message.ResponseOutputTokens)
+		visibleTokens := counter.count(message.Content) + counter.count(message.ReasoningContent)
+		for _, toolCall := range message.ToolCalls {
+			arguments := toolCall.ArgumentsJSON
+			if arguments == "" {
+				if data, marshalErr := json.Marshal(toolCall.Arguments); marshalErr == nil {
+					arguments = string(data)
+				}
+			}
+			visibleTokens += counter.count(toolCall.Name) + counter.count(arguments)
+		}
+		total += max(outputTokens-visibleTokens, 0)
+	}
+	if compaction != nil && len(compaction.ResponseOutput) > 0 {
+		total += responseOutputTokenCost(model, compaction.ResponseOutput, compaction.ResponseOutputTokens)
+	}
+	return total
+}
+
+func responseOutputTokenCost(model string, output []json.RawMessage, reportedTokens int) int {
+	if reportedTokens > 0 {
+		return reportedTokens
+	}
+	counter, err := getTokenCounter(model)
+	if err != nil {
+		counter = nil
+	}
+	total := 0
+	for _, item := range output {
+		total += counter.count(string(item))
+	}
+	return total
+}
+
+func compactionOutputTokenCost(model string, output []json.RawMessage, reportedTokens int) int {
+	reported := responseOutputTokenCost(model, output, reportedTokens)
+	return max(reported, responseOutputTokenCost(model, output, 0))
+}
+
+func contextInputBudget(contextLimit, maxCompletionTokens int) int {
+	if contextLimit <= 0 {
+		return 0
+	}
+	outputReserve := maxCompletionTokens
+	if outputReserve <= 0 {
+		outputReserve = min(4096, max(512, contextLimit/8))
+	}
+	safetyMargin := min(4096, max(256, contextLimit/100))
+	return contextLimit - outputReserve - safetyMargin
+}
+
 func computeTokenBreakdown(counter *tokenCounter, messages []openai.ChatCompletionMessage, tools []openai.Tool, skillsTokens, realPromptTokens int) map[string]int {
 	breakdown := map[string]int{
 		"system":         0,
@@ -133,7 +236,7 @@ func computeTokenBreakdown(counter *tokenCounter, messages []openai.ChatCompleti
 		case openai.ChatMessageRoleSystem:
 			systemTotal += counter.count(msg.Content) + perMessageOverhead
 		case openai.ChatMessageRoleUser:
-			breakdown["messages"] += counter.count(msg.Content) + perMessageOverhead
+			breakdown["messages"] += counter.count(chatMessageText(msg)) + estimateChatImageTokens(msg) + perMessageOverhead
 		case openai.ChatMessageRoleAssistant:
 			breakdown["messages"] += counter.count(msg.Content) + perMessageOverhead
 			// 助手消息的推理内容（deepseek-reasoner 等）也计入对话消息。

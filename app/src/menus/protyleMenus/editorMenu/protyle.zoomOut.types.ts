@@ -8,4 +8,5 @@ export type ZoomOutOptions = {
     isPushBack?: boolean;
     callback?: () => void;
     reload?: boolean;
+    dataDocType?: string;
 };

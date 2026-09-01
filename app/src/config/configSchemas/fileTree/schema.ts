@@ -33,6 +33,11 @@ export const schema = z.object({
         label: siyuanI18n.fileTree9,
         model: buildComputed("closeTabsOnStart")
     }),
+    tabStartupMode: z.number().int().min(0).max(2).meta({
+        description: siyuanI18n.tabStartupModeTip,
+        label: siyuanI18n.tabStartupMode,
+        model: buildComputed("tabStartupMode")
+    }),
     // "新建文档存放位置"
     docCreateSavePath: z.string().meta({
         description: siyuanI18n.fileTree13,

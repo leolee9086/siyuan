@@ -26,6 +26,9 @@ import { setSizeForItem } from "./dock.size";
 import { handleMouseLeave } from "./dock.events";
 import { executeToggleHide, executeToggleShow, executeUpdatePanelRelations } from "./dock.model";
 import {BUILTIN_DOCK_TYPES} from "./dock.builtin";
+/** 用途：插件 Dock 显示状态与位置顺序的批量持久化；使用范围：对齐上游 v3.8.0 的面板状态写回。 */
+import type {IPluginDockPlacementState} from "./pluginDockState";
+import {updatePluginDockPlacements, updatePluginDockShowStates} from "./pluginDockState";
 
 const TYPES = [...BUILTIN_DOCK_TYPES];
 /**
@@ -42,6 +45,10 @@ export class Dock {
     public pin = true;
     public data: { [key in TDock | string]?: ILayoutModel | boolean } = {};
     public hideResizeTimeout = 0;
+    /** 悬停延时显示的定时器（上游 v3.8.0） */
+    private showDockTimeout = 0;
+    /** 悬停延时隐藏的定时器（上游 v3.8.0） */
+    private hideDockTimeout = 0;
 
     constructor(options: { app: AppFacade, data: { pin: boolean, data: Config.IUILayoutDockTab[][] }, position: TDockPosition }) {
         this.app = options.app;
@@ -59,6 +66,9 @@ export class Dock {
             this.elements = Array.from(dockElement.querySelectorAll(".dock__items"));
         }
         initDockData(this, options.data.data, TYPES);
+        this.layout.element.addEventListener("mouseenter", () => {
+            this.showDockByHover();
+        });
         this.layout.element.addEventListener("mouseleave", (e) => handleMouseLeave(this, e));
         initDockResize(this);
         initDockDnD(this);
@@ -79,6 +89,7 @@ export class Dock {
      * 调用时机：点击 Pin/Unpin 按钮时
      */
     public togglePin(): void {
+        this.clearDockHoverTimeout();
         this.pin = !this.pin;
         const hasActive = this.elements[0].querySelector(".dock__item--active") ||
             this.elements[1].querySelector(".dock__item--active");
@@ -118,12 +129,52 @@ export class Dock {
 
     /**
      * 显示 Dock
-     * 
+     *
+     * 作用：显示 Dock 面板
+     * 意图：使用户可以看见和交互 Dock
+     * 调用时机：鼠标悬停、激活 Tab 或收到显示指令时
+     */
+    public showDockByHover() {
+        window.clearTimeout(this.hideDockTimeout);
+        this.hideDockTimeout = 0;
+        if (this.showDockTimeout || this.pin || this.layout.element.style.opacity === "1") {
+            return;
+        }
+        this.showDockTimeout = window.setTimeout(() => {
+            this.showDockTimeout = 0;
+            this.showDock();
+        }, Constants.TIMEOUT_DOCK_TOGGLE);
+    }
+
+    public hideDockByHover() {
+        window.clearTimeout(this.showDockTimeout);
+        this.showDockTimeout = 0;
+        if (this.hideDockTimeout || this.pin || this.layout.element.style.opacity === "0") {
+            return;
+        }
+        this.hideDockTimeout = window.setTimeout(() => {
+            this.hideDockTimeout = 0;
+            this.hideDock();
+        }, Constants.TIMEOUT_DOCK_TOGGLE);
+    }
+
+    /** 用途：取消挂起的悬停显示/隐藏定时器；交互打断悬停流程时调用。 */
+    public clearDockHoverTimeout() {
+        window.clearTimeout(this.showDockTimeout);
+        window.clearTimeout(this.hideDockTimeout);
+        this.showDockTimeout = 0;
+        this.hideDockTimeout = 0;
+    }
+
+    /**
+     * 显示 Dock
+     *
      * 作用：显示 Dock 面板
      * 意图：使用户可以看见和交互 Dock
      * 调用时机：鼠标悬停、激活 Tab 或收到显示指令时
      */
     public showDock(reset = false): void {
+        this.clearDockHoverTimeout();
         if (!reset && (this.pin || this.layout.element.style.opacity === "1") ||
             (!this.elements[0].querySelector(".dock__item--active") && !this.elements[1].querySelector(".dock__item--active"))
         ) {
@@ -173,6 +224,7 @@ export class Dock {
      * 调用时机：鼠标离开、失去焦点或显式隐藏时
      */
     public hideDock(reset = false): void {
+        this.clearDockHoverTimeout();
         if (!reset && (this.layout.element.style.opacity === "0" || this.pin)) {
             return;
         }
@@ -248,6 +300,10 @@ export class Dock {
             this.showDock();
         }
         executeUpdatePanelRelations(this, wndChild, index);
+        // 上游 v3.8.0：在分支处理结束后按列批量同步插件 Dock 的显示状态，替代逐项写回
+        if (isSaveLayout) {
+            this.saveLocalPluginShow(index);
+        }
         resizeTabs(isSaveLayout);
         if (target.classList.contains("dock__item--active") && !removeDock) {
             handleGraphShow(type, this);
@@ -313,6 +369,7 @@ export class Dock {
             delete sourceDock.data[typeAttr];
         }
         sourceElement.setAttribute("data-index", index.toString());
+        sourceElement.setAttribute("data-position", this.getTooltipPosition(index));
         if (previousType) {
             this.elements[index].parentElement.querySelector(`[data-type="${previousType}"]`)?.after(sourceElement);
         } else {
@@ -326,6 +383,22 @@ export class Dock {
         }
         setWindowTimeout(() => saveLayout(), Constants.TIMEOUT_TRANSITION);
         this.saveLocalPlugin(typeAttr, { index: this._getSortIndex(sourceElement), position: this._getPluginPosition(sourceElement, index), size });
+        // 上游 v3.8.0：跨 Dock 拖拽后按 DOM 实际顺序整体刷新插件 Dock 的位置与序号
+        const placements = sourceDock.getPluginDockPlacements();
+        if (sourceDock !== this) {
+            placements.push(...this.getPluginDockPlacements());
+        }
+        const movedPlacement = placements.find((item) => item.type === typeAttr);
+        if (movedPlacement && Object.keys(size).length > 0) {
+            movedPlacement.size = size;
+        }
+        if (updatePluginDockPlacements(
+            placements,
+            this.app.plugins,
+            window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS],
+        )) {
+            setStorageVal(Constants.LOCAL_PLUGIN_DOCKS, window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS]);
+        }
         adjustDockPadding();
         this.adjustSplit();
         sourceDock.adjustSplit();
@@ -377,7 +450,7 @@ export class Dock {
         if (custom instanceof Custom && custom.parent) {
             custom.parent.parent.removeTab(custom.parent.id);
         }
-        if (this.elements[0].parentElement.querySelectorAll(".dock__item").length === 1) {
+        if (!this.elements[0].parentElement.querySelector(".dock__item[data-type]")) {
             this.elements[0].parentElement.classList.add("fn__none");
             adjustDockPadding();
         }
@@ -473,6 +546,36 @@ export class Dock {
         saveLayout();
     }
 
+    private getTooltipPosition(index: number) {
+        if (this.position === "Left" || (this.position === "Bottom" && index === 0)) {
+            return "8east";
+        }
+        return "8west";
+    }
+
+    private getPluginDockPlacements() {
+        const states: IPluginDockPlacementState[] = [];
+        [0, 1].forEach((index) => {
+            const position: TPluginDockPosition = this.position === "Bottom"
+                ? (index === 0 ? "BottomLeft" : "BottomRight")
+                : this.position + (index === 0 ? "Top" : "Bottom") as TPluginDockPosition;
+            let itemIndex = 0;
+            this.elements[index].querySelectorAll(".dock__item").forEach((item) => {
+                const type = item.getAttribute("data-type");
+                if (!type) {
+                    return;
+                }
+                states.push({
+                    type,
+                    position,
+                    index: itemIndex,
+                });
+                itemIndex++;
+            });
+        });
+        return states;
+    }
+
     private adjustSplit(): void {
         if (this.position !== "Bottom") {
             if (this.elements[0].innerHTML && this.elements[1].innerHTML) {
@@ -507,5 +610,25 @@ export class Dock {
                 return true;
             }
         });
+    }
+
+    private saveLocalPluginShow(index: number) {
+        const states: {type: string, show: boolean}[] = [];
+        this.elements[index].querySelectorAll(".dock__item").forEach((item) => {
+            const type = item.getAttribute("data-type");
+            if (type) {
+                states.push({
+                    type,
+                    show: item.classList.contains("dock__item--active"),
+                });
+            }
+        });
+        if (updatePluginDockShowStates(
+            states,
+            this.app.plugins,
+            window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS],
+        )) {
+            setStorageVal(Constants.LOCAL_PLUGIN_DOCKS, window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS]);
+        }
     }
 }

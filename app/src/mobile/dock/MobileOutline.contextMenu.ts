@@ -7,7 +7,7 @@ import {writeBlockDOMClipboard} from "../../protyle/util/compatibility";
 import {Constants} from "../../constants";
 import {MenuItem} from "../../menus/Menu.Item";
 import {transaction} from "../../protyle/wysiwyg/transaction/submit";
-import {turnsIntoTransaction} from "../../protyle/wysiwyg/transaction.turns";
+import {turnsIntoTransaction} from "../../protyle/wysiwyg/transaction/turns/multiple";
 import {mathRender} from "../../protyle/render/mathRender";
 import {genEmptyElement} from "../../block/element.factory";
 import {focusBlock} from "../../protyle/util/selection";

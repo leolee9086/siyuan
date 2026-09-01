@@ -46,6 +46,12 @@ export class Model<
     /** 模型挂载到 Tab 等宿主后由布局生命周期写入。 */
     public parent?: TParent;
     public app: TApplication;
+    /** 主通道在应用就绪（isReady）前暂存的推送；由启动序列通过 flushMainMessages 统一回放。 */
+    private mainMessageQueue: {
+        data: unknown,
+        callback: (data: IWebSocketData) => void | Promise<void>,
+        socket: WebSocket,
+    }[] = [];
     private reconnectTimer: number | null = null;
     private destroyed = false;
     private messageQueue: Promise<void> = Promise.resolve();
@@ -54,6 +60,45 @@ export class Model<
         app: TApplication,
     }) {
         this.app = options.app;
+    }
+
+    /** 回放主通道在应用就绪前排队的推送；仅接受仍属于当前连接且未销毁的消息。 */
+    public flushMainMessages() {
+        const messages = this.mainMessageQueue.splice(0);
+        messages.forEach((message) => {
+            try {
+                if (!this.destroyed && this.ws === message.socket) {
+                    this.enqueueModelMessage(message.data, message.callback, message.socket);
+                }
+            } catch (error) {
+                console.error("Failed to process queued WebSocket message:", error);
+            }
+        });
+    }
+
+    /** 将一条已通过门控的序列化消息放入实例消息队列；回放与实时消息共用同一分发顺序和陈旧性守卫。 */
+    private enqueueModelMessage(serializedResponse: unknown, msgCallback: (data: IWebSocketData) => void | Promise<void>, socket: WebSocket) {
+        // WebSocket 不会等待异步事件监听器；实例队列保持与原同步实现相同的消息分发顺序。
+        this.messageQueue = this.messageQueue.then(async () => {
+            if (this.destroyed || this.ws !== socket) {
+                return;
+            }
+            if (typeof serializedResponse !== "string") {
+                throw new TypeError("Model WebSocket message payload must be a JSON string");
+            }
+            const response: IWebSocketData = JSON.parse(serializedResponse);
+            const data = await getModelHandlers().processMessage(response);
+            // 处理期间可能发生重连或销毁；旧连接的迟到结果不得进入当前模型回调。
+            if (this.destroyed || this.ws !== socket) {
+                return;
+            }
+            if (data) {
+                await msgCallback?.call(this, data);
+            }
+        }).catch((error: unknown) => {
+            // 单条消息失败必须可观察，同时将队列恢复为 fulfilled，保证后续消息仍可处理。
+            console.error("Model WebSocket message processing failed", error);
+        });
     }
 
     /** 建立模型同步连接；重连时复用相同参数并替换旧连接。 */
@@ -95,33 +140,25 @@ export class Model<
         };
         ws.onmessage = (event) => {
             const serializedResponse = event.data;
-            // exit 身份登记必须先于 config/msgCallback 门控；内核可能在配置异步加载完成前就关闭连接。
+            // exit 身份登记必须先于 msgCallback/isReady/config 门控；内核可能在配置加载完成前就关闭连接。
             prepareElectronExitFrame(serializedResponse);
-            // 等待 config 加载完成才接受推送 https://github.com/siyuan-note/siyuan/issues/17508
-            if (!options.msgCallback || !window.siyuan.config) {
+            if (!options.msgCallback) {
                 return;
             }
-            // WebSocket 不会等待异步事件监听器；实例队列保持与原同步实现相同的消息分发顺序。
-            this.messageQueue = this.messageQueue.then(async () => {
-                if (this.destroyed || this.ws !== ws) {
-                    return;
-                }
-                if (typeof serializedResponse !== "string") {
-                    throw new TypeError("Model WebSocket message payload must be a JSON string");
-                }
-                const response: IWebSocketData = JSON.parse(serializedResponse);
-                const data = await getModelHandlers().processMessage(response);
-                // 处理期间可能发生重连或销毁；旧连接的迟到结果不得进入当前模型回调。
-                if (this.destroyed || this.ws !== ws) {
-                    return;
-                }
-                if (data) {
-                    await options.msgCallback?.call(this, data);
-                }
-            }).catch((error: unknown) => {
-                // 单条消息失败必须可观察，同时将队列恢复为 fulfilled，保证后续消息仍可处理。
-                console.error("Model WebSocket message processing failed", error);
-            });
+            // 主通道在应用就绪（isReady）前到达的推送先入队，待启动序列调用 flushMainMessages 统一回放。
+            if (options.type === "main" && !window.siyuan.isReady) {
+                this.mainMessageQueue.push({
+                    data: serializedResponse,
+                    callback: options.msgCallback,
+                    socket: ws,
+                });
+                return;
+            }
+            // 非主通道在界面初始化后才创建；等待 config 加载完成才接受推送 https://github.com/siyuan-note/siyuan/issues/17508
+            if (!window.siyuan.config) {
+                return;
+            }
+            this.enqueueModelMessage(serializedResponse, options.msgCallback, ws);
         };
         ws.onclose = (ev) => this.handleSocketClose(ws, ev, options);
         ws.onerror = () => {

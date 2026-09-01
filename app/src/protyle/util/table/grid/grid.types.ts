@@ -12,6 +12,10 @@ export interface TableGrid {
     cellInfos: TableGridCell[];
     sectionOfRow: string[];
     rowCount: number;
+    /** 用途：物理单元格在逻辑网格中的占用矩阵；使用场景：表格控制面板的行列边界、对齐与重建；关联类型：每个槽位指向所属物理单元格。 */
+    grid: (HTMLTableCellElement | null)[][];
+    /** 用途：逻辑网格的最大列数；使用场景：表格控制面板插入/删除列与尺寸计算。 */
+    columnCount: number;
 }
 
 /** 用途：描述逻辑网格构建期间的完整可变状态；使用场景：逐行登记物理单元格及其跨度；关联类型：最终投影为 `TableGrid`。 */

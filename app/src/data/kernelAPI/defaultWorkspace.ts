@@ -1,7 +1,7 @@
 /** 用途：MIME 类型数据。使用范围：defaultWorkspace 文件类型判断。解耦评估：同目录模块，直接同层导入。 */
 import mimes from "./mimeDb";
-/** 用途：Node path 模块。使用范围：defaultWorkspace 路径处理。解耦评估：通过 imports.ts 转发。 */
-import * as path from "./imports";
+/** 用途：POSIX 路径模块。使用范围：defaultWorkspace 协议路径处理。解耦评估：通过 imports.ts 转发。 */
+import {pathPosix} from "./imports";
 /** 用途：内核客户端类型。使用范围：defaultWorkspace 类型约束。解耦评估：通过 imports.ts 转发。 */
 import type { KernelClientType } from "./imports";
 /** 用途：内核客户端实例。使用范围：defaultWorkspace API 调用。解耦评估：通过 imports.ts 转发。 */
@@ -261,7 +261,7 @@ export class Workspace {
    */
   async exists(name: string) {
     try {
-      const parentDir = path.dirname(name);
+      const parentDir = pathPosix().dirname(name);
 
       // 处理根目录下的文件（父目录为 "." 表示当前目录，对应根目录）
       if (parentDir === ".") {
@@ -279,8 +279,8 @@ export class Workspace {
       // 处理子目录中的文件
       const files = await this.readDir(parentDir);
       const result = files.find((file) => {
-        return path.join(parentDir, file.name) === name ||
-               path.join(parentDir, file.name) + "/" === name;
+        return pathPosix().join(parentDir, file.name) === name ||
+               pathPosix().join(parentDir, file.name) + "/" === name;
       });
       return result || undefined;
     } catch (e) {

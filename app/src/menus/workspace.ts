@@ -17,6 +17,7 @@ import {
 import {isIPad} from "../util/platform/functions";
 import {openCard} from "../card/openCard";
 import {getAllDocks} from "../layout/getAll";
+import {getDockHotkey} from "../layout/dock/hotkey";
 import {exportLayout} from "../layout/export/exportLayout";
 import {getAllLayout} from "../layout/persistence/layoutSnapshot";
 import {getDockByType} from "../layout/query/dockByType";
@@ -38,6 +39,7 @@ import {upDownHint} from "../util/DOM/upDownHint";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { openBazaarHubTab, openBazaarPublishTab } from "../bazaar-hub/open";
 import {openDesktopDataMigration} from "./dataMigration/desktop";
+import {openLink} from "../editor/openLink";
 
 const editLayout = (layoutName?: string) => {
     const dialog = new Dialog({
@@ -191,7 +193,7 @@ export const workspaceMenu = (app: AppFacade, rect: DOMRect) => {
             dockMenu.push({
                 id: item.type,
                 icon: item.icon,
-                accelerator: item.hotkey,
+                accelerator: getDockHotkey(item),
                 label: item.title,
                 click() {
                     getDockByType(item.type).toggleModel(item.type);
@@ -330,11 +332,15 @@ export const workspaceMenu = (app: AppFacade, rect: DOMRect) => {
                             if (hasClosestByClassName(event.target as Element, "b3-menu__action")) {
                                 event.preventDefault();
                                 event.stopPropagation();
-                                fetchPost("/api/system/removeWorkspaceDir", {path: item.path}, () => {
-                                    confirmDialog(siyuanI18n.deleteOpConfirm, siyuanI18n.removeWorkspacePhysically.replace("${x}", item.path), () => {
-                                        fetchPost("/api/system/removeWorkspaceDirPhysically", {path: item.path});
-                                    }, undefined, true);
-                                });
+                                if (item.path === window.siyuan.config.system.workspaceDir) {
+                                    fetchPost("/api/system/removeWorkspaceDir", {path: item.path});
+                                    return;
+                                }
+                                confirmDialog(siyuanI18n.deleteOpConfirm, siyuanI18n.removeWorkspacePhysically.replace("${x}", item.path), () => {
+                                    fetchPost("/api/system/removeWorkspaceDirPhysically", {path: item.path});
+                                }, () => {
+                                    fetchPost("/api/system/removeWorkspaceDir", {path: item.path});
+                                }, true);
                                 return;
                             }
                             confirmDialog(siyuanI18n.confirm, `${pathPosix().basename(window.siyuan.config.system.workspaceDir)} -> ${pathPosix().basename(item.path)}?`, () => {
@@ -582,10 +588,10 @@ export const workspaceMenu = (app: AppFacade, rect: DOMRect) => {
             label: siyuanI18n.feedback,
             icon: "iconFeedback",
             click: () => {
-                if ("zh-CN" === window.siyuan.config.lang || "zh-TW" === window.siyuan.config.lang) {
-                    window.open("https://ld246.com/article/1649901726096");
+                if ("zh-CN" === window.siyuan.config.lang) {
+                    openLink(app, "https://ld246.com/article/1649901726096");
                 } else {
-                    window.open("https://liuyun.io/article/1686530886208");
+                    openLink(app, "https://liuyun.io/article/1686530886208");
                 }
             }
         }).element);

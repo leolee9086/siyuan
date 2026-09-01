@@ -48,6 +48,54 @@ const updateNodeElements = (nodeElements: Element[], protyle: IProtyle, inputEle
 
 export const buildGutterAlignMenu = (nodeElements: Element[], protyle: IProtyle): IMenu => {
     const disabledRTL = nodeElements.some(e => ["NodeAttributeView", "NodeCodeBlock", "NodeMathBlock"].includes(e.getAttribute("data-type")));
+    // 水平超级块（columns 布局）支持垂直对齐，展示 alignTop/Middle/Bottom 与恢复默认垂直对齐菜单项
+    const isHorizontalSuperBlock = nodeElements.length === 1 &&
+        nodeElements[0].getAttribute("data-type") === "NodeSuperBlock" &&
+        nodeElements[0].getAttribute("data-sb-layout") === "col";
+    const verticalAlign = isHorizontalSuperBlock ? (nodeElements[0] as HTMLElement).style.alignItems : "";
+    const verticalAlignMenu: IMenu[] = isHorizontalSuperBlock ? [{
+        id: "alignTop",
+        icon: "iconAlignTop",
+        label: window.siyuan.languages.alignTop,
+        checked: verticalAlign === "flex-start",
+        click: () => {
+            genClick(nodeElements, protyle, (e: HTMLElement) => {
+                e.style.alignItems = "flex-start";
+            });
+        },
+    }, {
+        id: "alignMiddle",
+        icon: "iconAlignMiddle",
+        label: window.siyuan.languages.alignMiddle,
+        checked: verticalAlign === "center",
+        click: () => {
+            genClick(nodeElements, protyle, (e: HTMLElement) => {
+                e.style.alignItems = "center";
+            });
+        },
+    }, {
+        id: "alignBottom",
+        icon: "iconAlignBottom",
+        label: window.siyuan.languages.alignBottom,
+        checked: verticalAlign === "flex-end",
+        click: () => {
+            genClick(nodeElements, protyle, (e: HTMLElement) => {
+                e.style.alignItems = "flex-end";
+            });
+        },
+    }, {
+        id: "useDefaultVerticalAlign",
+        label: window.siyuan.languages.useDefaultVerticalAlign,
+        checked: verticalAlign === "",
+        click: () => {
+            genClick(nodeElements, protyle, (e: HTMLElement) => {
+                e.style.alignItems = "";
+            });
+        },
+    }, {
+        id: "separator_verticalAlign",
+        type: "separator",
+    }] : [];
     return {
         id: "layout",
         label: siyuanI18n.layout,
@@ -112,7 +160,7 @@ export const buildGutterAlignMenu = (nodeElements: Element[], protyle: IProtyle)
         }, {
             id: "separator_1",
             type: "separator"
-        }, {
+        }, ...verticalAlignMenu, {
             id: "ltr",
             icon: "iconLtr",
             ignore: disabledRTL,
@@ -163,6 +211,9 @@ export const buildGutterAlignMenu = (nodeElements: Element[], protyle: IProtyle)
                     } else {
                         e.style.textAlign = "";
                         e.style.direction = "";
+                        if (e.getAttribute("data-type") === "NodeSuperBlock") {
+                            e.style.alignItems = "";
+                        }
                     }
                 });
             }

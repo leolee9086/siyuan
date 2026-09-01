@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -18,9 +18,11 @@ package model
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 
+	"github.com/88250/lute/ast"
 	"github.com/siyuan-note/filelock"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
@@ -40,6 +42,9 @@ func agentTodosPath(sessionID string) string {
 }
 
 func SaveAgentTodos(sessionID string, todos []AgentTodoItem) error {
+	if !ast.IsNodeIDPattern(sessionID) {
+		return errors.New("invalid Agent session ID")
+	}
 	dir := filepath.Join(util.DataDir, "storage", "ai", "agent", "sessions", sessionID)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
@@ -59,6 +64,9 @@ func SaveAgentTodos(sessionID string, todos []AgentTodoItem) error {
 }
 
 func LoadAgentTodos(sessionID string) ([]AgentTodoItem, error) {
+	if !ast.IsNodeIDPattern(sessionID) {
+		return nil, errors.New("invalid Agent session ID")
+	}
 	path := agentTodosPath(sessionID)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return nil, nil

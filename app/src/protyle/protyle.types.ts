@@ -5,6 +5,7 @@ export interface ProtyleZoomOutOptions {
     isPushBack?: boolean;
     callback?: () => void;
     reload?: boolean;
+    dataDocType?: string;
 }
 
 /** Protyle class 的完整公共领域表面；宿主模块依赖此类型而不加载编辑器实现。 */
@@ -18,6 +19,8 @@ export interface ProtyleDomain {
     clearStack(): void;
     destroy(): void;
     resize(): void;
+    isFullscreen(): boolean;
+    setFullscreen(enter: boolean): void;
     reload(focus: boolean, updateReadonly?: boolean): void;
     insert(html: string, isBlock?: boolean, useProtyleRange?: boolean): void;
     transaction(doOperations: IOperation[], undoOperations?: IOperation[]): void;

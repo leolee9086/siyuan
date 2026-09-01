@@ -10,6 +10,8 @@ import {showMessage} from "../../runtime/dialog.port";
 import {destroy} from "../../util/destroy";
 /** 用途：上传文案；使用范围：验证、进度和错误；解耦评估：直达 i18n 环境层。 */
 import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+/** 用途：编码文件名；使用范围：上传状态与确认 HTML；解耦评估：直达纯 DOM 文本编码器。 */
+import {escapeHtml} from "../../../util/DOM/escape";
 /** 用途：格式化大文件尺寸；使用范围：确认文案；解耦评估：直达第三方纯格式化实现。 */
 import {filesize} from "filesize";
 
@@ -27,3 +29,5 @@ export {hideMessage};
 export {showMessage};
 /** 导出上传文案。 */
 export {siyuanI18n};
+/** 导出文件名编码器。 */
+export {escapeHtml};

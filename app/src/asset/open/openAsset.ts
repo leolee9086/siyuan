@@ -16,16 +16,26 @@ import type {AssetOpenOptions} from "./openAsset.types";
  * @调用时机 用户点击资产链接或拖拽资产到编辑器时
  * @同步豁免: 生命周期 — 在用户交互中同步打开资产页签
  */
-export const openAsset = (app: AppFacade, options: AssetOpenOptions) => {
-    const suffix = pathPosix().extname(options.assetPath).split("?")[0] ?? "";
+const openAssetWithOptions = (app: AppFacade, options: AssetOpenOptions, keepCursor = false) => {
+    const suffix = pathPosix().extname(options.assetPath).toLowerCase();
     if (!Constants.SIYUAN_ASSETS_EXTS.includes(suffix)) {
         return;
     }
-    openFile({
+    void openFile({
         app,
         assetPath: options.assetPath,
         page: options.page,
         position: options.position ?? undefined,
-        removeCurrentTab: true
+        ...(keepCursor ? {keepCursor: true} : {}),
+        removeCurrentTab: true,
     });
+};
+
+export const openAsset = (app: AppFacade, options: AssetOpenOptions) => {
+    openAssetWithOptions(app, options);
+};
+
+/** 在后台打开资产并保留当前编辑器光标位置。 */
+export const openAssetInBackground = (app: AppFacade, assetPath: string, page: number | string) => {
+    openAssetWithOptions(app, {assetPath, page}, true);
 };

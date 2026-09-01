@@ -1,9 +1,15 @@
 import {describe, it} from "node:test";
 import * as assert from "node:assert/strict";
 import {
+    applyAgentUserEdit,
+    buildAgentPresentationEntries,
     findAgentUserEntryIndex,
     filterAgentReferencesForContent,
+    getAgentThinkingDisplaySeconds,
     hasAgentExecutedToolsAfter,
+    hasAgentModelSpecificContext,
+    hasAgentThinkingStepDetails,
+    isAgentAssistantContentFinalInTurn,
     isAgentRegenerateStateCurrent,
 } from "./AgentHistory";
 
@@ -70,12 +76,79 @@ function testReferenceFiltering() {
     assert.deepEqual(filterAgentReferencesForContent(references, "Review First block"), [references[0]]);
 }
 
-/** 注册 AgentHistory 的四个独立行为用例。 */
+/** 验证富文本编辑、模型上下文和逐轮重新生成边界。 */
+function testHistoryMetadataHelpers() {
+    const entry = {content: "Old", blockHTML: "<div>Old</div>",
+        references: [{id: "old", title: "Old"}]};
+    const references = [{id: "new", title: "New"}];
+    applyAgentUserEdit(entry, {text: "New", blockHTML: "<div>New</div>", references});
+    assert.deepEqual(entry, {content: "New", blockHTML: "<div>New</div>", references});
+    assert.notEqual(entry.references, references);
+    applyAgentUserEdit(entry, {text: "None", blockHTML: "<div>None</div>", references: []});
+    assert.equal(entry.references, undefined);
+    assert.equal(getAgentThinkingDisplaySeconds(0.001), 1);
+    assert.equal(getAgentThinkingDisplaySeconds(1.5), 2);
+    assert.equal(hasAgentThinkingStepDetails({roundID: "round-1", reasoning: "processing"}), false);
+    assert.equal(hasAgentThinkingStepDetails({reasoningContent: "reasoning"}), true);
+    assert.equal(hasAgentModelSpecificContext([{type: "assistant", toolCalls: [{}]}]), true);
+    assert.equal(hasAgentModelSpecificContext([{type: "thinking", steps: [{reasoningContent: "reasoning"}]}]), true);
+    const turnEntries = [
+        {type: "user", content: "question"},
+        {type: "assistant", content: "intermediate"},
+        {type: "thinking"},
+        {type: "assistant", content: "final"},
+    ];
+    assert.equal(isAgentAssistantContentFinalInTurn(turnEntries, 1), false);
+    assert.equal(isAgentAssistantContentFinalInTurn(turnEntries, 3), true);
+}
+
+/** 验证 roundID 驱动正文、问题、待办与快照的稳定呈现顺序。 */
+function testRoundAwarePresentation() {
+    const display = buildAgentPresentationEntries([
+        {id: "user-1", type: "user", content: "work"},
+        {id: "snapshot-1", type: "snapshot", roundID: "round-1"},
+        {id: "thinking-1", type: "thinking", steps: [{roundID: "round-1",
+            reasoningContent: "plan", toolNames: ["todo_write", "question"],
+            toolCallIDs: ["call-todo", "call-question"]}]},
+        {id: "question-1", type: "question", roundID: "round-1"},
+        {id: "assistant-1", type: "assistant", roundID: "round-1", content: "before question",
+            toolCalls: [
+                {id: "call-todo", name: "todo_write", result: "todo result"},
+                {id: "call-question", name: "question"},
+            ]},
+        {id: "assistant-2", type: "assistant", roundID: "round-2", content: "done"},
+    ]);
+    assert.deepEqual(display.map((entry) => entry.type), [
+        "user", "thinking", "snapshot", "todo", "assistant", "question", "assistant",
+    ]);
+    assert.equal(display[1]?.steps?.[0]?.roundID, "round-1");
+    assert.equal(display[3]?.result, "todo result");
+    assert.equal(display[4]?.content, "before question");
+    assert.equal(display[4]?.toolCalls?.length, 1);
+}
+
+/** 验证缺失思考条目时按 roundID 恢复思考步骤。 */
+function testRecoveredRoundPresentation() {
+    const display = buildAgentPresentationEntries([
+        {id: "user-1", type: "user"},
+        {id: "assistant-1", type: "assistant", roundID: "round-1", reasoningContent: "inspect",
+            toolCalls: [{id: "call-1", name: "block", result: "ok"}]},
+        {id: "assistant-2", type: "assistant", roundID: "round-2", content: "done"},
+    ]);
+    assert.equal(display[1]?.type, "thinking");
+    assert.equal(display[1]?.steps?.[0]?.roundID, "round-1");
+    assert.deepEqual(display[1]?.steps?.[0]?.toolCallIDs, ["call-1"]);
+}
+
+/** 注册 AgentHistory 的独立行为用例。 */
 function registerAgentHistoryTests() {
     it("finds the requested user entry or the latest user entry", testFindAgentUserEntryIndex);
     it("detects executed tools after the selected user entry", testExecutedToolDetection);
     it("rejects regenerate state changed while confirmation is open", testRegenerateStateIdentity);
     it("drops block references removed from edited content", testReferenceFiltering);
+    it("preserves rich edits and model metadata helpers", testHistoryMetadataHelpers);
+    it("orders round-aware question, todo, and snapshot entries", testRoundAwarePresentation);
+    it("recovers missing thinking entries from round metadata", testRecoveredRoundPresentation);
 }
 
 describe("AgentHistory", registerAgentHistoryTests);

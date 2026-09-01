@@ -15,15 +15,18 @@ describe("Router路由匹配测试", () => {
         url: "/users/123",
         params: {},
         query: {},
-        headers: {}
+        headers: {},
+        body: undefined
       },
       response: {
         status: 200,
         headers: {},
         set: vi.fn(),
-        redirect: vi.fn()
+        redirect: vi.fn(),
+        body: undefined
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [],
       set: vi.fn(),

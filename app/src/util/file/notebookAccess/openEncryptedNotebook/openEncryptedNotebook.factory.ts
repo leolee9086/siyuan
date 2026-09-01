@@ -6,6 +6,8 @@ import {fetchSyncPost} from "./imports";
 import {getSiyuanLanguages} from "./imports";
 /** 用途：判定移动布局；使用范围：对话框尺寸；解耦评估：经本域网关直达平台环境。 */
 import {isMobile} from "./imports";
+/** 用途：编码动态笔记本名；使用范围：解锁对话框标题。 */
+import {escapeHtml} from "./imports";
 /** 用途：描述完整 Dialog；使用范围：解锁提交生命周期；解耦评估：行为依赖完整抽象而非具体类。 */
 import type {IDialog} from "./imports";
 
@@ -40,9 +42,13 @@ const submitEncryptedNotebookAccess = async (
 
 /** @同步豁免: UI构建 */
 export const openEncryptedNotebook = (notebookId: string, name: string) => {
+    const dialogKey = "encryptedNotebook-" + notebookId;
+    if (window.siyuan.dialogs.some((item) => item.element.getAttribute("data-key") === dialogKey)) {
+        return;
+    }
     const languages = getSiyuanLanguages();
     const dialog = new Dialog({
-        title: languages.unlockEncryptedNotebook.replace("${x}", name),
+        title: languages.unlockEncryptedNotebook.replace("${x}", escapeHtml(name)),
         content: `<div class="b3-dialog__content">
     <input type="password" placeholder="${languages.masterPassword}" class="b3-text-field fn__block">
     <div class="fn__hr--b"></div>
@@ -54,6 +60,7 @@ export const openEncryptedNotebook = (notebookId: string, name: string) => {
 </div>`,
         width: isMobile() ? "92vw" : "520px",
     });
+    dialog.element.setAttribute("data-key", dialogKey);
     dialog.element.setAttribute("data-notebook-id", notebookId);
     const buttons = dialog.element.querySelectorAll<HTMLButtonElement>(".b3-button");
     const cancelButton = buttons[0];

@@ -39,11 +39,15 @@ export function flushThinkingStep(runtime: AgentChatRuntime) {
 
 /** 从当前流式状态创建单个可持久化思考步骤。 */
 function createCurrentThinkingStep(runtime: AgentChatRuntime): ThinkingStep {
-    const toolNames = runtime.currentToolCalls.slice(runtime.lastStepToolCount).map((toolCall) => toolCall.name);
+    const toolCalls = runtime.currentToolCalls.slice(runtime.lastStepToolCount);
+    const toolNames = toolCalls.map((toolCall) => toolCall.name);
+    const toolCallIDs = toolCalls.flatMap((toolCall) => toolCall.id ? [toolCall.id] : []);
     return {
         reasoning: runtime.currentThinkingReasoning,
         reasoningContent: runtime.currentThinkingReasoningContent,
+        ...(runtime.currentRoundID ? {roundID: runtime.currentRoundID} : {}),
         ...(toolNames.length > 0 ? {toolNames} : {}),
+        ...(toolCallIDs.length > 0 ? {toolCallIDs} : {}),
         ...(runtime.currentThinkingStepContent ? {content: runtime.currentThinkingStepContent} : {}),
     };
 }

@@ -124,6 +124,11 @@ import {updateAVRowSelect} from "../../virtualScroll/state";
 /** 导出 updateAVRowSelect 供 contextmenu 子模块复用。 */
 export {updateAVRowSelect};
 
+/** 用途：记录右键项作为 Shift 范围选择锚点。使用范围：右键菜单选择同步及范围选择状态维护。解耦评估：锚点状态由 rangeSelect 唯一维护，通过网关转发可避免子模块直接操作选择状态，保持单一职责。 */
+import { setAVItemAnchor } from "../../rangeSelect";
+/** 导出右键项锚点同步能力。 */
+export {setAVItemAnchor};
+
 /** 用途：读取 AV view 属性名。使用范围：生成数据库条目协议链接。解耦评估：协议键由常量统一维护。 */
 import {Constants} from "../../../../../constants";
 /** 导出 Constants 供 contextmenu 子模块复用。 */
@@ -140,3 +145,8 @@ import { toAttrColType, toAttrViewType } from "../action.guards";
 export { toAttrColType };
 /** 导出 toAttrViewType 供 contextmenu 子模块复用。 */
 export { toAttrViewType };
+
+/** 用途：构建选择工具栏与右键菜单共用的批量字段编辑子菜单。使用范围：右键菜单 fields 子菜单及对应工具栏字段编辑。解耦评估：子菜单由领域工厂统一生成，上下文菜单仅消费其返回的 IMenu[]，不直接依赖内部实现，适合通过共享模块复用。 */
+import { getAVEditFieldMenuItems } from "../editFieldMenu";
+/** 导出 getAVEditFieldMenuItems 供 contextmenu 子模块复用。 */
+export { getAVEditFieldMenuItems };

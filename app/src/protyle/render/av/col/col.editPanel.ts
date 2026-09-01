@@ -1,4 +1,5 @@
 import {getLabelByNumberFormat} from "../number";
+import {getLabelByDateFormat} from "../dateFormat";
 import {getRollupHTML} from "../rollup";
 import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../../util/DOM/escape";
 import {getColIconByType, getColNameByType} from "./col.typeUtils";
@@ -46,10 +47,10 @@ export const getSelectTypeEditHTML = (colData: IAVColumn, _avData: IAV) => {
     colData.options = options;
     for (const item of options) {
         const airaLabel = item.desc ? `${escapeAriaLabel(item.name)}<div class='ft__on-surface'>${escapeAriaLabel(item.desc || "")}</div>` : "";
-        html += `<button class="b3-menu__item${html ? "" : " b3-menu__item--current"}" draggable="true" data-name="${escapeAttr(item.name)}" data-desc="${escapeAttr(item.desc || "")}" data-color="${item.color}">
+        html += `<button class="b3-menu__item${html ? "" : " b3-menu__item--current"}" draggable="true" data-name="${escapeAttr(item.name)}" data-desc="${escapeAttr(item.desc || "")}" data-color="${escapeAttr(item.color)}">
     <svg class="b3-menu__icon fn__grab"><use xlink:href="#iconDrag"></use></svg>
     <div class="fn__flex-1 ariaLabel" data-position="parentW" aria-label="${airaLabel}">
-        <span class="b3-chip" style="background-color:var(--b3-font-background${item.color});color:var(--b3-font-color${item.color})">
+        <span class="b3-chip" style="background-color:var(--b3-font-background${escapeAttr(item.color)});color:var(--b3-font-color${escapeAttr(item.color)})">
             <span class="fn__ellipsis">${escapeHtml(item.name)}</span>
         </span>
     </div>
@@ -144,6 +145,11 @@ export const getRelationTypeEditHTML = (colData: IAVColumn, avData: IAV) => {
 /** @同步豁免: UI构建 — 纯 HTML 字符串拼接，无异步数据源 */
 export const getDateTypeEditHTML = (colData: IAVColumn, _avData: IAV) => {
     return `<button class="b3-menu__separator" data-id="separator_2"></button>
+<button class="b3-menu__item" data-type="dateFormat" data-format="${colData.dateFormat || ""}">
+    <svg class="b3-menu__icon"><use xlink:href="#iconFormat"></use></svg>
+    <span class="b3-menu__label">${window.siyuan.languages._attrView.dateFormat}</span>
+    <span class="b3-menu__accelerator">${getLabelByDateFormat(colData.dateFormat)}</span>
+</button>
 <label class="b3-menu__item">
     <span class="fn__flex-center">${siyuanI18n.fillCreated}</span>
     <span class="fn__space fn__flex-1"></span>
@@ -172,6 +178,11 @@ export const getTimestampTypeEditHTML = (colData: IAVColumn, _avData: IAV) => {
     const timestampData = colData[typeKey];
     const isChecked = !timestampData || timestampData.includeTime;
     return `<button class="b3-menu__separator" data-id="separator_2"></button>
+<button class="b3-menu__item" data-type="dateFormat" data-format="${colData.dateFormat || ""}">
+    <svg class="b3-menu__icon"><use xlink:href="#iconFormat"></use></svg>
+    <span class="b3-menu__label">${window.siyuan.languages._attrView.dateFormat}</span>
+    <span class="b3-menu__accelerator">${getLabelByDateFormat(colData.dateFormat)}</span>
+</button>
 <label class="b3-menu__item">
     <span class="fn__flex-center">${siyuanI18n.includeTime}</span>
     <span class="fn__space fn__flex-1"></span>

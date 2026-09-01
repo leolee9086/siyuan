@@ -96,6 +96,12 @@ export const collectBazaarTabSearchStrings = (): string[] => [
     window.siyuan.languages.widget,
 ];
 
+export const unmountBazaarTab = (root: HTMLElement) => {
+    if (bazaar.element === root) {
+        bazaar.element = undefined;
+    }
+};
+
 /** 集市 Tab 挂载：复用本地拆分后的 Bazaar 面板实现 */
 export const mountBazaarTab = (root: HTMLElement, keywords?: string, app?: AppFacade) => {
     if (root.innerHTML === "") {

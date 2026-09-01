@@ -11,6 +11,98 @@ import { escapeAttr } from "../../util/DOM/escape";
 import { Plugin } from "../../plugin";
 import {renderReadme} from "./readme/renderReadme";
 
+const getDownloadedTabType = (bazaarType: TBazaarType) => {
+    return bazaarType.replace("s", "");
+};
+
+export const getDownloadedSortStorageKey = (bazaarType: TBazaarType) => {
+    const tab = getDownloadedTabType(bazaarType);
+    return "downloaded" + tab.charAt(0).toUpperCase() + tab.slice(1);
+};
+
+export const getDownloadedSortValue = (bazaarType: TBazaarType) => {
+    const localSort = window.siyuan.storage[Constants.LOCAL_BAZAAR] || {};
+    const value = localSort[getDownloadedSortStorageKey(bazaarType)] || "0";
+    // 启禁排序仅对插件有意义，其余类型回退到默认排序
+    if (bazaarType !== "plugins" && ["5", "6"].includes(value)) {
+        return "0";
+    }
+    return value;
+};
+
+export const updateDownloadedSortSelect = (element: Element, bazaarType: TBazaarType) => {
+    const selectElement = element.querySelector('[data-type="downloaded-sort"]') as HTMLSelectElement;
+    if (!selectElement) {
+        return;
+    }
+    selectElement.value = getDownloadedSortValue(bazaarType);
+    selectElement.querySelectorAll('[data-plugin-only="true"]').forEach((option) => {
+        (option as HTMLOptionElement).hidden = bazaarType !== "plugins";
+    });
+};
+
+export const sortDownloadedPackages = (packages: IBazaarItem[], sortValue: string): IBazaarItem[] => {
+    const indexed = packages.map((item, index) => ({item, index}));
+    const sortByTime = (field: "installTime" | "updateTime", descending: boolean) => {
+        return indexed.sort((a, b) => {
+            const aTime = a.item[field] || 0;
+            const bTime = b.item[field] || 0;
+            if (aTime < 1 && bTime < 1) {
+                return a.index - b.index;
+            }
+            if (aTime < 1) {
+                return 1;
+            }
+            if (bTime < 1) {
+                return -1;
+            }
+            const result = descending ? bTime - aTime : aTime - bTime;
+            return result || a.index - b.index;
+        }).map((entry) => entry.item);
+    };
+    if (sortValue === "1") {
+        return sortByTime("installTime", true);
+    }
+    if (sortValue === "2") {
+        return sortByTime("installTime", false);
+    }
+    if (sortValue === "3") {
+        return sortByTime("updateTime", true);
+    }
+    if (sortValue === "4") {
+        return sortByTime("updateTime", false);
+    }
+    if (["5", "6"].includes(sortValue)) {
+        return indexed.sort((a, b) => {
+            const aEnabled = a.item.enabled ? 1 : 0;
+            const bEnabled = b.item.enabled ? 1 : 0;
+            const result = sortValue === "5" ? bEnabled - aEnabled : aEnabled - bEnabled;
+            return result || a.index - b.index;
+        }).map((entry) => entry.item);
+    }
+    return [...packages];
+};
+
+export const reorderDownloadedCards = (element: Element, packages: IBazaarItem[]) => {
+    const contentElement = element.querySelector("#configBazaarDownloaded");
+    if (!contentElement) {
+        return;
+    }
+    const cards = new Map(Array.from(contentElement.children).filter((item) => item.classList.contains("b3-card")).map((card) => [
+        card.getAttribute("data-name"),
+        card,
+    ]));
+    const fragment = document.createDocumentFragment();
+    packages.forEach((item) => {
+        const card = cards.get(item.name);
+        if (card) {
+            fragment.append(card);
+        }
+    });
+    contentElement.append(fragment);
+    bazaarData.downloaded = packages;
+};
+
 export const renderFilteredPackages = (element: Element, bazaarType: TBazaarType) => {
     const filteredPackages = filterPackagesByKeywords(bazaarType);
     let html = "";
@@ -192,6 +284,7 @@ export const genMyHTML = (element: Element, bazaarType: TBazaarType, app: AppFac
         prevSibling.querySelector(`[data-type="my${bazaarType.replace(bazaarType[0], bazaarType[0].toUpperCase()).substring(0, bazaarType.length - 1)}"]`).classList.contains("b3-button--outline")) {
         return;
     }
+    updateDownloadedSortSelect(element, bazaarType);
     contentElement.setAttribute("data-loading", "true");
     let url = "/api/bazaar/getInstalledTheme";
     if (bazaarType === "icons") {
@@ -214,11 +307,13 @@ export const genMyHTML = (element: Element, bazaarType: TBazaarType, app: AppFac
             showSwitch = true;
         }
         const counterElement = prevSibling.querySelector(".counter");
-        if (response.data.packages.length === 0) {
+        const currentSortValue = getDownloadedSortValue(bazaarType);
+        const packages = sortDownloadedPackages(response.data.packages, currentSortValue);
+        if (packages.length === 0) {
             counterElement.classList.add("fn__none");
         } else {
             counterElement.classList.remove("fn__none");
-            counterElement.textContent = response.data.packages.length;
+            counterElement.textContent = packages.length;
 
             // Note: genCardHTML logic in bazaar.ts _genMyHTML is slightly different (downloaded=true, specific actions).
             // _genMyHTML manually constructed the card HTML.
@@ -229,7 +324,7 @@ export const genMyHTML = (element: Element, bazaarType: TBazaarType, app: AppFac
             // genCardHTML has some of them.
             // To be safe, I will copy the logic from _genMyHTML directly here.
 
-            response.data.packages.forEach((item: IBazaarItem) => {
+            packages.forEach((item: IBazaarItem) => {
                 const dataObj = {
                     bazaarType,
                     themeMode: item.modes?.toString(),
@@ -250,7 +345,7 @@ export const genMyHTML = (element: Element, bazaarType: TBazaarType, app: AppFac
     </span>`
                     : "";
 
-                html += `<div data-obj='${JSON.stringify(dataObj)}' class="b3-card${item.current ? " b3-card--current" : ""}">
+                html += `<div data-name="${escapeAttr(item.name)}" data-obj='${JSON.stringify(dataObj)}' class="b3-card${item.current ? " b3-card--current" : ""}">
 <div class="b3-card__img"><img src="${item.iconURL}" onerror="this.src='/stage/images/icon.png'"/></div>
 <div class="fn__flex-1 fn__flex-column">
     <div class="b3-card__info b3-card__info--left fn__flex-1">
@@ -284,7 +379,8 @@ export const genMyHTML = (element: Element, bazaarType: TBazaarType, app: AppFac
 </div>`;
             });
         }
-        bazaarData.downloaded = response.data.packages;
+        bazaarData.downloadedDefault = response.data.packages;
+        bazaarData.downloaded = packages;
         const checkElement = contentElement.parentElement.querySelector(".b3-switch");
         if (bazaarType === "plugins") {
             checkElement.classList.remove("fn__none");

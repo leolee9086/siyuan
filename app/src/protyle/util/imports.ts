@@ -35,6 +35,15 @@ import { setSForgeState } from "../../config/sforge";
 export { setSForgeState };
 
 /**
+ * 用途：读取视图折叠的高层视觉端口，供低层折叠状态在标题异步加载后请求渲染。
+ * 使用范围：仅 `viewFold.ts` 的标题子块加载收尾，不承担 AV、块渲染或 onGet 实现。
+ * 解耦评估：将渲染函数作为静态组合层注册的端口读取，避免 viewFold 反向依赖 AV、块渲染和 onGet；逐层参数传递会把同一能力扩散到所有折叠 helper，事件也不能保证当前 DOM 插入后的同步渲染顺序。
+ */
+import {getViewFoldVisualEffects} from "./viewFoldVisual/port";
+/** 导出视图折叠视觉端口读取函数。 */
+export {getViewFoldVisualEffects};
+
+/**
  * 用途：定位块内真实可编辑元素，供选区撤销上下文使用
  * 使用范围：仅 protyle/util 的选区恢复模块
  * 解耦评估：这是无状态 DOM 查询能力，经本目录依赖入口复用比传递整个 Protyle 宿主更细

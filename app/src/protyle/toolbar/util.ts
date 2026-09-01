@@ -1,9 +1,10 @@
 import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {Constants} from "../../constants";
 import {focusByRange, focusByWbr} from "../util/selection";
-import {writeText} from "../util/compatibility";
+import {isDisabledFeature, writeText} from "../util/compatibility";
 import {isArrayEqual} from "../../util/functions";
 import {hasSameTextStyle} from "./Font";
+import {getAIActions} from "../../ai/actions.port";
 
 /** lite 编辑器仅保留行内能力及插件显式声明的工具项，并清理无效分隔线。 */
 export const filterPluginToolbar = (toolbar: Array<string | IMenuItem>, lite: boolean) => {
@@ -94,6 +95,7 @@ export const mergeSameInlineElement = (currentElement: HTMLElement, previousElem
             currentElement.textContent = previousElement.textContent + currentElement.textContent;
         }
     } else {
+        // textContent：防止赋值后 \n 转换为 br；innerText：获取 br 的 \n。
         currentElement.textContent = previousElement.innerText + currentElement.innerText;
         if (types.includes("inline-memo")) {
             currentElement.setAttribute("data-inline-memo-content",
@@ -166,6 +168,19 @@ export const toolbarKeyToMenu = (toolbar: Array<string | IMenuItem>) => {
         lang: "link",
         icon: "iconLink",
         tipPosition: "n",
+    }, {
+        name: "ai",
+        hotkey: window.siyuan.config.keymap.editor.general.ai.custom,
+        lang: "aiEdit",
+        icon: "iconSparkles",
+        tipPosition: "n",
+        click(protyle) {
+            const editor = protyle.protyle;
+            const range = editor.toolbar.range?.cloneRange();
+            if (range && !range.collapsed) {
+                getAIActions()([], editor, range);
+            }
+        },
     }, {
         name: "strong",
         lang: "bold",
@@ -251,6 +266,11 @@ export const toolbarKeyToMenu = (toolbar: Array<string | IMenuItem>) => {
         icon: "iconClear",
         tipPosition: "n",
     }, {
+        name: "format-painter",
+        lang: "formatPainter",
+        icon: "iconPaintRoller",
+        tipPosition: "n",
+    }, {
         name: "|",
     }];
     const toolbarResult: IMenuItem[] = [];
@@ -266,6 +286,9 @@ export const toolbarKeyToMenu = (toolbar: Array<string | IMenuItem>) => {
                 return true;
             }
         });
+        if (isDisabledFeature("ai") && currentMenuItem.name === "ai") {
+            return;
+        }
         toolbarResult.push(currentMenuItem);
     });
     return toolbarResult;
@@ -324,6 +347,9 @@ export const copyTextByType = async (ids: string[],
             text += `[${response.data.replace("[", "\\[").replace("]", "\\]")}](siyuan://blocks/${id})`;
         } else if (type === "hPath") {
             const response = await fetchSyncPost("/api/filetree/getHPathByID", {id});
+            if (response.code !== 0 || typeof response.data !== "string") {
+                continue;
+            }
             text += response.data;
         } else if (type === "webURL") {
             text += `${window.location.origin}?id=${id}`;

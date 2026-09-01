@@ -27,6 +27,8 @@ export async function initSessions(runtime: AgentChatRuntime) {
     runtime.sessionTitle = runtime.defaultTitle;
     runtime.pendingSessionTitle = null;
     runtime.entries = [];
+    runtime.permissionMode = "confirm";
+    runtime.permissionSelect.value = runtime.permissionMode;
     runtime.promptSourceController.reset();
     await runtime.conversationController?.activate(runtime.conversationKind, runtime.sessionId, {subscribe: false});
     runtime.sessionPorts.presentation.showWelcome(runtime);

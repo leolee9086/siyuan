@@ -185,7 +185,7 @@ function markSelected(ctx: {
     // 跨懒加载区域时给出提示
     if (!hasSelectClassElement && protyle.scroll
         && !protyle.scroll.element.classList.contains("fn__none")
-        && !protyle.scroll.keepLazyLoad
+        && !protyle.scroll.keepLoadedContent
         && (startElement.getBoundingClientRect().top < -contentHeight * 2 || endElement.getBoundingClientRect().bottom > contentHeight * 2)) {
         showMessage(siyuanI18n.crossKeepLazyLoad);
     }

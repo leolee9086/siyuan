@@ -2,6 +2,7 @@ import { Constants } from "../../constants";
 import { addScript } from "../util/addScript";
 import { fetchPost } from "../../util/network/fetch";
 import { setSiyuanViewer, destroySiyuanViewer, getSiyuanViewer } from "../../util/siyuanEnvironments/viewer.environment";
+import { isBrowserRenderableImagePath } from "../../util/imageURL";
 
 /**
  * 作用：获取图片查看器的标题
@@ -87,7 +88,7 @@ const showViewer = (srcList: string[], currentSrc?: string, onHidden?: () => voi
  * @param onHidden 查看器隐藏后的回调
  */
 export const previewImages = (srcList: string[], currentSrc?: string, onHidden?: () => void) => {
-    addScript(`${Constants.PROTYLE_CDN}/js/viewerjs/viewer.js?v=1.11.7`, "protyleViewerScript").then(() =>
+    addScript(`${Constants.PROTYLE_CDN}/js/viewerjs/viewer.js?v=1.11.8`, "protyleViewerScript").then(() =>
         showViewer(srcList, currentSrc, onHidden)
     );
 };
@@ -122,6 +123,6 @@ export const previewAttrViewImages = (currentSrc: string, avID: string, viewID: 
         viewID,
         query,
     }, (response) => {
-        previewImages(response.data, currentSrc);
+        previewImages(response.data.filter((item: string) => isBrowserRenderableImagePath(item)), currentSrc);
     });
 };

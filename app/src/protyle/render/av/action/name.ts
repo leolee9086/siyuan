@@ -65,26 +65,26 @@ const cleanupEmptyTitleBreaks = (nameElement: HTMLElement) => {
  * @param {string} avId - 属性视图 ID
  * @param {string} newTitle - 新的标题文本
  */
-const syncSamePageAttrViewTitles = (
-    protyle: IProtyle,
-    currentBlockElement: Element,
-    avId: string,
-    newTitle: string,
-) => {
-    if (!protyle.wysiwyg?.element) {
+const syncSamePageAttrViewTitles = (options: {
+    protyle: IProtyle;
+    currentBlockElement: Element;
+    avId: string;
+    newTitle: string;
+}) => {
+    if (!options.protyle.wysiwyg?.element) {
         return;
     }
-    const relatedBlocks = protyle.wysiwyg.element.querySelectorAll(`.av[data-av-id="${avId}"]`);
+    const relatedBlocks = options.protyle.wysiwyg.element.querySelectorAll(`.av[data-av-id="${options.avId}"]`);
     for (const relatedBlock of relatedBlocks) {
-        if (relatedBlock === currentBlockElement) {
+        if (relatedBlock === options.currentBlockElement) {
             continue;
         }
         const titleCandidate = relatedBlock.querySelector(".av__title");
         if (!isHTMLElement(titleCandidate)) {
             continue;
         }
-        titleCandidate.textContent = newTitle;
-        titleCandidate.dataset.title = newTitle;
+        titleCandidate.textContent = options.newTitle;
+        titleCandidate.dataset.title = options.newTitle;
     }
 };
 
@@ -124,25 +124,40 @@ export const updateAVName = (protyle: IProtyle, blockElement: Element) => {
     }
 
     const updated = dayjs().format("YYYYMMDDHHmmss");
-    submitAVNameTransaction(protyle, [{
-        action: "setAttrViewName",
-        id: avId,
-        data: nextTitle,
-    }, {
-        action: "doUpdateUpdated",
-        id: blockId,
-        data: updated,
-    }], [{
-        action: "setAttrViewName",
-        id: avId,
-        data: titleCandidate.dataset.title,
-    }, {
-        action: "doUpdateUpdated",
-        id: blockId,
-        data: blockElement.getAttribute("updated")
-    }]);
+    submitAVNameTransaction({
+        protyle,
+        doOperations: [{
+            action: "setAttrViewName",
+            id: avId,
+            data: nextTitle,
+        }, {
+            action: "doUpdateUpdated",
+            id: blockId,
+            data: updated,
+        }],
+        undoOperations: [{
+            action: "setAttrViewName",
+            id: avId,
+            data: titleCandidate.dataset.title,
+        }, {
+            action: "doUpdateUpdated",
+            id: blockId,
+            data: blockElement.getAttribute("updated"),
+        }],
+        callback: () => {
+            // 仅当顶部属性面板正在展示这个数据库时，事务落盘后才刷新其字段状态。
+            if (protyle.databaseAttributePanel?.hasDatabase(avId)) {
+                protyle.databaseAttributePanel.refresh();
+            }
+        },
+    });
 
     blockElement.setAttribute("updated", updated);
     titleCandidate.dataset.title = nextTitle;
-    syncSamePageAttrViewTitles(protyle, blockElement, avId, nextTitle);
+    syncSamePageAttrViewTitles({
+        protyle,
+        currentBlockElement: blockElement,
+        avId,
+        newTitle: nextTitle,
+    });
 };

@@ -48,7 +48,7 @@ describe("Agent Protyle composer hint lifecycle", () => {
         vi.restoreAllMocks();
     });
 
-    it("keeps the hint in the Protyle host and delegates cleanup to Protyle", () => {
+    it("moves the hint to the floating overlay and delegates cleanup to Protyle", () => {
         const host = document.createElement("div");
         const editorElement = document.createElement("div");
         const hintElement = document.createElement("div");
@@ -72,8 +72,9 @@ describe("Agent Protyle composer hint lifecycle", () => {
 
         const composer = mountProtyleComposer(app, host, vi.fn());
 
-        expect(hintElement.parentElement).toBe(host);
-        expect(host.contains(hintElement)).toBe(true);
+        expect(hintElement.parentElement).toBe(document.body);
+        expect(document.body.contains(hintElement)).toBe(true);
+        expect(host.contains(hintElement)).toBe(false);
 
         composer.destroy();
 
@@ -123,6 +124,7 @@ describe("Agent Protyle composer hint lifecycle", () => {
         });
         const app = createTestAppFacade();
         app.createProtyle = vi.fn((_target: HTMLElement, options: IProtyleOptions) => {
+            Object.assign(protyleDomain.protyle, {options});
             const extensions = options.hint?.extend ?? [];
             for (const extension of extensions) {
                 if (extension.key === "/") {

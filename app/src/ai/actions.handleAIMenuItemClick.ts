@@ -3,9 +3,9 @@ import { isMobile } from "../platform";
 import {
     Constants,
     showMessage,
-    Menu,
     fetchPost
 } from "./imports";
+import type { IPluginMenu } from "../plugin/menu/menu.types";
 import { customDialog } from "./customDialog";
 import { editDialog } from "./actions.editDialog";
 import { fillContent } from "./actions.fillContent";
@@ -20,7 +20,7 @@ import type { AIMenuContext, AIMenuRequest } from "./types";
  */
 const handleListItemActionClick = (
     currentTarget: HTMLElement | SVGElement,
-    menu: Menu,
+    menu: IPluginMenu,
     event: Event
 ) => {
     // 对于SVG元素，需要找到包含dataset的父元素

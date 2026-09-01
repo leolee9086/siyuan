@@ -84,11 +84,12 @@ export const renderBlockCell = (cellValue: IAVCellValue, showIcon: boolean) => {
     let text: string;
     if (cellValue.isDetached) {
         text = `<span class="av__celltext">${Lute.EscapeHTMLStr(cellValue.block?.content || "")}</span>`;
-    } else {
+    }
+    if (!cellValue.isDetached) {
         const icon = cellValue.block?.icon || getDefaultFileIcon();
         const content = cellValue.block?.content || "";
         const blockId = cellValue.block?.id || "";
-        text = `<span class="b3-menu__avemoji${showIcon ? "" : " fn__none"}" data-unicode="${cellValue.block?.icon || ""}">${unicode2Emoji(icon)}</span><span data-type="block-ref" data-id="${blockId}" data-subtype="s" class="av__celltext av__celltext--ref">${Lute.EscapeHTMLStr(content)}</span>`;
+        text = `<span class="b3-menu__avemoji${showIcon ? "" : " fn__none"}" data-unicode="${escapeAttr(cellValue.block?.icon || "")}">${unicode2Emoji(icon)}</span><span data-type="block-ref" data-id="${blockId}" data-subtype="s" class="av__celltext av__celltext--ref">${Lute.EscapeHTMLStr(content)}</span>`;
     }
     const updateLabel = cellValue.isDetached ? siyuanI18n.bind : siyuanI18n.update;
     const updateIcon = cellValue.isDetached ? "iconLink" : "iconRefresh";
@@ -121,7 +122,7 @@ export const renderSelectCell = (cellValue: IAVCellValue) => {
         if (cellValue.type === "select" && index > 0) {
             break;
         }
-        text += `<span class="b3-chip" style="background-color:var(--b3-font-background${item.color});color:var(--b3-font-color${item.color})">${escapeHtml(item.content)}</span>`;
+        text += `<span class="b3-chip" style="background-color:var(--b3-font-background${escapeAttr(item.color)});color:var(--b3-font-color${escapeAttr(item.color)})">${escapeHtml(item.content)}</span>`;
     }
     return text;
 };
@@ -206,7 +207,7 @@ export const renderCheckboxCell = (cellValue: IAVCellValue, type: TAVView) => {
     // gallery和kanban视图显示checkbox的文本内容
     // @内联数组
     if (["gallery", "kanban"].includes(type) && cellValue.checkbox?.content) {
-        text += `<span class="fn__space"></span>${cellValue.checkbox.content}`;
+        text += `<span class="fn__space"></span>${escapeHtml(cellValue.checkbox.content)}`;
     }
     
     text += "</div>";
@@ -220,22 +221,24 @@ const ROLLUP_COMPLEX_TYPES = ["template", "select", "mSelect", "mAsset", "relati
  * 辅助函数：渲染rollup类型单元格
  * @同步豁免: UI构建
  */
-export const renderRollupCell = (
-    cellValue: IAVCellValue, 
-    rowIndex: number, 
-    showIcon: boolean, 
+export const renderRollupCell = async (options: {
+    cellValue: IAVCellValue,
+    rowIndex: number,
+    showIcon: boolean,
     type: TAVView,
-    renderCell: (cellValue: IAVCellValue, rowIndex: number, showIcon: boolean, type: TAVView) => string,
-    renderRollup: (cellValue: IAVCellValue, showIcon: boolean) => string
-) => {
+    renderCell: (cellValue: IAVCellValue, rowIndex: number, showIcon: boolean, type: TAVView) => Promise<string>,
+    renderRollup: (cellValue: IAVCellValue, showIcon: boolean) => string,
+}) => {
     let text = "";
     let rollupType: string | undefined;
-    const contents = cellValue.rollup?.contents || [];
+    const contents = options.cellValue.rollup?.contents || [];
     
     for (const item of contents) {
         // @内联数组
         const isComplexType = ROLLUP_COMPLEX_TYPES.includes(item.type);
-        const rollupText = isComplexType ? renderCell(item, rowIndex, showIcon, type) : renderRollup(item, showIcon);
+        const rollupText = isComplexType
+            ? await options.renderCell(item, options.rowIndex, options.showIcon, options.type)
+            : options.renderRollup(item, options.showIcon);
         
         if (rollupText) {
             text += rollupText + (item.type === "checkbox" ? "" : ", ");
@@ -286,7 +289,7 @@ export const renderRelationCell = (cellValue: IAVCellValue, showIcon: boolean) =
         
         const icon = item.block.icon || getDefaultFileIcon();
         // data-block-id 用于更新 emoji
-        text += `<span data-row-id="${rowID}" class="av__cell--relation" data-block-id="${item.block.id}"><span class="b3-menu__avemoji${showIcon ? "" : " fn__none"}" data-unicode="${item.block.icon || ""}">${unicode2Emoji(icon)}</span><span data-type="block-ref" data-id="${item.block.id}" data-subtype="s" class="av__celltext av__celltext--ref">${Lute.EscapeHTMLStr(content)}</span></span>`;
+        text += `<span data-row-id="${rowID}" class="av__cell--relation" data-block-id="${item.block.id}"><span class="b3-menu__avemoji${showIcon ? "" : " fn__none"}" data-unicode="${escapeAttr(item.block.icon || "")}">${unicode2Emoji(icon)}</span><span data-type="block-ref" data-id="${item.block.id}" data-subtype="s" class="av__celltext av__celltext--ref">${Lute.EscapeHTMLStr(content)}</span></span>`;
     }
     
     // 移除末尾的逗号分隔符

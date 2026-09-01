@@ -6,6 +6,10 @@ import {unicode2Emoji} from "./imports";
 import {Constants} from "./imports";
 /** 用途：转义 Tree 提示文本；使用范围：反链和大纲 aria-label；解耦评估：共享转义边界应保持唯一实现。 */
 import {escapeAriaLabel} from "./imports";
+/** 用途：转义大纲序号文本；使用范围：大纲序号 HTML；解耦评估：共享转义边界应保持唯一实现。 */
+import {escapeHtml} from "./imports";
+/** 用途：判定大纲序号后是否需要间距修正；使用范围：大纲序号渲染；解耦评估：标题编号共享表现语义。 */
+import {headingNumberNeedsSpacing} from "./imports";
 /** 用途：保留桌面与移动 Tree 的既有间距和动作样式；使用范围：本渲染模块；解耦评估：平台检测是现有统一运行时能力，宿主参数会造成状态分叉。 */
 import {isMobile} from "./imports";
 /** 用途：约束内核块渲染投影；使用范围：本模块；边界：仅类型依赖。 */
@@ -25,6 +29,15 @@ const getItemStyle = (depth: number) => {
         return depth > 0 ? `padding-left: ${(depth - 1) * 20 + 24}px` : "";
     }
     return `padding-left: ${depth * 18 || 4}px;margin-right: 2px`;
+};
+
+/** 生成大纲序号 HTML；空序号返回空串，全角标点结尾的序号按共享规则省略间距。 */
+const genOutlineNumberHTML = (number?: string) => {
+    if (!number) {
+        return "";
+    }
+    const spacingClass = headingNumberNeedsSpacing(number) ? "" : " b3-list-item__number--no-spacing";
+    return `<span class="b3-list-item__number${spacingClass}">${escapeHtml(number)}</span>`;
 };
 
 /** 根据 Tree 项领域类型选择图标和可访问提示；渲染每个分组项前调用。 */
@@ -69,6 +82,7 @@ const renderTreeItem = (item: TreeNodeData, options: TreeRenderOptions) => {
     const showArrow = item.showArrow || hasChild ||
         ((item.type === "backlink" || item.type === "bookmark" || item.type === "tag") && !isMobile());
     const countHTML = item.count ? `<span class="counter">${item.count}</span>` : "";
+    const numberHTML = item.type === "outline" ? genOutlineNumberHTML(item.number) : "";
     // data-id 需要添加 item.id，否则大纲更新时 name 不一致导致 https://github.com/siyuan-note/siyuan/issues/11843
     return `<li class="b3-list-item${isMobile() ? "" : " b3-list-item--hide-action"}"
 ${item.id ? 'data-node-id="' + item.id + '"' : ""}
@@ -82,7 +96,8 @@ ${item.label !== undefined && item.label !== null ? `data-label='${item.label}'`
         <svg data-id="${item.id || encodeURIComponent(item.name + item.depth)}" class="b3-list-item__arrow${(item.type === "outline" ? !item.folded : hasChild) ? " b3-list-item__arrow--open" : ""}"><use xlink:href="#iconRight"></use></svg>
     </span>
     ${iconHTML}
-    <span class="b3-list-item__text ariaLabel" data-position="parentE"${titleTip}>${item.name}</span>
+    ${numberHTML}
+    <span class="b3-list-item__text ariaLabel" data-position="${options.titleTooltipPosition || "parentE"}"${titleTip}>${item.name}</span>
     ${options.topExtHTML || ""}
     ${countHTML}
 </li>`;
@@ -124,6 +139,7 @@ const renderBlockItem = (item: TreeBlockData, type: string, options: TreeRenderO
     const showBlockArrow = !!((item.children && item.children.length > 0) ||
         ((type === "backlink" || type === "bookmark") && !isMobile()));
     const countHTML = item.count ? `<span class="counter">${item.count}</span>` : "";
+    const numberHTML = type === "outline" ? genOutlineNumberHTML(item.number) : "";
     return `<li class="b3-list-item${isMobile() ? "" : " b3-list-item--hide-action"}" ${options.blockDraggable ? 'draggable="true"' : ""}
 style="--file-toggle-width:${item.depth === 0 ? 22 : ((item.depth + 1) * 18)}px"
 data-node-id="${item.id}"
@@ -137,9 +153,10 @@ data-def-path="${item.defPath}">
         <svg data-id="${item.id}" class="b3-list-item__arrow${(type === "outline" ? !item.folded : !!item.children) ? " b3-list-item__arrow--open" : ""}"><use xlink:href="#iconRight"></use></svg>
     </span>
     ${renderBlockIcon(item, type)}
-    <span class="b3-list-item__text ariaLabel" data-position="parentE" ${type === "outline" ? ' aria-label="' + escapeAriaLabel(Lute.BlockDOM2Content(item.content)) + '"' : ""}>${item.content}</span>
-    ${countHTML}
+    ${numberHTML}
+    <span class="b3-list-item__text ariaLabel" data-position="${options.titleTooltipPosition || "parentE"}" ${type === "outline" ? ' aria-label="' + escapeAriaLabel(Lute.BlockDOM2Content(item.content)) + '"' : ""}>${item.content}</span>
     ${options.blockExtHTML || ""}
+    ${countHTML}
 </li>`;
 };
 

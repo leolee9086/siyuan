@@ -3,6 +3,7 @@ package tools
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -85,6 +86,8 @@ func registerTaskDirectoryTool(base *Tool, name, description, permission string)
 	tool.Name = name
 	tool.Description = description
 	tool.Source = "task-directory"
+	tool.CapabilityID = BuildCapabilityID(tool.Source, "backend", name)
+	tool.InputSchema.Properties = maps.Clone(base.InputSchema.Properties)
 	if tool.InputSchema.Properties == nil {
 		tool.InputSchema.Properties = map[string]Property{}
 	}

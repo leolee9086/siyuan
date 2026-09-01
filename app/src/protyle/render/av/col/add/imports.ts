@@ -28,6 +28,16 @@ import {unicode2Emoji} from "../../../../../emoji";
 /** 导出 Emoji 渲染 */
 export {unicode2Emoji};
 
+/** 用途：转义新增列表头的属性值；使用范围：新增列插入动画；解耦评估：直达 DOM 转义唯一实现。 */
+import {escapeAttr} from "../../../../../util/DOM/escape";
+/** 导出属性转义。 */
+export {escapeAttr};
+
+/** 用途：转义新增列表头的可见名称；使用范围：新增列插入动画；解耦评估：直达 DOM 转义唯一实现。 */
+import {escapeHtml} from "../../../../../util/DOM/escape";
+/** 导出文本转义。 */
+export {escapeHtml};
+
 /** 用途：定位已有编辑面板；使用范围：添加列后刷新；解耦评估：直达定位唯一实现。 */
 import {setPosition} from "../../../../../util/DOM/positioning/setPosition";
 /** 导出面板定位 */

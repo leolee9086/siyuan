@@ -17,6 +17,11 @@ import { Menu } from "./imports";
  */
 import { siyuanI18n } from "./imports";
 /*
+ * 用途：判断当前编辑器是否还有未加载的动态文档边界。
+ * 使用范围：仅在可滚动文档的更多菜单中决定是否显示“加载全部内容”。
+ */
+import { hasUnloadedDocumentBlocks } from "./imports";
+/*
  * 用途：判断当前是否为移动端环境。
  * 使用范围：刷新和全屏菜单项中用于决定刷新行为与是否展示全屏入口。
  * 解耦评估：可通过平台能力对象注入解耦；但这些判断属于视图层展示条件，直接使用环境检测转发即可。
@@ -112,32 +117,37 @@ export function 添加上传与录音组(
 }
 
 /**
- * 作用：为支持滚动容器的编辑器添加“保持懒加载”切换项。
- * 意图：让用户在长文档场景下按需控制滚动容器的懒加载行为，而不必离开当前面包屑菜单。
- * 调用时机：在 [`构建菜单内容()`](app/src/protyle/breadcrumb/menu/showBreadcrumbMenu.ts:174) 中，上传/资源转换分组之后统一构建基础编辑器菜单项时调用。
- * 问题/改进：当前仅直接翻转 [`keepLazyLoad`](app/src/protyle/breadcrumb/menu/menuItems.misc.ts:107) 标志位，后续若需要立即触发重渲染，可考虑补充显式刷新机制。
- * @同步豁免: UI构建 - 该函数需要在菜单显示前同步判断滚动容器状态并立即追加菜单项，不能延后到异步阶段。
+ * 作用：为支持滚动容器的编辑器添加“加载全部内容”和“保持已加载内容”操作。
+ * 意图：让用户可以补齐动态文档边界，或选择保留当前已加载的内容。
+ * 调用时机：在 [`构建菜单内容()`](app/src/protyle/breadcrumb/menu/showBreadcrumbMenu.ts:174) 中组装基础编辑器菜单时调用。
+ * @同步豁免: 菜单展示前必须同步判断当前滚动范围并追加条目。
  */
 export function 添加懒加载菜单项(protyle: IProtyle, menu: Menu) {
-    // 只有带滚动容器且滚动区域当前可见的编辑器，才允许用户切换懒加载状态；否则展示该项既无效果也容易误导用户。
-    if (protyle.scroll && !protyle.scroll.element.classList.contains("fn__none")) {
+    const scroll = protyle.scroll;
+    if (!scroll || scroll.element.classList.contains("fn__none")) {
+        return;
+    }
+
+    if (hasUnloadedDocumentBlocks(protyle.wysiwyg.element, true)) {
         menu.append(new MenuItem({
-            id: "keepLazyLoad",
-            current: protyle.scroll.keepLazyLoad,
-            label: siyuanI18n.keepLazyLoad,
-            /**
-             * 作用：切换当前编辑器滚动容器的懒加载开关。
-             * 意图：让菜单交互只修改当前实例的滚动策略，不影响其他编辑器实例。
-             * 调用时机：用户点击“保持懒加载”菜单项时触发。
-             * 问题/改进：当前只修改内存状态，若未来需要跨会话持久化，应补充配置保存链路。
-             */
+            id: "loadAllContent",
+            icon: "iconSelectAll",
+            label: siyuanI18n.loadAllContent,
             click: () => {
-                if (protyle.scroll) {
-                    protyle.scroll.keepLazyLoad = !protyle.scroll.keepLazyLoad;
-                }
-            }
+                void scroll.loadAll(protyle);
+            },
         }).element);
     }
+
+    menu.append(new MenuItem({
+        id: "keepLazyLoad",
+        icon: "iconKeepContent",
+        current: scroll.keepLoadedContent,
+        label: siyuanI18n.keepLazyLoad,
+        click: () => {
+            scroll.keepLoadedContent = !scroll.keepLoadedContent;
+        },
+    }).element);
 }
 
 /**

@@ -1,7 +1,7 @@
 import {Constants} from "../constants";
 import {fetchPost} from "../util/network/fetch";
 import {exportLayout} from "../layout/export/exportLayout";
-import {getAllEditor} from "../layout/getAll";
+import {getAllEditor, getAllModels} from "../layout/getAll";
 import {getDockByType} from "../layout/tabUtil";
 import {Files} from "../layout/dock/Files";
 import {ipcInvoke, ipcSend} from "../platform/electron/ipcRenderer";
@@ -23,6 +23,22 @@ import {requestBacklinkRefresh} from "../layout/dock/backlink/backlinkRefresh";
 export {progressLoading} from "./progressLoading";
 export {rebuildDataIndex as refreshFileTree} from "../util/file/rebuildDataIndex";
 export {setRefDynamicText} from "./processSystem/setRefDynamicText";
+
+// processBacklinkIndexCommit 用于反链索引增量提交后标记脏数据并刷新反链面板（仅桌面端）。
+// S-forge: 以运行时判断替代上游 /// #if !MOBILE 条件编译。
+export const processBacklinkIndexCommit = (data: {
+    rootIDs?: string[],
+    backlinkChanged?: boolean,
+    backlinkFull?: boolean,
+}) => {
+    if (isMobile() || !data?.backlinkChanged) {
+        return;
+    }
+    getAllModels().backlink.forEach(item => {
+        item.markIndexDirty(data);
+        item.refreshAfterIndex();
+    });
+};
 
 export const setDefRefCount = (data: {
     "blockID": string,
@@ -317,15 +333,16 @@ export const bootSync = () => {
 };
 
 export const downloadProgress = (data: { id: string, percent: number }) => {
-    const bazaarSideElement = document.querySelector("#configBazaarReadme .item__side");
+    const bazaarReadmeElement = document.querySelector("#configBazaarReadme");
+    const bazaarSideElement = bazaarReadmeElement?.querySelector(".item__side");
     if (!bazaarSideElement) {
         return;
     }
-    if (data.id !== bazaarSideElement.getAttribute("data-repourl")) {
+    if (data.id !== (bazaarSideElement.getAttribute("data-progress-id") || bazaarSideElement.getAttribute("data-repourl"))) {
         return;
     }
-    const installBtnElement = bazaarSideElement.querySelector('[data-type="install"]') as HTMLElement;
-    const updateBtnElement = bazaarSideElement.querySelector('[data-type="install-t"]') as HTMLElement;
+    const installBtnElement = bazaarReadmeElement.querySelector('[data-type="install"]') as HTMLElement;
+    const updateBtnElement = bazaarReadmeElement.querySelector('[data-type="install-t"]') as HTMLElement;
     if (!installBtnElement && !updateBtnElement) {
         return;
     }
@@ -349,17 +366,17 @@ export const processSync = (data?: IWebSocketData, plugins?: Plugin[]) => {
     if (data?.code === 1) {
         window.dispatchEvent(new CustomEvent("siyuan-sync-success"));
     }
+    const syncDisabled = !window.siyuan.config.sync.enabled || (0 === window.siyuan.config.sync.provider && needSubscribe(""));
     if (isMobile()) {
         const menuSyncUseElement = document.querySelector("#menuSyncNow use");
         const barSyncUseElement = document.querySelector("#toolbarSync use");
         if (!data) {
-            if (!window.siyuan.config.sync.enabled || (0 === window.siyuan.config.sync.provider && needSubscribe(""))) {
-                menuSyncUseElement?.setAttribute("xlink:href", "#iconCloudOff");
-                barSyncUseElement?.setAttribute("xlink:href", "#iconCloudOff");
-            } else {
-                menuSyncUseElement?.setAttribute("xlink:href", "#iconCloudSucc");
-                barSyncUseElement?.setAttribute("xlink:href", "#iconCloudSucc");
+            if (barSyncUseElement?.parentElement?.classList.contains("fn__rotate")) {
+                // 同步进行中时保持旋转状态，待同步完成后由同步结果消息更新图标 https://github.com/siyuan-note/siyuan/issues/18597
+                return;
             }
+            menuSyncUseElement?.setAttribute("xlink:href", syncDisabled ? "#iconCloudOff" : "#iconCloudSucc");
+            barSyncUseElement?.setAttribute("xlink:href", syncDisabled ? "#iconCloudOff" : "#iconCloudSucc");
             return;
         }
         menuSyncUseElement?.parentElement.classList.remove("fn__rotate");
@@ -370,11 +387,11 @@ export const processSync = (data?: IWebSocketData, plugins?: Plugin[]) => {
             menuSyncUseElement?.setAttribute("xlink:href", "#iconRefresh");
             barSyncUseElement?.setAttribute("xlink:href", "#iconRefresh");
         } else if (data.code === 2) {    // error
-            menuSyncUseElement?.setAttribute("xlink:href", "#iconCloudError");
-            barSyncUseElement?.setAttribute("xlink:href", "#iconCloudError");
+            menuSyncUseElement?.setAttribute("xlink:href", syncDisabled ? "#iconCloudOff" : "#iconCloudError");
+            barSyncUseElement?.setAttribute("xlink:href", syncDisabled ? "#iconCloudOff" : "#iconCloudError");
         } else if (data.code === 1) {   // success
-            menuSyncUseElement?.setAttribute("xlink:href", "#iconCloudSucc");
-            barSyncUseElement?.setAttribute("xlink:href", "#iconCloudSucc");
+            menuSyncUseElement?.setAttribute("xlink:href", syncDisabled ? "#iconCloudOff" : "#iconCloudSucc");
+            barSyncUseElement?.setAttribute("xlink:href", syncDisabled ? "#iconCloudOff" : "#iconCloudSucc");
         }
     } else {
         const iconElement = document.querySelector("#barSync");
@@ -383,12 +400,12 @@ export const processSync = (data?: IWebSocketData, plugins?: Plugin[]) => {
         }
         const useElement = iconElement.querySelector("use");
         if (!data) {
-            iconElement.classList.remove("toolbar__item--active");
-            if (!window.siyuan.config.sync.enabled || (0 === window.siyuan.config.sync.provider && needSubscribe(""))) {
-                useElement.setAttribute("xlink:href", "#iconCloudOff");
-            } else {
-                useElement.setAttribute("xlink:href", "#iconCloudSucc");
+            if (iconElement.classList.contains("toolbar__item--active")) {
+                // 同步进行中时保持旋转状态，待同步完成后由同步结果消息更新图标 https://github.com/siyuan-note/siyuan/issues/18597
+                return;
             }
+            iconElement.classList.remove("toolbar__item--active");
+            useElement.setAttribute("xlink:href", syncDisabled ? "#iconCloudOff" : "#iconCloudSucc");
             return;
         }
         iconElement.firstElementChild.classList.remove("fn__rotate");
@@ -398,10 +415,10 @@ export const processSync = (data?: IWebSocketData, plugins?: Plugin[]) => {
             useElement.setAttribute("xlink:href", "#iconRefresh");
         } else if (data.code === 2) {    // error
             iconElement.classList.remove("toolbar__item--active");
-            useElement.setAttribute("xlink:href", "#iconCloudError");
+            useElement.setAttribute("xlink:href", syncDisabled ? "#iconCloudOff" : "#iconCloudError");
         } else if (data.code === 1) {   // success
             iconElement.classList.remove("toolbar__item--active");
-            useElement.setAttribute("xlink:href", "#iconCloudSucc");
+            useElement.setAttribute("xlink:href", syncDisabled ? "#iconCloudOff" : "#iconCloudSucc");
         }
     }
     plugins?.forEach((item) => {

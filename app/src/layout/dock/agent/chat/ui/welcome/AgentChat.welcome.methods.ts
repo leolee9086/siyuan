@@ -47,6 +47,7 @@ async function prepareWelcomeExample(runtime: AgentChatRuntime, text: string) {
     runtime.requestStartTime = Date.now();
     runtime.currentThinkingDuration = 0;
     runtime.currentTurnID = "";
+    runtime.currentRoundID = "";
     return {userEntryId, requestConversation, requestSignal: runtime.abortController.signal};
 }
 

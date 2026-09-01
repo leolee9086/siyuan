@@ -224,6 +224,3 @@ export const quickMakeCard = (protyle: IProtyle, nodeElement: Element[]) => {
         }]);
     }
 };
-
-
-

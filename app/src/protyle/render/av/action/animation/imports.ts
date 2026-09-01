@@ -9,6 +9,12 @@ import {hasClosestBlock} from "../../../../util/hasClosest";
 /** 用途：收窄动画涉及的 DOM 节点；使用范围：图标与卡片父容器；解耦评估：直达通用元素守卫。 */
 import {isHTMLElement} from "../../../../../util/DOM/element.guard";
 
+/** 用途：渲染属性面板字段的自定义图标。使用范围：跨实例列元数据同步。 */
+import {unicode2Emoji} from "../../../../../emoji";
+/** 用途：回退到字段类型图标。使用范围：清空自定义字段图标时。 */
+import {getColIconByType} from "../../col/col.typeUtils";
+export {unicode2Emoji, getColIconByType};
+
 /** 导出拖拽填充恢复实现。 */
 export {addDragFill};
 /** 导出表头刷新实现。 */

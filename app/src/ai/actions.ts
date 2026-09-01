@@ -8,7 +8,8 @@ import {
     showMessage,
     Menu,
     upDownHint,
-    getElementsBlockId
+    getElementsBlockId,
+    isDisabledFeature
 } from "./imports";
 import { fillContent } from "./actions.fillContent";
 import { AIChat } from "./chatStream";
@@ -20,6 +21,7 @@ import { generateBuildingMenuHTML } from "./actions.generateBuildingMenuHTML";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanStorage, getSiyuanMenus } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isMobile } from "../platform";
+import {setAIActions} from "./actions.port";
 
 /**
  * 生成单个AI菜单项的HTML
@@ -287,6 +289,10 @@ const getValidSiyuanStorage = () => {
 };
 
 export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
+    // 合并上游 v3.8.0：AI 特性被禁用时直接返回（上游守卫位于 AIActions 入口，此处语义移植）
+    if (isDisabledFeature("ai")) {
+        return;
+    }
 
     getSiyuanMenus()?.menu.remove();
     const ids = getElementsBlockId(elements);
@@ -322,11 +328,9 @@ export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
         menu.fullscreen();
         return;
     }
-    const traget = elements[elements.length - 1];
-    if (!traget) {
-        throw new Error("目标元素不是有效的HTMLElement");
-    }
-    const rect = traget.getBoundingClientRect();
+    // 合并上游 v3.8.0：末尾元素缺失时回退到编辑器根元素定位，避免空选区抛错中断菜单打开
+    const traget = elements[elements.length - 1] as HTMLElement;
+    const rect = traget?.getBoundingClientRect() || protyle.element.getBoundingClientRect();
     menu.open({
         x: rect.left,
         y: rect.bottom,
@@ -335,3 +339,13 @@ export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
     const menuInputElement = menu.element.querySelector("input");
     menuInputElement?.focus();
 };
+
+/** 提供兼容工具栏快捷键的动作入口，并保留调用方的选区快照。 */
+export const AIActions = (elements: Element[], protyle: IProtyle, range?: Range) => {
+    if (range) {
+        protyle.toolbar.range = range.cloneRange();
+    }
+    openAIActionsMenu(elements, protyle);
+};
+
+setAIActions(AIActions);

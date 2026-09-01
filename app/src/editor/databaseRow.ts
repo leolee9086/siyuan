@@ -5,6 +5,7 @@ import type { AppFacade } from "../app/AppFacade.types";
 import {renderAVAttribute} from "../protyle/render/av/blockAttr";
 import type {ProtyleDomain} from "../protyle/protyle.types";
 import {getEditorHorizontalPadding} from "../protyle/ui/padding";
+import {searchMarkRender} from "../protyle/render/searchMarkRender";
 
 type DatabaseRowData = {
     avID: string,
@@ -13,6 +14,9 @@ type DatabaseRowData = {
     itemID: string,
     valueID: string,
     title: string,
+    matchedValueID?: string,
+    matchedKeyID?: string,
+    keywords?: string[],
 };
 
 export const newDatabaseRowModel = (options: {
@@ -25,6 +29,17 @@ export const newDatabaseRowModel = (options: {
     let ghostProtyle: ProtyleDomain;
     let resizeObserver: ResizeObserver;
     let destroyed = false;
+    const updateTitle = (custom: CustomDomain<DatabaseRowData>, bodyElement: HTMLElement) => {
+        const primaryElement = bodyElement.querySelector<HTMLElement>('[data-primary="true"] [data-cell-value]');
+        if (!primaryElement?.dataset.cellValue) {
+            return;
+        }
+        const value = JSON.parse(decodeURIComponent(primaryElement.dataset.cellValue)) as IAVCellValue;
+        const title = value.block?.content || window.siyuan.languages.untitled;
+        custom.data.title = title;
+        custom.element.querySelector(".protyle-db-row__title span").textContent = title;
+        custom.tab.updateTitle(title);
+    };
     const updateLayout = (custom: CustomDomain<DatabaseRowData>) => {
         const width = custom.element.clientWidth;
         const padding = getEditorHorizontalPadding(width, window.siyuan.config.editor.fullWidth);
@@ -43,12 +58,32 @@ export const newDatabaseRowModel = (options: {
         if (!previousBodyElement || !contextProtyle) {
             return;
         }
+        const data = custom.data as typeof options.data;
         const bodyElement = document.createElement("div");
         bodyElement.className = "custom-attr protyle-db-row__body";
         previousBodyElement.replaceWith(bodyElement);
         updateLayout(custom);
-        renderAVAttribute(bodyElement, options.data.itemID, contextProtyle, undefined,
-            {avID: options.data.avID, itemID: options.data.itemID, valueID: options.data.valueID});
+        renderAVAttribute(bodyElement, data.itemID, contextProtyle, (element) => {
+            updateTitle(custom, element);
+            if (!data.keywords?.length) {
+                return;
+            }
+            const rootElement = custom.element.querySelector<HTMLElement>(".protyle-content");
+            if (!rootElement) {
+                return;
+            }
+            const matchedElement = data.matchedValueID ?
+                rootElement.querySelector(`[data-av-id="${data.avID}"] [data-id="${data.matchedValueID}"]`) :
+                rootElement.querySelector(
+                    `[data-av-id="${data.avID}"] [data-col-id="${data.matchedKeyID}"][data-row-id="${data.itemID}"]`);
+            searchMarkRender(contextProtyle, data.keywords, undefined, () => {
+                matchedElement?.scrollIntoView({block: "center"});
+            }, {
+                rootElement,
+                currentElement: matchedElement,
+            });
+        },
+            {avID: data.avID, itemID: data.itemID, valueID: data.valueID});
     };
     const model = new Custom({
         app: options.app,
@@ -66,6 +101,11 @@ export const newDatabaseRowModel = (options: {
     </div>
 </div>`;
             custom.element.querySelector(".protyle-db-row__title span").textContent = options.data.title || window.siyuan.languages.untitled;
+            custom.element.addEventListener("database-row-title-update", (event) => {
+                const title = (event as CustomEvent<string>).detail;
+                custom.data.title = title;
+                custom.tab.updateTitle(title);
+            });
             updateLayout(custom);
             resizeObserver = new ResizeObserver(() => updateLayout(custom));
             resizeObserver.observe(custom.element);
@@ -77,6 +117,7 @@ export const newDatabaseRowModel = (options: {
                         return;
                     }
                     contextProtyle = editor.protyle;
+                    custom.element.append(contextProtyle.highlight.styleElement);
                     render(custom);
                 },
             });
@@ -88,6 +129,9 @@ export const newDatabaseRowModel = (options: {
         },
         update() {
             render(customModel);
+        },
+        resize() {
+            updateLayout(customModel);
         },
     });
     return model;

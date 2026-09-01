@@ -6,7 +6,7 @@ import { focusBlock } from "../selection";
 import { setFold } from "../../util/blockFold";
 /** 用途：提交事务与合并超级块事务。使用范围：拖拽事务提交及超级块合并。解耦评估：通过 transaction 直接导入。 */
 import {transaction} from "../../wysiwyg/transaction/submit";
-import {turnsIntoOneTransaction} from "../../wysiwyg/transaction.turns";
+import {turnsIntoOneTransaction} from "../../wysiwyg/transaction/turns/container";
 /** 用途：获取父块与前继块。使用范围：构建移动操作时定位锚点。解耦评估：通过 getBlock 直接导入。 */
 import { getNextBlockSibling, getParentBlock, getPreviousBlockSibling } from "../../wysiwyg/getBlock";
 /** 用途：重排有序列表序号。使用范围：有序列表拖拽后重排序号。解耦评估：通过 list.updateOrder 直接导入。 */

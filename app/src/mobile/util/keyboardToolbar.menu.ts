@@ -1,8 +1,18 @@
-import {hasClosestByAttribute} from "../../protyle/util/hasClosest";
 import {Constants} from "../../constants";
-import {fontEvent, getFontNodeElements} from "../../protyle/toolbar/Font";
+import {convertFontSize, fontEvent, getFontNodeElements, getFontSizeInfo} from "../../protyle/toolbar/Font";
 import {isInAndroid} from "../../protyle/util/compatibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment"; // S-forge: 本地i18n统一导入
+import {getMobileKeyboardLifecycleState} from "../keyboard/MobileKeyboardLifecycleRegistry";
+
+let preventRenderTimeout: number;
+const preventKeyboardToolbarRender = () => {
+    const state = getMobileKeyboardLifecycleState();
+    state.preventRender = true;
+    clearTimeout(preventRenderTimeout);
+    preventRenderTimeout = window.setTimeout(() => {
+        getMobileKeyboardLifecycleState().preventRender = false;
+    }, 1000);
+};
 
 const getSlashItem = (value: string, icon: string, text: string, focus = "false") => {
     let iconHTML;
@@ -41,67 +51,73 @@ export const renderTextMenu = (protyle: IProtyle, toolbarElement: Element) => {
 
     const nodeElements = getFontNodeElements(protyle);
     let disableFont = false;
-    nodeElements?.find((item: HTMLElement) => {
-        if (item.classList.contains("li")) {
+    nodeElements?.find((item: Element) => {
+        if ((item as HTMLElement).classList.contains("li")) {
             disableFont = true;
             return true;
         }
+        return false;
     });
 
     let lastColorHTML = "";
-    const lastFonts = window.siyuan.storage[Constants.LOCAL_FONTSTYLES];
-    if (lastFonts.length > 0) {
+    const lastFonts = window.siyuan?.storage?.[Constants.LOCAL_FONTSTYLES] as string[] | undefined;
+    if (lastFonts && lastFonts.length > 0) {
         lastColorHTML = `<div data-id="lastUsed" class="keyboard__slash-title">
     ${siyuanI18n.lastUsed}
 </div>
 <div data-id="lastUsedWrap" class="keyboard__slash-block">`;
         lastFonts.forEach((item: string) => {
             const lastFontStatus = item.split(Constants.ZWSP);
-            switch (lastFontStatus[0]) {
+            const lastFontType = lastFontStatus[0] ?? "";
+            const lastFontValue1 = lastFontStatus[1] ?? "";
+            const lastFontValue2 = lastFontStatus[2] ?? "";
+            switch (lastFontType) {
                 case "color":
-                    lastColorHTML += `<button class="keyboard__slash-item" data-type="${lastFontStatus[0]}">
-    <span class="keyboard__slash-icon" ${lastFontStatus[1] ? `style="color:${lastFontStatus[1]}"` : ""} >A</span>
-    <span class="keyboard__slash-text">${siyuanI18n.colorFont} ${lastFontStatus[1] ? parseInt(lastFontStatus[1].replace("var(--b3-font-color", "")) + 1 : siyuanI18n.default}</span>
+                    lastColorHTML += `<button class="keyboard__slash-item" data-type="${lastFontType}">
+    <span class="keyboard__slash-icon" ${lastFontValue1 ? `style="color:${lastFontValue1}"` : ""} >A</span>
+    <span class="keyboard__slash-text">${siyuanI18n.colorFont} ${lastFontValue1 ? parseInt(lastFontValue1.replace("var(--b3-font-color", "")) + 1 : siyuanI18n.default}</span>
 </button>`;
                     break;
                 case "backgroundColor":
-                    lastColorHTML += `<button class="keyboard__slash-item" data-type="${lastFontStatus[0]}">
-    <span class="keyboard__slash-icon" ${lastFontStatus[1] ? `style="background-color:${lastFontStatus[1]}"` : ""}>A</span>
-    <span class="keyboard__slash-text">${siyuanI18n.colorPrimary} ${lastFontStatus[1] ? parseInt(lastFontStatus[1].replace("var(--b3-font-background", "")) + 1 : siyuanI18n.default}</span>
+                    lastColorHTML += `<button class="keyboard__slash-item" data-type="${lastFontType}">
+    <span class="keyboard__slash-icon" ${lastFontValue1 ? `style="background-color:${lastFontValue1}"` : ""}>A</span>
+    <span class="keyboard__slash-text">${siyuanI18n.colorPrimary} ${lastFontValue1 ? parseInt(lastFontValue1.replace("var(--b3-font-background", "")) + 1 : siyuanI18n.default}</span>
 </button>`;
                     break;
                 case "style2":
-                    lastColorHTML += `<button class="keyboard__slash-item" data-type="${lastFontStatus[0]}">
+                    lastColorHTML += `<button class="keyboard__slash-item" data-type="${lastFontType}">
     <span class="keyboard__slash-text" style="-webkit-text-stroke: 0.2px var(--b3-theme-on-background);-webkit-text-fill-color : transparent;">${siyuanI18n.hollow}</span>
 </button>`;
                     break;
                 case "style4":
-                    lastColorHTML += `<button class="keyboard__slash-item" data-type="${lastFontStatus[0]}">
+                    lastColorHTML += `<button class="keyboard__slash-item" data-type="${lastFontType}">
     <span class="keyboard__slash-text" style="text-shadow: 1px 1px var(--b3-theme-surface-lighter), 2px 2px var(--b3-theme-surface-lighter), 3px 3px var(--b3-theme-surface-lighter), 4px 4px var(--b3-theme-surface-lighter)">${siyuanI18n.shadow}</span>
 </button>`;
                     break;
                 case "fontSize":
                     if (!disableFont) {
-                        lastColorHTML += `<button class="keyboard__slash-item" data-type="${lastFontStatus[0]}">
-    <span class="keyboard__slash-text">${lastFontStatus[1]}</span>
+                        lastColorHTML += `<button class="keyboard__slash-item" data-type="${lastFontType}">
+    <span class="keyboard__slash-text">${lastFontValue1}</span>
 </button>`;
                     }
                     break;
                 case "style1":
-                    if (lastFontStatus[1]) {
-                        lastColorHTML += `<button class="keyboard__slash-item" data-type="${lastFontStatus[0]}">
-    <span class="keyboard__slash-icon" style="background-color:${lastFontStatus[1]};color:${lastFontStatus[2]}">A</span>
-    <span class="keyboard__slash-text">${siyuanI18n[lastFontStatus[2].replace("var(--b3-card-", "").replace("-color)", "") + "Style"]}</span>
+                    if (lastFontValue1) {
+                        const cardKey = lastFontValue2.replace("var(--b3-card-", "").replace("-color)", "") + "Style";
+                        const cardStyleText = (siyuanI18n as unknown as Record<string, string>)[cardKey] ?? "";
+                        lastColorHTML += `<button class="keyboard__slash-item" data-type="${lastFontType}">
+    <span class="keyboard__slash-icon" style="background-color:${lastFontValue1};color:${lastFontValue2}">A</span>
+    <span class="keyboard__slash-text">${cardStyleText}</span>
 </button>`;
                     } else {
-                        lastColorHTML += `<button class="keyboard__slash-item" data-type="${lastFontStatus[0]}">
+                        lastColorHTML += `<button class="keyboard__slash-item" data-type="${lastFontType}">
     <span class="keyboard__slash-icon">A</span>
     <span class="keyboard__slash-text">${siyuanI18n.color} ${siyuanI18n.default}</span>
 </button>`;
                     }
                     break;
                 case "clear":
-                    lastColorHTML += `<button class="keyboard__slash-item" data-type="${lastFontStatus[0]}">
+                    lastColorHTML += `<button class="keyboard__slash-item" data-type="${lastFontType}">
     <span class="keyboard__slash-text">${siyuanI18n.clearFontStyle}</span>
 </button>`;
                     break;
@@ -109,20 +125,11 @@ export const renderTextMenu = (protyle: IProtyle, toolbarElement: Element) => {
         });
         lastColorHTML += "</div>";
     }
-    let textElement: HTMLElement;
-    let fontSize = "16px";
-    if (nodeElements && nodeElements.length > 0) {
-        textElement = nodeElements[0] as HTMLElement;
-    } else {
-        textElement = protyle.toolbar.range.cloneContents().querySelector('[data-type~="text"]') as HTMLElement;
-        if (!textElement) {
-            textElement = hasClosestByAttribute(protyle.toolbar.range.startContainer, "data-type", "text") as HTMLElement;
-        }
+    const {fontSize, baseFontSize} = getFontSizeInfo(protyle, nodeElements);
+    const utilElement = toolbarElement.querySelector<HTMLElement>(".keyboard__util");
+    if (!utilElement) {
+        return;
     }
-    if (textElement) {
-        fontSize = textElement.style.fontSize || "16px";
-    }
-    const utilElement = toolbarElement.querySelector(".keyboard__util") as HTMLElement;
     utilElement.innerHTML = `${lastColorHTML}
 <div data-id="color" class="keyboard__slash-title">${siyuanI18n.color}</div>
 <div data-id="colorWrap" class="keyboard__slash-block">
@@ -170,23 +177,68 @@ export const renderTextMenu = (protyle: IProtyle, toolbarElement: Element) => {
 </div>
 <div data-id="fontSize" class="keyboard__slash-title${disableFont ? " fn__none" : ""}">${siyuanI18n.fontSize}</div>
 <div data-id="fontSizeWrap" class="keyboard__slash-block${disableFont ? " fn__none" : ""}">
-    <select class="b3-select fn__block" style="width: calc(50% - 8px);margin: 4px 0 8px 0;">
-        <option ${fontSize === "12px" ? "selected" : ""} value="12px">12px</option>
-        <option ${fontSize === "13px" ? "selected" : ""} value="13px">13px</option>
-        <option ${fontSize === "14px" ? "selected" : ""} value="14px">14px</option>
-        <option ${fontSize === "15px" ? "selected" : ""} value="15px">15px</option>
-        <option ${fontSize === "16px" ? "selected" : ""} value="16px">16px</option>
-        <option ${fontSize === "19px" ? "selected" : ""} value="19px">19px</option>
-        <option ${fontSize === "22px" ? "selected" : ""} value="22px">22px</option>
-        <option ${fontSize === "24px" ? "selected" : ""} value="24px">24px</option>
-        <option ${fontSize === "29px" ? "selected" : ""} value="29px">29px</option>
-        <option ${fontSize === "32px" ? "selected" : ""} value="32px">32px</option>
-        <option ${fontSize === "40px" ? "selected" : ""} value="40px">40px</option>
-        <option ${fontSize === "48px" ? "selected" : ""} value="48px">48px</option>
-    </select>
+    <label class="keyboard__font-size-toggle">
+        ${siyuanI18n.relativeFontSize}
+        <span class="fn__flex-1"></span>
+        <input class="b3-switch fn__flex-center" ${fontSize.endsWith("em") ? "checked" : ""} type="checkbox">
+    </label>
+    <label class="keyboard__font-size${fontSize.endsWith("em") ? " fn__none" : ""}">
+        <input class="b3-slider fn__flex-1" data-type="fontSizePX" max="72" min="9" step="1" type="range" value="${parseFloat(fontSize)}">
+        <span data-type="fontSizeValue">${parseFloat(fontSize)}px</span>
+    </label>
+    <label class="keyboard__font-size${fontSize.endsWith("em") ? "" : " fn__none"}">
+        <input class="b3-slider fn__flex-1" data-type="fontSizeEM" max="4.5" min="0.56" step="0.01" type="range" value="${parseFloat(fontSize)}">
+        <span data-type="fontSizeValue">${(parseFloat(fontSize) * 100).toFixed(0)}%</span>
+    </label>
 </div>`;
-    utilElement.querySelector("select").addEventListener("change", function (event: Event) {
-        fontEvent(protyle, nodeElements, "fontSize", (event.target as HTMLSelectElement).value);
+    const switchElement = utilElement.querySelector('[data-id="fontSizeWrap"] .b3-switch') as HTMLInputElement | null;
+    const fontSizePXElement = utilElement.querySelector('[data-type="fontSizePX"]') as HTMLInputElement | null;
+    const fontSizeEMElement = utilElement.querySelector('[data-type="fontSizeEM"]') as HTMLInputElement | null;
+    if (!switchElement || !fontSizePXElement || !fontSizeEMElement) {
+        return;
+    }
+    const updatePXValue = () => {
+        const sibling = fontSizePXElement.nextElementSibling;
+        if (sibling) {
+            sibling.textContent = fontSizePXElement.value + "px";
+        }
+    };
+    const updateEMValue = () => {
+        const sibling = fontSizeEMElement.nextElementSibling;
+        if (sibling) {
+            sibling.textContent = (parseFloat(fontSizeEMElement.value) * 100).toFixed(0) + "%";
+        }
+    };
+    [switchElement, fontSizePXElement, fontSizeEMElement].forEach(item => {
+        item.addEventListener("pointerdown", preventKeyboardToolbarRender);
+    });
+    switchElement.addEventListener("change", () => {
+        preventKeyboardToolbarRender();
+        if (switchElement.checked) {
+            const em = convertFontSize(fontSizePXElement.value + "px", "em", baseFontSize);
+            fontSizeEMElement.value = parseFloat(em).toString();
+            updateEMValue();
+            fontSizePXElement.parentElement?.classList.add("fn__none");
+            fontSizeEMElement.parentElement?.classList.remove("fn__none");
+            fontEvent(protyle, nodeElements ?? [], "fontSize", fontSizeEMElement.value + "em", false);
+        } else {
+            const px = convertFontSize(fontSizeEMElement.value + "em", "px", baseFontSize);
+            fontSizePXElement.value = parseFloat(px).toString();
+            updatePXValue();
+            fontSizePXElement.parentElement?.classList.remove("fn__none");
+            fontSizeEMElement.parentElement?.classList.add("fn__none");
+            fontEvent(protyle, nodeElements ?? [], "fontSize", fontSizePXElement.value + "px", false);
+        }
+    });
+    fontSizePXElement.addEventListener("input", updatePXValue);
+    fontSizeEMElement.addEventListener("input", updateEMValue);
+    fontSizePXElement.addEventListener("change", () => {
+        preventKeyboardToolbarRender();
+        fontEvent(protyle, nodeElements ?? [], "fontSize", fontSizePXElement.value + "px", false);
+    });
+    fontSizeEMElement.addEventListener("change", () => {
+        preventKeyboardToolbarRender();
+        fontEvent(protyle, nodeElements ?? [], "fontSize", fontSizeEMElement.value + "em", false);
     });
 };
 
@@ -203,7 +255,10 @@ export const renderSlashMenu = (protyle: IProtyle, toolbarElement: Element) => {
     if (pluginHTML) {
         pluginHTML = `<div class="keyboard__slash-title"></div><div class="keyboard__slash-block">${pluginHTML}</div>`;
     }
-    const utilElement = toolbarElement.querySelector(".keyboard__util") as HTMLElement;
+    const utilElement = toolbarElement.querySelector<HTMLElement>(".keyboard__util");
+    if (!utilElement) {
+        return;
+    }
     utilElement.innerHTML = `<div class="keyboard__slash-title"></div>
 <div class="keyboard__slash-block">
     ${getSlashItem(Constants.ZWSP, "iconMarkdown", siyuanI18n.template)}
@@ -218,8 +273,8 @@ export const renderSlashMenu = (protyle: IProtyle, toolbarElement: Element) => {
 <div class="keyboard__slash-title"></div>
 <div class="keyboard__slash-block">
     ${isInAndroid() ? getSlashItem(Constants.ZWSP + 3, "iconImage", siyuanI18n.insertImage + '<input class="b3-form__upload" type="file" multiple="multiple" accept="image/*,application/x-siyuan-image-picker"/>', "true") : ""}
-    ${getSlashItem(Constants.ZWSP + 3, "iconDownload", siyuanI18n.insertAsset + '<input class="b3-form__upload" type="file"' + (protyle.options.upload.accept ? (' multiple="' + protyle.options.upload.accept + '"') : "") + "/>", "true")}
-    ${isInAndroid() ? getSlashItem(Constants.ZWSP + 3, "iconCamera", siyuanI18n.insertPhoto + '<input class="b3-form__upload" capture="user" type="file"' + (protyle.options.upload.accept ? (' multiple="' + protyle.options.upload.accept + '"') : "") + "/>", "true") : ""}
+    ${getSlashItem(Constants.ZWSP + 3, "iconDownload", siyuanI18n.insertAsset + '<input class="b3-form__upload" type="file" multiple="multiple"' + (protyle.options.upload?.accept ? (' accept="' + protyle.options.upload.accept + '"') : "") + "/>", "true")}
+    ${isInAndroid() ? getSlashItem(Constants.ZWSP + 3, "iconCamera", siyuanI18n.insertPhoto + '<input class="b3-form__upload" capture="user" type="file" multiple="multiple"' + (protyle.options.upload?.accept ? (' accept="' + protyle.options.upload.accept + '"') : "") + "/>", "true") : ""}
     ${getSlashItem('<iframe sandbox="allow-forms allow-presentation allow-same-origin allow-scripts allow-modals allow-popups allow-storage-access-by-user-activation" src="" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>', "iconGlobe", siyuanI18n.insertIframeURL, "true")}
     ${getSlashItem("![]()", "iconImage", siyuanI18n.insertImgURL, "true")}
     ${getSlashItem('<video controls="controls" src=""></video>', "iconVideo", siyuanI18n.insertVideoURL, "true")}

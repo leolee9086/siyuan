@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -17,6 +17,78 @@
 package av
 
 import "testing"
+
+func TestValueNormalizeBlockRefSubtype(t *testing.T) {
+	const avID = "20260814000000-avtest1"
+	staticAttr := NodeAttrViewStaticText + "-" + avID
+	tests := []struct {
+		name            string
+		value           *Value
+		attrs           map[string]string
+		expectedSubtype BlockRefSubtype
+		expectedContent string
+		expectedChanged bool
+	}{
+		{
+			name: "Legacy dynamic",
+			value: &Value{Type: KeyTypeBlock, Block: &ValueBlock{
+				ID: "20260814000001-dynamic", Content: "Dynamic",
+			}},
+			expectedSubtype: BlockRefSubtypeDynamic,
+			expectedContent: "Dynamic",
+			expectedChanged: true,
+		},
+		{
+			name: "Legacy static",
+			value: &Value{Type: KeyTypeBlock, Block: &ValueBlock{
+				ID: "20260814000002-static1", Content: "Old",
+			}},
+			attrs:           map[string]string{staticAttr: "Static"},
+			expectedSubtype: BlockRefSubtypeStatic,
+			expectedContent: "Static",
+			expectedChanged: true,
+		},
+		{
+			name: "Persisted dynamic is authoritative",
+			value: &Value{Type: KeyTypeBlock, Block: &ValueBlock{
+				ID: "20260814000003-current", Content: "Dynamic", RefSubtype: BlockRefSubtypeDynamic,
+			}},
+			attrs:           map[string]string{staticAttr: "Stale"},
+			expectedSubtype: BlockRefSubtypeDynamic,
+			expectedContent: "Dynamic",
+			expectedChanged: false,
+		},
+		{
+			name: "Invalid subtype",
+			value: &Value{Type: KeyTypeBlock, Block: &ValueBlock{
+				ID: "20260814000004-invalid", Content: "Dynamic", RefSubtype: BlockRefSubtype("invalid"),
+			}},
+			expectedSubtype: BlockRefSubtypeDynamic,
+			expectedContent: "Dynamic",
+			expectedChanged: true,
+		},
+		{
+			name: "Detached",
+			value: &Value{Type: KeyTypeBlock, IsDetached: true, Block: &ValueBlock{
+				Content: "Detached", RefSubtype: BlockRefSubtypeStatic,
+			}},
+			expectedContent: "Detached",
+			expectedChanged: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			changed := test.value.NormalizeBlockRefSubtype(avID, test.attrs)
+			if test.expectedChanged != changed {
+				t.Fatalf("unexpected changed state: %v", changed)
+			}
+			if test.expectedSubtype != test.value.Block.RefSubtype || test.expectedContent != test.value.Block.Content {
+				t.Fatalf("unexpected normalized block value: %+v", test.value.Block)
+			}
+		})
+	}
+}
 
 func TestValueRollupCalcUniqueValues(t *testing.T) {
 	t.Run("Text", func(t *testing.T) {
@@ -86,4 +158,54 @@ func TestValueRollupCalcCountAll(t *testing.T) {
 			t.Fatalf("expected 2 scalar entries, got %v", rollup.Contents[0].Number.Content)
 		}
 	})
+}
+
+func TestValueRollupBuildContentsFiltersEligibleItems(t *testing.T) {
+	destKey := &Key{ID: "target", Type: KeyTypeText}
+	keyValues := []*KeyValues{{
+		Key: destKey,
+		Values: []*Value{
+			{BlockID: "item-a", Type: KeyTypeText, Text: &ValueText{Content: "A"}},
+			{BlockID: "item-b", Type: KeyTypeText, Text: &ValueText{Content: "B"}},
+			{BlockID: "item-c", Type: KeyTypeText, Text: &ValueText{Content: "C"}},
+		},
+	}}
+	relationValue := &Value{
+		Type: KeyTypeRelation,
+		Relation: &ValueRelation{
+			BlockIDs: []string{"item-a", "item-b", "item-c"},
+		},
+	}
+	rollup := &ValueRollup{}
+
+	rollup.BuildContents(keyValues, destKey, relationValue, &RollupCalc{Operator: CalcOperatorCountAll},
+		&RollupRenderContext{EligibleItemIDs: map[string]bool{"item-b": true, "item-c": true}})
+
+	if 1 != len(rollup.Contents) || nil == rollup.Contents[0].Number {
+		t.Fatalf("unexpected calculation result: %+v", rollup.Contents)
+	}
+	if 2 != rollup.Contents[0].Number.Content {
+		t.Fatalf("expected 2 eligible items, got %v", rollup.Contents[0].Number.Content)
+	}
+}
+
+func TestValueRollupBuildContentsPreservesBlockRefSubtype(t *testing.T) {
+	destKey := &Key{ID: "target", Type: KeyTypeBlock}
+	keyValues := []*KeyValues{{
+		Key: destKey,
+		Values: []*Value{{
+			BlockID: "item-a",
+			Type:    KeyTypeBlock,
+			Block:   &ValueBlock{ID: "block-a", Content: "A", RefSubtype: BlockRefSubtypeDynamic},
+		}},
+	}}
+	relationValue := &Value{Type: KeyTypeRelation, Relation: &ValueRelation{BlockIDs: []string{"item-a"}}}
+	rollup := &ValueRollup{}
+
+	rollup.BuildContents(keyValues, destKey, relationValue, nil, nil)
+
+	if 1 != len(rollup.Contents) || nil == rollup.Contents[0].Block ||
+		BlockRefSubtypeDynamic != rollup.Contents[0].Block.RefSubtype {
+		t.Fatalf("rollup did not preserve the block reference subtype: %+v", rollup.Contents)
+	}
 }

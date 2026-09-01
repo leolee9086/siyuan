@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -37,6 +37,7 @@ const {
 } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const {pathToFileURL} = require("url");
 const gNet = require("net");
 const childProcess = require("child_process");
 const remote = require("@electron/remote/main");
@@ -58,10 +59,16 @@ const {
 } = require("./forge-ui-host-control");
 const {createMainNavigationDiagnostics} = require("./main-navigation-diagnostics");
 const {presentMainWindow} = require("./main-window-presentation");
+const {
+    getAppleSiliconDownloadURL,
+    shouldDownloadAppleSilicon,
+    shouldShowAppleSiliconWarning,
+} = require("./appleSilicon");
 
 process.noAsar = true;
 const appDir = path.dirname(app.getAppPath());
 const isDevEnv = process.env.NODE_ENV === "development";
+const simulateRosetta = process.argv.includes("--simulate-rosetta");
 const appVer = app.getVersion();
 const confDir = path.join(app.getPath("home"), ".config", "siyuan");
 const windowStatePath = path.join(confDir, "windowState.json");
@@ -85,6 +92,9 @@ let bootWindow;
 let latestActiveWindow;
 let firstOpen = false;
 let workspaces = []; // workspaceDir, id, port, webContentsId, browserWindow, tray, hideShortcut
+const initEventId = [];
+const appMenuByWorkspaceDir = new Map();
+const appMenuWorkspaceByWebContentsId = new Map();
 let kernelPort = 6806;
 let resetWindowStateOnRestart = false;
 let isAppQuitting = false;
@@ -97,9 +107,129 @@ let updateInstallPromise;
 let keepAppOpenDuringUpdate = false;
 let forgeUIHostControl;
 let forgeUIHostControlPromise;
+let richClipboardOperation;
+let richClipboardSequence = 0;
+let appleSiliconWarningShown = false;
 const openDialogSingletons = new Set();
+let spellcheckContextSequence = 0;
+const spellcheckContexts = new Map();
+const pendingSpellcheckRequests = new Map();
+const pendingNativeContextMenuRequests = new Map();
+const spellcheckContextMenuContents = new Set();
+const normalizeClipboardText = (text) => text.replace(/\r\n?/g, "\n");
 const isOpenAsHidden = function () {
     return 1 === workspaces.length && openAsHidden;
+};
+
+const isMatchingContextMenuRequest = (context, request) => {
+    return Number.isFinite(request.requestedAt) &&
+        context.createdAt >= request.requestedAt &&
+        context.createdAt - request.requestedAt < 1000;
+};
+
+const popupNativeTextContextMenu = (contents, context, request) => {
+    const params = context?.params;
+    const template = [];
+    if (params?.misspelledWord) {
+        params.dictionarySuggestions.forEach((suggestion) => {
+            template.push(new MenuItem({
+                label: suggestion,
+                click: () => contents.replaceMisspelling(suggestion),
+            }));
+        });
+        template.push(new MenuItem({
+            label: request.addToDictionary,
+            click: () => {
+                if (!contents.session.addWordToSpellCheckerDictionary(params.misspelledWord)) {
+                    writeLog("failed to add word to spell checker dictionary");
+                }
+            },
+        }), {type: "separator"});
+    }
+    template.push(new MenuItem({
+        role: "undo", label: request.undo
+    }), new MenuItem({
+        role: "redo", label: request.redo
+    }), {type: "separator"}, new MenuItem({
+        role: "copy", label: request.copy
+    }), new MenuItem({
+        role: "cut", label: request.cut
+    }), new MenuItem({
+        role: "delete", label: request.delete
+    }), new MenuItem({
+        role: "paste", label: request.paste
+    }), new MenuItem({
+        role: "pasteAndMatchStyle", label: request.pasteAsPlainText
+    }), new MenuItem({
+        role: "selectAll", label: request.selectAll
+    }));
+    const menu = Menu.buildFromTemplate(template);
+    const options = {
+        window: BrowserWindow.fromWebContents(contents),
+    };
+    if (params) {
+        options.x = params.x;
+        options.y = params.y;
+        options.sourceType = params.menuSourceType;
+        if (params.frame) {
+            options.frame = params.frame;
+        }
+    }
+    menu.popup(options);
+};
+
+const dispatchContextMenuRequests = (contents) => {
+    const context = spellcheckContexts.get(contents.id);
+    if (!context || context.delivered) {
+        return;
+    }
+    const spellcheckRequest = pendingSpellcheckRequests.get(contents.id);
+    if (spellcheckRequest && isMatchingContextMenuRequest(context, spellcheckRequest)) {
+        context.delivered = true;
+        pendingSpellcheckRequests.delete(contents.id);
+        contents.send("siyuan-spellcheck-context", {
+            contextId: context.contextId,
+            x: spellcheckRequest.x,
+            y: spellcheckRequest.y,
+            misspelledWord: context.params.misspelledWord,
+            dictionarySuggestions: context.params.dictionarySuggestions,
+        });
+        return;
+    }
+    const nativeRequest = pendingNativeContextMenuRequests.get(contents.id);
+    if (nativeRequest && isMatchingContextMenuRequest(context, nativeRequest)) {
+        context.delivered = true;
+        pendingNativeContextMenuRequests.delete(contents.id);
+        popupNativeTextContextMenu(contents, context, nativeRequest);
+    }
+};
+
+const bindSpellcheckContextMenu = (contents) => {
+    if (spellcheckContextMenuContents.has(contents.id)) {
+        return;
+    }
+    spellcheckContextMenuContents.add(contents.id);
+    contents.on("context-menu", (event, params) => {
+        const context = {
+            contextId: ++spellcheckContextSequence,
+            params,
+            createdAt: Date.now(),
+            delivered: false,
+        };
+        spellcheckContexts.set(contents.id, context);
+        dispatchContextMenuRequests(contents);
+        setTimeout(() => {
+            if (spellcheckContexts.get(contents.id) === context && !context.delivered) {
+                spellcheckContexts.delete(contents.id);
+            }
+        }, 200);
+    });
+    contents.once("destroyed", () => {
+        spellcheckContextMenuContents.delete(contents.id);
+        spellcheckContexts.delete(contents.id);
+        pendingSpellcheckRequests.delete(contents.id);
+        pendingNativeContextMenuRequests.delete(contents.id);
+    });
 };
 
 remote.initialize();
@@ -318,10 +448,14 @@ const windowNavigate = (currentWindow, windowType) => {
     });
 };
 
-const setProxy = (proxyURL, webContents) => {
-    if (proxyURL.startsWith("://")) {
+const setProxy = (proxyURL, webContents, proxyMode) => {
+    if (proxyMode === "system" || (!proxyMode && proxyURL.startsWith("://"))) {
         console.log("network proxy [system]");
         return webContents.session.setProxy({mode: "system"});
+    }
+    if (proxyMode === "direct") {
+        console.log("network proxy [direct]");
+        return webContents.session.setProxy({mode: "direct"});
     }
     console.log("network proxy [" + proxyURL + "]");
     return webContents.session.setProxy({proxyRules: proxyURL});
@@ -347,6 +481,208 @@ const hotKey2Electron = (key) => {
     return electronKey + key.replace("⌘", "").replace("⇧", "").replace("⌥", "").replace("⌃", "")
         .replace("←", "Left").replace("→", "Right").replace("↑", "Up").replace("↓", "Down").replace(" ", "Space")
         .replace("+", "Plus").replace("⇥", "Tab").replace("⌫", "Backspace").replace("⌦", "Delete").replace("↩", "Return");
+};
+
+const getFeedbackUrl = (lang) => {
+    return "zh-CN" === lang
+        ? "https://ld246.com/article/1649901726096"
+        : "https://liuyun.io/article/1686530886208";
+};
+
+const withHotkey = (hotkey, overrideRoleDefault = false) => {
+    if (typeof hotkey !== "string" || !hotkey.length) {
+        // 空快捷键：自定义项不注册加速键；role 项需显式覆盖系统默认加速键
+        return overrideRoleDefault ? {accelerator: "", registerAccelerator: false} : {};
+    }
+    const acc = hotKey2Electron(hotkey);
+    return acc ? {accelerator: acc} : (overrideRoleDefault ? {accelerator: "", registerAccelerator: false} : {});
+};
+
+const forgetAppMenuWebContents = (webContentsId) => {
+    const workspaceDir = appMenuWorkspaceByWebContentsId.get(webContentsId);
+    appMenuWorkspaceByWebContentsId.delete(webContentsId);
+    const initIndex = initEventId.indexOf(webContentsId);
+    if (initIndex > -1) {
+        initEventId.splice(initIndex, 1);
+    }
+    if (!workspaceDir) {
+        return;
+    }
+    for (const mappedDir of appMenuWorkspaceByWebContentsId.values()) {
+        if (mappedDir === workspaceDir) {
+            return;
+        }
+    }
+    appMenuByWorkspaceDir.delete(workspaceDir);
+};
+
+const isInitializedAppWindow = (wnd) => {
+    return !!(wnd && !wnd.isDestroyed() && initEventId.includes(wnd.webContents.id));
+};
+
+const getAppWindow = () => {
+    const focused = BrowserWindow.getFocusedWindow();
+    if (isInitializedAppWindow(focused)) {
+        return focused;
+    }
+    if (isInitializedAppWindow(latestActiveWindow)) {
+        return latestActiveWindow;
+    }
+    const workspaceWindow = workspaces.find((item) => isInitializedAppWindow(item.browserWindow));
+    if (workspaceWindow) {
+        return workspaceWindow.browserWindow;
+    }
+    return BrowserWindow.getAllWindows().find(isInitializedAppWindow) || null;
+};
+
+const setNonDarwinApplicationMenu = () => {
+    const productName = "SiYuan";
+    const template = [{
+        label: productName, submenu: [{
+            label: `About ${productName}`, role: "about",
+        }, {type: "separator"}, {role: "services"}, {type: "separator"}, {
+            label: `Hide ${productName}`, role: "hide",
+        }, {role: "hideOthers"}, {role: "unhide"}, {type: "separator"}, {
+            label: `Quit ${productName}`, role: "quit",
+        },],
+    }, {
+        role: "editMenu", submenu: [{role: "cut"}, {role: "copy"}, {role: "paste"}, {role: "selectAll"}],
+    }, {
+        role: "windowMenu",
+        submenu: [{role: "minimize"}, {role: "zoom"}, {role: "togglefullscreen"}, {type: "separator"}, {role: "toggledevtools"}, {type: "separator"}, {role: "front"},],
+    },];
+    Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+};
+
+const applyMacAppMenu = (sync) => {
+    if ("darwin" !== process.platform || !sync || !sync.i18n || typeof sync.i18n !== "object" ||
+        !sync.hotkey || typeof sync.hotkey !== "object") {
+        return;
+    }
+    /** @type {import("electron").MenuItemConstructorOptions[]} */
+    const template = [{
+        role: "appMenu",
+        label: app.name,
+        submenu: [
+            {role: "about", label: sync.i18n.about || "About SiYuan"},
+            ...(sync.readonly ? [] : [{
+                label: sync.i18n.config || "Settings",
+                click: () => {
+                    getAppWindow()?.webContents.send("siyuan-open-setting");
+                },
+                ...withHotkey(sync.hotkey.config),
+            }]),
+            {type: "separator"},
+            {role: "services", label: sync.i18n.services || "Services"},
+            {type: "separator"},
+            {
+                label: sync.i18n.toggleMainWindow || "Hide/Show Window",
+                click: () => {
+                    toggleMainWindow(getAppWindow());
+                },
+                ...withHotkey(sync.hotkey.toggleWin),
+            },
+            {role: "hide", label: sync.i18n.hide || "Hide SiYuan"},
+            {role: "hideOthers", label: sync.i18n.hideOthers || "Hide Others"},
+            {role: "unhide", label: sync.i18n.showAll || "Show All"},
+            {type: "separator"},
+            {role: "quit", label: sync.i18n.quit || "Quit SiYuan"},
+        ],
+    }, {
+        role: "editMenu",
+        label: sync.i18n.edit || "Edit",
+        submenu: [
+            {role: "undo", label: sync.i18n.undo || "Undo", ...withHotkey(sync.hotkey.undo, true)},
+            {role: "redo", label: sync.i18n.redo || "Redo", ...withHotkey(sync.hotkey.redo, true)},
+            {type: "separator"},
+            {role: "cut", label: sync.i18n.cut || "Cut"},
+            {role: "copy", label: sync.i18n.copy || "Copy"},
+            {role: "paste", label: sync.i18n.paste || "Paste"},
+            {role: "pasteAndMatchStyle", label: sync.i18n.pasteAndMatchStyle || "Paste and Match Style"},
+            {type: "separator"},
+            {role: "selectAll", label: sync.i18n.selectAll || "Select All"},
+        ],
+    }, {
+        role: "windowMenu",
+        label: sync.i18n.window || "Window",
+        submenu: [
+            {role: "minimize", label: sync.i18n.minimize || "Minimize"},
+            {role: "zoom", label: sync.i18n.zoom || "Zoom"},
+            {role: "togglefullscreen", label: sync.i18n.togglefullscreen || "Toggle Full Screen"},
+            {type: "separator"},
+            {
+                label: sync.i18n.bringAllToFront || "Bring All to Front",
+                click: () => {
+                    const windows = BrowserWindow.getAllWindows();
+                    windows.forEach(showWindow);
+                    const target = (latestActiveWindow && !latestActiveWindow.isDestroyed() && windows.includes(latestActiveWindow))
+                        ? latestActiveWindow
+                        : windows[0];
+                    target?.focus();
+                },
+            },
+        ],
+    }, {
+        role: "help",
+        label: sync.i18n.help || "Help",
+        submenu: [
+            ...(sync.readonly ? [] : [{
+                label: sync.i18n.userGuide || "User Guide",
+                click: () => {
+                    getAppWindow()?.webContents.send("siyuan-open-help");
+                },
+            }]),
+            {
+                label: sync.i18n.feedback || "Feedback",
+                click: () => {
+                    shell.openExternal(getFeedbackUrl(sync.lang));
+                },
+            },
+            {
+                label: sync.i18n.officialWebsite || "Visit official website",
+                click: () => {
+                    shell.openExternal("https://b3log.org/siyuan");
+                },
+            },
+            {
+                label: sync.i18n.openSource || "Visit project on GitHub",
+                click: () => {
+                    shell.openExternal("https://github.com/siyuan-note/siyuan");
+                },
+            },
+            {role: "toggledevtools", label: sync.i18n.debug || "Developer Tools"},
+        ],
+    }];
+    Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+};
+
+const applyMacAppMenuForWindow = (wnd) => {
+    if ("darwin" !== process.platform || !wnd || wnd.isDestroyed()) {
+        return;
+    }
+    const workspaceDir = appMenuWorkspaceByWebContentsId.get(wnd.webContents.id);
+    if (!workspaceDir) {
+        return;
+    }
+    applyMacAppMenu(appMenuByWorkspaceDir.get(workspaceDir));
+};
+
+const shouldApplyAppMenuFrom = (webContentsId, workspaceDir) => {
+    const focused = BrowserWindow.getFocusedWindow();
+    if (isInitializedAppWindow(focused)) {
+        if (focused.webContents.id === webContentsId) {
+            return true;
+        }
+        return appMenuWorkspaceByWebContentsId.get(focused.webContents.id) === workspaceDir;
+    }
+    if (isInitializedAppWindow(latestActiveWindow)) {
+        if (latestActiveWindow.webContents.id === webContentsId) {
+            return true;
+        }
+        const latestWorkspace = appMenuWorkspaceByWebContentsId.get(latestActiveWindow.webContents.id);
+        return !latestWorkspace || latestWorkspace === workspaceDir;
+    }
+    return true;
 };
 
 /**
@@ -400,6 +736,28 @@ const resolveAppLanguage = (languageTags) => {
     };
 
     return languageMapping[language] || "en";
+};
+
+const loadAppleSiliconWarningLanguages = (requestedLanguage) => {
+    const language = resolveAppLanguage(requestedLanguage ? [requestedLanguage] : app.getPreferredSystemLanguages());
+    const languageDir = path.join(appDir, "appearance", "langs");
+    try {
+        const languageData = JSON.parse(fs.readFileSync(path.join(languageDir, `${language}.json`), "utf8"));
+        const languages = languageData._trayMenu;
+        if (languages && typeof languages.arm64TranslationTitle === "string" &&
+            typeof languages.arm64TranslationMessage === "string" &&
+            typeof languages.downloadAppleSilicon === "string") {
+            return languages;
+        }
+    } catch (error) {
+        writeLog("load Apple silicon warning languages failed: " + error);
+    }
+    return {
+        arm64TranslationTitle: "Install the Apple silicon version",
+        arm64TranslationMessage: "SiYuan is running the Intel version through Rosetta. This may significantly " +
+            "reduce performance. Please use the Apple silicon version",
+        downloadAppleSilicon: "Download the Apple silicon version",
+    };
 };
 
 const markExpectedRendererExit = (window) => {
@@ -1067,6 +1425,7 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
         }
         closeBootWindow();
     };
+    bindSpellcheckContextMenu(currentWindow.webContents);
 
     if (resetToCenter) {
         currentWindow.center();
@@ -1117,7 +1476,9 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
     net.fetch(getServer(currentKernelPort) + "/api/system/getNetwork", {method: "POST"}).then((response) => {
         return response.json();
     }).then((response) => {
-        const setProxyDone = setProxy(`${response.data.proxy.scheme}://${response.data.proxy.host}:${response.data.proxy.port}`, currentWindow.webContents);
+        const proxyMode = response.data.proxy.scheme === "system" ? "system" : response.data.proxy.scheme === "" ? "direct" : "fixed_servers";
+        const setProxyDone = setProxy(`${response.data.proxy.scheme}://${response.data.proxy.host}:${response.data.proxy.port}`,
+            currentWindow.webContents, proxyMode);
         Promise.race([
             Promise.resolve(setProxyDone),
             new Promise((resolve) => setTimeout(resolve, 5000)), // setProxy 永久 pending 时的超时兜底
@@ -1249,25 +1610,9 @@ const initMainWindow = (currentKernelPort = kernelPort, launchContext, requested
         createOrShowMagiWindow(currentWindow);
     });
     // 菜单
-    const productName = "SiYuan";
-    const template = [{
-        label: productName, submenu: [{
-            label: `About ${productName}`, role: "about",
-        }, {type: "separator"}, {role: "services"}, {type: "separator"}, {
-            label: `Hide ${productName}`, role: "hide",
-        }, {role: "hideOthers"}, {role: "unhide"}, {type: "separator"}, {
-            label: `Quit ${productName}`, role: "quit",
-        },],
-    }, {
-        role: "editMenu", submenu: [{role: "cut"}, {role: "copy"}, {role: "paste"}, {
-            role: "pasteAndMatchStyle", accelerator: "CmdOrCtrl+Shift+C"
-        }, {role: "selectAll"},],
-    }, {
-        role: "windowMenu",
-        submenu: [{role: "minimize"}, {role: "zoom"}, {role: "togglefullscreen"}, {type: "separator"}, {role: "toggledevtools"}, {type: "separator"}, {role: "front"},],
-    },];
-    const menu = Menu.buildFromTemplate(template);
-    Menu.setApplicationMenu(menu);
+    if ("darwin" !== process.platform) {
+        setNonDarwinApplicationMenu();
+    }
     // 当前页面链接使用浏览器打开
     windowNavigate(currentWindow, "app");
     currentWindow.on("close", (event) => {
@@ -1348,6 +1693,70 @@ const buildMagiURL = (mainWindow) => {
     } catch (e) {
         return getServer() + "/stage/build/magi-app/?v=" + new Date().getTime();
     }
+};
+
+const hideWindow = (wnd) => {
+    // 通过 `Alt+M` 最小化后焦点回到先前的窗口 https://github.com/siyuan-note/siyuan/issues/7275
+    wnd.minimize();
+    // Mac 隐藏后无法再 Dock 中显示
+    if ("win32" === process.platform || "linux" === process.platform) {
+        wnd.hide();
+    }
+};
+
+const toggleMainWindow = (mainWindow) => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+        return;
+    }
+    if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+        mainWindow.show(); // 按 `Alt+M` 后隐藏窗口，再次按 `Alt+M` 显示窗口后会卡住不能编辑 https://github.com/siyuan-note/siyuan/issues/8456
+    } else if (mainWindow.isVisible()) {
+        if (!mainWindow.isFocused()) {
+            mainWindow.show();
+        } else {
+            hideWindow(mainWindow);
+        }
+    } else {
+        mainWindow.show();
+    }
+};
+
+const showAppleSiliconWarning = async (lang) => {
+    if (!shouldShowAppleSiliconWarning({
+        isDevelopment: isDevEnv,
+        isPackaged: app.isPackaged,
+        platform: process.platform,
+        runningUnderARM64Translation: app.runningUnderARM64Translation,
+        simulateRosetta,
+    })) {
+        return true;
+    }
+    if (appleSiliconWarningShown) {
+        return false;
+    }
+
+    appleSiliconWarningShown = true;
+    const languages = loadAppleSiliconWarningLanguages(lang);
+    try {
+        const {response} = await dialog.showMessageBox({
+            type: "warning",
+            title: languages.arm64TranslationTitle,
+            message: languages.arm64TranslationTitle,
+            detail: languages.arm64TranslationMessage,
+            buttons: [languages.downloadAppleSilicon],
+            defaultId: 0,
+            // 使用按钮数组之外的取消 ID，以区分关闭弹窗和点击下载。
+            cancelId: 1,
+            noLink: true,
+        });
+        if (shouldDownloadAppleSilicon(response)) {
+            await shell.openExternal(getAppleSiliconDownloadURL(appVer));
+        }
+    } catch (error) {
+        writeLog("show Apple silicon warning or open package download failed: " + error);
+    }
+    return false;
 };
 
 const getMagiWindow = (mainWindowId) => {
@@ -1467,6 +1876,13 @@ const initKernelOnce = (workspace, port, lang, safeMode, attachKernel = false) =
                     startupBootWindow.minimize();
                 } else {
                     startupBootWindow.show();
+                }
+                if (!attachKernel && !await showAppleSiliconWarning(lang)) {
+                    // 上游行为：Rosetta 转译的 arm64 Mac 提示下载原生内核包，用户取消下载则退出应用
+                    discardStartupBootWindow();
+                    app.quit();
+                    resolve(false);
+                    return;
                 }
 
                 const kernelName = "win32" === process.platform ? "SiYuan-Kernel.exe" : "SiYuan-Kernel";
@@ -1716,6 +2132,11 @@ const initKernel = (workspace, port, lang, safeMode, attachKernel = false) => {
 };
 
 app.whenReady().then(async () => {
+    if ("darwin" === process.platform) {
+        Menu.setApplicationMenu(Menu.buildFromTemplate([{role: "appMenu"}]));
+    } else {
+        setNonDarwinApplicationMenu();
+    }
     // Trust self-signed TLS certificates for local HTTPS server
     session.defaultSession.setCertificateVerifyProc((request, callback) => {
         if (request.hostname === "127.0.0.1" || request.hostname === "localhost") {
@@ -1838,14 +2259,6 @@ app.whenReady().then(async () => {
         const contextMenu = Menu.buildFromTemplate(trayMenuTemplate);
         tray.setContextMenu(contextMenu);
     };
-    const hideWindow = (wnd) => {
-        // 通过 `Alt+M` 最小化后焦点回到先前的窗口 https://github.com/siyuan-note/siyuan/issues/7275
-        wnd.minimize();
-        // Mac 隐藏后无法再 Dock 中显示
-        if ("win32" === process.platform || "linux" === process.platform) {
-            wnd.hide();
-        }
-    };
     const showHideWindow = (tray, lang, mainWindow) => {
         if (!mainWindow || mainWindow.isDestroyed()) {
             return;
@@ -1862,30 +2275,70 @@ app.whenReady().then(async () => {
 
         resetTrayMenu(tray, lang, mainWindow);
     };
+    // 由渲染进程同步 macOS 应用菜单的文案与快捷键
+    ipcMain.on("siyuan-sync-app-menu", (event, sync) => {
+        if ("darwin" !== process.platform) {
+            return;
+        }
+        if (!sync || !sync.i18n || typeof sync.i18n !== "object" || !sync.hotkey || typeof sync.hotkey !== "object") {
+            return;
+        }
+        const workspaceDir = (typeof sync.workspaceDir === "string" && sync.workspaceDir)
+            ? sync.workspaceDir
+            : ("webContents:" + event.sender.id);
+        appMenuByWorkspaceDir.set(workspaceDir, sync);
+        appMenuWorkspaceByWebContentsId.set(event.sender.id, workspaceDir);
+        if (shouldApplyAppMenuFrom(event.sender.id, workspaceDir)) {
+            applyMacAppMenu(sync);
+        }
+    });
 
     const getWindowByContentId = (id) => {
         return BrowserWindow.getAllWindows().find((win) => win.webContents.id === id);
     };
     ipcMain.on("siyuan-context-menu", (event, langs) => {
-        const template = [new MenuItem({
-            role: "undo", label: langs.undo
-        }), new MenuItem({
-            role: "redo", label: langs.redo
-        }), {type: "separator"}, new MenuItem({
-            role: "copy", label: langs.copy
-        }), new MenuItem({
-            role: "cut", label: langs.cut
-        }), new MenuItem({
-            role: "delete", label: langs.delete
-        }), new MenuItem({
-            role: "paste", label: langs.paste
-        }), new MenuItem({
-            role: "pasteAndMatchStyle", label: langs.pasteAsPlainText
-        }), new MenuItem({
-            role: "selectAll", label: langs.selectAll
-        })];
-        const menu = Menu.buildFromTemplate(template);
-        menu.popup({window: BrowserWindow.fromWebContents(event.sender)});
+        pendingSpellcheckRequests.delete(event.sender.id);
+        pendingNativeContextMenuRequests.set(event.sender.id, langs);
+        dispatchContextMenuRequests(event.sender);
+        setTimeout(() => {
+            if (pendingNativeContextMenuRequests.get(event.sender.id) === langs) {
+                pendingNativeContextMenuRequests.delete(event.sender.id);
+                if (!event.sender.isDestroyed()) {
+                    popupNativeTextContextMenu(event.sender, undefined, langs);
+                }
+            }
+        }, 100);
+    });
+    ipcMain.on("siyuan-spellcheck-context", (event, position) => {
+        pendingNativeContextMenuRequests.delete(event.sender.id);
+        pendingSpellcheckRequests.set(event.sender.id, position);
+        dispatchContextMenuRequests(event.sender);
+        setTimeout(() => {
+            if (pendingSpellcheckRequests.get(event.sender.id) === position) {
+                pendingSpellcheckRequests.delete(event.sender.id);
+            }
+        }, 200);
+    });
+    ipcMain.handle("siyuan-spellcheck-action", (event, data) => {
+        const context = spellcheckContexts.get(event.sender.id);
+        if (!context || context.contextId !== data.contextId || !context.params.misspelledWord) {
+            return false;
+        }
+        if (data.action === "replace") {
+            if (typeof data.suggestion !== "string" ||
+                !context.params.dictionarySuggestions.includes(data.suggestion)) {
+                return false;
+            }
+            event.sender.replaceMisspelling(data.suggestion);
+            spellcheckContexts.delete(event.sender.id);
+            return true;
+        }
+        if (data.action === "addToDictionary") {
+            const result = event.sender.session.addWordToSpellCheckerDictionary(context.params.misspelledWord);
+            spellcheckContexts.delete(event.sender.id);
+            return result;
+        }
+        return false;
     });
     ipcMain.on("siyuan-confirm-dialog", (event, options) => {
         event.returnValue = dialog.showMessageBoxSync(BrowserWindow.fromWebContents(event.sender) || BrowserWindow.getFocusedWindow(), options);
@@ -1900,6 +2353,127 @@ app.whenReady().then(async () => {
     ipcMain.handle("siyuan-get", (event, data) => {
         if (data.cmd === "clipboardRead") {
             return clipboard.read(data.format);
+        }
+        if (data.cmd === "clipboardReadMathML") {
+            if (typeof data.text !== "string" ||
+                normalizeClipboardText(clipboard.readText()) !== normalizeClipboardText(data.text)) {
+                return "";
+            }
+            const formats = clipboard.availableFormats().filter((format) =>
+                /^mathml(?: presentation)?$/i.test(format));
+            formats.push("MathML", "MathML Presentation");
+            // availableFormats 可能不包含 Office 原生 MathML 格式，需要直接尝试标准格式名
+            for (const format of new Set(formats)) {
+                const buffer = clipboard.readBuffer(format);
+                if (buffer.length === 0 || buffer.length > 1024 * 1024 || buffer.length % 2 !== 0) {
+                    continue;
+                }
+                const mathML = buffer.toString("utf16le")
+                    .replace(/^\uFEFF/, "")
+                    .replace(/\0+$/, "")
+                    .trim();
+                if (/<(?:[A-Za-z_][\w.-]*:)?math(?:\s|>)/i.test(mathML)) {
+                    return mathML;
+                }
+            }
+            return "";
+        }
+        if (data.cmd === "clipboardReadOffice") {
+            if (typeof data.text !== "string" ||
+                normalizeClipboardText(clipboard.readText()) !== normalizeClipboardText(data.text)) {
+                return "";
+            }
+            const buffer = clipboard.readBuffer("Embed Source");
+            const compoundFileSignature = Buffer.from([0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1]);
+            if (buffer.length === 0 || buffer.length > 8 * 1024 * 1024 ||
+                !buffer.subarray(0, compoundFileSignature.length).equals(compoundFileSignature)) {
+                return "";
+            }
+            return buffer.toString("base64");
+        }
+        if (data.cmd === "clipboardReadWPS") {
+            if (typeof data.text !== "string" ||
+                normalizeClipboardText(clipboard.readText()) !== normalizeClipboardText(data.text)) {
+                return "";
+            }
+            const formats = clipboard.availableFormats().filter((format) =>
+                /kingsoft.*wps.*format/i.test(format));
+            formats.push("Kingsoft WPS Format");
+            for (let version = 6; version <= 20; version++) {
+                formats.push(`Kingsoft WPS ${version}.0 Format`);
+            }
+            // availableFormats 可能不包含 WPS 原生格式，需要尝试常见格式名
+            for (const format of new Set(formats)) {
+                const buffer = clipboard.readBuffer(format);
+                if (buffer.length <= 8 * 1024 * 1024 && buffer[0] === 0x50 && buffer[1] === 0x4b) {
+                    return buffer.toString("base64");
+                }
+            }
+            return "";
+        }
+        if (data.cmd === "beginRichClipboard") {
+            richClipboardOperation = undefined;
+            const text = clipboard.readText();
+            const html = clipboard.readHTML();
+            if (typeof data.text !== "string" || typeof data.marker !== "string" ||
+                normalizeClipboardText(text) !== normalizeClipboardText(data.text) ||
+                !data.marker || !html.includes(data.marker)) {
+                return;
+            }
+
+            richClipboardSequence++;
+            const token = `${Date.now()}-${richClipboardSequence}`;
+            richClipboardOperation = {
+                token,
+                senderId: event.sender.id,
+                requestedText: data.text,
+                text,
+                html
+            };
+            return token;
+        }
+        if (data.cmd === "completeRichClipboard") {
+            const operation = richClipboardOperation;
+            if (!operation || operation.token !== data.token || operation.senderId !== event.sender.id) {
+                return false;
+            }
+            if (operation.requestedText !== data.text || clipboard.readText() !== operation.text ||
+                clipboard.readHTML() !== operation.html || typeof data.html !== "string" ||
+                !Array.isArray(data.replacements) || 1024 < data.replacements.length) {
+                richClipboardOperation = undefined;
+                return false;
+            }
+
+            let html = data.html;
+            for (const replacement of data.replacements) {
+                let isFile = false;
+                if (replacement && typeof replacement.path === "string" && path.isAbsolute(replacement.path)) {
+                    try {
+                        isFile = fs.statSync(replacement.path).isFile();
+                    } catch {
+                        isFile = false;
+                    }
+                }
+                if (!replacement || typeof replacement.placeholder !== "string" || !replacement.placeholder ||
+                    !isFile || !html.includes(replacement.placeholder)) {
+                    richClipboardOperation = undefined;
+                    return false;
+                }
+                const fileURL = pathToFileURL(replacement.path).href.replaceAll("&", "&amp;");
+                html = html.split(replacement.placeholder).join(fileURL);
+            }
+
+            richClipboardOperation = undefined;
+            clipboard.write({
+                text: data.text,
+                html
+            });
+            return true;
+        }
+        if (data.cmd === "cancelRichClipboard") {
+            if (richClipboardOperation?.token === data.token && richClipboardOperation.senderId === event.sender.id) {
+                richClipboardOperation = undefined;
+            }
         }
         if (data.cmd === "showOpenDialog") {
             if (data.singleton) {
@@ -1931,7 +2505,7 @@ app.whenReady().then(async () => {
             return event.sender.session.availableSpellCheckerLanguages;
         }
         if (data.cmd === "setProxy") {
-            return setProxy(data.proxyURL, event.sender);
+            return setProxy(data.proxyURL, event.sender, data.proxyMode);
         }
         if (data.cmd === "showSaveDialog") {
             return dialog.showSaveDialog(data);
@@ -1965,26 +2539,38 @@ app.whenReady().then(async () => {
             }
         }
         if (data.cmd === "siyuan-open-file") {
-            let hasMatch = false;
-            BrowserWindow.getAllWindows().find(item => {
-                const url = new URL(item.webContents.getURL());
-                if (item.webContents.id === event.sender.id || data.port !== url.port) {
-                    return;
+            const options = JSON.parse(data.options);
+            return BrowserWindow.getAllWindows().some(item => {
+                if (item.isDestroyed() || item.webContents.isDestroyed() ||
+                    item.webContents.id === event.sender.id) {
+                    return false;
                 }
-                const ids = decodeURIComponent(url.hash.substring(1)).split("\u200b");
-                const options = JSON.parse(data.options);
+
+                let url;
+                let ids;
+                try {
+                    const currentURL = item.webContents.getURL();
+                    if (!currentURL) {
+                        return false;
+                    }
+                    url = new URL(currentURL);
+                    ids = decodeURIComponent(url.hash.substring(1)).split("\u200b");
+                } catch {
+                    return false;
+                }
+                if (data.port !== url.port) {
+                    return false;
+                }
                 if (ids.includes(options.rootID) || ids.includes(options.assetPath)) {
                     item.focus();
                     item.webContents.send("siyuan-open-file", options);
-                    hasMatch = true;
                     return true;
                 }
+                return false;
             });
-            return hasMatch;
         }
     });
 
-    const initEventId = [];
     ipcMain.on("siyuan-event", (event) => {
         if (initEventId.includes(event.sender.id)) {
             return;
@@ -1995,9 +2581,15 @@ app.whenReady().then(async () => {
             return;
         }
         latestActiveWindow = currentWindow;
+        applyMacAppMenuForWindow(currentWindow);
+        const webContentsId = currentWindow.webContents.id;
+        currentWindow.on("closed", () => {
+            forgetAppMenuWebContents(webContentsId);
+        });
         currentWindow.on("focus", () => {
             event.sender.send("siyuan-event", "focus");
             latestActiveWindow = currentWindow;
+            applyMacAppMenuForWindow(currentWindow);
         });
         currentWindow.on("blur", () => {
             event.sender.send("siyuan-event", "blur");
@@ -2052,8 +2644,23 @@ app.whenReady().then(async () => {
             case "openPath":
                 shell.openPath(data.filePath);
                 break;
-            case "openDevTools":
-                event.sender.openDevTools({mode: "bottom"});
+            case "openDevTools": {
+                /** @type {import("electron").OpenDevToolsOptions} */
+                const options = {};
+                if (["left", "right", "bottom", "undocked", "detach"].includes(data.mode)) {
+                    options.mode = data.mode;
+                }
+                if (typeof data.activate === "boolean") {
+                    options.activate = data.activate;
+                }
+                if (typeof data.title === "string") {
+                    options.title = data.title;
+                }
+                event.sender.openDevTools(options);
+                break;
+            }
+            case "toggleDevTools":
+                event.sender.toggleDevTools();
                 break;
             case "unregisterGlobalShortcut":
                 if (data.accelerator) {
@@ -2178,17 +2785,8 @@ app.whenReady().then(async () => {
         });
     });
     ipcMain.on("siyuan-export-pdf", (event, data) => {
-        dialog.showOpenDialog({
-            title: data.title, properties: ["createDirectory", "openDirectory"],
-        }).then((result) => {
-            if (result.canceled) {
-                event.sender.destroy();
-                return;
-            }
-            data.filePaths = result.filePaths;
-            data.webContentsId = event.sender.id;
-            getWindowByContentId(data.parentWindowId).send("siyuan-export-pdf", data);
-        });
+        data.webContentsId = event.sender.id;
+        getWindowByContentId(data.parentWindowId).send("siyuan-export-pdf", data);
     });
     ipcMain.on("siyuan-export-newwindow", (event, data) => {
         // The PDF/Word export preview window automatically adjusts according to the size of the main window https://github.com/siyuan-note/siyuan/issues/10554
@@ -2265,6 +2863,7 @@ app.whenReady().then(async () => {
             },
         });
         remote.enable(win.webContents);
+        bindSpellcheckContextMenu(win.webContents);
 
         if (data.position) {
             win.setPosition(data.position.x, data.position.y);
@@ -2383,20 +2982,7 @@ app.whenReady().then(async () => {
                         return;
                     }
                     const mainWindow = currentWorkspace.browserWindow;
-                    if (mainWindow.isMinimized()) {
-                        mainWindow.restore();
-                        mainWindow.show(); // 按 `Alt+M` 后隐藏窗口，再次按 `Alt+M` 显示窗口后会卡住不能编辑 https://github.com/siyuan-note/siyuan/issues/8456
-                    } else {
-                        if (mainWindow.isVisible()) {
-                            if (!mainWindow.isFocused()) {
-                                mainWindow.show();
-                            } else {
-                                hideWindow(mainWindow);
-                            }
-                        } else {
-                            mainWindow.show();
-                        }
-                    }
+                    toggleMainWindow(mainWindow);
                     if ("win32" === process.platform || "linux" === process.platform) {
                         resetTrayMenu(currentWorkspace.tray, data.languages, mainWindow);
                     }

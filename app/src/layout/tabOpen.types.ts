@@ -13,8 +13,8 @@ export interface ILayoutTabOpenRequest {
     title: string;
     dockType: string;
     source: "agent-dock" | "dock-menu";
-    /** 副本打开策略：复制当前会话（copy）或在标签页新建空白会话（new）。 */
-    mode: "copy" | "new";
+    /** 副本打开策略：复制当前会话（copy）或在标签页新建空白会话（new）。未指定时视为 copy。 */
+    mode?: "copy" | "new";
 }
 
 /** 完整 App 或外部宿主提供的普通 Tab 能力。 */

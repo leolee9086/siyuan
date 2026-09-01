@@ -18,12 +18,27 @@ export class Menu implements IPluginMenu {
     private processingQueue = false;
     private nextIndex = 0;
 
-    constructor(id?: string, closeCB?: () => void) {
-        this.menu = window.siyuan.menus.menu;
+    constructor(id?: string, closeCB?: () => void, independent = false) {
+        if (independent) {
+            const element = window.siyuan.menus.menu.element.cloneNode(true) as HTMLElement;
+            element.removeAttribute("id");
+            element.removeAttribute("data-name");
+            element.removeAttribute("data-from");
+            element.removeAttribute("style");
+            element.setAttribute("data-menu", "true");
+            element.classList.add("fn__none");
+            element.classList.remove("b3-menu--list", "b3-menu--fullscreen");
+            element.firstElementChild.classList.add("fn__none");
+            element.lastElementChild.innerHTML = "";
+            document.body.append(element);
+            this.menu = new SiyuanMenu(element);
+        } else {
+            this.menu = window.siyuan.menus.menu;
+        }
         this.isOpen = false;
         this.element = this.menu.element;
 
-        if (id) {
+        if (id && !independent) {
             const dataName = this.menu.element.getAttribute("data-name");
             if (dataName && dataName === id) {
                 this.isOpen = true;
@@ -34,7 +49,30 @@ export class Menu implements IPluginMenu {
             if (id) {
                 this.menu.element.setAttribute("data-name", id);
             }
-            this.menu.removeCB = closeCB;
+            if (independent) {
+                const closeEvent = (event: MouseEvent) => {
+                    if (!this.element.contains(event.target as Node)) {
+                        this.close();
+                    }
+                };
+                const keydownEvent = (event: KeyboardEvent) => {
+                    event.stopPropagation();
+                    if (event.key === "Escape") {
+                        event.preventDefault();
+                        this.close();
+                    }
+                };
+                window.addEventListener("click", closeEvent, true);
+                this.element.addEventListener("keydown", keydownEvent);
+                this.menu.removeCB = () => {
+                    window.removeEventListener("click", closeEvent, true);
+                    this.element.removeEventListener("keydown", keydownEvent);
+                    closeCB?.();
+                    this.element.remove();
+                };
+            } else {
+                this.menu.removeCB = closeCB;
+            }
         }
     }
 

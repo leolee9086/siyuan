@@ -10,7 +10,7 @@ import { getLocationHref, getLocationOrigin, getLocationSearch, setLocationHref 
 import { siyuanI18n } from "../siyuanEnvironments/i18n.getI18n.environment";
 import { getWindowJSAndroid } from "../siyuanEnvironments/windowNative.environment";
 import { generateCountHTML, generateFileItemHTML, generateFlashcardFileItemHTML } from "./fileHtmlGenerator";
-import {getAssetName, getDisplayName, getDocDisplayName, originalPath, pathPosix} from "./path/operations";
+import {getAssetExtension, getAssetName, getDisplayName, getDocDisplayName, originalPath, pathPosix} from "./path/operations";
 import {
     getNotebookIcon,
     getNotebookName,
@@ -20,7 +20,7 @@ import {
 } from "./notebook/store";
 
 /** 保持既有路径工具公共入口；实现由稳定 path 子域唯一持有。 */
-export {getAssetName, getDisplayName, getDocDisplayName, originalPath, pathPosix};
+export {getAssetExtension, getAssetName, getDisplayName, getDocDisplayName, originalPath, pathPosix};
 /** 保持既有笔记本工具公共入口；状态实现由 notebook 子域唯一持有。 */
 export {getNotebookIcon, getNotebookName, getOpenNotebookCount, setNoteBook, setNotebookName};
 

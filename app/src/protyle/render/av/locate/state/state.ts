@@ -10,6 +10,12 @@ import {Constants} from "./imports";
 import type {IAVLocateRequest} from "../locate.types";
 /** 用途：完整定位注册状态；使用范围：惰性初始化；解耦评估：同领域纯类型声明。 */
 import type {AVLocateRegistryState} from "../locate.types";
+/** 用途：显示定位失败提示；使用范围：failAVRender；解耦评估：经本阶段网关直达轻量提示。 */
+import {showMessage} from "./imports";
+/** 用途：判定跨视图定位；使用范围：视图持久化；解耦评估：经状态网关直达纯函数。 */
+import {getAVLocateViewChange} from "./imports";
+/** 用途：提交定位视图事务；使用范围：视图持久化；解耦评估：经状态网关直达事务实现。 */
+import {transaction} from "./imports";
 
 /** 获取或初始化 AV 定位完整注册状态。 @同步豁免: 生命周期 */
 export const getAVLocateRegistry = () => {
@@ -104,6 +110,48 @@ export const getAVLocateParams = (blockElement: HTMLElement, enabled = true) => 
         targetGroupID: request.groupID || "",
         viewID: request.viewID || blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) || "",
     } : undefined;
+};
+
+/** 应用 AV 渲染上下文到块 DOM（viewID 与 viewType）。 @同步豁免: 生命周期 */
+export const applyAVRenderContext = (blockElement: HTMLElement, data: IAV) => {
+    blockElement.setAttribute(Constants.CUSTOM_SY_AV_VIEW, data.viewID);
+    blockElement.setAttribute("data-av-type", data.viewType);
+    setRenderedAVData(blockElement, data);
+};
+
+/** 按定位请求持久化视图切换；事务提交后由下一次渲染继续定位。 @同步豁免: 生命周期 */
+export const persistAVLocateView = (blockElement: HTMLElement, protyle: IProtyle, data: IAV) => {
+    const request = getAVLocateRequest(blockElement);
+    if (!request || !data.target || data.target.itemID !== request.itemID || !blockElement.isConnected) {
+        return false;
+    }
+    const currentViewID = blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) ?? request.previousViewID ?? data.viewID;
+    const change = getAVLocateViewChange(request, currentViewID, protyle.disabled);
+    if (!change) {
+        return false;
+    }
+    blockElement.setAttribute(Constants.CUSTOM_SY_AV_VIEW, change.viewID);
+    blockElement.setAttribute("data-av-type", data.viewType);
+    const blockID = blockElement.dataset.nodeId;
+    const avID = blockElement.dataset.avId;
+    const createViewOperation = (viewID: string): IOperation => ({
+        action: "setAttrViewBlockView",
+        id: viewID,
+        ...(blockID ? {blockID} : {}),
+        ...(avID ? {avID} : {}),
+    });
+    transaction(protyle, [createViewOperation(change.viewID)], [createViewOperation(change.previousViewID)]);
+    return true;
+};
+
+/** 标记 AV 渲染失败并提示（视图不存在时使用 databaseViewNotFound 文案）。 @同步豁免: 生命周期 */
+export const failAVRender = (blockElement: HTMLElement, response: IWebSocketData) => {
+    const request = getAVLocateRequest(blockElement);
+    if (request) {
+        clearAVLocateRequest(blockElement, request);
+    }
+    const viewNotFound = request?.viewID && (response.data as {error?: string})?.error === "viewNotFound";
+    showMessage(viewNotFound ? window.siyuan.languages.databaseViewNotFound : response.msg);
 };
 
 /** 清除排队 timeout、高亮 DOM 和全部定位注册状态，供测试、HMR 与工作空间重置。 @同步豁免: 生命周期 - 重置必须同步阻断残留状态。 */

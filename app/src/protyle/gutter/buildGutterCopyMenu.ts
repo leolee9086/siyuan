@@ -12,7 +12,7 @@ import { focusBlock, focusByRange, getEditorRange } from "../util/selection";
 import { getPlainText } from "../util/paste";
 import { isNotEditBlock } from "../wysiwyg/getBlock";
 import { duplicateBlock } from "../wysiwyg/commonHotkey/commonHotkey";
-import { duplicateCompletely } from "../render/av/action";
+import { duplicateCompletely } from "../render/av/action/duplicate";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 

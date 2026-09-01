@@ -15,6 +15,7 @@ import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.enviro
 import {initVirtualScroll} from "./virtualScroll";
 import {bindAvSearch} from "./search";
 import {finishAVLocate} from "./locate/presentation/finish";
+import { getGroupFoldTip, setGroupFoldedStates } from "./groupFold";
 
 export interface ITableOptions {
     protyle: IProtyle,
@@ -77,9 +78,9 @@ export const getTableHTMLs = async (data: IAVTable, e: HTMLElement, virtualData?
             return;
         }
         contentHTML += `<div class="av__cell av__cell--header" data-col-id="${column.id}"  draggable="true" 
-data-icon="${column.icon}" data-dtype="${column.type}" data-wrap="${column.wrap}" data-pin="${column.pin}" 
+data-icon="${escapeAttr(column.icon)}" data-dtype="${column.type}" data-wrap="${column.wrap}" data-pin="${column.pin}" 
 data-desc="${escapeAttr(column.desc)}" data-align="${column.align || ""}" data-position="north"
-style="width: ${column.width || "200px"};">
+style="width: ${escapeAttr(column.width) || "200px"};">
     ${column.icon ? unicode2Emoji(column.icon, "av__cellheadericon", true) : `<svg class="av__cellheadericon"><use xlink:href="#${getColIconByType(column.type)}"></use></svg>`}
     <span class="av__celltext fn__flex-1">${escapeHtml(column.name)}</span>
     ${column.pin ? '<svg class="av__cellheadericon av__cellheadericon--pin"><use xlink:href="#iconPin"></use></svg>' : ""}
@@ -90,10 +91,10 @@ style="width: ${column.width || "200px"};">
         }
         if (column.type === "lineNumber") {
             // lineNumber type 不参与计算操作
-            calcHTML += `<div data-col-id="${column.id}" data-dtype="${column.type}" class="av__calc" style="width: ${column.width || "200px"}">&nbsp;</div>`;
+            calcHTML += `<div data-col-id="${column.id}" data-dtype="${column.type}" class="av__calc" style="width: ${escapeAttr(column.width) || "200px"}">&nbsp;</div>`;
         } else {
             calcHTML += `<div class="av__calc${column.calc && column.calc.operator !== "" ? " av__calc--ashow" : ""}" data-col-id="${column.id}" data-dtype="${column.type}" data-operator="${column.calc?.operator || ""}" 
-style="width: ${column.width || "200px"}">${getCalcValue(column) || `<svg><use xlink:href="#iconDown"></use></svg><small>${siyuanI18n.calc}</small>`}</div>`;
+style="width: ${escapeAttr(column.width) || "200px"}">${getCalcValue(column) || `<svg><use xlink:href="#iconDown"></use></svg><small>${siyuanI18n.calc}</small>`}</div>`;
         }
         if (column.calc && column.calc.operator !== "") {
             hasCalc = true;
@@ -150,7 +151,7 @@ style="width: ${column.width || "200px"}">${getCalcValue(column) || `<svg><use x
 data-wrap="${data.columns[index].wrap}" 
 data-dtype="${data.columns[index].type}" 
 ${cell.value?.isDetached ? ' data-detached="true"' : ""} 
-style="width: ${data.columns[index].width || "200px"};
+style="width: ${escapeAttr(data.columns[index].width) || "200px"};
 ${cell.valueType === "number" ? "text-align: right;" : ""}
 ${cell.bgColor ? `background-color:${cell.bgColor};` : ""}
 ${cell.color ? `color:${cell.color};` : ""}">${rendered}</div>`;
@@ -182,16 +183,16 @@ export const getGroupTitleHTML = (group: IAVView, counter: number) => {
     let nameHTML = "";
     if (["mSelect", "select"].includes(group.groupValue.type)) {
         group.groupValue.mSelect.forEach((item) => {
-            nameHTML += `<span class="b3-chip" style="background-color:var(--b3-font-background${item.color});color:var(--b3-font-color${item.color})">${escapeHtml(item.content)}</span>`;
+            nameHTML += `<span class="b3-chip" style="background-color:var(--b3-font-background${escapeAttr(item.color)});color:var(--b3-font-color${escapeAttr(item.color)})">${escapeHtml(item.content)}</span>`;
         });
     } else if (group.groupValue.type === "checkbox") {
         nameHTML = `<svg style="width:calc(1.625em - 12px);height:calc(1.625em - 12px)"><use xlink:href="#icon${group.groupValue.checkbox.checked ? "Check" : "Uncheck"}"></use></svg>`;
     } else {
-        nameHTML = group.name;
+        nameHTML = escapeHtml(group.name);
     }
     // av__group-name 为第三方需求，本应用内没有使用，但不能移除 https://github.com/siyuan-note/siyuan/issues/15736
     return `<div class="av__group-title">
-    <div class="av__group-icon" data-type="av-group-fold" data-id="${group.id}">
+    <div class="av__group-icon ariaLabel" data-type="av-group-fold" data-id="${group.id}" data-position="north" aria-label="${getGroupFoldTip(!!group.groupFolded)}">
         <svg class="${group.groupFolded ? "" : "av__group-arrow--open"}"><use xlink:href="#iconRight"></use></svg>
     </div>
     <span class="fn__space"></span>
@@ -202,6 +203,7 @@ export const getGroupTitleHTML = (group: IAVView, counter: number) => {
 };
 
 export const renderGroupTable = async (options: ITableOptions) => {
+    setGroupFoldedStates(options.blockElement as HTMLElement, options.data.view.groups);
     const searchInputElement = options.blockElement.querySelector('[data-type="av-search"]');
     const isSearching = searchInputElement && document.activeElement === searchInputElement;
     const query = searchInputElement?.textContent || "";

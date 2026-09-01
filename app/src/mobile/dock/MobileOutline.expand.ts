@@ -109,6 +109,10 @@ export function expandToLevel(outline: MobileOutlineExpansionPort, targetLevel: 
     if (targetLevel >= 6) {
         // 全部展开
         outline.tree.expandAll();
+        outline.saveExpendIds();
+        window.siyuan.storage[Constants.LOCAL_OUTLINE].expandLevel = targetLevel;
+        setStorageVal(Constants.LOCAL_OUTLINE, window.siyuan.storage[Constants.LOCAL_OUTLINE]);
+        return;
     } else {
         // 展开到指定标题级别
         outline.element.querySelectorAll("li.b3-list-item").forEach(item => {
@@ -128,6 +132,8 @@ export function expandToLevel(outline: MobileOutlineExpansionPort, targetLevel: 
         });
     }
     outline.saveExpendIds();
+    window.siyuan.storage[Constants.LOCAL_OUTLINE].expandLevel = targetLevel;
+    setStorageVal(Constants.LOCAL_OUTLINE, window.siyuan.storage[Constants.LOCAL_OUTLINE]);
 }
 
 /**
@@ -141,6 +147,7 @@ export function showExpandLevelMenu(outline: MobileOutlineExpansionPort) {
             id: `heading${i}`,
             icon: `iconH${i}`,
             label: siyuanI18n[`heading${i}`],
+            current: window.siyuan.storage[Constants.LOCAL_OUTLINE].expandLevel === i,
             click: () => expandToLevel(outline, i)
         }).element);
     }

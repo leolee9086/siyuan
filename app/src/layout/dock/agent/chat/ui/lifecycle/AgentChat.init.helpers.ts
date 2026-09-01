@@ -74,6 +74,43 @@ const buildAgentChatHeaderHTML = () => {
         '<svg><use xlink:href="#iconMin"></use></svg></span></div>';
 };
 
+const initPermissionSelect = (runtime: AgentChatRuntime) => {
+    const L = getAgentChatLanguages();
+    runtime.permissionSelect.innerHTML = '<option value="confirm">' +
+        escapeHtml(L.agentPermissionFollowApprovalSettings || L.agentPermissionConfirm || "Confirm every time") +
+        '</option><option value="allowSession">' +
+        escapeHtml(L.agentPermissionAllowSession || "Auto approve for this session") + "</option>";
+    runtime.permissionSelect.value = runtime.permissionMode;
+    runtime.permissionSelect.addEventListener("change", () => {
+        const previousMode = runtime.permissionMode;
+        const mode = runtime.permissionSelect.value === "allowSession" ? "allowSession" : "confirm";
+        if (mode === previousMode) {
+            return;
+        }
+        if (runtime.entries.length === 0) {
+            runtime.permissionMode = mode;
+            return;
+        }
+        const sessionID = runtime.sessionId;
+        runtime.permissionSelect.disabled = true;
+        void runtime.sessionPorts.repository.setPermission(sessionID, mode).then((persistedMode) => {
+            if (runtime.sessionId === sessionID) {
+                runtime.permissionMode = persistedMode;
+                runtime.permissionSelect.value = persistedMode;
+            }
+        }).catch((error) => {
+            console.error("update agent session permission failed:", error);
+            if (runtime.sessionId === sessionID) {
+                runtime.permissionSelect.value = previousMode;
+            }
+        }).finally(() => {
+            if (runtime.sessionId === sessionID) {
+                runtime.permissionSelect.disabled = false;
+            }
+        });
+    });
+};
+
 /** 构建消息区和输入区，字符串同步写入以确保后续查询能立即取得节点。 */
 const buildAgentChatBodyHTML = () => {
     const L = getAgentChatLanguages();
@@ -105,7 +142,12 @@ const buildAgentChatBodyHTML = () => {
         escapeHtml(steerLabel) + "</span></button>" +
         '<button type="button" class="agent-chat__delivery-option b3-button" data-delivery="queue" aria-label="' +
         escapeHtml(queueLabel) + '"><svg><use xlink:href="#iconList"></use></svg><span>' +
-        escapeHtml(queueLabel) + '</span></button></div><span class="fn__flex-1"></span>' +
+        escapeHtml(queueLabel) + "</span></button></div>" +
+        '<div class="b3-form__icon ariaLabel agent-chat__permission" aria-label="' +
+        (L.agentPermission || "Permission") + '">' +
+        '<svg class="b3-form__icon-icon"><use xlink:href="#iconShieldCheck"></use></svg>' +
+        '<select class="b3-select b3-select--noborder b3-form__icon-input agent-chat__permission-select" tabindex="0"></select></div>' +
+        '<span class="fn__flex-1"></span>' +
         '<span class="agent-chat__tokens fn__none b3-button b3-button--icon b3-button--cancel" aria-label="' +
         (L.tokenUsage || "Context Usage") + '"><svg viewBox="0 0 24 24"><circle class="agent-chat__tokens-track" cx="12" cy="12" r="9" stroke-width="3"></circle>' +
         '<circle class="agent-chat__tokens-arc" cx="12" cy="12" r="9" stroke-width="3" stroke-dasharray="0 56.55"></circle></svg></span>' +
@@ -190,8 +232,11 @@ function bindAgentChatActionElements(runtime: AgentChatRuntime, panel: HTMLEleme
     runtime.modelSelect = requireElement<HTMLSelectElement>(panel, '.agent-chat__model[data-type="model"]');
     runtime.reasoningEffortSelect = requireElement<HTMLSelectElement>(
         panel, ".agent-chat__reasoning-effort-select");
+    runtime.permissionSelect = requireElement<HTMLSelectElement>(
+        panel, ".agent-chat__permission-select");
     runtime.scrollBottomBtn = requireElement<HTMLElement>(panel, ".agent-chat__scroll-bottom");
     initReasoningEffortSelect(runtime);
+    initPermissionSelect(runtime);
     runtime.targetSelect.value = runtime.conversationKind;
     applyCapabilityVisibility(runtime);
     applyConversationCapabilityVisibility(runtime);

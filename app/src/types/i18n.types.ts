@@ -668,6 +668,7 @@ replaceTypes: {
 copyAHref: `复制链接地址`
 selected: `已选中`
 loadMore: `加载更多`
+loadAllContent: `加载全部内容`
 tempUnlock: `临时解锁`
 cancelTempUnlock: `取消临时解锁`
 addFilter: `添加筛选条件`

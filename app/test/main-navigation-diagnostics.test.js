@@ -52,7 +52,8 @@ test("main navigation listeners capture synchronous navigation emitted by loadUR
     ]);
     assert.equal(diagnostics.state.mainDocumentURL,
         "https://127.0.0.1:6806/check-auth?to=/stage/build/app/");
-    assert.equal(diagnostics.state.didFinishLoadAt, "2026-08-13T09:00:06.000Z");
+    assert.equal(diagnostics.state.createdAt, "2026-08-13T09:00:00.000Z");
+    assert.equal(diagnostics.state.didFinishLoadAt, "2026-08-13T09:00:07.000Z");
 });
 
 test("main navigation diagnostics exclude subframes and retain the first main-frame console error", () => {
@@ -117,8 +118,9 @@ test("main navigation diagnostics preserve explicit failures and bound the event
         "render-process-gone",
     ]);
     assert.equal(diagnostics.state.lastLoadFailure.phase, "did-fail-provisional-load");
+    assert.equal(diagnostics.state.createdAt, "2026-08-13T09:00:00.000Z");
     assert.deepEqual(diagnostics.state.lastRendererExit, {
-        at: "2026-08-13T09:00:04.000Z",
+        at: "2026-08-13T09:00:05.000Z",
         reason: "crashed",
         exitCode: 9,
     });

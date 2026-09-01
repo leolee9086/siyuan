@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -50,7 +50,7 @@ const (
 	ModeDev   = "dev"
 	ModeForge = "forge"
 
-	Ver       = "3.7.3"
+	Ver       = "3.8.2-alpha.2"
 	IsInsider = false
 )
 
@@ -64,6 +64,7 @@ var (
 	RunInContainer             = false // 是否运行在容器中
 	SiYuanAccessAuthCodeBypass = false // 是否跳过空锁屏密码检查
 	AttachUI                   = false // 是否绑定桌面 UI 进程生命周期（Electron 拉起时为 true，手动 serve 为 false）
+	EnablePprof                = false // 是否注册未鉴权的调试端点，仅调试时显式开启，切勿在对外开放的实例上使用
 )
 
 func IsDevMode() bool {
@@ -154,16 +155,18 @@ func Boot() {
 	lang := flag.String("lang", "", "ar/de/en/es/fr/he/hi/id/it/ja/ko/nl/pl/pt-BR/ru/sk/th/tr/uk/zh-CN/zh-TW")
 	mode := flag.String("mode", ModeProd, "dev/prod/forge")
 	noBrowser := flag.Bool("no-browser", false, "disable auto-open browser in forge mode")
+	enablePprof := flag.Bool("enable-pprof", false, "enable unauthenticated /debug/pprof/ endpoints (dev only, never on a network-exposed instance)")
 	safeMode := flag.Bool("safe-mode", false, "boot in safe mode")
 	flag.Parse()
 
-	BootWithFlags(*workspacePath, *wdPath, *port, *readOnly, *accessAuthCode, *lang, *mode, *ssl, *attachUI, *noBrowser, *safeMode)
+	BootWithFlags(*workspacePath, *wdPath, *port, *readOnly, *accessAuthCode, *lang, *mode, *ssl, *attachUI, *noBrowser, *safeMode, *enablePprof)
 }
 
 // BootWithFlags 接收已解析好的启动参数，完成环境变量回退、全局变量赋值、工作空间初始化与加锁等启动收尾工作。Boot()（标准库 flag 解析）和 serve 子命令（cobra 解析）都走这个统一入口。
-func BootWithFlags(workspacePath, wdPath, port, readOnly, accessAuthCode, lang, mode string, ssl, attachUI bool, noBrowser bool, safeMode bool) {
+func BootWithFlags(workspacePath, wdPath, port, readOnly, accessAuthCode, lang, mode string, ssl, attachUI bool, noBrowser bool, safeMode bool, enablePprof bool) {
 	initEnvVars()
 	SafeMode = safeMode
+	EnablePprof = enablePprof
 	// Fallback to env vars if commandline args are not set
 	// valid only for CLI args that default to "", as the
 	// others have explicit (sane) defaults
@@ -321,6 +324,18 @@ var (
 	UIProcessIDs = sync.Map{} // UI 进程 ID
 )
 
+// MaxUIProcessCount UI 进程注册表条目数上限。
+const MaxUIProcessCount = 64
+
+// UIProcessCount 获取 UI 进程注册表条目数。
+func UIProcessCount() (ret int) {
+	UIProcessIDs.Range(func(_, _ any) bool {
+		ret++
+		return true
+	})
+	return
+}
+
 func initWorkspaceDir(workspaceArg string) {
 	userHomeConfDir := filepath.Join(HomeDir, ".config", "siyuan")
 	workspaceConf := filepath.Join(userHomeConfDir, "workspace.json")
@@ -430,6 +445,7 @@ func initWorkspaceDir(workspaceArg string) {
 	os.RemoveAll(filepath.Join(TempDir, "repo"))
 	// export 目录只保存临时文件，启动时统一清理；插件不得依赖其中的文件跨进程存续。
 	os.RemoveAll(filepath.Join(TempDir, "export"))
+	os.RemoveAll(filepath.Join(TempDir, "clipboard"))
 	os.Setenv("TMPDIR", osTmpDir)
 	os.Setenv("TEMP", osTmpDir)
 	os.Setenv("TMP", osTmpDir)
@@ -660,6 +676,8 @@ func initMime() {
 	mime.AddExtensionType(".tiff", "image/tiff")
 	mime.AddExtensionType(".tif", "image/tiff")
 	mime.AddExtensionType(".webp", "image/webp")
+	mime.AddExtensionType(".heic", "image/heic")
+	mime.AddExtensionType(".heif", "image/heif")
 	mime.AddExtensionType(".ico", "image/x-icon")
 }
 

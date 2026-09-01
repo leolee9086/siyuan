@@ -8,12 +8,15 @@ import {contentRendererRegistry} from "../../../../registry/contentRenderer/Cont
 import {getPageSize} from "../groups";
 import {bindAvSearch} from "../search";
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import {getBodyVirtualData, initVirtualScroll} from "../virtualScroll";
-import {getRowHTML} from "../row";
+import {getPendingBlockFocusMode} from "../../../util/focusRestore";
+import {getAVSelectedItemPoints, getBodyVirtualData, initVirtualScroll, setAVData} from "../virtualScroll";
+import {getRowHTML, stickyRow, updateAVSelectionStatus} from "../row";
 import {updateHeader} from "../selection/header";
-import {beginAVRender, getAVLocateParams, isCurrentAVRender} from "../locate/state/state";
+import {applyAVRenderContext, failAVRender, persistAVLocateView, beginAVRender, getAVLocateParams, isCurrentAVRender} from "../locate/state/state";
 import {prepareAVLocate} from "../locate/window/prepare";
 import {finishAVLocate} from "../locate/presentation/finish";
+import {getCardStyle} from "./style";
+import {setGroupFoldedStates} from "../groupFold";
 import type {AVViewRenderer} from "../view/render.types";
 
 interface IIds {
@@ -66,7 +69,7 @@ const getGalleryHTML = async (data: IAVGallery, e: HTMLElement, virtualData: IAV
         });
     }
     galleryHTML += `<div class="av__gallery-add" data-type="av-add-bottom"><svg class="svg"><use xlink:href="#iconAdd"></use></svg><span class="fn__space"></span>${siyuanI18n.newRow}</div>`;
-    return `<div class="av__gallery${data.cardSize === 0 ? " av__gallery--small" : (data.cardSize === 2 ? " av__gallery--big" : "")}">
+    return `<div class="av__gallery${data.cardSize === 0 ? " av__gallery--small" : (data.cardSize === 2 ? " av__gallery--big" : "")}" style="${getCardStyle(data)}">
     ${virtualData?.topSpacerHeight ? `<div class="av__spacer" style="height: ${virtualData.topSpacerHeight}px;"></div>` : ""}${galleryHTML}
 </div>
 <div class="av__gallery-load${data.cardCount > data.cards.length ? "" : " fn__none"}">
@@ -79,6 +82,7 @@ const getGalleryHTML = async (data: IAVGallery, e: HTMLElement, virtualData: IAV
 };
 
 const renderGroupGallery = async (options: ITableOptions) => {
+    setGroupFoldedStates(options.blockElement, options.data.view.groups);
     const searchInputElement = options.blockElement.querySelector('[data-type="av-search"]');
     const isSearching = searchInputElement && document.activeElement === searchInputElement;
     const query = searchInputElement?.textContent || "";
@@ -105,15 +109,18 @@ const renderGroupGallery = async (options: ITableOptions) => {
 };
 
 export const afterRenderGallery = (options: ITableOptions) => {
+    setAVData(options.blockElement, options.data);
     const view = options.data.view as IAVGallery;
+    options.blockElement.classList.toggle("av--display-empty-fields", view.displayEmptyFields);
     if (view.coverFrom === 1 || view.coverFrom === 3) {
         contentRendererRegistry.renderBatch(options.blockElement);
     }
     if (typeof options.resetData.oldOffset === "number") {
         options.protyle.contentElement.scrollTop = options.resetData.oldOffset;
     }
-    if (options.blockElement.getAttribute("data-need-focus") === "true") {
-        focusBlock(options.blockElement);
+    const pendingFocusMode = getPendingBlockFocusMode(options.blockElement.getAttribute("data-need-focus"));
+    if (pendingFocusMode) {
+        focusBlock(options.blockElement, undefined, true, pendingFocusMode === "zoom");
         options.blockElement.removeAttribute("data-need-focus");
     }
     options.blockElement.setAttribute("data-render", "true");
@@ -137,16 +144,18 @@ export const afterRenderGallery = (options: ITableOptions) => {
     if (restoredItem) {
         updateHeader(restoredItem);
     }
-    options.resetData.editIds.find(selectId => {
-        let itemElement = options.blockElement.querySelector(`.av__body[data-group-id="${selectId.groupId}"] .av__gallery-item[data-id="${selectId.fieldId}"]`) as HTMLElement;
-        if (!itemElement) {
-            itemElement = options.blockElement.querySelector(`.av__gallery-item[data-id="${selectId.fieldId}"]`) as HTMLElement;
-        }
-        if (itemElement) {
-            itemElement.querySelector(".av__gallery-fields").classList.add("av__gallery-fields--edit");
-            itemElement.querySelector('.protyle-icon[data-type="av-gallery-edit"]').setAttribute("aria-label", siyuanI18n.hideEmptyFields);
-        }
-    });
+    if (!view.displayEmptyFields) {
+        options.resetData.editIds.find(selectId => {
+            let itemElement = options.blockElement.querySelector(`.av__body[data-group-id="${selectId.groupId}"] .av__gallery-item[data-id="${selectId.fieldId}"]`) as HTMLElement;
+            if (!itemElement) {
+                itemElement = options.blockElement.querySelector(`.av__gallery-item[data-id="${selectId.fieldId}"]`) as HTMLElement;
+            }
+            if (itemElement) {
+                itemElement.querySelector(".av__gallery-fields").classList.add("av__gallery-fields--edit");
+                itemElement.querySelector('.protyle-icon[data-type="av-gallery-edit"]')?.setAttribute("aria-label", siyuanI18n.hideEmptyFields);
+            }
+        });
+    }
     Object.keys(options.resetData.pageSizes).forEach((groupId) => {
         const bodyElement = options.blockElement.querySelector(`.av__body[data-group-id="${groupId === "unGroup" ? "" : groupId}"]`) as HTMLElement;
         if (bodyElement) {
@@ -163,21 +172,34 @@ export const afterRenderGallery = (options: ITableOptions) => {
             }
         }
     }
-    options.blockElement.querySelector(".layout-tab-bar").scrollLeft = (options.blockElement.querySelector(".layout-tab-bar .item--focus") as HTMLElement).offsetLeft - 30;
+    const focusViewElement = options.blockElement.querySelector(".layout-tab-bar .item--focus") as HTMLElement;
+    if (focusViewElement) {
+        options.blockElement.querySelector(".layout-tab-bar").scrollLeft = focusViewElement.offsetLeft - 30;
+    }
     if (options.cb) {
         options.cb(options.data);
     }
+    initVirtualScroll({
+        ...options,
+        selectedItemPoints: options.resetData.selectItemIds.map(item => ({
+            groupID: item.groupId,
+            itemID: item.fieldId,
+        })),
+    });
+    updateAVSelectionStatus(options.blockElement);
     if (!options.renderAll) {
         finishAVLocate(options.blockElement, options.protyle, options.data);
         return;
     }
+    setTimeout(() => {
+        stickyRow(options.blockElement, options.protyle.contentElement, "top");
+    }, Constants.TIMEOUT_LOAD);
     bindAvSearch({
         blockElement: options.blockElement,
         query: options.resetData.query,
         isSearching: options.resetData.isSearching,
         onChange: options.onSearchChange,
     });
-    initVirtualScroll(options);
     finishAVLocate(options.blockElement, options.protyle, options.data);
 };
 
@@ -199,16 +221,10 @@ export const renderGallery = async (options: {
             fieldId: item.parentElement.getAttribute("data-id"),
         });
     });
-    const selectItemIds: IIds[] = [];
-    options.blockElement.querySelectorAll(".av__gallery-item--select").forEach(galleryItem => {
-        const fieldId = galleryItem.getAttribute("data-id");
-        if (fieldId) {
-            selectItemIds.push({
-                groupId: (hasClosestByClassName(galleryItem, "av__body") as HTMLElement).dataset.groupId || "",
-                fieldId
-            });
-        }
-    });
+    const selectItemIds: IIds[] = getAVSelectedItemPoints(options.blockElement).map(item => ({
+        groupId: item.groupID,
+        fieldId: item.itemID,
+    }));
     const pageSizes: { [key: string]: string } = {};
     const virtualData: { [key: string]: IAVVirtualData } = {};
     options.blockElement.querySelectorAll(".av__body").forEach((item: HTMLElement) => {
@@ -253,23 +269,37 @@ export const renderGallery = async (options: {
     if (!data) {
         const avPageSize = getPageSize(options.blockElement);
         const locateParams = getAVLocateParams(options.blockElement, !created && !snapshot);
+        const historical = !!created || !!snapshot;
         const response = await fetchSyncPost(created ? "/api/av/renderHistoryAttributeView" : (snapshot ? "/api/av/renderSnapshotAttributeView" : "/api/av/renderAttributeView"), {
             id: options.blockElement.getAttribute("data-av-id"),
             created,
             snapshot,
             pageSize: avPageSize.unGroupPageSize,
             groupPaging: avPageSize.groupPageSize,
-            viewID: locateParams?.viewID || options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) || "",
+            viewID: locateParams?.viewID || "",
+            ...(historical ? {carrierViewID: options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) || ""} : {}),
             query: resetData.query.trim(),
             blockID: options.blockElement.getAttribute("data-node-id"),
+            initialLayout: options.blockElement.getAttribute("data-av-type"),
             targetItemID: locateParams?.targetItemID || "",
             targetGroupID: locateParams?.targetGroupID || "",
-        });
+        }, undefined, false);
+        if (!isCurrentAVRender(options.blockElement, renderToken)) {
+            return;
+        }
+        if (response.code !== 0) {
+            failAVRender(options.blockElement, response);
+            return;
+        }
         data = response.data;
     }
     if (!isCurrentAVRender(options.blockElement, renderToken)) {
         return;
     }
+    if (persistAVLocateView(options.blockElement, options.protyle, data)) {
+        return;
+    }
+    applyAVRenderContext(options.blockElement, data);
     prepareAVLocate(options.blockElement, data, resetData);
     if (data.viewType === "table") {
         options.blockElement.setAttribute("data-av-type", data.viewType);

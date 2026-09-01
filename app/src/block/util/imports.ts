@@ -9,7 +9,7 @@ import {updateListOrder} from "../../protyle/wysiwyg/list.updateOrder";
 /** 用途：提交块事务；使用范围：block/util.ts 的 do/undo 操作；解耦评估：直接依赖事务提交实现。 */
 import {transaction} from "../../protyle/wysiwyg/transaction/submit";
 /** 用途：合并超级块事务；使用范围：block/util.ts 的列布局插入；解耦评估：直接依赖事务合并实现。 */
-import {turnsIntoOneTransaction} from "../../protyle/wysiwyg/transaction.turns";
+import {turnsIntoOneTransaction} from "../../protyle/wysiwyg/transaction/turns/container";
 /** 用途：提交非列表块更新；使用范围：block/util.ts 的有序列表插入；解耦评估：直接依赖事务更新实现。 */
 import {updateTransaction} from "../../protyle/wysiwyg/transaction/update";
 /** 用途：滚动到新插入块；使用范围：block/util.ts 插入收尾；解耦评估：直接依赖 DOM 滚动实现。 */

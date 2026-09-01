@@ -1,10 +1,12 @@
 import {describe, expect, it, vi} from "vitest";
 
+const responseState = vi.hoisted(() => ({rootID: "root-id"}));
+
 vi.mock("../../../src/block/panel/editor/imports", () => ({
     Constants: {CB_GET_ALL: "all", CB_GET_CONTEXT: "context", CB_GET_BACKLINK: "backlink"},
     fetchPost: (_url: string, _data: unknown, callback: (response: IWebSocketData) => void) => callback({
         code: 0,
-        data: {rootID: "root-id"},
+        data: {rootID: responseState.rootID},
     } as IWebSocketData),
     showMessage: vi.fn(),
     getWindowInnerHeight: () => 900,
@@ -31,9 +33,11 @@ describe("BlockPanel editor initialization", () => {
         const editor = createProtyleDomainFixture(protyle);
         editor.destroy = vi.fn();
         const editors: typeof editor[] = [];
+        let renderOptions: IProtyleOptions["render"] | undefined;
 
         初始化Protyle编辑器(editorElement, {
             createEditor: (_element, options) => {
+                renderOptions = options.render;
                 options.after(editor);
                 return editor;
             },
@@ -58,6 +62,7 @@ describe("BlockPanel editor initialization", () => {
             persistView: false,
         });
         expect(editors).toContain(editor);
+        expect(renderOptions).toMatchObject({background: false, title: false});
         editorElement.remove();
     });
 });

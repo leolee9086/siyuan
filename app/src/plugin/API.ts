@@ -122,9 +122,11 @@ const getActiveDesktopEditor = (wndActive: boolean) => {
     const sel = getSelection();
     const range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
     const allEditor = getAllEditor();
-    // 优先查找包含当前选区的编辑器
+    // 优先查找包含当前选区的可见编辑器（选区所在编辑器必须未被隐藏）
     let editor = range
-        ? allEditor.find(item => item.protyle.element.contains(range.startContainer))
+        ? allEditor.find(item =>
+            !item.protyle.element.classList.contains("fn__none") &&
+            item.protyle.element.contains(range.startContainer))
         : undefined;
     // 其次查找位于活跃窗口中的可见编辑器
     if (!editor) {
@@ -223,13 +225,14 @@ const openEmoji = (options: {
     dynamicIconURL?: string
     hideDynamicIcon?: boolean
     hideCustomIcon?: boolean
+    targetID?: string
 }) => {
     let dynamicImgElement: HTMLImageElement | undefined;
     if (options.dynamicIconURL) {
         dynamicImgElement = document.createElement("img");
         dynamicImgElement.src = options.dynamicIconURL;
     }
-    openEmojiPanel("", "av", options.position, options.selectedCB, dynamicImgElement, {dynamic: options.hideDynamicIcon, custom: options.hideCustomIcon});
+    openEmojiPanel("", "av", options.position, options.selectedCB, dynamicImgElement, {dynamic: options.hideDynamicIcon, custom: options.hideCustomIcon, targetID: options.targetID});
 };
 
 /**

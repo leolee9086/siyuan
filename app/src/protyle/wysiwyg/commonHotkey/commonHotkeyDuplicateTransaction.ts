@@ -67,11 +67,13 @@ export const updateSubsequentMarkers = (
  *
  * 当复制一个已折叠的标题时，不仅要复制标题本身，还需要获取其隐藏的子块并生成对应的插入操作。
  * 函数会：
- * 1. 发起请求获取该标题下的所有子块 DOM。
- * 2. 逆序遍历子块（`reverse()`），为每个子块生成新 ID。
- * 3. 构建 `insert` 操作（正向操作）和 `delete` 操作（撤销操作），并将它们推入 `doOperations` 和 `undoOperations` 数组。
+ * 1. 以 `removeFoldAttr: false` 请求该标题下的所有子块 DOM，让副本保留折叠状态；
+ * 2. 跳过返回内容中的标题自身，按原始顺序正向遍历其余子块并为其分配新 ID；
+ * 3. 清除子块上的 `parent-heading` 界面辅助标记（副本已成为真实内容），
+ *    并以链式锚点（前一个新块的 ID）依次生成 `insert` 操作，保证插入顺序与原文档一致；
+ * 4. 为每个插入操作配套生成对应的 `delete` 撤销操作。
  *
- * 注意：此函数直接修改传入的 `foldHeadingIds`, `doOperations`, `undoOperations` 数组（副作用）。
+ * 注意：此函数直接修改传入的 `doOperations`, `undoOperations` 返回数组内容（非副作用式追加，由调用方合并）。
  *
  * @param item - 原始标题元素。
  * @param newId - 新标题块的 ID。
@@ -85,39 +87,41 @@ export const handleFoldedHeading = async (
     const undoOperations: IOperation[] = [];
     if (item.getAttribute("data-type") === "NodeHeading" && item.getAttribute("fold") === "1") {
         const oldId = item.getAttribute("data-node-id") || "";
-        const responseHTML = await fetchSyncPost("/api/block/getHeadingChildrenDOM", { id: oldId });
+        const responseHTML = await fetchSyncPost("/api/block/getHeadingChildrenDOM", {
+            id: oldId,
+            removeFoldAttr: false,
+        });
         const foldElement = document.createElement("template");
         foldElement.innerHTML = responseHTML.data;
-        const children = Array.from(foldElement.content.children).reverse();
-        for (let childIndex = 0; childIndex < children.length; childIndex++) {
-            if (childIndex === foldElement.content.children.length - 1) {
+        let previousID = newId;
+        const children = Array.from(foldElement.content.children).slice(1);
+        for (const childNode of children) {
+            if (!isHTMLElement(childNode)) {
                 continue;
             }
-            const childItem = children[childIndex];
-            if (!isHTMLElement(childItem)) {
-                continue;
-            }
-            const subItems = childItem.querySelectorAll("[data-node-id]");
+            childNode.removeAttribute("parent-heading");
+            const subItems = childNode.querySelectorAll("[data-node-id]");
             for (const subItem of Array.from(subItems)) {
                 subItem.setAttribute("data-node-id", Lute.NewNodeID());
                 clearBlockElement(subItem);
             }
             const newChildId = Lute.NewNodeID();
-            childItem.setAttribute("data-node-id", newChildId);
-            clearBlockElement(childItem);
+            childNode.setAttribute("data-node-id", newChildId);
+            clearBlockElement(childNode);
             doOperations.push({
                 context: {
                     ignoreProcess: "true"
                 },
                 action: "insert",
-                data: childItem.outerHTML,
+                data: childNode.outerHTML,
                 id: newChildId,
-                previousID: newId,
+                previousID,
             });
             undoOperations.push({
                 action: "delete",
                 id: newChildId,
             });
+            previousID = newChildId;
         }
     }
     return {

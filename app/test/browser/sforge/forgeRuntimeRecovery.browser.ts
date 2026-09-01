@@ -65,6 +65,8 @@ describe("Forge Runtime recovery document", () => {
                     data: {
                         available: true,
                         status: {
+                            lifecycle: "ready",
+                            ready: true,
                             activeVersion: {revision: targetRevision, state: "healthy"},
                             job: {id: matching ? jobId : "another-job", state: "completed", phase: "completed"},
                         },
@@ -131,6 +133,8 @@ describe("Forge Runtime recovery document", () => {
                 data: {
                     available: true,
                     status: {
+                        lifecycle: "ready",
+                        ready: true,
                         activeVersion: {revision: rollbackRevision, state: rollbackHealthy ? "healthy" : "starting"},
                         job: {id: jobId, state: "rolled_back", phase: "rollback", error: "candidate unhealthy"},
                     },

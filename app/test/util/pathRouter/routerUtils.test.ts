@@ -28,15 +28,18 @@ describe("RouterUtils测试", () => {
         url: "/test",
         params: {},
         query: {},
-        headers: {}
+        headers: {},
+        body: undefined
       },
       response: {
         status: 200,
         headers: {},
+        body: undefined,
         set: vi.fn(),
         redirect: vi.fn()
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [] as string[],
       set: vi.fn(),
@@ -70,15 +73,18 @@ describe("RouterUtils测试", () => {
         url: "/test",
         params: {},
         query: {},
-        headers: {}
+        headers: {},
+        body: undefined
       },
       response: {
         status: 200,
         headers: {},
+        body: undefined,
         set: vi.fn(),
         redirect: vi.fn()
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [] as string[],
       set: vi.fn(),
@@ -108,15 +114,18 @@ describe("RouterUtils测试", () => {
         url: "/test",
         params: {},
         query: {},
-        headers: {}
+        headers: {},
+        body: undefined
       },
       response: {
         status: 200,
         headers: {},
+        body: undefined,
         set: vi.fn(),
         redirect: vi.fn()
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [] as string[],
       set: vi.fn(),
@@ -156,15 +165,18 @@ describe("RouterUtils测试", () => {
         url: "/test",
         params: {},
         query: {},
-        headers: {}
+        headers: {},
+        body: undefined
       },
       response: {
         status: 200,
         headers: {},
+        body: undefined,
         set: vi.fn(),
         redirect: vi.fn()
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [] as string[],
       set: vi.fn(),
@@ -210,15 +222,18 @@ describe("RouterUtils测试", () => {
         url: "/test",
         params: {},
         query: {},
-        headers: {}
+        headers: {},
+        body: undefined
       },
       response: {
         status: 200,
         headers: {},
+        body: undefined,
         set: vi.fn(),
         redirect: vi.fn()
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [] as string[],
       set: vi.fn(),
@@ -270,15 +285,18 @@ describe("RouterUtils测试", () => {
         url: "/test",
         params: {},
         query: {},
-        headers: {}
+        headers: {},
+        body: undefined
       },
       response: {
         status: 200,
         headers: {},
+        body: undefined,
         set: vi.fn(),
         redirect: vi.fn()
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [] as string[],
       set: vi.fn(),
@@ -320,15 +338,18 @@ describe("RouterUtils测试", () => {
         url: "/test",
         params: {},
         query: {},
-        headers: {}
+        headers: {},
+        body: undefined
       },
       response: {
         status: 200,
         headers: {},
+        body: undefined,
         set: vi.fn(),
         redirect: vi.fn()
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [] as string[],
       set: vi.fn(),

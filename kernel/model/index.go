@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -18,6 +18,7 @@ package model
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/fs"
 	"path/filepath"
@@ -131,10 +132,28 @@ func (box *Box) Index() {
 }
 
 func removeBoxRefs(boxID string) {
+	if IsEncryptedBox(boxID) {
+		if err := AcquireEncryptedBoxOperation(boxID); err != nil {
+			return
+		}
+		defer ReleaseEncryptedBoxOperation(boxID)
+	}
 	sql.DeleteBoxRefsQueue(boxID)
 }
 
 func indexBox(boxID string) {
+	encrypted := IsEncryptedBox(boxID)
+	if encrypted {
+		if err := AcquireEncryptedBoxOperation(boxID); err != nil {
+			logging.LogWarnf("skip indexing encrypted notebook [%s]: %s", boxID, err)
+			return
+		}
+		defer ReleaseEncryptedBoxOperation(boxID)
+		if !isEncryptedBoxMounted(boxID) {
+			return
+		}
+	}
+
 	databaseIndexDataLock.Lock()
 	defer databaseIndexDataLock.Unlock()
 
@@ -228,6 +247,18 @@ func indexBox(boxID string) {
 }
 
 func IndexRefs() {
+	boxes := Conf.GetOpenedBoxes()
+	boxIDs := make([]string, 0, len(boxes))
+	for _, box := range boxes {
+		boxIDs = append(boxIDs, box.ID)
+	}
+	release, err := AcquireEncryptedBoxOperations(context.Background(), boxIDs)
+	if err != nil {
+		logging.LogWarnf("skip resolving references while an encrypted notebook is unavailable: %s", err)
+		return
+	}
+	defer release()
+
 	databaseIndexDataLock.Lock()
 	defer databaseIndexDataLock.Unlock()
 
@@ -239,7 +270,6 @@ func IndexRefs() {
 	var defBlockIDs []string
 	defBlockBoxes := map[string]string{} // defBlockID -> boxID，加密笔记本下需按 box 路由后续加载
 	luteEngine := util.NewLute()
-	boxes := Conf.GetOpenedBoxes()
 	for _, box := range boxes {
 		encryptedBox := IsEncryptedBox(box.ID)
 		pages := pagedPaths(filepath.Join(util.DataDir, box.ID), 32)
@@ -334,6 +364,9 @@ func autoIndexEmbedBlock() {
 	defer indexEmbedBlockLock.Unlock()
 
 	embedBlocks := sql.QueryEmptyContentEmbedBlocks()
+	for _, boxID := range treenode.GetOpenedEncryptedBoxIDs() {
+		embedBlocks = append(embedBlocks, sql.QueryEmptyContentEmbedBlocksInBox(boxID)...)
+	}
 	for i, embedBlock := range embedBlocks {
 		markdown := strings.TrimSpace(embedBlock.Markdown)
 		markdown = strings.TrimPrefix(markdown, "{{")
@@ -355,7 +388,12 @@ func autoIndexEmbedBlock() {
 			continue
 		}
 
-		queryResultBlocks := sql.SelectBlocksRawStmtNoParse(stmt, 102400)
+		var queryResultBlocks []*sql.Block
+		if IsEncryptedBox(embedBlock.Box) {
+			queryResultBlocks = sql.SelectBlocksRawStmtNoParseInBox(stmt, 102400, embedBlock.Box)
+		} else {
+			queryResultBlocks = sql.SelectBlocksRawStmtNoParse(stmt, 102400)
+		}
 		for _, block := range queryResultBlocks {
 			embedBlock.Content += block.Content
 		}
@@ -370,8 +408,12 @@ func autoIndexEmbedBlock() {
 	}
 }
 
-func updateEmbedBlockContent(embedBlockID string, queryResultBlocks []*EmbedBlock) {
-	embedBlock := sql.GetBlock(embedBlockID)
+func updateEmbedBlockContent(embedBlockID string, queryResultBlocks []*EmbedBlock, boxIDs ...string) {
+	boxID := ""
+	if len(boxIDs) > 0 {
+		boxID = boxIDs[0]
+	}
+	embedBlock := sql.GetBlockInBox(embedBlockID, boxID)
 	if nil == embedBlock {
 		return
 	}

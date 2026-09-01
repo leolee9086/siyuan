@@ -46,7 +46,7 @@ const getDatabaseAttrContainer = (element: HTMLElement) => {
     return attrContainer;
 };
 
-/** 处理数据库属性入口：优先使用编辑器内属性面板，必要时定位到对应块。 */
+/** 处理数据库属性入口：按配置优先使用编辑器内固定面板，必要时定位到对应块或展开具体视图。 */
 /** @同步豁免: 需要绝对同步的DOM访问 - 点击事件必须同步决定是否停止冒泡和切换面板。 */
 const handleDatabaseAttrClick = (options: {
     event: MouseEvent & {target: HTMLElement};
@@ -56,13 +56,29 @@ const handleDatabaseAttrClick = (options: {
 }) => {
     const {event, protyle, element, data} = options;
     event.stopPropagation();
-    // 文件属性上下文且编辑器已提供固定数据库面板时优先切换该面板。
-    if (data && protyle.databaseAttributePanel) {
-        protyle.databaseAttributePanel.toggle();
+    // 点击目标可能落在某个具体数据库视图上，提取其 avID 以便精准展开该视图
+    const avIDElement = event.target.closest("[data-av-id]") as HTMLElement;
+    const avID = avIDElement && element.contains(avIDElement) ? avIDElement.dataset.avId : "";
+    // 仅在启用固定数据库面板且点击模式为「聚焦块并展开数据库面板」时复用编辑器内面板
+    const databaseAttributePanel = window.siyuan.config.editor.databaseAttrShow &&
+        window.siyuan.config.editor.databaseAttrClickMode === 0 &&
+        protyle.databaseAttributePanel;
+    if (!databaseAttributePanel) {
+        // 未启用固定面板：文件属性上下文打开文件级属性，否则回退到块级属性面板
+        if (data) {
+            openFileAttr(data, "av", protyle);
+        } else {
+            openAttr(getDatabaseAttrContainer(element), "av", protyle);
+        }
         return true;
     }
     if (data) {
-        openFileAttr(data, "av", protyle);
+        // 文件属性上下文：存在具体数据库视图时直接展开该视图，否则切换整个面板
+        if (avID) {
+            databaseAttributePanel.expand(avID, true);
+        } else {
+            databaseAttributePanel.toggle();
+        }
         return true;
     }
     const blockElement = hasClosestBlock(element);
@@ -70,16 +86,19 @@ const handleDatabaseAttrClick = (options: {
     if (!blockID) {
         throw new Error("Cannot resolve the block for a database attribute click");
     }
-    if (!protyle.databaseAttributePanel) {
-        openAttr(getDatabaseAttrContainer(element), "av", protyle);
-        return true;
-    }
-    // 当前显示全部内容且点击根块属性时直接切换固定属性面板。
+    // 当前显示全部内容且点击根块属性时直接切换固定面板，否则退出聚焦并在返回后展开对应视图
     if (protyle.block.showAll && blockID === protyle.block.id) {
-        protyle.databaseAttributePanel.toggle();
+        if (avID) {
+            databaseAttributePanel.expand(avID, true);
+        } else {
+            databaseAttributePanel.toggle();
+        }
         return true;
     }
-    protyle.getInstance().zoomOut({id: blockID});
+    protyle.getInstance().zoomOut({
+        id: blockID,
+        callback: avID ? () => databaseAttributePanel.expand(avID, true) : undefined,
+    });
     return true;
 };
 

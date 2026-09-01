@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -301,6 +301,8 @@ func newWebFetchClient(timeout time.Duration, proxyURL string, checkRedirect fun
 		}
 		transport.Proxy = http.ProxyURL(parsedProxy)
 	}
+	// 直连路径固定目标 IP，避免 DNS 重绑定 TOCTOU 绕过（GHSA-x8gv-g2g3-65fj）。
+	transport.DialContext = ssrfSafeDialContext(timeout)
 	return &http.Client{Timeout: timeout, Transport: transport, CheckRedirect: checkRedirect}, nil
 }
 

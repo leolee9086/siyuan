@@ -77,12 +77,18 @@ export const insertAsRef = async (
     if (!protyle.lute) {
         throw new Error("Cannot insert block references before Protyle Lute is initialized");
     }
-    let html = "";
-    for (const id of selectedIds) {
-        const response = await fetchSyncPost("/api/block/getRefText", { id });
-        html += protyle.lute.Md2BlockDOM(`((${id} '${response.data}'))`);
+    let markdown = "";
+    for (let i = 0; i < selectedIds.length; i++) {
+        if (selectedIds.length > 1) {
+            markdown += "- ";
+        }
+        const response = await fetchSyncPost("/api/block/getRefText", {id: selectedIds[i]});
+        markdown += `((${selectedIds[i]} '${response.data}'))`;
+        if (selectedIds.length > 1 && i !== selectedIds.length - 1) {
+            markdown += "\n";
+        }
     }
-    insertHTML(html, protyle);
+    insertHTML(protyle.lute.Md2BlockDOM(markdown), protyle);
 };
 
 /**

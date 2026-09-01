@@ -325,6 +325,7 @@ describe("Model WebSocket lifecycle", () => {
     });
 
     it("registers an Electron exit identity before asynchronous message handling", async () => {
+        window.siyuan.isReady = true;
         const model = new Model({app: {} as never});
         const {socket} = createSocket(WebSocket.OPEN);
         const exitResponse = {

@@ -12,6 +12,9 @@ import { getSiyuanConfig, getSafeSiyuanStorage } from "../../util/siyuanEnvironm
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isStylableElement } from "../../util/DOM/element.guard";
 import {withEncryptedNotebook} from "../../util/file/notebook/store";
+import {disabledWYSIWYG} from "../util/disabledWYSIWYG";
+import {normalizeHTMLAssetIFrameBlockDOM} from "../../asset/html";
+import {finishCustomEmbedRender, finishEmptyEmbedRender, IEmbedRenderLoadingState} from "./embedRenderState";
 
 /**
  * 表示嵌入查询返回或本地搜索合成的一项块结果。
@@ -27,47 +30,51 @@ const getHeadingMode = (item: HTMLElement) => {
     const headingModeAttr = item.getAttribute("custom-heading-mode");
     return ["0", "1", "2"].includes(headingModeAttr || "") ? parseInt(headingModeAttr || "0", 10) : getSiyuanConfig()?.editor?.headingEmbedMode;
 };
-/** 处理 JS 脚本搜索 (//!js) */
-const handleJsScriptSearch = (ctx: SearchContext): boolean => {
+
+/** 处理 JS 脚本搜索 (//!js)，安全模式下禁用并返回过期提示 */
+const handleJsScriptSearch = (ctx: SearchContext, loadingState: IEmbedRenderLoadingState): boolean => {
     const { protyle, item, content, breadcrumb, top, onEmbedRender } = ctx;
     if (!content.startsWith("//!js")) {
         return false;
     }
+    // 安全模式下禁用 JS 查询嵌入块，与代码片段（CSS/JS snippet）的处理保持一致
+    if (getSiyuanConfig()?.system?.safeMode) {
+        renderEmbed([], protyle, item, top, window.siyuan.languages.safeModeJSTip, onEmbedRender);
+        return true;
+    }
+    const renderError = (error: unknown) => {
+        console.error(error);
+        renderEmbed([], protyle, item, top, String(error), onEmbedRender);
+    };
     try {
-        const includeIDs = new Function(
-            "fetchSyncPost", "item", "protyle", "top", content
+        // 以异步 IIFE 包装用户脚本，使查询代码可以像同步代码一样书写并支持 await
+        const includeIDsPromise = new Function(
+            "fetchSyncPost",
+            "item",
+            "protyle",
+            "top",
+            `return (async () => {
+${content}
+})();`
         )(fetchSyncPost, item, protyle, top);
-
-        if (includeIDs instanceof Promise) {
+        // @内联回调
+        includeIDsPromise.then((includeIDs: unknown) => {
+            if (!Array.isArray(includeIDs)) {
+                finishCustomEmbedRender(item, loadingState, onEmbedRender);
+                return;
+            }
             // @内联回调
-            includeIDs.then((promiseIds) => {
-                if (!Array.isArray(promiseIds)) {
-                    return;
-                }
-                // @内联回调
-                fetchPost("/api/search/getEmbedBlock", {
-                    embedBlockID: item.getAttribute("data-node-id"),
-                    includeIDs: promiseIds,
-                    headingMode: getHeadingMode(item),
-                    breadcrumb
-                }, (response) => {
-                    renderEmbed(response.data.blocks || [], protyle, item, top, undefined, onEmbedRender);
-                });
-            }).catch((e) => renderEmbed([], protyle, item, top, String(e), onEmbedRender));
-            return true;
-        }
-        if (Array.isArray(includeIDs)) {
-            fetchPost("/api/search/getEmbedBlock", {
+            fetchPost("/api/search/getEmbedBlock", withEncryptedNotebook(protyle.notebookId, {
                 embedBlockID: item.getAttribute("data-node-id"),
                 includeIDs,
                 headingMode: getHeadingMode(item),
                 breadcrumb
-            }, (response) => {
+            }), (response) => {
                 renderEmbed(response.data.blocks || [], protyle, item, top, undefined, onEmbedRender);
             });
-        }
+        }).catch(renderError);
     } catch (e) {
-        renderEmbed([], protyle, item, top, String(e), onEmbedRender);
+        renderError(e);
     }
     return true;
 };
@@ -170,8 +177,8 @@ const handleSqlSearch = (ctx: SearchContext): void => {
 };
 
 /** 分发搜索请求到对应的处理函数 */
-const dispatchSearch = (ctx: SearchContext) => {
-    if (handleJsScriptSearch(ctx)) {
+const dispatchSearch = (ctx: SearchContext, loadingState: IEmbedRenderLoadingState) => {
+    if (handleJsScriptSearch(ctx, loadingState)) {
         return;
     }
     if (handleKeywordSearch(ctx)) {
@@ -204,11 +211,22 @@ export const blockRender = (protyle: IProtyle, element: Element, top?: number, o
             continue;
         }
         const item = itemElement;
+        const content = Lute.UnEscapeHTMLStr(item.getAttribute("data-content") || "");
+        // 查询内容为空时仅重建框架并结束本次渲染，避免发起无效请求
+        if (!content.trim()) {
+            genRenderFrame(item);
+            finishEmptyEmbedRender(item, onEmbedRender);
+            continue;
+        }
         // 需置于请求返回前，否则快速滚动会导致重复加载 https://ld246.com/article/1666857862494?r=88250
         item.setAttribute("data-render", "true");
         genRenderFrame(item);
+        const loadingState: IEmbedRenderLoadingState = {
+            rotateElement: item.querySelector(":scope > .protyle-icons .protyle-action__reload .fn__rotate"),
+        };
         if (item.childElementCount > 3) {
-            item.style.height = (item.clientHeight - 4) + "px"; // 减少抖动 https://ld246.com/article/1668669380171
+            loadingState.height = (item.clientHeight - 4) + "px";
+            item.style.height = loadingState.height; // 减少抖动 https://ld246.com/article/1668669380171
             // 使用 slice 从索引 1 到倒数第二个，避免索引访问可能返回 undefined
             const middleChildren = Array.from(item.children).slice(1, -1);
             for (const child of middleChildren) {
@@ -217,13 +235,12 @@ export const blockRender = (protyle: IProtyle, element: Element, top?: number, o
                 }
             }
         }
-        const content = Lute.UnEscapeHTMLStr(item.getAttribute("data-content") || "");
         const breadcrumbAttr = item.getAttribute("breadcrumb") || "";
         const breadcrumb: boolean = breadcrumbAttr
             ? breadcrumbAttr === "true"
             : (getSiyuanConfig()?.editor?.embedBlockBreadcrumb || false);
 
-        dispatchSearch({protyle, item, content, breadcrumb, top, onEmbedRender});
+        dispatchSearch({protyle, item, content, breadcrumb, top, onEmbedRender}, loadingState);
     }
 };
 
@@ -244,7 +261,8 @@ const generateEmbedBlocksHtml = (blocks: IEmbedBlockResult[]): string => {
             popover = `<div class="protyle-icons"><span data-id="${block.id}" data-action="openFloat" aria-label="${siyuanI18n.refPopover}" data-position="4north" class="ariaLabel protyle-icon protyle-icon--last protyle-icon--first"><svg><use xlink:href="#iconPictureInPicture"></use></svg></span></div>`;
         }
         const childOperationAttr = blocksItem.allowChildOperation ? ' data-allow-child-operation="true"' : "";
-        html += `<div class="protyle-wysiwyg__embed" data-id="${block.id}"${childOperationAttr}>
+        const rootIDAttr = blocksItem.block.rootID ? ` data-root-id="${blocksItem.block.rootID}"` : "";
+        html += `<div class="protyle-wysiwyg__embed" data-id="${block.id}"${rootIDAttr}${childOperationAttr}>
 ${popover}${breadcrumbHTML}${block.content}
 </div>`;
     }
@@ -257,7 +275,7 @@ const renderBlocksAndImproveBreadcrumb = (item: HTMLElement, blocks: IEmbedBlock
     if (!item.firstElementChild) {
         return;
     }
-    item.firstElementChild.insertAdjacentHTML("afterend", html);
+    item.firstElementChild.insertAdjacentHTML("afterend", normalizeHTMLAssetIFrameBlockDOM(html));
     // 更新第一个嵌入块的浮窗图标 data-id（复用框架内已有的图标）
     const firstBlock = blocks[0];
     const popoverElement = firstBlock ? item.querySelectorAll(".protyle-icon")[2] : undefined;
@@ -333,6 +351,10 @@ const renderEmbed = (blocks: IEmbedBlockResult[], protyle: IProtyle, item: HTMLE
     contentRendererRegistry.renderBatch(item);
     highlightRender(item);
     avRender(item, protyle);
+    if (protyle.disabled) {
+        // 嵌入块异步渲染可能晚于只读状态设置，需同步禁用新插入的可编辑节点
+        disabledWYSIWYG(item);
+    }
     // 当提供了滚动位置参数且编辑器内容元素存在时，恢复滚动位置
     // 用于前进后退导航时的精确定位 https://ld246.com/article/1667652729995
     if (top && protyle.contentElement) {

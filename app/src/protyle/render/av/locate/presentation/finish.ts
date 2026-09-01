@@ -1,9 +1,7 @@
-/** 用途：AV 视图属性；使用范围：视图持久化；解耦评估：经本阶段网关直达常量。 */
-import {Constants} from "./imports";
+/** 用途：统一持久化定位视图；使用范围：完成阶段；解耦评估：直达定位状态真实所有者。 */
+import {persistAVLocateView} from "./imports";
 /** 用途：目标缺失消息；使用范围：完成失败；解耦评估：经本阶段网关直达唯一实现。 */
 import {showMessage} from "./imports";
-/** 用途：提交已应用的视图持久化事务；使用范围：跨视图定位；解耦评估：经本阶段网关直达唯一命令。 */
-import {submitAppliedAVViewTransaction} from "./imports";
 /** 用途：清除单元格选择；使用范围：表格定位；解耦评估：经本阶段网关直达唯一实现。 */
 import {clearSelect} from "./imports";
 /** 用途：添加拖拽填充柄；使用范围：表格定位；解耦评估：经本阶段网关直达唯一实现。 */
@@ -87,31 +85,6 @@ const highlightLocatedItem = (context: AVLocatePresentationContext, groupQuery: 
     registry.highlightTokens.set(context.blockElement, token);
     const frame: AVLocateHighlightFrame = {context, groupQuery, token};
     requestAnimationFrame(renderLocatedHighlight.bind(undefined, frame));
-};
-
-/** 按定位请求切换视图；提交事务时返回 true，等待后续重渲染完成定位。 */
-const persistLocatedView = (context: AVLocatePresentationContext) => {
-    const {blockElement, protyle, data, request} = context;
-    const currentViewID = blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) ?? request.previousViewID ?? data.viewID;
-    if (data.target?.status === "viewNotFound" || !request.viewID || request.viewID === currentViewID) {
-        return false;
-    }
-    blockElement.setAttribute(Constants.CUSTOM_SY_AV_VIEW, request.viewID);
-    if (protyle.disabled || request.persistView === false) {
-        return false;
-    }
-    submitAppliedAVViewTransaction(protyle, [{
-        action: "setAttrViewBlockView",
-        blockID: blockElement.dataset.nodeId,
-        id: request.viewID,
-        avID: blockElement.dataset.avId,
-    }], [{
-        action: "setAttrViewBlockView",
-        blockID: blockElement.dataset.nodeId,
-        id: currentViewID,
-        avID: blockElement.dataset.avId,
-    }]);
-    return true;
 };
 
 /** 按表格语义选择目标块单元格。 */
@@ -209,7 +182,7 @@ export const finishAVLocate = (blockElement: HTMLElement, protyle: IProtyle, dat
         clearAVLocateRequest(blockElement, request);
         return;
     }
-    if (persistLocatedView(context)) {
+    if (persistAVLocateView(blockElement, protyle, data)) {
         return;
     }
     // 非可见目标已在准备阶段报告原因，完成阶段只负责清理请求。

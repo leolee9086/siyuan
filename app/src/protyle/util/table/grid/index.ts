@@ -80,7 +80,13 @@ export const buildTableGrid = (tableElement: HTMLElement) => {
         state.sectionOfRow[row] = rowElement.parentElement?.tagName === "THEAD" ? "thead" : "tbody";
         collectRowCells(rowElement, row, state);
     }
-    return {cellInfos: state.cellInfos, sectionOfRow: state.sectionOfRow, rowCount: rowElements.length};
+    return {
+        cellInfos: state.cellInfos,
+        sectionOfRow: state.sectionOfRow,
+        rowCount: rowElements.length,
+        grid: state.occupiedCells,
+        columnCount: state.occupiedCells.reduce((count, row) => Math.max(count, row.length), 0),
+    };
 };
 
 /** 计算两个物理单元格覆盖范围形成的闭区间矩形。 @同步豁免: 需要绝对同步的DOM访问 - 调用方在同一复制或粘贴栈内立即使用当前单元格身份。 */

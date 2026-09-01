@@ -41,6 +41,18 @@ import {renderCellAttr} from "./animation/imports";
  */
 import {updateHeaderCell} from "./animation/imports";
 /**
+ * 用途：按类型获取列图标。
+ * 使用范围：属性面板列图标刷新时使用。
+ * 解耦评估：列图标映射通过 animation 网关集中转发，避免直接依赖列工具。
+ */
+import {getColIconByType} from "./animation/imports";
+/**
+ * 用途：渲染 emoji 图标。
+ * 使用范围：属性面板列图标为 emoji 时使用。
+ * 解耦评估：emoji 渲染通过 animation 网关转发，避免直接依赖 emoji 模块。
+ */
+import {unicode2Emoji} from "./animation/imports";
+/**
  * 用途：判断当前视图是否属于 gallery / kanban 这类卡片式布局。
  * 使用范围：用于决定 renderCell 参数签名，以及是否回写父容器的 `data-empty`。
  * 解耦评估：卡片布局判定是当前 action 子目录的本地规则，复用 guards 比在本文件维护字符串列表更不容易漂移。
@@ -52,6 +64,12 @@ import { isCardLayoutView } from "./action.guards";
  * 解耦评估：DOM attribute 到业务类型的收窄应集中在 guard 文件，否则各模块会重复出现字符串回退逻辑。
  */
 import { toAttrViewType } from "./action.guards";
+/**
+ * 用途：把列类型字符串收窄为 TAVCol。
+ * 使用范围：属性面板列图标刷新时读取 data-type。
+ * 解耦评估：通过 guard 集中收窄，避免在业务代码散落 as 断言。
+ */
+import { toAttrColType } from "./action.guards";
 
 /**
  * 刷新卡片式视图中的 checkbox 值结构。
@@ -158,4 +176,53 @@ export const updateAttrViewCellAnimation = async (
         addDragFill(cellElement);
     }
     renderCellAttr(cellElement, value);
+};
+
+/** 把列元数据变更投影到一个数据库属性面板字段。 */
+const updateAttributePanelColumn = (
+    item: HTMLElement,
+    headerValue: {icon?: string; name?: string; type?: TAVCol},
+) => {
+    const nameElement = item.querySelector(".block__logo span");
+    // 名称刷新：仅当传入 name 且目标 span 存在时才回写，避免空值覆盖
+    if (typeof headerValue.name !== "undefined" && nameElement) {
+        nameElement.textContent = headerValue.name;
+    }
+    if (typeof headerValue.icon === "undefined") {
+        return;
+    }
+    const iconElement = item.querySelector(".block__logoicon");
+    const typeElement = item.querySelector<HTMLElement>(":scope > [data-type][data-col-id]");
+    const rawType = typeElement?.dataset.type ?? null;
+    if (!iconElement || !rawType) {
+        return;
+    }
+    const type = toAttrColType(rawType);
+    iconElement.outerHTML = headerValue.icon ?
+        unicode2Emoji(headerValue.icon, "block__logoicon", true) :
+        `<svg class="block__logoicon"><use xlink:href="#${getColIconByType(type)}"></use></svg>`;
+};
+
+/**
+ * 同步同一数据库全部可见实例及属性面板中的字段名称和图标。
+ * @同步豁免: UI构建
+ */
+export const updateAttrViewColAnimation = (options: {
+    protyle: IProtyle,
+    avID: string,
+    colID: string,
+    headerValue: {icon?: string; name?: string; type?: TAVCol},
+}) => {
+    const {protyle, avID, colID, headerValue} = options;
+    // 使用 for...of 替代 forEach，保证可中断且与项目 no-for-each 规则一致
+    for (const item of protyle.wysiwyg.element.querySelectorAll<HTMLElement>(
+        `.av[data-av-id="${avID}"] .av__row--header .av__cell[data-col-id="${colID}"]`,
+    )) {
+        void updateAttrViewCellAnimation(item, undefined, headerValue);
+    }
+    for (const item of document.querySelectorAll<HTMLElement>(
+        `.custom-attr [data-av-id="${avID}"] > .av__row[data-col-id="${colID}"]`,
+    )) {
+        updateAttributePanelColumn(item, headerValue);
+    }
 };

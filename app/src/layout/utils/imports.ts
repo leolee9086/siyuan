@@ -30,7 +30,7 @@ import { tabRegistry } from "../../registry";
 /** 导出 tabRegistry，供 utils 模块使用 */
 export { tabRegistry };
 /** 用途：创建注册表声明的 Custom 模型。使用范围：newTab 自定义页签装配。解耦评估：复用 Dock 唯一组合工厂。 */
-import {createCustomTabModel} from "../dock/dock.factory";
+import {createCustomTabModel} from "../dock/custom/factory";
 /** 导出 Custom 模型组合工厂。 */
 export {createCustomTabModel};
 

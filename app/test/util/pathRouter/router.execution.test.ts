@@ -18,15 +18,18 @@ describe("router execution", () => {
         url: "/users/123",
         params: {},
         query: {},
-        headers: {}
+        headers: {},
+        body: undefined
       },
       response: {
         status: 200,
         headers: {},
+        body: undefined,
         set: vi.fn(),
         redirect: vi.fn()
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [],
       set: vi.fn(),
@@ -118,6 +121,7 @@ describe("router execution", () => {
         },
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [],
       set: vi.fn(),

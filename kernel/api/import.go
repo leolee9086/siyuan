@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -87,6 +87,21 @@ func importSYNotebook(c *gin.Context) {
 		return
 	}
 	defer cleanup()
+	if ids, bundle, bundleErr := model.ImportSYNotebookBundle(writePath); bundle {
+		if bundleErr != nil {
+			ret.Code = -1
+			ret.Msg = bundleErr.Error()
+			return
+		}
+		boxes, mountErr := mountImportedNotebooks(ids)
+		if nil != mountErr {
+			ret.Code = -1
+			ret.Msg = mountErr.Error()
+			return
+		}
+		ret.Data = map[string]any{"notebooks": boxes}
+		return
+	}
 
 	id, err := model.ImportSYNotebook(writePath)
 	if err != nil {
@@ -129,6 +144,21 @@ func importSYAuto(c *gin.Context) {
 		return
 	}
 	defer cleanup()
+	if ids, bundle, bundleErr := model.ImportSYNotebookBundle(writePath); bundle {
+		if bundleErr != nil {
+			ret.Code = -1
+			ret.Msg = bundleErr.Error()
+			return
+		}
+		boxes, mountErr := mountImportedNotebooks(ids)
+		if nil != mountErr {
+			ret.Code = -1
+			ret.Msg = mountErr.Error()
+			return
+		}
+		ret.Data = map[string]any{"type": "notebooks", "notebooks": boxes}
+		return
+	}
 
 	var notebook string
 	if values := form.Value["notebook"]; len(values) > 0 {
@@ -175,6 +205,25 @@ func importSYAuto(c *gin.Context) {
 	event := util.NewCmdResult("createnotebook", 0, util.PushModeBroadcast)
 	event.Data = map[string]any{"box": box, "existed": existed}
 	util.PushEvent(event)
+}
+
+func mountImportedNotebooks(ids []string) (ret []*model.Box, err error) {
+	for _, id := range ids {
+		var existed bool
+		existed, err = model.Mount(id)
+		if nil != err {
+			return
+		}
+		box := model.Conf.Box(id)
+		if nil == box {
+			return nil, fmt.Errorf("opened notebook [%s] not found", id)
+		}
+		ret = append(ret, box)
+		event := util.NewCmdResult("createnotebook", 0, util.PushModeBroadcast)
+		event.Data = map[string]any{"box": box, "existed": existed}
+		util.PushEvent(event)
+	}
+	return
 }
 
 func continueImportSY(c *gin.Context) {
@@ -440,6 +489,7 @@ func importStdMd(c *gin.Context) {
 	notebook := arg["notebook"].(string)
 	localPath := arg["localPath"].(string)
 	toPath := arg["toPath"].(string)
+	skipRoot, _ := arg["skipRoot"].(bool)
 
 	if gulu.File.IsSubPath(util.WorkingDir, localPath) {
 		msg := fmt.Sprintf("import from local path [%s] failed: local path is sub path of working dir", localPath)
@@ -457,7 +507,12 @@ func importStdMd(c *gin.Context) {
 		return
 	}
 
-	err := model.ImportFromLocalPath(notebook, localPath, toPath)
+	var err error
+	if skipRoot {
+		err = model.ImportFromLocalPathSkipRoot(notebook, localPath, toPath)
+	} else {
+		err = model.ImportFromLocalPath(notebook, localPath, toPath)
+	}
 	if err != nil {
 		ret.Code = -1
 		ret.Msg = err.Error()
@@ -555,6 +610,7 @@ func importZipMd(c *gin.Context) {
 
 	notebook := form.Value["notebook"][0]
 	toPath := form.Value["toPath"][0]
+	skipRoot := len(form.Value["skipRoot"]) > 0 && form.Value["skipRoot"][0] == "true"
 
 	// 准备解压路径
 	filenameMain := strings.TrimSuffix(file.Filename, filepath.Ext(file.Filename))
@@ -572,7 +628,11 @@ func importZipMd(c *gin.Context) {
 	}
 
 	// 调用本地导入逻辑
-	err = model.ImportFromLocalPath(notebook, unzipPath, toPath)
+	if skipRoot {
+		err = model.ImportFromLocalPathSkipRoot(notebook, unzipPath, toPath)
+	} else {
+		err = model.ImportFromLocalPath(notebook, unzipPath, toPath)
+	}
 
 	if err != nil {
 		ret.Code = -1

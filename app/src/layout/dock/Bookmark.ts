@@ -18,6 +18,7 @@ import {filterBookmarkData, getBookmarkFilterKeywords} from "./bookmarkFilter";
 import {bookmarkModelBrand} from "./bookmark/bookmark.types";
 import type {ProtyleDomain} from "../../protyle/protyle.types";
 import type {TreeDomain} from "../../util/file/tree.types";
+import {setDragTipGhost} from "../../protyle/util/dragTip";
 
 export class Bookmark extends Model<AppFacade, LayoutTab> {
     public override parent: LayoutTab;
@@ -92,7 +93,16 @@ export class Bookmark extends Model<AppFacade, LayoutTab> {
             blockExtHTML: '<span class="b3-list-item__action"><svg><use xlink:href="#iconMore"></use></svg></span>',
             topExtHTML: '<span class="b3-list-item__action"><svg><use xlink:href="#iconMore"></use></svg></span>',
             blockDraggable: !window.siyuan.config.readonly,
-            dragStart: (element, event) => this.dropController.handleDragStart(element, event),
+            dragStart: (element, event) => {
+                const started = this.dropController.handleDragStart(element, event);
+                if (!started) {
+                    return false;
+                }
+                // 拖拽开始时按指针相对块首的位置渲染拖拽提示幽灵元素
+                const rect = element.getBoundingClientRect();
+                setDragTipGhost(element, event.clientX - rect.left, event.clientY - rect.top);
+                return true;
+            },
             dragEnd: (element) => this.dropController.handleDragEnd(element),
             toggleClick: (element: HTMLElement) => this._toggleItem(element),
         });

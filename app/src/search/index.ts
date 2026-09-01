@@ -43,7 +43,7 @@ import {clearObjectBlockGraphs} from "./imports";
  */
 import { getSiyuanConfig } from "./imports";
 import {searchModelBrand} from "./model/search.types";
-
+import {cancelSearchRequest} from "./request";
 /**
  * 用途：处理 Search 面板元素点击——恢复焦点并清除 O/B/G 高亮
  * 调用时机：Search 元素 click 事件触发时
@@ -125,6 +125,13 @@ class Search extends Model<AppFacade, LayoutTab> {
         inputElement.value = text;
         inputElement.select();
         inputElement.dispatchEvent(new CustomEvent("input"));
+    }
+
+    /** 用途：销毁搜索面板，取消未完成的搜索请求并释放两个编辑器。调用时机：页签关闭时由布局销毁流程调用。 */
+    public destroy() {
+        cancelSearchRequest(this.element);
+        this.editors.edit.destroy();
+        this.editors.unRefEdit.destroy();
     }
 }
 

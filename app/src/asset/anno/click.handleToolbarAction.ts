@@ -1,16 +1,31 @@
+/** 用途：发送注释持久化请求。使用范围：移除和切换标注后同步写入。解耦评估：通过 ./imports 转发网络边界。 */
 import {fetchPost} from "./imports";
-import { rectElement } from "./state/selection";
-import { getConfig } from "./config";
-import { AnnoConstants } from "./constants";
-import { copyAnno } from "./anno.copy";
-import { hideToolbar } from "./anno.hideToolbar";
-import { downloadRectAsPng } from "./anno.getRectImgData";
-import { exportPageAsPng } from "./anno.exportPage";
-import { setRelation } from "./anno.setRelation";
-import type { IPdfInstance, ToolbarActionContext, ToolbarActionHandler, ToolbarActionRegistry } from "./anno.types";
+/** 用途：读取当前选择的矩形标注。使用范围：工具栏动作的目标上下文。解耦评估：selection state 是本目录唯一状态 owner。 */
+import {rectElement} from "./state/selection";
+/** 用途：读取当前 PDF 注释配置。使用范围：更新或删除持久化标注。解耦评估：config owner 保持缓存和网络加载语义。 */
+import {getConfig} from "./config";
+/** 用途：按字面属性值定位同一标注。使用范围：删除和样式更新，避免 selector 注入。解耦评估：guard 集中安全 DOM 查找。 */
+import {getRectElementsByNodeId} from "./anno.guard";
+/** 用途：提供标注 DOM 属性和动作常量。使用范围：工具栏 dispatcher。解耦评估：常量 owner 防止协议字面量分散。 */
+import {AnnoConstants} from "./constants";
+/** 用途：复制标注引用。使用范围：工具栏复制动作。解耦评估：copy owner 处理剪贴板和截图语义。 */
+import {copyAnno} from "./anno.copy";
+/** 用途：关闭 PDF 注释工具栏。使用范围：每个动作完成后的 UI 收尾。解耦评估：hide owner 集中 DOM 可见性语义。 */
+import {hideToolbar} from "./anno.hideToolbar";
+/** 用途：将选中标注下载为 PNG。使用范围：下载动作。解耦评估：截图 owner 封装 canvas 与文件输出。 */
+import {downloadRectAsPng} from "./anno.getRectImgData";
+/** 用途：导出当前 PDF 页为 PNG。使用范围：导出页动作。解耦评估：page export owner 封装图片生成。 */
+import {exportPageAsPng} from "./anno.exportPage";
+/** 用途：打开标注关联编辑界面。使用范围：关联动作。解耦评估：relation owner 维护关联列表和持久化。 */
+import {setRelation} from "./anno.setRelation";
+/** 用途：约束 PDF 实例参数。使用范围：工具栏上下文创建。解耦评估：纯类型不产生运行时依赖。 */
+import type {IPdfInstance} from "./anno.types";
+/** 用途：约束工具栏动作上下文。使用范围：内部 handler 参数与兼容性导出。解耦评估：纯类型不产生运行时依赖。 */
+import type {ToolbarActionContext} from "./anno.types";
 
 // 类型重新导出，保持向后兼容
 export type { ToolbarActionContext, ToolbarActionHandler } from "./anno.types";
+/** @同步豁免: UI构建 */
 /**
  * 创建工具栏操作上下文
  *
@@ -19,8 +34,7 @@ export type { ToolbarActionContext, ToolbarActionHandler } from "./anno.types";
  * @param pdf - PDF实例对象
  * @returns 工具栏操作上下文
  */
-export const createToolbarActionContext = (pdf: IPdfInstance, element: HTMLElement): ToolbarActionContext => {
-    /** @同步豁免: 仅进行简单的同步计算和状态提取 */
+export const createToolbarActionContext = (pdf: IPdfInstance, element: HTMLElement) => {
     const urlPath = pdf.appConfig.file.replace(location.origin, "").substr(1);
     const config = getConfig(pdf);
     const id = rectElement?.getAttribute(AnnoConstants.ATTR.DATA_NODE_ID) || undefined;
@@ -52,7 +66,7 @@ const handleRemoveAction = (ctx: ToolbarActionContext) => {
 
     if (id) {
         delete config[id];
-        const itemsToRemove = element.querySelectorAll(`[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`);
+        const itemsToRemove = getRectElementsByNodeId(element, id);
         for (const item of itemsToRemove) {
             item.remove();
         }
@@ -125,7 +139,7 @@ const handleRelateAction = (ctx: ToolbarActionContext) => {
  * @param type - 注释类型
  */
 const updateAnnotationStyle = (element: HTMLElement, id: string, type: string) => {
-    const rectItems = element.querySelectorAll(`.${AnnoConstants.CSS.PDF_RECT}[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`);
+    const rectItems = getRectElementsByNodeId(element, id);
     for (const rectItem of rectItems) {
         for (const item of Array.from(rectItem.children)) {
             // rectItem.children 返回 Element 类型，只有 HTMLElement 才有 style 属性
@@ -151,7 +165,7 @@ const updateAnnotationStyle = (element: HTMLElement, id: string, type: string) =
  *       文本模式下,注释区域填充背景色;边框模式下,仅显示边框。
  *       这样用户可以根据阅读需求选择更合适的显示方式。
  *
- * @调用时机 通过工具栏操作注册表(toolbarActionRegistry)调用,
+ * @调用时机 通过 getToolbarAction 的 action resolver 调用,
  *          当用户点击PDF注释工具栏上的切换按钮时触发。
  *          该函数被注册为 AnnoConstants.ACTION.TOGGLE 对应的处理器。
  *
@@ -214,24 +228,21 @@ const handleExportPageAction = async (ctx: ToolbarActionContext) => {
     hideToolbar(element);
 };
 
+/** @同步豁免: UI构建 */
 /**
- * 工具栏操作处理器注册表
- *
- * 使用策略模式实现，将操作类型映射到对应的处理函数
- * 这种设计使得添加新操作类型变得简单，只需在注册表中添加新条目
- *
- * @example 添加新操作类型
- * ```typescript
- * // 添加新的操作类型
- * toolbarActionRegistry['newAction'] = handleNewAction;
- * ```
+ * 从稳定的工具栏 action 字符串解析无状态处理器。
+ * 解析器为每次分发构造冻结映射，不保存可变 registry，因此不会在测试或 HMR 间残留状态。
  */
-export const toolbarActionRegistry: ToolbarActionRegistry = {
-    [AnnoConstants.ACTION.REMOVE]: handleRemoveAction,
-    [AnnoConstants.ACTION.COPY]: handleCopyAction,
-    [AnnoConstants.ACTION.RELATE]: handleRelateAction,
-    [AnnoConstants.ACTION.TOGGLE]: handleToggleAction,
-    [AnnoConstants.ACTION.DOWNLOAD]: handleDownloadAction,
-    [AnnoConstants.ACTION.EXPORT_PAGE]: handleExportPageAction,
+export const getToolbarAction = (type: string) => {
+    // @内联对象: 映射必须跟随动作实现定义，短生命周期冻结对象避免模块级可变状态。
+    const actions = Object.freeze({
+        [AnnoConstants.ACTION.REMOVE]: handleRemoveAction,
+        [AnnoConstants.ACTION.COPY]: handleCopyAction,
+        [AnnoConstants.ACTION.RELATE]: handleRelateAction,
+        [AnnoConstants.ACTION.TOGGLE]: handleToggleAction,
+        [AnnoConstants.ACTION.DOWNLOAD]: handleDownloadAction,
+        [AnnoConstants.ACTION.EXPORT_PAGE]: handleExportPageAction,
+    });
+    return Reflect.get(actions, type);
 };
 

@@ -3,6 +3,12 @@ import { Model } from "../Model";
 import { Constants } from "../../constants";
 import { pathPosix, setNoteBook } from "../../util/file/pathName";
 import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
+import {
+    getFileTreeSortRefreshTargets,
+    reorderFileTreeNotebooks,
+    updateFileTreeSortMode,
+    type IDocSortModeChanged
+} from "../../util/fileTreeSort";
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import type {AppFacade} from "../../app/AppFacade.types";
 import { initFilesDrag } from "./Files/dnd";
@@ -25,10 +31,11 @@ import {
     initPanel
 } from "./Files/init";
 import {cancelFileTreeCollapse} from "./fileTreeAnimation";
-import {updateAllDocActions, updateSubFileCount} from "./Files/docActions";
-import {refreshChangedFiletreeSort, refreshChangedNotebookSort} from "./Files/sortRefresh";
+import {updateAllDocActions, updateDocActionElement, updateSubFileCount} from "./Files/docActions";
+import {refreshChangedFiletreeSort} from "./Files/sortRefresh";
 import {filesModelBrand} from "./Files/eventHandlers.types";
-
+/** 用途：恢复移动文档的展开状态；使用范围：文件树列表刷新；解耦评估：纯 DOM 移动辅助。 */
+import {restoreMovedExpandedDocItems} from "../../util/fileTreeMove";
 export class Files extends Model<AppFacade, LayoutTab> {
     public override parent: LayoutTab;
 
@@ -41,6 +48,9 @@ export class Files extends Model<AppFacade, LayoutTab> {
     public lastSelectedElement: Element | null = null;
     public actionsElement: HTMLElement;
     private reloadNotebookInfoTimeout: number | undefined;
+    private docSortModeRefreshTimeout: number | undefined;
+    private docSortModeChanges = new Map<string, IDocSortModeChanged>();
+    private movedExpandedDocIDs = new Set<string>();
 
     constructor(options: { tab: LayoutTab; app: AppFacade }) {
         super({app: options.app});
@@ -57,6 +67,10 @@ export class Files extends Model<AppFacade, LayoutTab> {
                     getLeaf: this.getLeaf.bind(this),
                     onRename: (renameData) => onRenameHandler(this.element, renameData),
                     reloadNotebookInfo: this.reloadNotebookInfo.bind(this),
+                    recordMovedExpandedDocIDs: this.recordMovedExpandedDocIDs.bind(this),
+                    restoreMovedExpandedItems: this.restoreMovedExpandedItems.bind(this),
+                    updateDocActionElement: (liElement) => updateDocActionElement(this.element, liElement),
+                    persistOpenPaths: saveOpenPaths.bind(null, this.element),
                 });
             },
         });
@@ -127,7 +141,10 @@ export class Files extends Model<AppFacade, LayoutTab> {
                 void this.app.createDocumentInTree(notebookId, "/");
                 return;
             }
-            onLsHTMLHandler(this.element, response.data, undefined, () => this.refreshPublishAccessSwitch());
+            onLsHTMLHandler(this.element, response.data, undefined, (listElement) => {
+                this.restoreMovedExpandedItems(listElement, response.data.box);
+                this.refreshPublishAccessSwitch();
+            });
             saveOpenPaths(this.element);
         });
     }
@@ -191,6 +208,20 @@ export class Files extends Model<AppFacade, LayoutTab> {
         return selected;
     }
 
+    /** 记录在移动过程中暂时未能展开的文档节点。 */
+    public recordMovedExpandedDocIDs(ids: Iterable<string>) {
+        for (const id of ids) {
+            this.movedExpandedDocIDs.add(id);
+        }
+    }
+
+    /** 在文件列表刷新后逐层恢复移动前的展开状态。 */
+    public restoreMovedExpandedItems(listElement: Element, notebookId: string) {
+        restoreMovedExpandedDocItems(listElement, this.movedExpandedDocIDs, (item) => {
+            this.getLeaf(item, notebookId, true);
+        });
+    }
+
     public refreshPublishAccessSwitch() {
         if (window.siyuan.config.readonly || window.siyuan.isPublish ||
             !this.element.classList.contains("file-tree__publish-access--active")) {
@@ -219,12 +250,68 @@ export class Files extends Model<AppFacade, LayoutTab> {
 
     public onFiletreeSortChanged(data: {notebook: string; parentPath: string}) {
         refreshChangedFiletreeSort(this.element, data, listData => {
-            onLsHTMLHandler(this.element, listData, undefined, () => this.refreshPublishAccessSwitch());
+            onLsHTMLHandler(this.element, listData, undefined, (listElement) => {
+                this.restoreMovedExpandedItems(listElement, listData.box);
+                this.refreshPublishAccessSwitch();
+            });
         });
     }
 
+    // 上游 v3.8.0：单文档/笔记本/全局排序模式变更，先同步属性再增量刷新受影响目录
+    public onDocSortModeChanged(data: IDocSortModeChanged) {
+        updateFileTreeSortMode(data, this.element);
+        this.docSortModeChanges.set(`${data.scope}:${data.box}:${data.id}:${data.path}`, data);
+        window.clearTimeout(this.docSortModeRefreshTimeout);
+        this.docSortModeRefreshTimeout = window.setTimeout(() => {
+            const changes = Array.from(this.docSortModeChanges.values());
+            this.docSortModeChanges.clear();
+            const refreshLists = () => {
+                getFileTreeSortRefreshTargets(this.element, changes).forEach((target) => {
+                    const notebookElement = Array.from(this.element.children).find((item) =>
+                        item.getAttribute("data-url") === target.notebookId
+                    );
+                    const liElement = Array.from(notebookElement?.querySelectorAll("li[data-path]") || []).find((item) =>
+                        item.getAttribute("data-path") === target.path
+                    );
+                    if (liElement) {
+                        this.getLeaf(liElement, target.notebookId, true);
+                    }
+                });
+            };
+            if (changes.some((item) => item.scope === "global")) {
+                setNoteBook((notebooks) => {
+                    const closedListElement = this.closeElement.lastElementChild;
+                    if (closedListElement) {
+                        reorderFileTreeNotebooks(this.element, closedListElement, notebooks);
+                    }
+                    this.element.querySelectorAll<HTMLElement>(
+                        ":scope > ul[data-url] > li[data-type=\"navigation-root\"]"
+                    ).forEach((item) => {
+                        if (window.siyuan.config.fileTree.sort === 6) {
+                            item.setAttribute("draggable", "true");
+                        } else {
+                            item.removeAttribute("draggable");
+                        }
+                    });
+                    refreshLists();
+                });
+            } else {
+                refreshLists();
+            }
+        }, 100);
+    }
+
+    // 上游 v3.8.0：全局手工排序时按配置顺序原位重排笔记本，避免整树重建丢失展开状态
     public onNotebookSortChanged() {
-        refreshChangedNotebookSort(this.init.bind(this));
+        if (window.siyuan.config.fileTree.sort !== 6) {
+            return;
+        }
+        setNoteBook((notebooks) => {
+            const closedListElement = this.closeElement.lastElementChild;
+            if (closedListElement) {
+                reorderFileTreeNotebooks(this.element, closedListElement, notebooks);
+            }
+        });
     }
 
     private reloadNotebookInfo() {

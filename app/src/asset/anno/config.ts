@@ -1,5 +1,9 @@
-import { fetchPost } from "../../util/network/fetch";
-import type { IPdfInstance, IPdfAnno } from "./anno.types";
+/** 用途：发送 PDF 标注配置读写请求。使用范围：config owner 的缓存加载与持久化。解耦评估：通过 ./imports 转发基础设施边界。 */
+import {fetchPost} from "./imports";
+/** 用途：约束 PDF 实例。使用范围：配置缓存与文件路径访问。解耦评估：纯类型不产生运行时依赖。 */
+import type {IPdfInstance} from "./anno.types";
+/** 用途：约束单个 PDF 标注值。使用范围：配置记录的键值契约。解耦评估：纯类型不产生运行时依赖。 */
+import type {IPdfAnno} from "./anno.types";
 
 /**
  * PDF注释配置管理模块
@@ -13,6 +17,7 @@ import type { IPdfInstance, IPdfAnno } from "./anno.types";
  * - 配置文件的路径解析和生成
  */
 
+/** @同步豁免: UI构建 */
 /**
  * 设置PDF文件的注释配置
  *
@@ -73,11 +78,16 @@ const handleGetConfigResponse = (response: IWebSocketData, pdf: IPdfInstance) =>
      * 如果是新 PDF 或无注释历史，则 config 保持为空对象 {}。
      */
     if (response.code !== 1) {
-        config = JSON.parse(response.data.data);
+        try {
+            config = JSON.parse(response.data.data);
+        } catch (_error) {
+            config = {};
+        }
     }
     pdf.appConfig.config = config;
 };
 
+/** @同步豁免: UI构建 */
 /**
  * 获取PDF文件的注释配置
  *
@@ -109,6 +119,7 @@ const handleGetConfigResponse = (response: IWebSocketData, pdf: IPdfInstance) =>
  * - 由于异步加载特性，不应在函数调用后立即期望获取完整的配置数据
  * - 如果需要确保配置已完全加载，应考虑使用回调或其他异步机制
  * - JSON解析失败时会静默处理，返回空配置对象
+ * @显式返回类型原因 读取完成前与读取完成后都必须向注释调用方提供统一的 Record 键值契约。
  */
 export const getConfig = (pdf: IPdfInstance): Record<string, IPdfAnno> => {
     if (pdf.appConfig.config) {

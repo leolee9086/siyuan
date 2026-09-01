@@ -14,6 +14,15 @@
     .layout-tab-container {
       background-color: var(--b3-theme-background);
     }
+
+    // 中央编辑区只让编辑器内容层承担纵向滚动，避免 flex 容器形成嵌套滚动条。
+    &,
+    & > .layout__wnd--center,
+    & > .layout__wnd--center > [data-type="wnd"],
+    & .layout-tab-container,
+    & .protyle {
+      overflow: hidden;
+    }
   }
 
   &__dockl,
@@ -116,7 +125,9 @@
     height: 6px;
     width: 100%;
     position: relative;
-    z-index: 4; // 需大于 #sidebarContainer https://github.com/siyuan-note/siyuan/issues/11759
+    // 需高于 #sidebarContainer 和 .protyle-breadcrumb，并低于 .protyle-toolbar
+    // https://github.com/siyuan-note/siyuan/issues/11759
+    z-index: 6;
     flex-shrink: 0;
     touch-action: none;
 
@@ -232,6 +243,11 @@
         margin: 6px 4px;
         border-radius: var(--b3-border-radius);
 
+        &[data-clone="true"] {
+          opacity: .38;
+          pointer-events: none;
+        }
+
         &--full {
           max-width: none;
           flex: 1;
@@ -289,6 +305,7 @@
           line-height: 22px;
           flex-shrink: 0;
           font-family: var(--b3-font-family-emoji);
+          font-variant-emoji: emoji;
           max-height: 21px;
 
           &>img,
@@ -306,11 +323,11 @@
           width: 16px;
           flex-shrink: 0;
           line-height: 1em;
+          font-variant-emoji: emoji;
         }
 
         &__text {
           text-align: center;
-          -webkit-font-smoothing: subpixel-antialiased;
           transition: var(--b3-transition);
           padding: 0 8px;
           white-space: nowrap;

@@ -39,7 +39,7 @@ import { getSiyuanConfig } from "./imports";
  * 使用范围：构建数据库文件路径
  * 解耦评估：通过 imports.ts 统一管理
  */
-import { path } from "./imports";
+import { originalPath } from "./imports";
 
 /**
  * 构建 AV (Attribute View) 相关菜单
@@ -91,9 +91,9 @@ export const buildGutterAvMenu = async (nodeElement: Element, id: string) => {
         click() {
             const config = getSiyuanConfig();
             const avRoot = isEncryptedBox(protyle.notebookId)
-                ? path.join(config.system.dataDir, protyle.notebookId, "storage", "av")
-                : path.join(config.system.dataDir, "storage", "av");
-            useShell("showItemInFolder", path.join(avRoot, nodeElement.getAttribute("data-av-id") || "") + ".json");
+                ? originalPath().join(config.system.dataDir, protyle.notebookId, "storage", "av")
+                : originalPath().join(config.system.dataDir, "storage", "av");
+            useShell("showItemInFolder", originalPath().join(avRoot, nodeElement.getAttribute("data-av-id") || "") + ".json");
         }
     });
 

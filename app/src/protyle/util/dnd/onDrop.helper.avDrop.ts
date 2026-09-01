@@ -9,7 +9,9 @@ import { hasClosestBlock, hasClosestByClassName } from "../hasClosest";
 import {submitAVColumnStructureTransaction} from "../../wysiwyg/transaction/prepared/av/avColumnStructure";
 import { insertAttrViewBlockAnimation } from "../../render/av/row";
 import { insertGalleryItemAnimation } from "../../render/av/gallery/item";
+import { getAVFilteredTipContext, getAVViewID } from "../../render/av/filteredTip";
 import * as dayjs from "dayjs";
+import { Constants } from "../../../constants";
 
 /**
  * 从带有 colsticky 容器的兄弟元素中解析列 ID
@@ -202,7 +204,9 @@ export const executeAvInsert = async (
     transaction(protyle, [{
         action: "insertAttrViewBlock",
         avID, previousID, srcs, blockID,
+        viewID: blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) || blockElement.querySelector(".layout-tab-bar .item--focus")?.getAttribute("data-id") || getAVViewID(blockElement),
         ...(txGroupID ? { groupID: txGroupID } : {}),
+        context: getAVFilteredTipContext("target", protyle),
     }, {
         action: "doUpdateUpdated",
         id: blockID, data: newUpdated,

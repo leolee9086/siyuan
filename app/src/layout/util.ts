@@ -14,7 +14,7 @@ import { newCardModel } from "../card/newCardTab";
 import { newDatabaseRowModel } from "../editor/databaseRow";
 import type { AppFacade } from "../app/AppFacade.types";
 import { tabRegistry } from "../registry";
-import {createCustomTabModel} from "./dock/dock.factory";
+import {createCustomTabModel} from "./dock/custom/factory";
 import {
     isReadOnlyMode, reloadWindow,
     resetFilePositionStorage, resetDialogPositionStorage, getFilePositionStorage, getDialogPositionStorage,

@@ -4,9 +4,14 @@
  */
 
 /** 用途：定位属性视图根块。使用范围：click 入口与局部动画刷新。解耦评估：DOM 结构定位属于基础能力，继续集中转发更稳妥。 */
-import { hasClosestBlock } from "../../../util/hasClosest";
+import { hasClosestBlock, hasClosestByClassName } from "../../../util/hasClosest";
 /** 导出 hasClosestBlock 供 action 当前层级模块复用。 */
 export { hasClosestBlock };
+/** 导出类名祖先定位供 AV 标题点击清理选择。 */
+export {hasClosestByClassName};
+/** 用途：清理 AV 选择状态。使用范围：点击标题时取消当前行/单元格选择。 */
+import {clearSelect} from "../../../util/clearSelect";
+export {clearSelect};
 
 /** 用途：提交事务。使用范围：标题同步与完整复制事务登记。解耦评估：事务是 action 层主要副作用出口，继续经网关接入更利于审计。 */
 import {transaction} from "../../../wysiwyg/transaction/submit";
@@ -75,7 +80,27 @@ import { isHTMLElement } from "../../../../util/DOM/element.guard";
 /** 导出 isHTMLElement 供 action 当前层级模块复用。 */
 export { isHTMLElement };
 
+/** 用途：识别模板值内可交互元素与链接。使用范围：AV 点击入口在普通分发前放行原生交互。 */
+import {getAVTemplateInteractiveElement, isAVTemplateLink} from "../attributeValue";
+export {getAVTemplateInteractiveElement, isAVTemplateLink};
+
 /** 用途：判断是否仅点击了元键。使用范围：click 入口快速放行。解耦评估：兼容性判断属于共享环境能力，不应在入口层重复实现。 */
 import { isOnlyMeta } from "../../../util/compatibility";
 /** 导出 isOnlyMeta 供 action 当前层级模块复用。 */
 export { isOnlyMeta };
+
+/** 用途：获取可编辑字段集合。使用范围：批量字段编辑菜单。解耦评估：字段判定属 AV 领域规则，继续通过 batchEdit 网关复用最稳妥。 */
+import {getEditableAVFields, openAVFieldEditor, updateAVFieldValue} from "../batchEdit";
+export {getEditableAVFields, openAVFieldEditor, updateAVFieldValue};
+
+/** 用途：获取列图标与名称。使用范围：批量字段编辑菜单图标与回退标签。解耦评估：列类型工具集中复用更易跟随类型演进。 */
+import {getColIconByType, getColNameByType} from "../col/col.typeUtils";
+export {getColIconByType, getColNameByType};
+
+/** 用途：渲染 emoji 图标。使用范围：字段图标为 emoji 时渲染。解耦评估：emoji 渲染为通用 UI 能力，继续通过网关复用最稳妥。 */
+import {unicode2Emoji} from "../../../../emoji";
+export {unicode2Emoji};
+
+/** 用途：转义 HTML。使用范围：字段名渲染到菜单 label 时防止注入。解耦评估：转义为通用 DOM 安全能力，继续复用最稳妥。 */
+import {escapeHtml} from "../../../../util/DOM/escape";
+export {escapeHtml};

@@ -5,7 +5,11 @@ import {upDownHint} from "../../../util/DOM/upDownHint";
 import {fetchPost} from "../../../util/network/fetch";
 import * as dayjs from "dayjs";
 import {filterSelect} from "./filter.operator";
-import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+/** 用途：转义用户控制的 HTML 属性；使用范围：筛选菜单中的 option 名称、颜色和输入值；解耦评估：统一复用 DOM 转义 owner。 */
+import {escapeAttr} from "../../../util/DOM/escape";
+/** 用途：转义用户控制的可见文本；使用范围：筛选菜单标签和关联候选项；解耦评估：统一复用 DOM 转义 owner。 */
+import {escapeHtml} from "../../../util/DOM/escape";
 
 export const buildFilterMenuItems = (
     menu: Menu,
@@ -54,8 +58,8 @@ export const buildFilterMenuItems = (
             });
             menu.addItem({
                 icon,
-                label: `<span class="b3-chip b3-chip--middle" data-name="${option.name}" data-color="${option.color}" style="max-width: 178px;margin:3px 0;background-color:var(--b3-font-background${option.color});color:var(--b3-font-color${option.color})">
-    <span class="fn__ellipsis">${option.name}</span>
+                label: `<span class="b3-chip b3-chip--middle" data-name="${escapeAttr(option.name)}" data-color="${escapeAttr(option.color)}" style="max-width: 178px;margin:3px 0;background-color:var(--b3-font-background${escapeAttr(option.color)});color:var(--b3-font-color${escapeAttr(option.color)})">
+    <span class="fn__ellipsis">${escapeHtml(option.name)}</span>
 </span>`,
                 bind(element) {
                     element.addEventListener("click", () => {
@@ -83,7 +87,7 @@ export const buildFilterMenuItems = (
         menu.addItem({
             iconHTML: "",
             type: "readonly",
-            label: `<input style="margin: 4px 0" value="${value}" class="b3-text-field fn__size200">`
+            label: `<input style="margin: 4px 0" value="${escapeAttr(value)}" class="b3-text-field fn__size200">`
         });
     } else if (filterValue.type === "relation") {
         let value = "";
@@ -93,7 +97,7 @@ export const buildFilterMenuItems = (
         menu.addItem({
             iconHTML: "",
             type: "readonly",
-            label: `<input style="margin: 4px 0" value="${value}" class="b3-text-field fn__size200"><div style="position:fixed" class="protyle-hint b3-list b3-list--background fn__none"></div>`,
+            label: `<input style="margin: 4px 0" value="${escapeAttr(value)}" class="b3-text-field fn__size200"><div style="position:fixed" class="protyle-hint b3-list b3-list--background fn__none"></div>`,
             bind(element) {
                 const inputElement = element.querySelector("input");
                 const listElement = inputElement.nextElementSibling as HTMLElement;
@@ -107,7 +111,7 @@ export const buildFilterMenuItems = (
                     }, response => {
                         let html = "";
                         (response.data.rows.values as IAVCellValue[] || []).forEach((item, index) => {
-                            html += `<div class="b3-list-item${index === 0 ? " b3-list-item--focus" : ""}">${item.block.content || siyuanI18n.untitled}</div>`;
+                            html += `<div class="b3-list-item${index === 0 ? " b3-list-item--focus" : ""}">${escapeHtml(item.block.content || siyuanI18n.untitled)}</div>`;
                         });
                         listElement.innerHTML = html;
                         if (html === "") {

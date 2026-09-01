@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -30,7 +30,6 @@ type System struct {
 	OSPlatform       string `json:"osPlatform"`
 	Container        string `json:"container"` // docker, android, ios, harmony, std
 	IsMicrosoftStore bool   `json:"isMicrosoftStore"`
-	IsInsider        bool   `json:"isInsider"`
 
 	HomeDir      string `json:"homeDir"`
 	WorkspaceDir string `json:"workspaceDir"`
@@ -46,9 +45,10 @@ type System struct {
 	// 运行时状态（不持久化），自动探测到的代理地址，前端不可见
 	DetectedProxyURL string `json:"-"`
 
-	DownloadInstallPkg bool `json:"downloadInstallPkg"`
-	AutoLaunch2        int  `json:"autoLaunch2"`    // 0：不自动启动，1：自动启动，2：自动启动+隐藏主窗口
-	LockScreenMode     int  `json:"lockScreenMode"` // 0：手动，1：手动+跟随系统 https://github.com/siyuan-note/siyuan/issues/9087
+	DownloadInstallPkg bool   `json:"downloadInstallPkg"`
+	UpdateChannel      string `json:"updateChannel,omitempty"`
+	AutoLaunch2        int    `json:"autoLaunch2"`    // 0：不自动启动，1：自动启动，2：自动启动+隐藏主窗口
+	LockScreenMode     int    `json:"lockScreenMode"` // 0：手动，1：手动+跟随系统 https://github.com/siyuan-note/siyuan/issues/9087
 
 	DisabledFeatures []string `json:"disabledFeatures"`
 
@@ -61,6 +61,12 @@ const (
 	OnboardingPending         = "pending"
 	OnboardingNotebookCreated = "notebook-created"
 	OnboardingCompleted       = "completed"
+)
+
+const (
+	UpdateChannelStable = "stable"
+	UpdateChannelBeta   = "beta"
+	UpdateChannelAlpha  = "alpha"
 )
 
 type Onboarding struct {
@@ -78,6 +84,7 @@ func NewSystem() *System {
 		KernelVersion:      util.Ver,
 		NetworkProxy:       &NetworkProxy{},
 		DownloadInstallPkg: true,
+		UpdateChannel:      UpdateChannelStable,
 	}
 }
 
@@ -88,7 +95,7 @@ type NetworkProxy struct {
 }
 
 func (np *NetworkProxy) String() string {
-	if "" == np.Scheme {
+	if "" == np.Scheme || "system" == np.Scheme {
 		return ""
 	}
 	return np.Scheme + "://" + np.Host + ":" + np.Port
@@ -118,4 +125,8 @@ func EffectiveProxyURLWithOverride(s *System, override string) string {
 		return override
 	}
 	return EffectiveProxyURL(s)
+}
+
+func (np *NetworkProxy) IsSystem() bool {
+	return "system" == np.Scheme
 }

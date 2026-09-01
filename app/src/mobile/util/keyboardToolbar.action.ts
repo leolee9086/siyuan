@@ -30,10 +30,20 @@ export const handleToolbarClick = (
     const protyle = getCurrentEditor()?.protyle;
     const target = event.target as HTMLElement;
     const toolbarElement = document.getElementById("keyboardToolbar");
+    if (!toolbarElement) {
+        return;
+    }
     const slashBtnElement = hasClosestByClassName(event.target as HTMLElement, "keyboard__slash-item");
     if (slashBtnElement && !slashBtnElement.getAttribute("data-type")) {
-        const dataValue = decodeURIComponent(slashBtnElement.getAttribute("data-value"));
+        const rawValue = slashBtnElement.getAttribute("data-value");
+        if (!rawValue) {
+            return;
+        }
+        const dataValue = decodeURIComponent(rawValue);
         if (dataValue === Constants.ZWSP + 3) {
+            return;
+        }
+        if (!protyle) {
             return;
         }
         protyle.hint.fill(dataValue, protyle, false);   // 点击后 range 会改变
@@ -56,30 +66,50 @@ export const handleToolbarClick = (
         return;
     }
     const type = buttonElement.getAttribute("data-type");
-    // appearance
+    if (!type) {
+        return;
+    }
+    // appearance - preserve mobile text appearance menu after styling (17725)
     if (["clear", "style2", "style4", "color", "backgroundColor", "fontSize", "style1"].includes(type)) {
-        const nodeElements = getFontNodeElements(protyle);
-        const itemElement = buttonElement.firstElementChild as HTMLElement;
-        if (type === "style1") {
-            fontEvent(protyle, nodeElements, type, itemElement.style.backgroundColor + Constants.ZWSP + itemElement.style.color);
-        } else if (type === "fontSize") {
-            fontEvent(protyle, nodeElements, type, itemElement.textContent.trim());
-        } else if (type === "backgroundColor") {
-            fontEvent(protyle, nodeElements, type, itemElement.style.backgroundColor);
-        } else if (type === "color") {
-            fontEvent(protyle, nodeElements, type, itemElement.style.color);
-        } else {
-            fontEvent(protyle, nodeElements, type);
+        if (!protyle) {
+            return;
         }
+        deps.setPreventRender(true);
+        const nodeElements = getFontNodeElements(protyle) ?? [];
+        const itemElement = buttonElement.firstElementChild as HTMLElement | null;
+        if (!itemElement) {
+            deps.setPreventRender(false);
+            return;
+        }
+        const focusRange = !buttonElement.classList.contains("keyboard__slash-item");
+        if (type === "style1") {
+            fontEvent(protyle, nodeElements, type, itemElement.style.backgroundColor + Constants.ZWSP + itemElement.style.color, focusRange);
+        } else if (type === "fontSize") {
+            const text = itemElement.textContent?.trim() ?? "";
+            fontEvent(protyle, nodeElements, type, text, focusRange);
+        } else if (type === "backgroundColor") {
+            fontEvent(protyle, nodeElements, type, itemElement.style.backgroundColor, focusRange);
+        } else if (type === "color") {
+            fontEvent(protyle, nodeElements, type, itemElement.style.color, focusRange);
+        } else {
+            fontEvent(protyle, nodeElements, type, undefined, focusRange);
+        }
+        setTimeout(() => {
+            deps.setPreventRender(false);
+        }, 1000);
     }
 
     event.preventDefault();
     event.stopPropagation();
-    if (getSelection().rangeCount === 0) {
+    const selection = getSelection();
+    if (!selection || selection.rangeCount === 0) {
         return;
     }
 
-    const range = getSelection().getRangeAt(0);
+    const range = selection.getRangeAt(0);
+    if (!range) {
+        return;
+    }
     if (type === "done") {
         if (toolbarElement.clientHeight > 100) {
             if (isInHarmony() || isInAndroid()) {
@@ -94,7 +124,11 @@ export const handleToolbarClick = (
         }
         return;
     }
-    if (window.siyuan.config.readonly || !protyle || protyle.disabled) {
+    const config = window.siyuan?.config;
+    if (!config) {
+        return;
+    }
+    if (config.readonly || !protyle || protyle.disabled) {
         return;
     }
     if (type === "undo") {
@@ -104,19 +138,27 @@ export const handleToolbarClick = (
         protyle.undo.redo(protyle);
         return;
     }
-    if (getSelection().rangeCount === 0) {
+    const currentSelection = getSelection();
+    if (!currentSelection || currentSelection.rangeCount === 0) {
         return;
     }
-    const nodeElement = hasClosestBlock(range.startContainer);
+    const currentRange = currentSelection.getRangeAt(0);
+    if (!currentRange) {
+        return;
+    }
+    const nodeElement = hasClosestBlock(currentRange.startContainer);
     if (!nodeElement) {
         return;
     }
     // inline element
     if (type === "goback") {
-        toolbarElement.querySelector('.keyboard__action[data-type="goinline"]').classList.remove("protyle-toolbar__item--current");
+        const goinlineBtn = toolbarElement.querySelector('.keyboard__action[data-type="goinline"]');
+        goinlineBtn?.classList.remove("protyle-toolbar__item--current");
         const dynamicElements = document.querySelectorAll("#keyboardToolbar .keyboard__dynamic");
-        dynamicElements[0].classList.remove("fn__none");
-        dynamicElements[1].classList.add("fn__none");
+        const first = dynamicElements[0] as HTMLElement | undefined;
+        const second = dynamicElements[1] as HTMLElement | undefined;
+        first?.classList.remove("fn__none");
+        second?.classList.add("fn__none");
         focusByRange(range);
         deps.setPreventRender(true);
         setTimeout(() => {
@@ -126,14 +168,17 @@ export const handleToolbarClick = (
     } else if (type === "goinline") {
         buttonElement.classList.add("protyle-toolbar__item--current");
         const dynamicElements = document.querySelectorAll("#keyboardToolbar .keyboard__dynamic");
-        dynamicElements[1].classList.remove("fn__none");
-        dynamicElements[0].classList.add("fn__none");
+        const first = dynamicElements[0] as HTMLElement | undefined;
+        const second = dynamicElements[1] as HTMLElement | undefined;
+        second?.classList.remove("fn__none");
+        first?.classList.add("fn__none");
         focusByRange(range);
         return;
     } else if (["a", "block-ref", "inline-math", "inline-memo"].includes(type)) {
         if (!hasClosestByAttribute(range.startContainer, "data-type", "NodeCodeBlock")) {
             hideElements(["util"], protyle);
-            protyle.toolbar.element.querySelector(`[data-type="${type}"]`).dispatchEvent(new CustomEvent("click"));
+            const toolbarBtn = protyle.toolbar.element.querySelector(`[data-type="${type}"]`);
+            toolbarBtn?.dispatchEvent(new CustomEvent("click"));
         }
         return;
     } else if (buttonElement.classList.contains("keyboard__action") && ["strong", "em", "s", "code", "mark", "tag", "u", "sup", "clear", "sub", "kbd"].includes(type)) {
@@ -147,8 +192,9 @@ export const handleToolbarClick = (
             focusByRange(range);
         } else {
             buttonElement.classList.add("protyle-toolbar__item--current");
-            toolbarElement.querySelector('.keyboard__action[data-type="done"] use').setAttribute("xlink:href", "#iconCloseRound");
-            const oldScrollTop = protyle.contentElement.scrollTop;
+            const doneUse = toolbarElement.querySelector('.keyboard__action[data-type="done"] use');
+            doneUse?.setAttribute("xlink:href", "#iconCloseRound");
+            const oldScrollTop = protyle.contentElement?.scrollTop ?? 0;
             renderTextMenu(protyle, toolbarElement);
             deps.showKeyboardToolbarUtil(oldScrollTop);
             window.JSAndroid?.hideKeyboard();
@@ -184,41 +230,54 @@ export const handleToolbarClick = (
             deps.hideKeyboardToolbarUtil();
             callMobileAppShowKeyboard();
         } else {
-            (document.activeElement as HTMLElement)?.blur();
+            (document.activeElement as HTMLElement | null)?.blur();
             buttonElement.classList.add("protyle-toolbar__item--current");
-            toolbarElement.querySelector('.keyboard__action[data-type="done"] use').setAttribute("xlink:href", "#iconCloseRound");
-            const oldScrollTop = protyle.contentElement.scrollTop;
+            const doneUse = toolbarElement.querySelector('.keyboard__action[data-type="done"] use');
+            doneUse?.setAttribute("xlink:href", "#iconCloseRound");
+            const oldScrollTop = protyle.contentElement?.scrollTop ?? 0;
             renderSlashMenu(protyle, toolbarElement);
             deps.showKeyboardToolbarUtil(oldScrollTop);
             window.JSAndroid?.hideKeyboard();
         }
         return;
     } else if (type === "block") {
+        if (!protyle.gutter) {
+            return;
+        }
         protyle.gutter.renderMenu(protyle, nodeElement);
-        window.siyuan.menus.menu.fullscreen();
+        window.siyuan.menus?.menu.fullscreen();
         deps.activeBlur();
         return;
     } else if (type === "outdent") {
+        const parent = nodeElement.parentElement;
+        if (!parent) {
+            return;
+        }
         if (nodeElement.classList.contains("code-block")) {
             if (range.toString() !== "") {
                 tabCodeBlock(protyle, nodeElement, range, true);
             }
         } else {
-            listOutdent(protyle, [nodeElement.parentElement], range);
+            listOutdent(protyle, [parent], range);
         }
         focusByRange(range);
         return;
     } else if (type === "indent") {
+        const parent = nodeElement.parentElement;
+        if (!parent) {
+            return;
+        }
         if (nodeElement.classList.contains("code-block")) {
             if (range.toString() !== "") {
                 tabCodeBlock(protyle, nodeElement, range);
             }
         } else {
-            listIndent(protyle, [nodeElement.parentElement], range);
+            listIndent(protyle, [parent], range);
         }
         focusByRange(range);
         return;
     } else if (type) {
-        protyle.toolbar.element.querySelector(`[data-type="${type}"]`)?.dispatchEvent(new CustomEvent("click"));
+        const toolbarBtn = protyle.toolbar.element.querySelector(`[data-type="${type}"]`);
+        toolbarBtn?.dispatchEvent(new CustomEvent("click"));
     }
 };

@@ -12,7 +12,7 @@ import {linkMenu} from "../../menus/protyleMenus/linkMenu/protyle.linkMenu";
 import {inlineMathMenu} from "../../menus/protyleMenus/editorMenu/protyle.inlineMathMenu";
 import {imgMenu} from "../../menus/protyleMenus/imageMenu/protyle.imgMenu";
 import {contentMenu} from "../../menus/protyleMenus/contentMenu/protyle.contentMenu";
-import {avContextmenu} from "../render/av/action";
+import {avContextmenu} from "../render/av/action/contextmenu";
 import {showColMenu} from "../render/av/col/menu/menu.factory";
 import {openViewMenu} from "../render/av/openMenuPanel";
 import {getTypeByCellElement} from "../render/av/cell/position";
@@ -59,20 +59,6 @@ export function handleContextmenu(
     if (!nodeElement) {
         return false;
     }
-    const avGalleryItemElement = hasClosestByClassName(target, "av__gallery-item");
-    if (avGalleryItemElement) {
-        openGalleryItemMenu({
-            target: avGalleryItemElement.querySelector(".protyle-icon--last"),
-            protyle,
-            position: {
-                x: event.clientX,
-                y: event.clientY
-            }
-        });
-        event.stopPropagation();
-        event.preventDefault();
-        return false;
-    }
     const avCellElement = hasClosestByClassName(target, "av__cell");
     if (avCellElement) {
         if (avCellElement.classList.contains("av__cell--header")) {
@@ -93,21 +79,36 @@ export function handleContextmenu(
                         return true;
                     }
                 });
+                const isImage = assetImgElement.tagName === "IMG";
                 editAssetItem({
                     protyle,
                     cellElements: [avCellElement],
-                    blockElement: hasClosestBlock(assetImgElement) as HTMLElement,
-                    content: target.tagName === "IMG" ? target.getAttribute("src") : target.getAttribute("data-url"),
-                    type: target.tagName === "IMG" ? "image" : "file",
-                    name: target.tagName === "IMG" ? "" : target.getAttribute("data-name"),
+                    blockElement: hasClosestBlock(assetImgElement) ?? nodeElement,
+                    content: (isImage ? assetImgElement.getAttribute("src") : assetImgElement.getAttribute("data-url")) ?? "",
+                    type: isImage ? "image" : "file",
+                    name: isImage ? "" : assetImgElement.getAttribute("data-name") ?? "",
                     index,
-                    rect: target.getBoundingClientRect()
+                    rect: assetImgElement.getBoundingClientRect()
                 });
                 event.stopPropagation();
                 event.preventDefault();
                 return;
             }
         }
+    }
+    const avGalleryItemElement = hasClosestByClassName(target, "av__gallery-item");
+    if (avGalleryItemElement) {
+        openGalleryItemMenu({
+            target: avGalleryItemElement.querySelector(".protyle-icon--last"),
+            protyle,
+            position: {
+                x: event.clientX,
+                y: event.clientY
+            }
+        });
+        event.stopPropagation();
+        event.preventDefault();
+        return false;
     }
     // 在 span 前面，防止单元格哪 block-ref 被修改
     const avRowElement = hasClosestByClassName(target, "av__row");

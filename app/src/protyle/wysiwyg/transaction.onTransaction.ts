@@ -9,7 +9,7 @@ import {refreshAV} from "../render/av/render.refresh";
 import { removeFoldHeading } from "../util/heading";
 import { reloadProtyle } from "../util/reload";
 import { getTopAloneElement } from "./getBlock";
-import { removeUnfoldRepeatBlock, syncFoldAttr } from "./transaction.fold";
+import {removeUnfoldRepeatBlock, syncFoldAndStyleAttrs} from "./transaction.fold";
 import { handleUpdateAttrs } from "./transaction.onTransaction.attrs";
 import { handleMove } from "./transaction.onTransaction.move";
 import { handleInsert } from "./transaction.onTransaction.insert";
@@ -106,7 +106,7 @@ const applyTransactionOperation = (protyle: IProtyle, operation: IOperation, isU
         }
     });
     if (operation.action === "setAttrs") {
-        syncFoldAttr(protyle.wysiwyg.element, operation);
+        syncFoldAndStyleAttrs(protyle.wysiwyg.element, operation);
         return;
     }
     if (operation.action === "unfoldHeading") {
@@ -270,7 +270,7 @@ const applyTransactionOperation = (protyle: IProtyle, operation: IOperation, isU
         "removeAttrViewView", "setAttrViewViewName", "setAttrViewViewIcon", "duplicateAttrViewView", "sortAttrViewView",
         "updateAttrViewColRelation", "setAttrViewPageSize", "updateAttrViewColRollup", "sortAttrViewKey", "setAttrViewColDesc",
         "duplicateAttrViewKey", "setAttrViewViewDesc", "setAttrViewCoverFrom", "setAttrViewCoverFromAssetKeyID",
-        "setAttrViewBlockView", "setAttrViewCardSize", "setAttrViewCardAspectRatio", "hideAttrViewName", "setAttrViewShowIcon",
+        "setAttrViewBlockView", "setAttrViewCardSize", "setAttrViewCardWidth", "setAttrViewCardAspectRatio", "setAttrViewCardAspectRatioValue", "hideAttrViewName", "setAttrViewShowIcon",
         "setAttrViewWrapField", "setAttrViewGroup", "removeAttrViewGroup", "hideAttrViewGroup", "sortAttrViewGroup",
         "foldAttrViewGroup", "hideAttrViewAllGroups", "setAttrViewFitImage", "setAttrViewDisplayFieldName",
         "insertAttrViewBlock", "setAttrViewColDateFillSpecificTime", "setAttrViewFillColBackgroundColor", "setAttrViewUpdatedIncludeTime",

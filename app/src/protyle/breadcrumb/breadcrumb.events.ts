@@ -114,7 +114,16 @@ function 处理退出聚焦(ctx: 面包屑点击上下文): boolean {
     const { event, protyle } = ctx;
     const rootID = protyle.block.rootID ?? "";
     const focusId = protyle.block.id ?? "";
-    protyle.getInstance().zoomOut({id: rootID, focusId});
+    // 浮窗面包屑退出聚焦时强制以文档类型渲染并在回调中激活 context 按钮，对应上游 6be35eb
+    const breadcrumbElement = protyle.breadcrumb?.element?.parentElement as HTMLElement | undefined;
+    protyle.getInstance().zoomOut({
+        id: rootID,
+        focusId,
+        dataDocType: "NodeDocument",
+        callback: () => {
+            breadcrumbElement?.querySelector('[data-type="context"]')?.classList.add("block__icon--active");
+        }
+    });
     event.stopPropagation();
     event.preventDefault();
     return true;
@@ -139,9 +148,16 @@ function 处理上下文切换(ctx: 面包屑点击上下文): boolean {
         size: siyuanConfig.editor?.dynamicLoadBlocks ?? 48,
     });
     fetchPost("/api/filetree/getDoc", getDocParam, getResponse => {
-        onGet({ data: getResponse, protyle, action: [Constants.CB_GET_HL] });
+        onGet({
+            data: getResponse,
+            protyle,
+            action: [Constants.CB_GET_HL],
+            dataDocType: "NodeDocument",
+            afterCB: () => {
+                target.classList.add("block__icon--active");
+            }
+        });
     });
-    target.classList.add("block__icon--active");
     return true;
 }
 

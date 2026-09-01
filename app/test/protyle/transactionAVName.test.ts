@@ -22,7 +22,7 @@ describe("AV name transaction", () => {
             const doOperations: IOperation[] = [{action, id: "name-id"}];
             const undoOperations: IOperation[] = [{action, id: "undo-name-id"}];
 
-            submitAVNameTransaction(protyle, doOperations, undoOperations);
+            submitAVNameTransaction({protyle, doOperations, undoOperations});
 
             expect(mocks.submitPreparedTransaction).toHaveBeenCalledWith({protyle, doOperations, undoOperations});
         },
@@ -31,7 +31,11 @@ describe("AV name transaction", () => {
     it("rejects unrelated actions before submission", () => {
         const invalidOperation: IOperation = {action: "delete", id: "block-id"};
 
-        expect(() => submitAVNameTransaction({} as IProtyle, [invalidOperation], []))
+        expect(() => submitAVNameTransaction({
+            protyle: {} as IProtyle,
+            doOperations: [invalidOperation],
+            undoOperations: [],
+        }))
             .toThrow("AV name transaction does not accept action delete");
         expect(mocks.submitPreparedTransaction).not.toHaveBeenCalled();
     });

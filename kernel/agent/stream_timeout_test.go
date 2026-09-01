@@ -210,7 +210,9 @@ func TestAgentChatPartialStreamTimeoutSavesInterruptedWithoutRetry(t *testing.T)
 	}))
 	defer server.Close()
 
-	events := AgentChat(context.Background(), newTestOpenAIClient(server.URL), "test-model", testSessionID, "user-1", 1, "hello", "English", nil, EditorContext{}, nil, false, time.Second, 3, "", nil, "", 0, time.Second, 50*time.Millisecond)
+	events := AgentChat(context.Background(), newTestOpenAIClient(server.URL), "openai", "test-model", "", 0,
+		testSessionID, "user-1", 1, "hello", nil, "English", nil, EditorContext{}, nil, false,
+		time.Second, 3, "", time.Second, 50*time.Millisecond)
 	contentSeen := false
 	errorSeen := false
 	for event := range events {

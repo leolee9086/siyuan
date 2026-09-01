@@ -112,6 +112,10 @@ const 应用默认参数 = (options: ZoomOutOptions): void => {
     if (typeof options.reload === "undefined") {
         options.reload = false;
     }
+    // 浮窗上下文：非根文档操作需清除面包屑的 context 激活态，对应上游 cb1e67b
+    if (options.id !== options.protyle.block.rootID) {
+        options.protyle.breadcrumb?.element.parentElement.querySelector('[data-type="context"]')?.classList.remove("block__icon--active");
+    }
 };
 
 /**
@@ -293,6 +297,7 @@ const 处理主文档响应 = async (options: ZoomOutOptions, getResponse: IWebS
         } : undefined,
         scrollPosition: options.focusId ? "start" : undefined,
         afterCB: options.callback,
+        dataDocType: options.dataDocType,
     });
 
     const 已进入补偿分支 = await 处理ZoomOut焦点恢复(options);

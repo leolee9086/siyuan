@@ -1,19 +1,111 @@
-import {hasClosestBlock, hasClosestByClassName, hasClosestByTag} from "../util/hasClosest";
-import {focusByRange, getEditorRange, getSelectionPosition} from "../util/selection";
-import {isAbnormalItem} from "../../util/DOM/upDownHint";
-import {setPosition} from "../../util/DOM/positioning/setPosition";
+import {Constants} from "../../constants";
+import {
+    hasClosestBlock,
+    hasClosestByAttribute,
+    hasClosestByClassName,
+    hasClosestByTag,
+    isInEmbedBlock
+} from "../util/hasClosest";
+import {
+    focusBlock,
+    focusByRange,
+    focusByWbr,
+    getEditorRange,
+    getSelectionOffset,
+    getSelectionPosition,
+    getUndoFocusContext,
+} from "../util/selection";
+import {genHintItemHTML, hintEmbed, hintRef, hintSlash} from "./extend";
+import {
+    getBlockRefAnchorText,
+    getDocCreateTemplatePath,
+    isConfiguredCreateTargetCurrentSubDoc,
+    newFileByRefHint,
+    newFileBySelectRange,
+    newFileInProtyle,
+    newSubDocByRefHint
+} from "../../util/file/newFile";
+import {isAbnormalItem, upDownHint} from "../../util/DOM/upDownHint";
+import {setPosition} from "../../util/setPosition";
+import {getContenteditableElement, hasNextSibling, hasPreviousSibling} from "../wysiwyg/getBlock";
+import {transaction} from "../wysiwyg/transaction/submit";
+import {updateTransaction} from "../wysiwyg/transaction/update";
 import {insertHTML} from "../util/insertHTML";
+import {highlightRender} from "../render/highlightRender";
+import {assetMenu} from "../../menus/protyleMenus/assetMenu/protyle.asset";
+import {imgMenu} from "../../menus/protyleMenus/imageMenu/protyle.imgMenu";
+import {insertAssetIntoProtyle} from "../asset/insert";
 import {hideElements} from "../ui/hideElements";
-import {addEmoji, getEmojiDesc, unicode2Emoji} from "../../emoji";
-import {uploadFiles} from "../upload/transport";
+import {fetchPost} from "../../util/network/fetch";
+import {escapeHtml, escapeSearchHighlight, stripSearchMark} from "../../util/DOM/escape";
+import {getDisplayName, pathPosix} from "../../util/file/path/operations";
+import {isEncryptedBox} from "../../util/file/notebook/store";
+import {
+    addEmoji,
+    EmojiPanelController,
+    genEmojiCategoryButtons,
+    openEmojiPanel,
+    unicode2Emoji,
+} from "../../emoji";
+import {blockRender} from "../render/blockRender";
+import {getUploadInsertRange, uploadFiles} from "../upload";
+import {createUploadInsertPosition} from "../upload/insertPosition";
+import {openFileById} from "../../editor/utils.openFileById";
+import {openMobileFileByIdViaPort as openMobileFileById} from "../../plugin/api/openMobileFile.port";
+import {processRender} from "../util/processCode";
+import {AIChat} from "../../ai/chatStream";
+// 分叉：isMobile 为 platform 模块的运行时布尔常量，替代上游 util/functions 的函数形式与构建期裁剪
 import {isMobile} from "../../platform";
 import {isNotCtrl, isOnlyMeta} from "../util/compatibility";
+import {avRender} from "../render/av/render";
+import {genIconHTML} from "../render/util";
+import {updateAttrViewCellAnimation} from "../render/av/action/animation";
+import {setFold} from "../util/blockFold";
+import {getIconValueKind} from "../../emoji/iconValue";
+import {getCreateTargetContext, isSameCreateTargetContext} from "./createTargetContext";
+import {
+    endsWithMultiCharHintPrefix,
+    getBlockHintTriggerOffset,
+    getBlockRefStaticText,
+    shouldCaptureHintUndoFocus,
+    shouldIgnoreHintTrigger,
+} from "./blockHintRange";
+// 分叉扩展：搜索框导航辅助、多选块引值拼接与 Hint 品牌标识
 import {bindSearchListNavigation} from "../../search/blockPicker/bindSearchListNavigation";
-import {handleFillAv, handleFillContent} from "./index.fill";
-import {handleSelect} from "./index.select";
-import {handleRender, handleGenEmojiHTML, handleGenSearchHTML} from "./index.render";
 import {genBlockRefValueMulti} from "./extend.hintRef";
 import {hintBrand} from "./hint.types";
+
+const genEmojiInsertHTML = (value: string) => {
+    const kind = getIconValueKind(value);
+    if (kind === "custom") {
+        return `:${value.split(".")[0]}: `;
+    }
+    return unicode2Emoji(value, kind === "dynamic" || kind === "network" ? "emoji" : "") + " ";
+};
+
+type TCreateTargetType = "doc" | "ref";
+
+type TCreateTargetState = {
+    promise: Promise<boolean>;
+    result?: boolean;
+};
+
+type TCreateTargetSession = {
+    id: number;
+    notebookId: string;
+    path: string;
+    renderID: number;
+    targets: Partial<Record<TCreateTargetType, TCreateTargetState>>;
+};
+
+const getWholeTextOffset = (textNode: Text, offset: number) => {
+    let previousSibling = textNode.previousSibling;
+    while (previousSibling?.nodeType === 3) {
+        offset += previousSibling.textContent.length;
+        previousSibling = previousSibling.previousSibling;
+    }
+    return offset;
+};
 
 export class Hint {
     public get [hintBrand]() {
@@ -28,9 +120,14 @@ export class Hint {
     public splitChar = "";
     public lastIndex = -1;
     public source: THintSource;
-    // 多选块引用模式
+    // 多选块引用模式（分叉扩展）
     public multiRefMode = false;
     public selectedRefIds: Set<string> | undefined;
+    private createTargetSessionID = 0;
+    private createTargetRenderID = 0;
+    private createTargetSession?: TCreateTargetSession;
+    private emojiPanel?: EmojiPanelController;
+    private emojiBrowseMode = false;
 
     constructor(protyle: IProtyle) {
         this.element = document.createElement("div");
@@ -45,7 +142,7 @@ export class Hint {
             const btnElement = hasClosestByTag(eventTarget, "BUTTON");
             if (btnElement && !btnElement.classList.contains("emojis__item") && !btnElement.classList.contains("emojis__type")) {
                 const rawValue = btnElement.getAttribute("data-value");
-                // 多选块引用模式
+                // 多选块引用模式（分叉扩展）
                 if (this.multiRefMode && rawValue !== "__confirm__") {
                     // 切换勾选状态
                     const blockId = rawValue;
@@ -68,7 +165,7 @@ export class Hint {
                     event.stopPropagation();
                     return;
                 }
-                // 多选确认：拼接所有选中 ID 为多 ID 块引
+                // 多选确认：拼接所有选中 ID 为多 ID 块引（分叉扩展）
                 if (this.multiRefMode && rawValue === "__confirm__") {
                     const selectedIds = Array.from(this.selectedRefIds || []);
                     if (selectedIds.length > 0) {
@@ -85,33 +182,15 @@ export class Hint {
                 event.stopPropagation();
                 return;
             }
-            const emojisContentElement = this.element.querySelector(".emojis__panel");
             const typeElement = hasClosestByClassName(eventTarget, "emojis__type");
             if (typeElement) {
-                const titleElement = emojisContentElement.querySelector(`[data-type="${typeElement.getAttribute("data-type")}"]`) as HTMLElement;
-                if (titleElement) {
-                    const index = titleElement.nextElementSibling.getAttribute("data-index");
-                    if (index) {
-                        let html = "";
-                        window.siyuan.emojis[parseInt(index)].items.forEach(emoji => {
-                            html += `<button data-unicode="${emoji.unicode}" class="emojis__item ariaLabel" aria-label="${getEmojiDesc(emoji)}">
-${unicode2Emoji(emoji.unicode)}</button>`;
-                        });
-                        titleElement.nextElementSibling.innerHTML = html;
-                        titleElement.nextElementSibling.removeAttribute("data-index");
-                    }
-
-                    emojisContentElement.scrollTo({
-                        top: titleElement.offsetTop,
-                        // behavior: "smooth"  不能使用，否则无法定位
-                    });
-                }
+                this.emojiPanel?.renderCategory(typeElement.dataset.type);
                 return;
             }
             const emojiElement = hasClosestByClassName(eventTarget, "emojis__item");
             if (emojiElement) {
                 const unicode = emojiElement.getAttribute("data-unicode");
-                if (this.element.querySelectorAll(".emojis__title").length > 2) {
+                if (this.emojiBrowseMode) {
                     // /emoji 后会自动添加冒号，导致 range 无法计算，因此不依赖 this.fill
                     const range = getSelection().getRangeAt(0);
                     if (range.endContainer.nodeType !== 3) {
@@ -121,26 +200,183 @@ ${unicode2Emoji(emoji.unicode)}</button>`;
                         range.endContainer.textContent = "";
                     }
                     addEmoji(unicode);
-                    let emoji;
-                    if (unicode.indexOf(".") > -1) {
-                        emoji = `:${unicode.split(".")[0]}: `;
-                    } else {
-                        emoji = unicode2Emoji(unicode) + " ";
-                    }
-                    insertHTML(protyle.lute.SpinBlockDOM(emoji), protyle, false, true);
+                    insertHTML(protyle.lute.SpinBlockDOM(genEmojiInsertHTML(unicode)), protyle, false, true);
                     this.element.classList.add("fn__none");
+                    this.emojiPanel?.deactivate();
                 } else {
+                    this.emojiPanel?.deactivate();
                     this.fill(unicode, protyle);
                 }
             }
         });
     }
 
+    public deactivateEmojiPanel() {
+        this.emojiPanel?.deactivate();
+    }
+
+    public destroy() {
+        this.destroyEmojiPanel();
+    }
+
+    public prepareCreateTarget(protyle: IProtyle, type: TCreateTargetType) {
+        const {notebookId, path} = getCreateTargetContext(protyle);
+        if (this.element.classList.contains("fn__none") || !this.createTargetSession ||
+            this.createTargetSession.notebookId !== notebookId || this.createTargetSession.path !== path) {
+            this.createTargetSession = {
+                id: ++this.createTargetSessionID,
+                notebookId,
+                path,
+                renderID: 0,
+                targets: {},
+            };
+        }
+        const session = this.createTargetSession;
+        const renderID = ++this.createTargetRenderID;
+        session.renderID = renderID;
+        let targetState = session.targets[type];
+        if (!targetState) {
+            const sessionID = session.id;
+            targetState = {
+                promise: isConfiguredCreateTargetCurrentSubDoc(protyle, type).catch(() => false),
+            };
+            session.targets[type] = targetState;
+            targetState.promise.then((result) => {
+                if (this.createTargetSession?.id === sessionID) {
+                    targetState.result = result;
+                }
+            });
+        }
+        return {
+            result: targetState.result,
+            promise: targetState.promise,
+            isCurrent: () => this.createTargetSession === session && session.renderID === renderID &&
+                isSameCreateTargetContext(session, protyle) &&
+                !this.element.classList.contains("fn__none"),
+        };
+    }
+
     public render(protyle: IProtyle) {
-        handleRender(this, protyle);
+        if (!window.getSelection().focusNode) {
+            this.element.classList.add("fn__none");
+            clearTimeout(this.timeId);
+            return;
+        }
+        if (!this.enableExtend) {
+            clearTimeout(this.timeId);
+            return;
+        }
+        protyle.toolbar.range = getSelection().getRangeAt(0);
+        // 粘贴后 range.startContainer 为空 https://github.com/siyuan-note/siyuan/issues/7360
+        if (protyle.toolbar.range.startContainer.nodeType === 3 && protyle.toolbar.range.startContainer.textContent === "") {
+            const lastSibling = hasPreviousSibling(protyle.toolbar.range.startContainer) as Text;
+            if (lastSibling && lastSibling.nodeType === 3) {
+                if (lastSibling.wholeText !== lastSibling.textContent) {
+                    let previousSibling = lastSibling.previousSibling;
+                    while (previousSibling && previousSibling.nodeType === 3) {
+                        if (previousSibling.textContent === "") {
+                            previousSibling = previousSibling.previousSibling;
+                            previousSibling.nextSibling.remove();
+                        } else {
+                            lastSibling.textContent = previousSibling.textContent + lastSibling.textContent;
+                            previousSibling.remove();
+                            break;
+                        }
+                    }
+                }
+                protyle.toolbar.range.setStart(lastSibling, lastSibling.textContent.length);
+                protyle.toolbar.range.collapse(true);
+            }
+        }
+        const start = getSelectionOffset(protyle.toolbar.range.startContainer, protyle.wysiwyg.element).start;
+        const currentLineValue = protyle.toolbar.range.startContainer.textContent.substring(0, start) || "";
+        let textAfterCaret = "";
+        if (protyle.toolbar.range.startContainer.nodeType === 3) {
+            const textNode = protyle.toolbar.range.startContainer as Text;
+            const caretOffset = getWholeTextOffset(textNode, protyle.toolbar.range.startOffset);
+            textAfterCaret = textNode.wholeText.substring(caretOffset);
+        }
+        const key = this.getKey(currentLineValue, textAfterCaret, protyle.options.hint.extend);
+        if (typeof key === "undefined" ||
+            hasClosestByAttribute(protyle.toolbar.range.startContainer, "data-type", "code") ||
+            hasClosestByAttribute(protyle.toolbar.range.startContainer, "data-type", "NodeCodeBlock")) {
+            this.element.classList.add("fn__none");
+            clearTimeout(this.timeId);
+            return;
+        }
+
+        // https://github.com/siyuan-note/siyuan/issues/7933
+        if (this.splitChar === "#") {
+            const blockElement = hasClosestBlock(protyle.toolbar.range.startContainer);
+            if (blockElement && blockElement.getAttribute("data-type") === "NodeHeading") {
+                const blockIndex = getSelectionOffset(protyle.toolbar.range.startContainer, blockElement).start;
+                if (blockElement.textContent.startsWith("#".repeat(blockIndex))) {
+                    this.element.classList.add("fn__none");
+                    clearTimeout(this.timeId);
+                    return;
+                }
+            }
+        }
+
+        if (this.splitChar === ":") {
+            clearTimeout(this.timeId);
+            if (key) {
+                this.genEmojiHTML(protyle, key);
+            } else {
+                this.element.classList.add("fn__none");
+            }
+            return;
+        }
+        // https://github.com/siyuan-note/siyuan/issues/5083
+        if (this.splitChar === "/" || this.splitChar === "、") {
+            clearTimeout(this.timeId);
+            const blockElement = hasClosestBlock(protyle.toolbar.range.startContainer);
+            if (!this.enableSlash || !blockElement || isInEmbedBlock(blockElement)) {
+                return;
+            }
+            if (protyle.lite) {
+                protyle.options.hint.extend.find((item) => {
+                    if (item.key === "/" && item.hint) {
+                        item.hint(key, protyle, "hint");
+                        return true;
+                    }
+                });
+            } else if (!isMobile) {
+                const slashData = hintSlash(key, protyle);
+                if (slashData.length === 0) {
+                    if (endsWithMultiCharHintPrefix(key, protyle.options.hint.extend.map((item) => item.key))) {
+                        this.enableExtend = false;
+                    }
+                    this.genHTML(slashData, protyle, true, "hint");
+                    return;
+                }
+                const createTarget = this.prepareCreateTarget(protyle, "doc");
+                if (createTarget.result !== undefined) {
+                    this.genHTML(hintSlash(key, protyle, createTarget.result), protyle, true, "hint");
+                } else {
+                    this.genLoading(protyle);
+                    createTarget.promise.then((isCurrentSubDoc) => {
+                        if (createTarget.isCurrent()) {
+                            this.genHTML(hintSlash(key, protyle, isCurrentSubDoc), protyle, true, "hint");
+                        }
+                    });
+                }
+            }
+            return;
+        }
+
+        protyle.options.hint.extend.forEach((item) => {
+            if (item.key === this.splitChar) {
+                clearTimeout(this.timeId);
+                this.timeId = window.setTimeout(() => {
+                    this.genHTML(item.hint(key, protyle, "hint"), protyle, false, "hint");
+                }, protyle.options.hint.delay);
+            }
+        });
     }
 
     public genLoading(protyle: IProtyle) {
+        this.destroyEmojiPanel();
         if (this.element.classList.contains("fn__none")) {
             this.element.innerHTML = '<div class="fn__loading" style="height: 128px;position: initial"><img width="64px" src="/stage/loading-pure.svg"></div>';
             this.element.classList.remove("fn__none");
@@ -164,23 +400,44 @@ ${unicode2Emoji(emoji.unicode)}</button>`;
                     setPosition(this.element, 0, 0);
                 }
             }
-        } else {
+        } else if (!this.element.querySelector(".fn__loading")) {
             this.element.insertAdjacentHTML("beforeend", '<div class="fn__loading"><img width="64px" src="/stage/loading-pure.svg"></div>');
         }
     }
 
     public bindUploadEvent(protyle: IProtyle, element: HTMLElement) {
         element.querySelectorAll('input[type="file"]').forEach(item => {
+            const captureInsertPosition = () => {
+                let range = protyle.toolbar.range;
+                if (!range || !protyle.wysiwyg.element.contains(range.startContainer) ||
+                    !protyle.wysiwyg.element.contains(range.endContainer)) {
+                    range = getEditorRange(protyle.wysiwyg.element);
+                }
+                range = range.cloneRange();
+                if (this.lastIndex > -1) {
+                    range.setStart(range.startContainer, this.lastIndex);
+                }
+                return createUploadInsertPosition(range,
+                    getUndoFocusContext(protyle.wysiwyg.element, range, true));
+            };
+            let insertPosition = captureInsertPosition();
+            item.addEventListener("click", () => {
+                insertPosition = captureInsertPosition();
+            });
             item.addEventListener("change", (event: InputEvent & { target: HTMLInputElement }) => {
                 if (event.target.files.length === 0) {
                     return;
                 }
-                const range = getEditorRange(protyle.wysiwyg.element);
-                if (this.lastIndex > -1) {
-                    range.setStart(range.startContainer, this.lastIndex);
-                }
+                const range = getUploadInsertRange(protyle, insertPosition);
                 range.deleteContents();
-                uploadFiles(protyle, event.target.files, event.target);
+                range.collapse(true);
+                uploadFiles(protyle, event.target.files, event.target, undefined, undefined, {
+                    htmlAsIframe: event.target.dataset.uploadMode === "html-iframe",
+                    insertPosition: createUploadInsertPosition(range,
+                        getUndoFocusContext(protyle.wysiwyg.element, range, true)),
+                    source: "file-picker",
+                    target: "editor",
+                });
                 hideElements(["hint", "toolbar"], protyle);
             });
         });
@@ -191,13 +448,10 @@ ${unicode2Emoji(emoji.unicode)}</button>`;
         if (this.source !== "hint") {
             hintsHTML = '<input style="margin:0 8px 4px 8px" class="b3-text-field"><div style="flex: 1;overflow:auto;">';
         }
+        const focusIndex = data.findIndex(item => item.focus);
         data.forEach((hintData, i) => {
             // https://github.com/siyuan-note/siyuan/issues/1229 提示时，新建文件不应默认选中
-            let focusClass = "";
-            if ((i === 1 && data[i].focus) ||
-                (i === 0 && (data.length === 1 || !data[1].focus))) {
-                focusClass = " b3-list-item--focus";
-            }
+            const focusClass = i === (focusIndex > -1 ? focusIndex : 0) ? " b3-list-item--focus" : "";
             if (hintData.html === "separator") {
                 hintsHTML += `<button data-id="${hintData.id || ""}" class="b3-menu__separator"></button>`;
             } else {
@@ -209,6 +463,7 @@ ${unicode2Emoji(emoji.unicode)}</button>`;
 
     public genHTML(data: IHintData[], protyle: IProtyle, hide = false, source: THintSource) {
         this.source = source;
+        this.destroyEmojiPanel();
         if (data.length === 0) {
             if (!this.element.querySelector(".fn__loading") || hide) {
                 this.element.classList.add("fn__none");
@@ -281,29 +536,764 @@ ${unicode2Emoji(emoji.unicode)}</button>`;
                     return;
                 }
                 event.stopPropagation();
-                handleGenSearchHTML(this, protyle, searchElement, nodeElement, oldValue, source);
+                this.genSearchHTML(protyle, searchElement, nodeElement, oldValue, source);
             });
             searchElement.addEventListener("compositionend", (event: InputEvent) => {
                 event.stopPropagation();
-                handleGenSearchHTML(this, protyle, searchElement, nodeElement, oldValue, source);
+                this.genSearchHTML(protyle, searchElement, nodeElement, oldValue, source);
             });
         }
     }
 
+    private genSearchHTML(protyle: IProtyle, searchElement: HTMLInputElement, nodeElement: false | HTMLElement, oldValue: string, source: THintSource) {
+        const createTarget = this.prepareCreateTarget(protyle, "ref");
+        this.element.lastElementChild.innerHTML = '<div class="ft__center"><img style="height:32px;width:32px;" src="/stage/loading-pure.svg"></div>';
+        const searchParam: IObject = {
+            k: searchElement.value,
+            id: nodeElement ? nodeElement.getAttribute("data-node-id") : protyle.block.parentID,
+            beforeLen: Math.floor((Math.max(protyle.element.clientWidth / 2, 320) - 58) / 28.8),
+            rootID: source === "av" ? "" : protyle.block.rootID,
+            isDatabase: source === "av",
+        };
+        if (isEncryptedBox(protyle.notebookId)) {
+            searchParam.notebook = protyle.notebookId;
+        }
+        fetchPost("/api/search/searchRefBlock", searchParam, (response) => {
+            createTarget.promise.then((hideConfiguredCreate) => {
+                if (!createTarget.isCurrent()) {
+                    return;
+                }
+                let searchHTML = "";
+                if (response.data.newDoc && !hideConfiguredCreate) {
+                    const blockRefText = `((newFile "${oldValue}"${Constants.ZWSP}'${response.data.k}${Lute.Caret}'))`;
+                    searchHTML += `<button style="width: calc(100% - 16px)" class="b3-list-item b3-list-item--two${response.data.blocks.length === 0 ? " b3-list-item--focus" : ""}" data-value="${encodeURIComponent(blockRefText)}"><div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconFile"></use></svg>
+<span class="b3-list-item__text">${window.siyuan.languages.newFile} <mark>${response.data.k}</mark></span></div></button>`;
+                }
+                if (response.data.newDoc) {
+                    const newFileName = Lute.UnEscapeHTMLStr(response.data.k);
+                    const subDocRefText = `((newSubDoc "${oldValue}"${Constants.ZWSP}'${newFileName}${Lute.Caret}'))`;
+                    searchHTML += `<button style="width: calc(100% - 16px)" class="b3-list-item b3-list-item--two${hideConfiguredCreate && response.data.blocks.length === 0 ? " b3-list-item--focus" : ""}" data-value="${encodeURIComponent(subDocRefText)}"><div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconFile"></use></svg>
+<span class="b3-list-item__text">${window.siyuan.languages.newSubDoc} <mark>${response.data.k}</mark></span></div></button>`;
+                }
+                response.data.blocks.forEach((item: IBlock, index: number) => {
+                    let blockRefHTML;
+                    if (source === "av") {
+                        // av 搜索时需要获取值 https://github.com/siyuan-note/siyuan/issues/12020
+                        let refText = item.name ? stripSearchMark(escapeSearchHighlight(item.name)) : item.refText.replace(new RegExp(Constants.ZWSP, "g"), "");
+                        if (nodeElement) {
+                            refText = escapeHtml(item.ial["custom-sy-av-s-text-" + nodeElement.getAttribute("data-av-id")] || "") || refText;
+                        }
+                        blockRefHTML = `<span data-type="block-ref" data-id="${item.id}" data-subtype="s">${refText}</span>`;
+                    } else {
+                        blockRefHTML = `<span data-type="block-ref" data-id="${item.id}" data-subtype="s">${oldValue}</span>`;
+                    }
+                    searchHTML += `<button style="width: calc(100% - 16px)" class="b3-list-item b3-list-item--two${index === 0 ? " b3-list-item--focus" : ""}" data-value="${encodeURIComponent(blockRefHTML)}">
+${genHintItemHTML(item)}
+</button>`;
+                });
+                if (searchHTML === "") {
+                    searchHTML = `<button style="width: calc(100% - 16px)" class="b3-list-item b3-list-item--two" data-value="">${window.siyuan.languages.emptyContent}</button>`;
+                }
+                this.element.lastElementChild.innerHTML = searchHTML;
+                setPosition(this.element, parseInt(this.element.style.left), parseInt(this.element.style.right));
+            });
+        });
+    }
+
+    private genEmojiHTML(protyle: IProtyle, value = "") {
+        if (value && !this.enableEmoji) {
+            return;
+        }
+
+        const targetElement = hasClosestBlock(protyle.toolbar.range?.startContainer);
+        const targetID = targetElement ? targetElement.getAttribute("data-node-id") : protyle.block.rootID;
+        let panelElement = this.element.querySelector(".emojis__panel") as HTMLElement;
+        if (!panelElement || !this.emojiPanel) {
+            this.destroyEmojiPanel();
+            // max-height：min(402px,40vh) 和 .protyle-hint 保持一致，否则 emoji 不显示底部导航
+            this.element.innerHTML = `<div style="padding:0;max-height:min(402px,40vh);width:366px" class="emojis">
+<div class="emojis__panel"></div>
+<div class="emojis__types">${genEmojiCategoryButtons()}</div>
+</div>`;
+            panelElement = this.element.querySelector(".emojis__panel") as HTMLElement;
+            this.emojiPanel = new EmojiPanelController(
+                panelElement,
+                panelElement.nextElementSibling as HTMLElement,
+                {targetID},
+            );
+        } else {
+            this.emojiPanel.setOptions({targetID});
+        }
+        this.emojiBrowseMode = value === "";
+        this.emojiPanel.renderSearch(value, 256);
+        const firstEmojiElement = this.element.querySelector(".emojis__item");
+        if (firstEmojiElement) {
+            this.element.classList.remove("fn__none");
+            const textareaPosition = getSelectionPosition(protyle.wysiwyg.element);
+            setPosition(this.element, textareaPosition.left, textareaPosition.top + 26, 30);
+            this.emojiPanel.activate();
+        } else {
+            this.element.classList.add("fn__none");
+            this.emojiPanel.deactivate();
+        }
+    }
+
+    private openEmojiInsertPanel(protyle: IProtyle, range: Range) {
+        const targetElement = hasClosestBlock(range.startContainer);
+        const targetID = targetElement ? targetElement.getAttribute("data-node-id") : protyle.block.rootID;
+        const textareaPosition = getSelectionPosition(protyle.wysiwyg.element);
+        protyle.toolbar.range = range.cloneRange();
+        openEmojiPanel("", "insert", {
+            x: textareaPosition.left,
+            y: textareaPosition.top + 26,
+            h: 30,
+            w: 30,
+        }, (unicode) => {
+            if (!unicode) {
+                return;
+            }
+            focusByRange(protyle.toolbar.range);
+            insertHTML(protyle.lute.SpinBlockDOM(genEmojiInsertHTML(unicode)), protyle, false, true);
+        }, undefined, {targetID});
+    }
+
+    private destroyEmojiPanel() {
+        this.emojiPanel?.destroy();
+        this.emojiPanel = undefined;
+        this.emojiBrowseMode = false;
+    }
 
     public fill(value: string, protyle: IProtyle, updateRange = true, refIsS = false) {
         hideElements(["hint", "toolbar"], protyle);
         if (updateRange && this.source !== "av") {
             protyle.toolbar.range = getEditorRange(protyle.wysiwyg.element);
         }
-        if (handleFillAv(this, value, protyle, this.source)) {
+        const range = protyle.toolbar.range;
+        let nodeElement = hasClosestBlock(protyle.toolbar.range.startContainer) as HTMLElement;
+        if (!nodeElement) {
             return;
         }
-        handleFillContent(this, value, protyle, refIsS, (p) => handleGenEmojiHTML(this, p));
+        if (this.source === "av") {
+            let cellElement = hasClosestByClassName(protyle.toolbar.range.startContainer, "av__cell");
+            if (!cellElement) {
+                cellElement = nodeElement.querySelector(".av__cell--select") as HTMLElement;
+            }
+            if (!cellElement) {
+                return;
+            }
+            const rowElement = hasClosestByClassName(cellElement, nodeElement.getAttribute("data-av-type") === "table" ? "av__row" : "av__gallery-item");
+            if (!rowElement) {
+                return;
+            }
+            const previousID = rowElement.dataset.id;
+            const avID = nodeElement.getAttribute("data-av-id");
+            let tempElement = document.createElement("div");
+            tempElement.innerHTML = value.replace(/<mark>/g, "").replace(/<\/mark>/g, "");
+            tempElement = tempElement.firstElementChild as HTMLDivElement;
+            const isNewSubDoc = value.startsWith("((newSubDoc ") && value.endsWith(`${Lute.Caret}'))`);
+            if ((value.startsWith("((newFile ") || isNewSubDoc) && value.endsWith(`${Lute.Caret}'))`)) {
+                const prefix = isNewSubDoc ? "((newSubDoc " : "((newFile ";
+                const fileNames = value.substring(prefix.length, value.length - 4).split(`"${Constants.ZWSP}'`);
+                const realFileName = fileNames.length === 1 ? fileNames[0] : fileNames[1];
+                const newID = Lute.NewNodeID();
+                const bindNewDoc = () => {
+                    transaction(protyle, [{
+                        action: "replaceAttrViewBlock",
+                        avID,
+                        previousID,
+                        nextID: newID,
+                        isDetached: false,
+                        blockID: nodeElement.dataset.nodeId,
+                        context: {protyleID: protyle.id},
+                    }], [{
+                        action: "replaceAttrViewBlock",
+                        avID,
+                        previousID,
+                        isDetached: true,
+                        blockID: nodeElement.dataset.nodeId,
+                        context: {protyleID: protyle.id},
+                    }]);
+                };
+                if (isNewSubDoc) {
+                    newSubDocByRefHint(protyle, realFileName ?? "", bindNewDoc, newID);
+                } else {
+                    newFileByRefHint(protyle, realFileName ?? "", bindNewDoc, newID);
+                }
+                updateAttrViewCellAnimation(cellElement, {
+                    type: "block",
+                    isDetached: false,
+                    block: {content: realFileName ?? "", id: newID}
+                });
+            } else {
+                const sourceId = tempElement.getAttribute("data-id");
+                transaction(protyle, [{
+                    action: "replaceAttrViewBlock",
+                    avID,
+                    previousID,
+                    nextID: sourceId,
+                    isDetached: false,
+                    blockID: nodeElement.dataset.nodeId,
+                    context: {protyleID: protyle.id},
+                }], [{
+                    action: "replaceAttrViewBlock",
+                    avID,
+                    previousID,
+                    isDetached: true,
+                    blockID: nodeElement.dataset.nodeId,
+                    context: {protyleID: protyle.id},
+                }]);
+                updateAttrViewCellAnimation(cellElement, {
+                    type: "block",
+                    isDetached: false,
+                    block: {
+                        content: tempElement.textContent,
+                        id: sourceId
+                    }
+                });
+            }
+            return;
+        }
+        this.enableExtend = value === "emoji";
+        let id = "";
+        if (nodeElement) {
+            id = nodeElement.getAttribute("data-node-id");
+        }
+        const html = nodeElement.outerHTML;
+        const undoContext = shouldCaptureHintUndoFocus(this.splitChar, Constants.BLOCK_HINT_KEYS, protyle.lite) ?
+            getUndoFocusContext(protyle.wysiwyg.element, range, true) : undefined;
+        // 自顶向下法新建文档后光标定位问题 https://github.com/siyuan-note/siyuan/issues/299
+        if (this.lastIndex > -1) {
+            range.setStart(range.startContainer, this.lastIndex);
+            focusByRange(range);
+        }
+        if (Constants.BLOCK_HINT_KEYS.includes(this.splitChar) && value.startsWith("((newSubDoc ") &&
+            value.endsWith(`${Lute.Caret}'))`)) {
+            const prefix = "((newSubDoc ";
+            const fileNames = value.substring(prefix.length, value.length - 4).split(`"${Constants.ZWSP}'`);
+            const realFileName = fileNames.length === 1 ? fileNames[0] : fileNames[1];
+            newFileBySelectRange(protyle, range, "subDoc", refIsS ? "s" : "d", realFileName ?? "", undoContext);
+            return;
+        }
+        // 新建文件
+        if (Constants.BLOCK_HINT_KEYS.includes(this.splitChar) && value.startsWith("((newFile ") && value.endsWith(`${Lute.Caret}'))`)) {
+            const fileNames = value.substring(11, value.length - 4).split(`"${Constants.ZWSP}'`);
+            const realFileName = fileNames.length === 1 ? fileNames[0] : fileNames[1];
+            newFileByRefHint(protyle, realFileName ?? "", (id) => {
+                // https://github.com/siyuan-note/siyuan/issues/10133
+                protyle.toolbar.range = range;
+                const refElement = protyle.toolbar.setInlineMark(protyle, "block-ref", "range", {
+                    type: "id",
+                    color: `${id}${Constants.ZWSP}${refIsS ? "s" : "d"}${Constants.ZWSP}${getBlockRefAnchorText((refIsS ? fileNames[0] : realFileName) ?? "")}`
+                }, true, undoContext);
+                const firstRef = refElement?.[0];
+                if (firstRef?.lastChild) {
+                    protyle.toolbar.range.setEnd(firstRef.lastChild, firstRef.lastChild.textContent?.length ?? 0);
+                }
+                protyle.toolbar.range.collapse(false);
+            });
+            return;
+        }
+        if (Constants.BLOCK_HINT_KEYS.includes(this.splitChar)) {
+            if (value === "") {
+                const editElement = getContenteditableElement(nodeElement);
+                if (editElement.textContent === "") {
+                    editElement.innerHTML = "<wbr>";
+                    focusByWbr(editElement, range);
+                }
+                return;
+            }
+            let tempElement = document.createElement("div");
+            tempElement.innerHTML = value.replace(/<mark>/g, "").replace(/<\/mark>/g, "");
+            tempElement = tempElement.firstElementChild as HTMLDivElement;
+            if (refIsS) {
+                const selectedText = range.toString();
+                const staticText = getBlockRefStaticText(selectedText, this.splitChar, this.lastIndex > -1);
+                if (staticText) {
+                    tempElement.setAttribute("data-subtype", "s");
+                    tempElement.innerText = staticText;
+                }
+            } else {
+                tempElement.setAttribute("data-subtype", "d");
+                const dynamicTexts = tempElement.innerText.split(Constants.ZWSP);
+                if (dynamicTexts.length === 2) {
+                    tempElement.innerText = dynamicTexts[1] ?? "";
+                }
+            }
+            const refElement = protyle.toolbar.setInlineMark(protyle, "block-ref", "range", {
+                type: "id",
+                color: `${tempElement.getAttribute("data-id")}${Constants.ZWSP}${tempElement.getAttribute("data-subtype")}${Constants.ZWSP}${tempElement.textContent}`
+            }, true, undoContext);
+            const firstRef = refElement?.[0];
+            if (firstRef?.lastChild) {
+                protyle.toolbar.range.setEnd(firstRef.lastChild, firstRef.lastChild.textContent?.length ?? 0);
+            }
+            protyle.toolbar.range.collapse(false);
+            return;
+        } else if (this.splitChar === ":") {
+            addEmoji(value);
+            insertHTML(protyle.lute.SpinBlockDOM(genEmojiInsertHTML(value)), protyle);
+        } else if (["「「", "「『", "『「", "『『", "{{"].includes(this.splitChar) || this.splitChar === "#" || this.splitChar === ":") {
+            if (value === "") {
+                const editElement = getContenteditableElement(nodeElement);
+                if (editElement.textContent === "") {
+                    editElement.innerHTML = "<wbr>";
+                    focusByWbr(editElement, range);
+                }
+                return;
+            }
+            insertHTML(protyle.lute.SpinBlockDOM(value), protyle, false, isMobile);
+            blockRender(protyle, protyle.wysiwyg.element);
+            return;
+        } else if (this.splitChar === "/" || this.splitChar === "、") {
+            if (protyle.lite) {
+                insertHTML(value, protyle, false, false, false, undefined, undoContext);
+            } else if (value === "((" || value === "{{") {
+                this.enableExtend = true;
+                if (value === "((") {
+                    hintRef("", protyle, "hint");
+                } else {
+                    hintEmbed("", protyle);
+                }
+                this.splitChar = value;
+                this.lastIndex = 0;
+                range.deleteContents();
+                // 光标位于 block-ref 内末尾时，需调整到 block-ref 的外面，避免把标记符插入到引用内部
+                const refElement = hasClosestByAttribute(range.startContainer, "data-type", "block-ref");
+                if (refElement && range.startContainer.nodeType === 3 &&
+                    range.startOffset === (range.startContainer as Text).textContent.length) {
+                    range.setStartAfter(refElement);
+                    range.collapse(true);
+                }
+                const textNode = document.createTextNode(value);
+                range.insertNode(textNode);
+                range.setEnd(textNode, value.length);
+                range.collapse(false);
+                focusByRange(range);
+                return;
+            } else if (value === Constants.ZWSP) {
+                range.deleteContents();
+                this.fixImageCursor(range);
+                protyle.toolbar.showTpl(protyle, nodeElement, range);
+                updateTransaction(protyle, nodeElement, html);
+                return;
+            } else if (value === Constants.ZWSP + 1) {
+                range.deleteContents();
+                this.fixImageCursor(range);
+                protyle.toolbar.showWidget(protyle, nodeElement, range);
+                updateTransaction(protyle, nodeElement, html);
+                return;
+            } else if (value === Constants.ZWSP + 2) {
+                range.deleteContents();
+                this.fixImageCursor(range);
+                protyle.toolbar.range = range;
+                const rangePosition = getSelectionPosition(nodeElement, range);
+                assetMenu({
+                    protyle,
+                    position: {x: rangePosition.left, y: rangePosition.top + 26, w: 0, h: 26},
+                    destination: {
+                        kind: "editor",
+                        select: (url) => insertAssetIntoProtyle(url, protyle),
+                    },
+                });
+                updateTransaction(protyle, nodeElement, html);
+                return;
+            } else if (value === Constants.ZWSP + 3) {
+                range.deleteContents();
+                return;
+            } else if (value === Constants.ZWSP + 4) {
+                // 新建文档
+                newFileInProtyle(protyle, (createDocId, createDocTitle) => {
+                    insertHTML(`<span data-type="block-ref" data-id="${createDocId}" data-subtype="d">${getBlockRefAnchorText(createDocTitle)}</span>`, protyle);
+                });
+                return;
+            } else if (value === Constants.ZWSP + 6) {
+                // 新建子文档
+                const newSubDocId = Lute.NewNodeID();
+                getDocCreateTemplatePath(protyle.notebookId, (docCreateTemplatePath) => {
+                    fetchPost("/api/filetree/createDoc", {
+                        notebook: protyle.notebookId,
+                        path: pathPosix().join(getDisplayName(protyle.path, false, true), newSubDocId + ".sy"),
+                        title: "",
+                        md: "",
+                        docCreateTemplatePath,
+                    }, () => {
+                        insertHTML(`<span data-type="block-ref" data-id="${newSubDocId}" data-subtype="d">${getBlockRefAnchorText("")}</span>`, protyle);
+                        if (isMobile) {
+                            openMobileFileById(protyle.app, newSubDocId, [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]);
+                        } else {
+                            openFileById({
+                                app: protyle.app,
+                                id: newSubDocId,
+                                action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]
+                            });
+                        }
+                    });
+                });
+                return;
+            } else if (value === Constants.ZWSP + 5) {
+                range.deleteContents();
+                AIChat(protyle, nodeElement);
+                return;
+            } else if (Constants.INLINE_TYPE.includes(value)) {
+                range.deleteContents();
+                focusByRange(range);
+                if (["a", "block-ref", "inline-math", "inline-memo", "text"].includes(value)) {
+                    protyle.toolbar.element.querySelector(`[data-type="${value}"]`)?.dispatchEvent(new CustomEvent("click"));
+                    return;
+                }
+                protyle.toolbar.setInlineMark(protyle, value, "range");
+                return;
+            } else if (value === "emoji") {
+                range.deleteContents();
+                range.collapse(false);
+                focusByRange(range);
+                this.openEmojiInsertPanel(protyle, range);
+                return;
+            } else if (value.startsWith("style")) {
+                range.deleteContents();
+                this.fixImageCursor(range);
+                nodeElement.setAttribute("style", value.split(Constants.ZWSP)[1] || "");
+                updateTransaction(protyle, nodeElement, html);
+                return;
+            } else if (value.startsWith("plugin")) {
+                protyle.app.plugins.find((plugin) => {
+                    const ids = value.split(Constants.ZWSP);
+                    if (ids[1] === plugin.name) {
+                        plugin.protyleSlash.find((slash) => {
+                            if (slash.id === ids[2]) {
+                                slash.callback(protyle.getInstance(), nodeElement);
+                                return true;
+                            }
+                        });
+                        return true;
+                    }
+                });
+                return;
+            } else {
+                range.deleteContents();
+                if (value !== "![]()") {
+                    this.fixImageCursor(range);
+                }
+                let textContent = value;
+                if (value === "```") {
+                    textContent = value + (Constants.SIYUAN_RENDER_CODE_LANGUAGES.includes(window.siyuan.storage[Constants.LOCAL_CODELANG]) ? "" : window.siyuan.storage[Constants.LOCAL_CODELANG]) + Lute.Caret + "\n```";
+                }
+                const editableElement = getContenteditableElement(nodeElement);
+                if (value === "![]()") { // https://github.com/siyuan-note/siyuan/issues/4586 1
+                    range.insertNode(document.createElement("wbr"));
+                    range.insertNode(document.createTextNode(value));
+                    nodeElement.insertAdjacentHTML("afterend", protyle.lute.SpinBlockDOM(nodeElement.outerHTML));
+                    nodeElement = nodeElement.nextElementSibling as HTMLElement;
+                    nodeElement.previousElementSibling.remove();
+                    focusByWbr(nodeElement, range);
+                    updateTransaction(protyle, nodeElement, html);
+                    let imgElement: HTMLElement = range.startContainer.childNodes[range.startOffset - 1] as HTMLElement || range.startContainer as HTMLElement;
+                    if (imgElement && imgElement.nodeType !== 3 && imgElement.classList.contains("img")) {
+                        // 已经找到图片
+                    } else if (imgElement.previousSibling?.nodeType !== 3 && (imgElement.previousSibling as HTMLElement).classList.contains("img")) {
+                        // https://github.com/siyuan-note/siyuan/issues/7540
+                        imgElement = imgElement.previousSibling as HTMLElement;
+                    } else {
+                        Array.from(nodeElement.querySelectorAll(".img")).find((item: HTMLElement) => {
+                            if (item.querySelector("img").getAttribute("data-src") === "") {
+                                imgElement = item;
+                                return true;
+                            }
+                        });
+                    }
+                    const rect = imgElement.getBoundingClientRect();
+                    imgMenu(protyle, range, imgElement, {
+                        clientX: rect.left,
+                        clientY: rect.top
+                    });
+                    return;
+                } else if (editableElement.textContent === "" && nodeElement.getAttribute("data-type") === "NodeParagraph") {
+                    let newHTML = "";
+                    if (value === "<div>") {
+                        newHTML = `<div data-node-id="${id}" data-type="NodeHTMLBlock" class="render-node" data-subtype="block">${genIconHTML()}<div><protyle-html data-content=""></protyle-html><span style="position: absolute">${Constants.ZWSP}</span></div><div class="protyle-attr" contenteditable="false"></div></div>`;
+                    } else {
+                        editableElement.textContent = textContent;
+                        newHTML = protyle.lute.SpinBlockDOM(nodeElement.outerHTML);
+                    }
+                    // 列表项内创建列表时保留空段落，避免形成 li>list 非法结构 https://github.com/siyuan-note/siyuan/issues/17890
+                    const tempCheck = document.createElement("div");
+                    tempCheck.innerHTML = newHTML;
+                    const keepEmptyInLi = hasClosestByClassName(nodeElement, "li") &&
+                        tempCheck.firstElementChild?.getAttribute("data-type") === "NodeList";
+                    if (keepEmptyInLi) {
+                        // 保留空段落时给新 NodeList 生成新 ID，避免与段落 ID 冲突
+                        const newListId = Lute.NewNodeID();
+                        tempCheck.firstElementChild.setAttribute("data-node-id", newListId);
+                        newHTML = tempCheck.innerHTML;
+                    }
+                    nodeElement.insertAdjacentHTML("afterend", newHTML);
+                    nodeElement = nodeElement.nextElementSibling as HTMLElement;
+                    if (!keepEmptyInLi) {
+                        nodeElement.previousElementSibling.remove();
+                        // https://github.com/siyuan-note/siyuan/issues/6864
+                        if (nodeElement.getAttribute("data-type") === "NodeTable") {
+                            nodeElement.querySelectorAll("colgroup col").forEach((item: HTMLElement) => {
+                                item.style.minWidth = "60px";
+                            });
+                        }
+                        updateTransaction(protyle, nodeElement, html);
+                    } else {
+                        // 保留空段落：原段落清空内容，新列表用 insert 操作
+                        editableElement.textContent = "";
+                        transaction(protyle, [{
+                            action: "update",
+                            id: id,
+                            data: nodeElement.previousElementSibling.outerHTML
+                        }, {
+                            action: "insert",
+                            id: nodeElement.getAttribute("data-node-id"),
+                            data: nodeElement.outerHTML,
+                            previousID: id
+                        }], [{
+                            action: "update",
+                            id: id,
+                            data: html
+                        }, {
+                            action: "delete",
+                            id: nodeElement.getAttribute("data-node-id")
+                        }]);
+                    }
+                } else {
+                    let newHTML = protyle.lute.SpinBlockDOM(textContent);
+                    if (value === "<div>") {
+                        newHTML = `<div data-node-id="${Lute.NewNodeID()}" data-type="NodeHTMLBlock" class="render-node" data-subtype="block">${genIconHTML()}<div><protyle-html data-content=""></protyle-html><span style="position: absolute">${Constants.ZWSP}</span></div><div class="protyle-attr" contenteditable="false"></div></div>`;
+                    }
+                    // 列表项内创建列表时保留原内容块，避免 ID 冲突和 li>list 非法结构 https://github.com/siyuan-note/siyuan/issues/17890
+                    const insertListInLi = hasClosestByClassName(nodeElement, "li") &&
+                        (() => {
+                            const tc = document.createElement("div");
+                            tc.innerHTML = newHTML;
+                            return tc.firstElementChild?.getAttribute("data-type") === "NodeList";
+                        })();
+                    if (insertListInLi) {
+                        const newListId = Lute.NewNodeID();
+                        const tc = document.createElement("div");
+                        tc.innerHTML = newHTML;
+                        tc.firstElementChild.setAttribute("data-node-id", newListId);
+                        newHTML = tc.innerHTML;
+                        nodeElement.insertAdjacentHTML("afterend", newHTML);
+                        const newListEl = nodeElement.nextElementSibling as HTMLElement;
+                        transaction(protyle, [{
+                            action: "update",
+                            id: id,
+                            data: nodeElement.outerHTML
+                        }, {
+                            action: "insert",
+                            id: newListId,
+                            data: newListEl.outerHTML,
+                            previousID: id
+                        }], [{
+                            action: "update",
+                            id: id,
+                            data: html
+                        }, {
+                            action: "delete",
+                            id: newListId
+                        }]);
+                        focusByWbr(newListEl, range);
+                        return;
+                    }
+                    const oldHTML = nodeElement.outerHTML;
+                    let foldData;
+                    if (nodeElement.getAttribute("data-type") === "NodeHeading" &&
+                        nodeElement.getAttribute("fold") === "1") {
+                        foldData = setFold(protyle, nodeElement, true, false, false, true);
+                    }
+                    nodeElement.insertAdjacentHTML("afterend", newHTML);
+                    const newId = newHTML.substr(newHTML.indexOf('data-node-id="') + 14, 22);
+                    nodeElement.setAttribute(Constants.ATTRIBUTE_EDITING, "true");
+                    nodeElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${newId}"]`);
+                    // https://github.com/siyuan-note/siyuan/issues/6864
+                    if (nodeElement.getAttribute("data-type") === "NodeTable") {
+                        nodeElement.querySelectorAll("colgroup col").forEach((item: HTMLElement) => {
+                            item.style.minWidth = "60px";
+                        });
+                    }
+                    const doOperations: IOperation[] = [{
+                        data: oldHTML,
+                        id,
+                        action: "update"
+                    }, {
+                        data: nodeElement.outerHTML,
+                        id: newId,
+                        previousID: id,
+                        action: "insert"
+                    }];
+                    const undoOperations: IOperation[] = [{
+                        id: newId,
+                        action: "delete"
+                    }, {
+                        data: html,
+                        id,
+                        action: "update"
+                    }];
+                    if (foldData) {
+                        doOperations.push(...foldData.doOperations);
+                        undoOperations.push(...foldData.undoOperations);
+                    }
+                    transaction(protyle, doOperations, undoOperations);
+                }
+                if (value === "<div>" || value === "$$" || (value.indexOf("```") > -1 && (value.length > 3 || nodeElement.classList.contains("render-node")))) {
+                    protyle.toolbar.showRender(protyle, nodeElement);
+                    processRender(nodeElement);
+                } else if (value.startsWith("```")) {
+                    highlightRender(nodeElement);
+                } else if (value.startsWith("<iframe") || value.startsWith("<video") || value.startsWith("<audio")) {
+                    protyle.gutter.renderMenu(protyle, nodeElement);
+                    const itemElement = window.siyuan.menus.menu.element.querySelector('[data-id="assetVideo"], [data-id="assetAudio"], [data-id="assetIFrame"]');
+                    if (isMobile) {
+                        // 移动端将资源子菜单内容提升为底部菜单根内容。
+                        const subMenuItemsElement = itemElement.querySelector(":scope > .b3-menu__submenu > .b3-menu__items");
+                        window.siyuan.menus.menu.element.lastElementChild.replaceChildren(...Array.from(subMenuItemsElement.children));
+                        window.siyuan.menus.menu.fullscreen();
+                    } else {
+                        const rect = nodeElement.getBoundingClientRect();
+                        window.siyuan.menus.menu.popup({
+                            x: rect.left,
+                            y: rect.top,
+                            isLeft: true
+                        });
+                        itemElement.classList.add("b3-menu__item--show");
+                        window.siyuan.menus.menu.showSubMenu(itemElement.querySelector(".b3-menu__submenu"));
+                    }
+                    window.siyuan.menus.menu.element.querySelector("textarea").focus();
+                } else if (value === "---") {
+                    focusBlock(nodeElement);
+                } else if (nodeElement.classList.contains("av")) {
+                    avRender(nodeElement, protyle, () => {
+                        const titleHTMLElement = nodeElement.querySelector(".av__title") as HTMLInputElement;
+                        titleHTMLElement.focus();
+                        range.setStart(titleHTMLElement, 0);
+                        range.collapse(true);
+                        focusByRange(range);
+                    });
+                } else {
+                    focusByWbr(nodeElement, range);
+                }
+            }
+        }
     }
 
     public select(event: KeyboardEvent, protyle: IProtyle) {
-        return handleSelect(this, event, protyle);
+        const isEmojiPanel = this.element.firstElementChild.classList.contains("emojis");
+        if (this.element.querySelectorAll("button").length === 0 && !isEmojiPanel) {
+            return false;
+        }
+        if (event.key === "Enter") {
+            if (isEmojiPanel) {
+                const currentElement = this.emojiPanel?.getCurrentElement();
+                if (!currentElement) {
+                    return false;
+                }
+                const unicode = currentElement.getAttribute("data-unicode");
+                if (this.emojiBrowseMode) {
+                    // /emoji 后会自动添加冒号，导致 range 无法计算，因此不依赖 this.fill
+                    const range = getSelection().getRangeAt(0);
+                    if (range.endContainer.nodeType !== 3) {
+                        range.endContainer.childNodes[range.endOffset - 1]?.remove();
+                    }
+                    addEmoji(unicode);
+                    insertHTML(protyle.lute.SpinBlockDOM(genEmojiInsertHTML(unicode)), protyle);
+                    this.element.classList.add("fn__none");
+                    this.emojiPanel?.deactivate();
+                } else {
+                    this.emojiPanel?.deactivate();
+                    this.fill(unicode, protyle);
+                }
+            } else {
+                const mark = decodeURIComponent(this.element.querySelector(".b3-list-item--focus").getAttribute("data-value"));
+                if (mark === Constants.ZWSP + 3) {
+                    (this.element.querySelector(".b3-list-item--focus input") as HTMLElement).click();
+                } else {
+                    this.fill(mark, protyle, true, isOnlyMeta(event));
+                }
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            return true;
+        }
+        if (isEmojiPanel) {
+            if (!this.emojiPanel?.getCurrentElement()) {
+                return false;
+            }
+            this.emojiPanel.moveSelection(event.key);
+            event.preventDefault();
+            event.stopPropagation();
+            return true;
+        } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            upDownHint(this.element.firstElementChild, event);
+            event.preventDefault();
+            event.stopPropagation();
+            return true;
+        }
+        if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+            hideElements(["hint"], protyle);
+            // 不需要 preventDefault https://github.com/siyuan-note/siyuan/issues/11846
+            return true;
+        }
+        return false;
     }
 
+    private fixImageCursor(range: Range) {
+        const previous = hasPreviousSibling(range.startContainer);
+        if (previous && previous.nodeType !== 3 && (previous as HTMLElement).classList.contains("img")) {
+            if (!hasNextSibling(previous)) {
+                range.insertNode(document.createTextNode(Constants.ZWSP));
+                range.collapse(false);
+            }
+        }
+    }
+
+    private getKey(currentLineValue: string, textAfterCaret: string, extend: IHintExtend[]) {
+        const prevSplit = this.splitChar;
+        const prevLastIndex = this.lastIndex;
+        this.lastIndex = -1;
+        this.splitChar = "";
+        extend.forEach((item) => {
+            let currentLastIndex = currentLineValue.lastIndexOf(item.key);
+            // https://ld246.com/article/1701670704754
+            if (Constants.BLOCK_HINT_KEYS.includes(item.key) && currentLastIndex > -1) {
+                currentLastIndex = getBlockHintTriggerOffset(currentLineValue, textAfterCaret, item.key,
+                    Constants.BLOCK_HINT_CLOSE_KEYS[item.key] ?? "");
+            }
+            if (this.lastIndex < currentLastIndex) {
+                if (!shouldIgnoreHintTrigger(this.splitChar, item.key, Constants.BLOCK_HINT_KEYS)) {
+                    this.splitChar = item.key;
+                    this.lastIndex = currentLastIndex;
+                }
+            }
+        });
+        if (this.lastIndex === -1) {
+            return undefined;
+        }
+        // 上一次提示没有结束时不能被其余提示干扰 https://github.com/siyuan-note/siyuan/issues/14324
+        if (!this.element.classList.contains("fn__none") && prevSplit && prevSplit !== this.splitChar &&
+            prevLastIndex > -1 && currentLineValue.startsWith(prevSplit, prevLastIndex) &&
+            !(["/", "、"].includes(prevSplit) && this.splitChar === ":")) {
+            this.splitChar = prevSplit;
+            this.lastIndex = prevLastIndex;
+        }
+        // 冒号前为数字或冒号不进行emoji提示
+        if (this.splitChar === ":") {
+            this.enableEmoji = !(/\d/.test(currentLineValue.substr(this.lastIndex - 1, 1)) ||
+                currentLineValue.substr(this.lastIndex - 1, 2) === "::");
+
+        }
+        const lastItem = currentLineValue.substring(this.lastIndex + this.splitChar.length);
+        // https://github.com/siyuan-note/siyuan/issues/10637
+        if (lastItem.trimStart() === lastItem &&
+            lastItem.length < Constants.SIZE_TITLE) {
+            // 输入法自动补全 https://github.com/siyuan-note/insider/issues/100
+            if (this.splitChar === "【【" && currentLineValue.endsWith("【【】")) {
+                return "";
+            }
+            return lastItem;
+        }
+        return undefined;
+    }
 }

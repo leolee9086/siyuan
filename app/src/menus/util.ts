@@ -16,7 +16,7 @@ export const openEditorTab = (app: AppFacade, ids: string[], notebookId?: string
         id: "insertRight",
         icon: "iconLayoutRight",
         label: siyuanI18n.insertRight,
-        accelerator: ids.length === 1 ? `${updateHotkeyTip(window.siyuan.config.keymap.editor.general.insertRight.custom)}/${updateHotkeyTip("⌥" + siyuanI18n.click)}` : undefined,
+        accelerator: ids.length === 1 ? `${updateHotkeyTip(window.siyuan.config.keymap.editor.general.insertRight.custom)}${window.siyuan.config.keymap.editor.general.insertRight.custom ? "/" : ""}${updateHotkeyTip("⌥" + siyuanI18n.click)}` : undefined,
         click: () => {
             if (notebookId) {
                 app.openBlock({

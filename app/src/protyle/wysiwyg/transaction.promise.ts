@@ -1,22 +1,21 @@
 import {fetchPost} from "../../util/network/fetch";
 import {focusByWbr} from "../util/selection";
 import {Constants} from "../../constants";
-import {blockRender} from "../render/blockRender";
 import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRendererRegistry";
 import {highlightRender} from "../render/highlightRender";
 import {hasClosestByAttribute, hasTopClosestByAttribute, isInEmbedBlock} from "../util/hasClosest";
-import {avRender} from "../render/av/render";
+import {getAVLocateRenderer} from "../render/av/locate/renderer.port";
+import {getTransactionTransformVisualEffects} from "./transaction/transformVisual/port";
 import {genEmptyElement} from "../../block/element.factory";
 import {hideElements} from "../ui/hideElements";
 import {countBlockWord} from "../runtime/status.port";
-import {processClonePHElement} from "../render/util";
 import {
     getEmbedChildOperationContext,
     getFirstBlock,
     getNextBlockSibling,
     getPreviousBlockSibling,
 } from "./getBlock";
-import {processFold, syncFoldAttr} from "./transaction.fold";
+import {processFold, syncFoldAndStyleAttrs} from "./transaction.fold";
 import {refreshSbs} from "./transaction/refreshSbs";
 import {queueTransaction} from "../util/transactionQueue";
 import {disconnectInsertObserver} from "./transaction/insertObserver";
@@ -116,7 +115,7 @@ export const promiseTransaction = (options: {
                 if (updatedEmbed) {
                     contentRendererRegistry.renderBatch(protyle.wysiwyg.element);
                     highlightRender(protyle.wysiwyg.element);
-                    avRender(protyle.wysiwyg.element, protyle);
+                    getAVLocateRenderer()(protyle.wysiwyg.element, protyle);
                 }
                 return;
             }
@@ -162,14 +161,14 @@ export const promiseTransaction = (options: {
                     if (operation.previousID && updateElements.length > 0) {
                         Array.from(protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.previousID}"]`)).forEach(item => {
                             if (!isInEmbedBlock(item) && !getNextBlockSibling(item)?.contains(range.startContainer)) {
-                                item.after(processClonePHElement(updateElements[0].cloneNode(true) as Element));
+                                item.after(updateElements[0].cloneNode(true));
                                 hasFind = true;
                             }
                         });
                     } else if (updateElements.length > 0) {
                         Array.from(protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.parentID}"]`)).forEach(item => {
                             if (!isInEmbedBlock(item) && !getFirstBlock(item).contains(range.startContainer)) {
-                                const cloneElement = processClonePHElement(updateElements[0].cloneNode(true) as Element);
+                                const cloneElement = updateElements[0].cloneNode(true) as Element;
                                 // 列表特殊处理
                                 if (item.firstElementChild?.classList.contains("protyle-action")) {
                                     item.firstElementChild.after(cloneElement);
@@ -209,7 +208,10 @@ export const promiseTransaction = (options: {
             if (operation.action === "insert") {
                 // 块已被本地 DOM 操作插入时仍需同步其他普通副本，并跳过当前副本避免重复
                 // https://github.com/siyuan-note/siyuan/issues/17890
-                const insertedElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${operation.id}"]`);
+                const insertedElements = Array.from(
+                    protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`)
+                );
+                const insertedElement = insertedElements[0];
                 const currentEmbedElement = insertedElement && isInEmbedBlock(insertedElement, false);
                 if (insertedElement) {
                     protyle.wysiwyg.element.querySelectorAll("[data-type=\"NodeBlockQueryEmbed\"]").forEach(item => {
@@ -234,7 +236,10 @@ export const promiseTransaction = (options: {
                             }
                             return;
                         }
-                        if (getNextBlockSibling(item)?.getAttribute("data-node-id") !== operation.id &&
+                        const hasInsertedSibling = insertedElements.some(insertedItem =>
+                            !isInEmbedBlock(insertedItem, false) && insertedItem.parentElement === item.parentElement);
+                        if (!hasInsertedSibling &&
+                            getNextBlockSibling(item)?.getAttribute("data-node-id") !== operation.id &&
                             (!range || !item.contains(range.startContainer)) && // 当前操作块不再进行操作
                             // 段落转列表会在段落后插入新列表
                             !hasClosestByAttribute(item, "data-node-id", operation.id) &&
@@ -253,7 +258,10 @@ export const promiseTransaction = (options: {
                             }
                             return;
                         }
-                        if (getPreviousBlockSibling(item)?.getAttribute("data-node-id") !== operation.id &&
+                        const hasInsertedSibling = insertedElements.some(insertedItem =>
+                            !isInEmbedBlock(insertedItem, false) && insertedItem.parentElement === item.parentElement);
+                        if (!hasInsertedSibling &&
+                            getPreviousBlockSibling(item)?.getAttribute("data-node-id") !== operation.id &&
                             (!range || !item.contains(range.startContainer)) &&
                             !hasClosestByAttribute(item, "data-node-id", operation.id) &&
                             !item.parentElement.classList.contains("protyle-wysiwyg__embed")) {
@@ -268,6 +276,9 @@ export const promiseTransaction = (options: {
                             if (embedElement !== currentEmbedElement) {
                                 pendingEmbedElements.add(embedElement);
                             }
+                            return;
+                        }
+                        if (item.querySelector(`[data-node-id="${operation.id}"]`)) {
                             return;
                         }
                         if (!range || !item.contains(range.startContainer)) {
@@ -302,8 +313,8 @@ export const promiseTransaction = (options: {
                 cursorElements.forEach(item => {
                     contentRendererRegistry.renderBatch(item);
                     highlightRender(item);
-                    avRender(item, protyle);
-                    blockRender(protyle, item);
+                    getAVLocateRenderer()(item, protyle);
+                    getTransactionTransformVisualEffects().renderBlock(protyle, item);
                     item.querySelectorAll("wbr").forEach(wbrItem => {
                         wbrItem.remove();
                     });
@@ -317,7 +328,7 @@ export const promiseTransaction = (options: {
                 return;
             }
             if (operation.action === "setAttrs") {
-                syncFoldAttr(protyle.wysiwyg.element, operation);
+                syncFoldAndStyleAttrs(protyle.wysiwyg.element, operation);
                 const gutterFoldElement = protyle.gutter.element.querySelector('[data-type="fold"]');
                 if (gutterFoldElement) {
                     gutterFoldElement.removeAttribute("disabled");
@@ -373,7 +384,7 @@ export const promiseTransaction = (options: {
         pendingEmbedElements.forEach(item => {
             if (item.isConnected) {
                 item.removeAttribute("data-render");
-                blockRender(protyle, item);
+                getTransactionTransformVisualEffects().renderBlock(protyle, item);
             }
         });
         options.callback?.();
@@ -442,6 +453,6 @@ export const updateEmbed = (protyle: IProtyle, operation: IOperation) => {
     if (updatedEmbed) {
         contentRendererRegistry.renderBatch(protyle.wysiwyg.element);
         highlightRender(protyle.wysiwyg.element);
-        avRender(protyle.wysiwyg.element, protyle);
+        getAVLocateRenderer()(protyle.wysiwyg.element, protyle);
     }
 };

@@ -1,6 +1,7 @@
 import { createToolbarItemElement } from "./ToolbarItem";
 import { hintRef } from "../hint/extend.hintRef";
 import { fixTableRange } from "../util/selection";
+import { isSameBlockRange } from "../../util/newFileSelection";
 
 /**
  * 创建块引用工具栏项
@@ -34,8 +35,10 @@ const blockRefEvent = (protyle: IProtyle, event: MouseEvent) => {
         return;
     }
     fixTableRange(range);
+    if (!isSameBlockRange(range)) {
+        return;
+    }
     hintRef(range.toString(), protyle, "search");
     protyle.toolbar?.element.classList.add("fn__none");
     event.stopPropagation();
 };
-

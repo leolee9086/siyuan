@@ -6,6 +6,20 @@
 import {unicode2Emoji} from "./imports";
 
 /**
+ * 用途：转义动态列图标属性。
+ * 使用范围：新增列表头的 data-icon。
+ * 解耦评估：通过本域 gateway 复用唯一 DOM 属性编码器。
+ */
+import {escapeAttr} from "./imports";
+
+/**
+ * 用途：转义动态列名称文本。
+ * 使用范围：新增列表头的可见名称。
+ * 解耦评估：通过本域 gateway 复用唯一 DOM 文本编码器。
+ */
+import {escapeHtml} from "./imports";
+
+/**
  * 用途：设置浮动面板位置，用于定位编辑面板
  * 使用范围：在打开编辑面板后设置其显示位置
  * 解耦评估：纯工具函数，通过参数传递即可，当前导入方式合理
@@ -103,9 +117,9 @@ const addCellToTableRow = (params: {
     const iconHTML = params.icon
         ? unicode2Emoji(params.icon, "av__cellheadericon", true)
         : `<svg class="av__cellheadericon"><use xlink:href="#${getColIconByType(params.type)}"></use></svg>`;
-    const html = `<div class="av__cell av__cell--header" draggable="true" data-icon="${params.icon || ""}" data-col-id="${params.id}" data-dtype="${params.type}" data-wrap="false" style="width: 200px;">
+    const html = `<div class="av__cell av__cell--header" draggable="true" data-icon="${escapeAttr(params.icon || "")}" data-col-id="${params.id}" data-dtype="${params.type}" data-wrap="false" style="width: 200px;">
     ${iconHTML}
-    <span class="av__celltext fn__flex-1">${params.name}</span>
+    <span class="av__celltext fn__flex-1">${escapeHtml(params.name)}</span>
     <div class="av__widthdrag"></div>
 </div>`;
     previousElement.insertAdjacentHTML("afterend", html);

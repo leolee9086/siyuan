@@ -25,6 +25,7 @@ export function createAgentChatSessionSnapshot(
         updatedAt: Date.now(),
         messageHistory: runtime.composer?.getHistory() || [],
         model: runtime.sessionPorts.presentation.getSelectedModel(runtime),
+        permissionMode: runtime.permissionMode,
     };
     if (input.turnID) {
         session.commitTurnID = input.turnID;

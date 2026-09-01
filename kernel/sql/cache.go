@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -60,6 +60,11 @@ type blockCacheEntry struct {
 	block *Block
 }
 
+func encryptedBoxCacheUnavailable(boxID string) bool {
+	return IsEncryptedBoxFn != nil && IsEncryptedBoxFn(boxID) &&
+		(IsBoxUnlockedFn == nil || !IsBoxUnlockedFn(boxID))
+}
+
 // blockCacheKey 为加密笔记本使用 box 维度缓存键；普通笔记本保持原有全局键，避免影响既有查询路径。
 func blockCacheKey(id, boxID string) string {
 	if IsEncryptedBoxFn != nil && IsEncryptedBoxFn(boxID) {
@@ -77,7 +82,7 @@ func ClearCache() {
 }
 
 func putBlockCache(block *Block) {
-	if cacheDisabled {
+	if cacheDisabled || encryptedBoxCacheUnavailable(block.Box) {
 		return
 	}
 
@@ -100,7 +105,7 @@ func getBlockCache(id string) (ret *Block) {
 }
 
 func getBlockCacheInBox(id, boxID string) (ret *Block) {
-	if cacheDisabled {
+	if cacheDisabled || encryptedBoxCacheUnavailable(boxID) {
 		return
 	}
 
@@ -157,6 +162,9 @@ func GetRefsCacheByDefID(defID string) (ret []*Ref) {
 }
 
 func GetRefsCacheByDefIDInBox(defID, boxID string) (ret []*Ref) {
+	if encryptedBoxCacheUnavailable(boxID) {
+		return
+	}
 	key := refCacheKey(defID, boxID)
 	for k, refs := range defIDRefsCache.Items() {
 		if k == key {
@@ -166,7 +174,7 @@ func GetRefsCacheByDefIDInBox(defID, boxID string) (ret []*Ref) {
 		}
 	}
 	if 1 > len(ret) {
-		allRefs := QueryRefsByDefID(defID, false)
+		allRefs := QueryRefsByDefIDInBox(defID, false, boxID)
 		for _, ref := range allRefs {
 			// 按 box 过滤：boxID 非空时只选同 box 的 Ref，boxID 为空时全部保留
 			if boxID == "" || ref.Box == boxID {
@@ -191,6 +199,9 @@ func CacheRefs(tree *parse.Tree, refNode *ast.Node) {
 }
 
 func putRefCache(boxID string, ref *Ref) {
+	if encryptedBoxCacheUnavailable(boxID) {
+		return
+	}
 	key := refCacheKey(ref.DefBlockID, boxID)
 	defBlockRefs, ok := defIDRefsCache.Get(key)
 	if !ok {

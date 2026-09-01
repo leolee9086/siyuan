@@ -11,6 +11,7 @@ import { getSiyuanCtrlIsPressed } from "../../../util/siyuanEnvironments/keyboar
 import { isMobile } from "../../../platform";
 import { popSearch } from "../../../mobile/menu/search";
 import {Constants} from "../../../constants";
+import { openDocTagMenu } from "../openDocTagMenu";
 
 /**
  * 作用：从 DOM 元素中获取标签列表。
@@ -106,7 +107,7 @@ const reorderTagAtPointer = (background: BackgroundDomain, tagElement: HTMLEleme
 export const bindTagSortEvent = (background: BackgroundDomain, protyle: IProtyle) => {
     background.element.addEventListener("mousedown", (event: MouseEvent) => {
         background.dragOccurred = false;
-        if (protyle.disabled || !(event.target instanceof HTMLElement)) {
+        if (protyle.disabled || event.button !== 0 || !(event.target instanceof HTMLElement)) {
             return;
         }
         const closeButton = event.target.closest<HTMLElement>(".b3-chip__close");
@@ -194,6 +195,93 @@ const toggleTag = (background: BackgroundDomain, tag: string, protyle: IProtyle,
     const tags = getTags(background.tagsElement);
     const newTags = tags.includes(tag) ? tags.filter(t => t !== tag) : [...tags, tag];
     saveTags(background, protyle, newTags, cb);
+};
+
+/**
+ * 作用：更新标签集合并持久化。
+ * 意图：与上游 14745 的 updateTags 语义一致，相等时不写后端并触发回调。
+ */
+const updateTags = (background: BackgroundDomain, protyle: IProtyle, tags: string[], cb?: () => void) => {
+    const tagsString = tags.toString();
+    if (tagsString === (background.ial.tags || "")) {
+        cb?.();
+        return;
+    }
+    fetchPost("/api/attr/setBlockAttrs", {
+        id: protyle.block.rootID,
+        attrs: {tags: tagsString}
+    }, () => {
+        cb?.();
+    });
+    if (tags.length === 0) {
+        delete background.ial.tags;
+    } else {
+        background.ial.tags = tagsString;
+    }
+    renderBackground(background, background.ial, protyle.block.rootID);
+};
+
+/**
+ * 作用：按名称移除标签。
+ * 意图：实现上游 removeTagByName 语义，供标签右键菜单的移除路径使用。
+ */
+export const removeTagByName = (background: BackgroundDomain, protyle: IProtyle, tagName: string) => {
+    const tags = getTags(background.tagsElement).filter((tag) => tag !== tagName);
+    updateTags(background, protyle, tags);
+};
+
+/**
+ * 作用：更新单个标签文本。
+ * 意图：与上游 updateTag 一致，支持重命名、去重和删除（空字符串）。
+ */
+export const updateTag = (background: BackgroundDomain, protyle: IProtyle, oldTag: string, newTag: string) => {
+    if (oldTag === newTag) {
+        return;
+    }
+    const tags = getTags(background.tagsElement);
+    const index = tags.indexOf(oldTag);
+    if (index === -1) {
+        return;
+    }
+    if (newTag) {
+        tags[index] = newTag;
+    } else {
+        tags.splice(index, 1);
+    }
+    updateTags(background, protyle, Array.from(new Set(tags)));
+};
+
+/**
+ * 作用：绑定标签右键菜单。
+ * 意图：桌面端右键标签时弹出 openDocTagMenu，支持重命名与移除，对应上游 14745 的 contextmenu 接线。
+ */
+export const bindDocTagContextMenu = (background: BackgroundDomain, protyle: IProtyle) => {
+    if (isMobile) {
+        return;
+    }
+    background.tagsElement.addEventListener("contextmenu", (event: MouseEvent) => {
+        if (event.shiftKey || protyle.disabled) {
+            return;
+        }
+        const tagElement = (event.target as HTMLElement).closest(".b3-chip") as HTMLElement;
+        if (!tagElement || !background.tagsElement.contains(tagElement)) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        const tagName = tagElement.textContent.trim();
+        openDocTagMenu({
+            protyle,
+            tagElement,
+            position: {x: event.clientX, y: event.clientY},
+            update: (tag) => {
+                updateTag(background, protyle, tagName, tag);
+            },
+            remove: () => {
+                removeTagByName(background, protyle, tagName);
+            }
+        });
+    });
 };
 
 /**

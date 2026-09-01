@@ -8,7 +8,7 @@ import { isHTMLElement } from "./imports";
 import { toAttrViewType } from "./imports";
 /** 用途：刷新表格头部选择态。使用范围：表格行被右键选中后。解耦评估：头部状态刷新继续复用 row 模块能力更一致。 */
 import { updateHeader } from "./imports";
-import {hasClosestByClassName, updateAVRowSelect} from "./imports";
+import {hasClosestByClassName, setAVItemAnchor, updateAVRowSelect} from "./imports";
 /** 用途：读取已选记录结构类型。使用范围：selection 模块内部构造主键上下文。解耦评估：类型集中在同层 types.ts 能避免局部重复定义。 */
 import type { SelectedAttrViewRow } from "./types";
 
@@ -48,6 +48,7 @@ const syncCardContextmenuSelection = (rowElement: HTMLElement, blockElement: Ele
     rowElement.classList.add("av__gallery-item--select");
     const bodyElement = hasClosestByClassName(rowElement, "av__body");
     const rowID = rowElement.dataset.id;
+    // 只有卡片仍位于有效 AV body 且具有记录 ID 时，才同步虚拟滚动选择快照。
     if (isHTMLElement(bodyElement) && rowID) {
         updateAVRowSelect(bodyElement, rowID, true);
     }
@@ -115,20 +116,27 @@ const collectSelectedRows = (blockElement: Element) => {
  *
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const prepareContextmenuState = (rowElement: HTMLElement) => {
-    if (rowElement.classList.contains("av__row--header")) {
+export const prepareContextmenuState = (
+    rowElement?: HTMLElement,
+    options?: {blockElement?: HTMLElement},
+) => {
+    if (rowElement?.classList.contains("av__row--header")) {
         return null;
     }
-    const blockElement = hasClosestBlock(rowElement);
-    if (!blockElement || !isHTMLElement(blockElement)) {
+    const blockCandidate = options?.blockElement || (rowElement ? hasClosestBlock(rowElement) : undefined);
+    if (!isHTMLElement(blockCandidate)) {
         return null;
     }
+    const blockElement = blockCandidate;
     const viewType = toAttrViewType(blockElement.getAttribute("data-av-type"));
     const selectionHandler = CONTEXTMENU_SELECTION_HANDLERS.get(viewType);
     if (!selectionHandler) {
         return null;
     }
-    selectionHandler(rowElement, blockElement);
+    if (rowElement) {
+        selectionHandler(rowElement, blockElement);
+        setAVItemAnchor(blockElement, rowElement);
+    }
     const selectedRows = collectSelectedRows(blockElement);
     const keyRow = selectedRows[0];
     if (!keyRow) {
@@ -145,7 +153,7 @@ export const prepareContextmenuState = (rowElement: HTMLElement) => {
     return {
         blockElement,
         viewType,
-        rowElement,
+        rowElement: rowElement || keyRow.rowElement,
         selectedRows,
         keyRow,
         hasAttachedBlock,

@@ -15,6 +15,15 @@ import type {GallerySettingContext} from "./settings.types";
 /** 用途：标注完整 Gallery 设置输入；使用范围：封面菜单；解耦评估：纯类型依赖。 */
 import type {GallerySettingOptions} from "./settings.types";
 
+/** 同步宽高比菜单入口的禁用状态；封面来源为「无」时卡片无预览，宽高比随之不可用。 */
+/** @同步豁免: 需要绝对同步的DOM访问 */
+const updateRatioDisabled = (target: HTMLElement, disabled: boolean) => {
+    const ratioButton = target.parentElement?.querySelector<HTMLButtonElement>('[data-type="set-gallery-ratio"]');
+    if (ratioButton) {
+        ratioButton.disabled = disabled;
+    }
+};
+
 /** 提交普通封面来源并同步当前视图对象和菜单标签。 */
 const applyCoverSource = (
     context: GallerySettingContext,
@@ -33,6 +42,7 @@ const applyCoverSource = (
     }]);
     context.options.view.coverFrom = source.value;
     context.labelElement.textContent = source.label;
+    updateRatioDisabled(context.options.target, source.value === 0);
 };
 
 /** 提交资源字段封面来源并同步当前视图对象和菜单标签。 */
@@ -68,6 +78,7 @@ const applyAssetCover = (
     context.options.view.coverFrom = 2;
     context.options.view.coverFromAssetKeyID = field.id;
     context.labelElement.textContent = field.name;
+    updateRatioDisabled(context.options.target, false);
 };
 
 /** 构建 Gallery 封面来源菜单，保持内置来源与资源字段的既有顺序。 */

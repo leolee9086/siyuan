@@ -15,7 +15,7 @@ import { matchHotKey } from "../util/hotKey";
 import { isMac, readText } from "../util/compatibility";
 import * as dayjs from "dayjs";
 // S-forge: 平台抽象，运行时 isMobile 判断替代编译时条件编译
-import { isMobile } from "../../platform";
+import { isBrowser, isMobile } from "../../platform";
 // S-forge: openFileById 路径重构
 import { openFileById } from "../../editor/utils.openFileById";
 // 上游: getDocDisplayName 用于 render() 中标签页标题更新
@@ -34,6 +34,11 @@ import { electronUndo } from "../undo/keyboard/electronUndo";
 import { enableLuteMarkdownSyntax, restoreLuteMarkdownSyntax } from "../util/paste";
 // S-forge: i18n 抽象层，替代 window.siyuan.languages 直接引用
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+// 上游新增：拼写检查菜单、属性视图方向键焦点、父文档 ID 计算与剪贴板文本解析
+import { addSpellcheckMenuItems, requestSpellcheckContext } from "../../menus/spellcheck";
+import { focusAVByArrow } from "../render/av/focus";
+import { getParentDocumentID } from "../util/parentDocument";
+import { getTextSiyuanFromClipboardData } from "../util/clipboardData";
 
 export class Title {
     public element: HTMLElement;
@@ -57,7 +62,7 @@ export class Title {
                 event.stopPropagation();
                 event.preventDefault();
                 // 不能使用 range.insertNode，否则无法撤销
-                let text = event.clipboardData.getData("text/siyuan");
+                let text = getTextSiyuanFromClipboardData(event.clipboardData);
                 if (text) {
                     try {
                         JSON.parse(text);
@@ -127,11 +132,17 @@ export class Title {
                     return;
                 }
                 if (matchHotKey(window.siyuan.config.keymap.general.enterBack.custom, event)) {
-                    const ids = protyle.path.split("/");
-                    if (ids.length > 2 && !isMobile) {
+                    const parentDocumentID = getParentDocumentID({
+                        path: protyle.path,
+                        notebookID: protyle.notebookId,
+                        rootID: protyle.block.rootID,
+                        boxDocEnabled: window.siyuan.config.fileTree.boxDocEnabled,
+                    });
+                    // S-forge: 运行时 isMobile 判断替代编译时条件编译
+                    if (parentDocumentID && !isMobile) {
                         openFileById({
                             app: protyle.app,
-                            id: ids[ids.length - 2],
+                            id: parentDocumentID,
                             action: [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL]
                         });
                     }
@@ -150,7 +161,10 @@ export class Title {
                         const noContainerElement = getNoContainerElement(protyle.wysiwyg.element.firstElementChild);
                         // https://github.com/siyuan-note/siyuan/issues/4923
                         if (noContainerElement) {
-                            focusBlock(noContainerElement, protyle.wysiwyg.element);
+                            if (!noContainerElement.classList.contains("av") ||
+                                !focusAVByArrow(protyle, noContainerElement as HTMLElement, event.key)) {
+                                focusBlock(noContainerElement, protyle.wysiwyg.element);
+                            }
                         }
                         event.preventDefault();
                         event.stopPropagation();
@@ -207,12 +221,21 @@ export class Title {
                     openTitleMenu(protyle, { x: iconRect.left, y: iconRect.bottom }, Constants.MENU_FROM_TITLE_PROTYLE);
                 }
             });
-            this.element.addEventListener("contextmenu", (event) => {
+            this.element.addEventListener("contextmenu", async (event) => {
                 if (event.shiftKey) {
                     return;
                 }
                 if (getSelection().rangeCount === 0 || iconElement.contains((event.target as HTMLElement))) {
                     openTitleMenu(protyle, { x: event.clientX, y: event.clientY }, Constants.MENU_FROM_TITLE_PROTYLE);
+                    return;
+                }
+                event.stopPropagation();
+                // 浏览器环境下需阻止默认的右键菜单，避免与自定义菜单同时弹出
+                if (isBrowser) {
+                    event.preventDefault();
+                }
+                const spellcheckContext = await requestSpellcheckContext(event.clientX, event.clientY);
+                if (spellcheckContext === null) {
                     return;
                 }
                 protyle.toolbar?.element.classList.add("fn__none");
@@ -305,6 +328,7 @@ export class Title {
                         focusByRange(range);
                     }
                 }).element);
+                addSpellcheckMenuItems(spellcheckContext);
                 window.siyuan.menus.menu.popup({ x: event.clientX, y: event.clientY });
             });
         }
@@ -352,6 +376,7 @@ export class Title {
             if (nbsp2space(title) !== nbsp2space(inputElement.value)) {
                 inputElement.value = normalizedTitle;
             }
+            document.getElementById("toolbarNameReadonly").textContent = inputElement.value;
             return;
         }
         if (nbsp2space(title) !== nbsp2space(this.editElement.textContent)) {

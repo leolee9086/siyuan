@@ -7,12 +7,13 @@ import {
     getIconByType,
     HardBreak,
     History,
+    matchHotKey,
     Mention,
     MenuItem,
     Paragraph,
     Placeholder,
     Text,
-} from "../imports";
+} from "../../imports";
 /** 用途：转发 Composer 历史纯状态转换；使用范围：Tiptap 键盘分派和公共句柄；解耦评估：函数只接收公开状态，不引入模块级可变对象。 */
 import {
     beginComposerHistoryBrowsing,
@@ -33,7 +34,7 @@ import type {
     Node,
     SuggestionKeyDownProps,
     SuggestionProps,
-} from "../imports";
+} from "../../imports";
 
 /** 导出标准菜单工厂。 */
 export {createProtyleMenu};
@@ -49,6 +50,8 @@ export {getIconByType};
 export {HardBreak};
 /** 导出 Tiptap 撤销历史扩展。 */
 export {History};
+/** 导出快捷键匹配工具。 */
+export {matchHotKey};
 /** 导出 Tiptap Mention 扩展。 */
 export {Mention};
 /** 导出标准菜单项。 */

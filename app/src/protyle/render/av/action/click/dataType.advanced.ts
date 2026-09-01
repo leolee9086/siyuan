@@ -20,6 +20,7 @@ import { hintRef } from "./imports";
 import { isHTMLElement } from "./imports";
 /** 用途：移除全局菜单。使用范围：主键按钮点击前。解耦评估：全局菜单访问必须经 environment 封装。 */
 import { removeSiyuanMenu } from "./imports";
+import {getGroupFoldTip, getGroupFoldedStates, initUnfoldedGroupTables, updateGroupFoldedStates} from "./imports";
 /** 用途：提交分组折叠事务。使用范围：延迟折叠回调。解耦评估：经现有 click 网关直达 Groups 严格命令。 */
 import {submitAVGroupTransaction} from "./imports";
 /** 用途：统一结束已处理点击。使用范围：所有高级 data-type handler 的成功分支。解耦评估：这是 click 子目录内部共用动作，集中在 shared.ts 更利于复用。 */
@@ -39,11 +40,14 @@ const buildFoldTransactionActions = (blockElement: Element, id: string | undefin
     if (!avID || !blockID || !id) {
         return null;
     }
+    const viewID = blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) ||
+        blockElement.querySelector(".layout-tab-bar .item--focus")?.getAttribute("data-id") || undefined;
     const baseAction = {
         action: "foldAttrViewGroup" as const,
         avID,
         blockID,
         id,
+        ...(viewID ? {viewID} : {}),
     };
     return {
         redoActions: [{ ...baseAction, data: isOpen }],
@@ -112,27 +116,89 @@ const onFoldTimeout = (blockElement: Element, groupId: string | undefined, isOpe
  *
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const handleGroupFoldClick = (protyle: IProtyle, target: HTMLElement, blockElement: Element, event: MouseEvent) => {
+const setGroupFolded = (target: HTMLElement, folded: boolean) => {
     const arrowElement = target.firstElementChild;
-    const titleElement = target.parentElement;
-    const bodyElement = titleElement?.nextElementSibling;
+    const bodyElement = target.parentElement?.nextElementSibling;
     if (!isHTMLElement(arrowElement) || !isHTMLElement(bodyElement)) {
         return false;
     }
-    target.setAttribute("data-processed", "true");
-    const isOpen = arrowElement.classList.contains("av__group-arrow--open");
-    if (isOpen) {
-        arrowElement.classList.remove("av__group-arrow--open");
-        bodyElement.classList.add("fn__none");
+    arrowElement.classList.toggle("av__group-arrow--open", !folded);
+    bodyElement.classList.toggle("fn__none", folded);
+    target.setAttribute("aria-label", getGroupFoldTip(folded));
+    return true;
+};
+
+/**
+ * 作用：处理 Alt 批量折叠的事务提交。
+ * 意图：将 Alt 分支的 do/undo 数据收集与事务提交从主点击流程中抽离，降低主函数行数与嵌套。
+ * 调用时机：handleGroupFoldClick 检测到 event.altKey 时调用。
+ * 问题/改进：仍依赖 blockElement 上的 dataset 与折叠状态快照。
+ */
+const handleAltGroupFold = (protyle: IProtyle, blockElement: HTMLElement, viewID: string | undefined, folded: boolean, event: MouseEvent) => {
+    const doData: Record<string, boolean> = {};
+    const undoData = getGroupFoldedStates(blockElement);
+    for (const item of blockElement.querySelectorAll<HTMLElement>('[data-type="av-group-fold"]')) {
+        const groupID = item.dataset.id;
+        if (!groupID) {
+            continue;
+        }
+        if (typeof undoData[groupID] !== "boolean") {
+            undoData[groupID] = !item.firstElementChild?.classList.contains("av__group-arrow--open");
+        }
+        item.setAttribute("data-processed", "true");
+        setGroupFolded(item, folded);
     }
-    if (!isOpen) {
-        arrowElement.classList.add("av__group-arrow--open");
-        bodyElement.classList.remove("fn__none");
+    for (const groupID of Object.keys(undoData)) {
+        doData[groupID] = folded;
     }
-    const groupId = target.dataset.id;
+    initUnfoldedGroupTables(blockElement, protyle);
+    updateGroupFoldedStates(blockElement, doData);
     clearTimeout(foldTimeout);
-    // 这里保留延时提交，是为了沿用原逻辑合并连续折叠操作，减少重复事务写入。
-    foldTimeout = setTimeout(() => onFoldTimeout(blockElement, groupId, isOpen, protyle), Constants.TIMEOUT_COUNT);
+    const avID = blockElement.getAttribute("data-av-id") || undefined;
+    const blockID = blockElement.getAttribute("data-node-id") || undefined;
+    submitAVGroupTransaction(protyle, [{
+        action: "foldAttrViewGroups",
+        ...(avID ? {avID} : {}),
+        ...(blockID ? {blockID} : {}),
+        ...(viewID ? {viewID} : {}),
+        data: doData,
+    }], [{
+        action: "foldAttrViewGroups",
+        ...(avID ? {avID} : {}),
+        ...(blockID ? {blockID} : {}),
+        ...(viewID ? {viewID} : {}),
+        data: undoData,
+    }]);
+    return consumeClickEvent(event);
+};
+
+export const handleGroupFoldClick = (
+    protyle: IProtyle,
+    target: HTMLElement,
+    blockElement: HTMLElement,
+    event: MouseEvent,
+) => {
+    const arrowElement = target.firstElementChild;
+    if (!isHTMLElement(arrowElement)) {
+        return false;
+    }
+    const folded = arrowElement.classList.contains("av__group-arrow--open");
+    const viewID = blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) ||
+        blockElement.querySelector(".layout-tab-bar .item--focus")?.getAttribute("data-id") || undefined;
+    if (event.altKey) {
+        return handleAltGroupFold(protyle, blockElement, viewID, folded, event);
+    }
+    target.setAttribute("data-processed", "true");
+    if (!setGroupFolded(target, folded)) {
+        return false;
+    }
+    initUnfoldedGroupTables(blockElement, protyle);
+    const groupId = target.dataset.id;
+    if (groupId) {
+        updateGroupFoldedStates(blockElement, {[groupId]: folded});
+    }
+    clearTimeout(foldTimeout);
+    foldTimeout = setTimeout(() => onFoldTimeout(blockElement, groupId, folded, protyle), Constants.TIMEOUT_COUNT);
     return consumeClickEvent(event);
 };
 

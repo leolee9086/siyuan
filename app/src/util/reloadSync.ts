@@ -11,6 +11,7 @@ import {setStorageVal} from "../protyle/util/compatibility";
 import type {Tab} from "../layout/Tab";
 import {setTitle} from "./processTitle";
 import {isMobile} from "./functions";
+import {removeBlockPanelEditors} from "../block/panelRemoval";
 
 export const reloadSync = (
     app: AppFacade,
@@ -32,10 +33,14 @@ export const reloadSync = (
                 window.siyuan.mobile.popEditor.reload(false, updateReadonly);
             }
         }
+        // 上游移动端多页签：同步移除已被删除文档对应的页签
+        window.siyuan.mobile.tabs?.removeRoots(data.removeRootIDs);
         if (document.getElementById("empty").classList.contains("fn__none") &&
             window.siyuan.mobile.editor && window.siyuan.mobile.editor.protyle) {
             if (data.removeRootIDs.includes(window.siyuan.mobile.editor.protyle.block.rootID)) {
-                setEmpty(app);
+                if (!window.siyuan.mobile.tabs) {
+                    setEmpty(app);
+                }
             } else {
                 window.siyuan.mobile.editor.reload(false, updateReadonly);
                 const docInfoParam: IObject = {
@@ -48,14 +53,16 @@ export const reloadSync = (
                     setTitle(response.data.name);
                     window.siyuan.mobile.editor.protyle.title.setTitle(response.data.name, response.data.ial[Constants.CUSTOM_SY_TITLE_EMPTY] === "true");
                 });
+                // 同步刷新移动端大纲，避免大纲与重载后的编辑器数据不一致
                 window.siyuan.mobile.docks.outline?.reload();
             }
         }
         setNoteBook(() => {
-            window.siyuan.mobile.docks.file.init(false);
+            window.siyuan.mobile.docks.file?.init(false);
         });
         return;
     }
+    removeBlockPanelEditors({rootIDs: data.removeRootIDs});
     const allModels = getAllModels();
     const updateTitle = (rootID: string, tab: Tab, protyle?: IProtyle) => {
         const docInfoParam: IObject = {

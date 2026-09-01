@@ -11,6 +11,7 @@ import { afterLoadPlugin, loadPlugin, loadPlugins, reloadPlugin } from "../../pl
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {saveLayout} from "../../layout/persistence/saveLayout";
 import {openByMobile} from "../../editor/openLink";
+import {escapeHtml} from "../../util/DOM/escape";
 
 export const handleSwitch = (dataObj: any, bazaar: any, app: AppFacade) => {
     const bazaarType = dataObj.bazaarType as TBazaarType;
@@ -63,7 +64,7 @@ export const handleUninstall = (dataObj: any, bazaar: any, app: AppFacade) => {
         getSiyuanConfig().appearance.icon === packageName) {
         showMessage(siyuanI18n.uninstallTip);
     } else {
-        confirmDialog("⚠️ " + siyuanI18n.uninstall, siyuanI18n.confirmUninstall.replace("${name}", packageName), () => {
+        confirmDialog("⚠️ " + siyuanI18n.uninstall, siyuanI18n.confirmUninstall.replace("${name}", escapeHtml(packageName)), () => {
             fetchPost(url, {
                 packageName,
                 keyword: (bazaar.element.querySelector(".config-bazaar__panel:not(.fn__none) .b3-form__icon-input") as HTMLInputElement).value,

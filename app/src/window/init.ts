@@ -107,9 +107,12 @@ const handleWindowResize = (resizeTimeoutRef: { value: number }) => {
  * - 目前包含大量同步初始化调用，启动时间较长时可考虑懒加载部分资源
  * - emoji配置获取是异步的，但其他初始化可能依赖其结果，后续可考虑Promise.all优化
  *
+ * 返回值：上游引入的 layoutReady Promise —— 在 emoji 配置响应、布局恢复与 afterLayout
+ * 后处理全部完成后 resolve；调用方可 await 本函数以保证启动序列顺序。
+ *
  * @param app - 应用实例
  */
-export const init = async (app: AppFacade) => {
+export const init = async (app: AppFacade): Promise<void> => {
     const storage = getSiyuanStorage();
     setZoomFactor(storage[Constants.LOCAL_ZOOM]);
     const position = Constants.SIZE_ZOOM.find((item) => item.zoom === storage[Constants.LOCAL_ZOOM])?.position;
@@ -119,7 +122,14 @@ export const init = async (app: AppFacade) => {
         position
     });
     initWindowEvent(app);
-    fetchPost("/api/system/getEmojiConf", {}, response => handleEmojiConfResponse(app, response));
+    // 上游改进：把 emoji 配置请求包进 layoutReady Promise，布局就绪前 init 不会完成；
+    // 响应处理仍走本地抽取的 handleEmojiConfResponse，保持防御式校验不被绕过。
+    const layoutReady = new Promise<void>((resolve) => {
+        fetchPost("/api/system/getEmojiConf", {}, response => {
+            handleEmojiConfResponse(app, response);
+            resolve();
+        });
+    });
     initStatus(true);
     initWindow(app);
     initWindowOpenOverride(app);
@@ -135,6 +145,7 @@ export const init = async (app: AppFacade) => {
     // S-forge: 上游改进 - 已应用菜单位置重置到重构后的resize函数中
     const resizeTimeoutRef = { value: 0 };
     windowAddEventListener("resize", () => handleWindowResize(resizeTimeoutRef));
+    return layoutReady;
 };
 
 /**

@@ -60,3 +60,21 @@ export const getOrCreateElement = (
 
     return null;
 };
+
+/**
+ * 作用：按 data-node-id 属性值查找 PDF 标注矩形。
+ * 意图：避免将 .sya 中的未可信 ID 拼接进 CSS selector，防止选择器注入。
+ * 调用时机：高亮、颜色切换、删除和类型切换需要定位同一标注的矩形时。
+ * 问题/改进：仅返回 HTMLElement，非 HTML 节点不会进入后续样式或删除操作。
+ */
+export const getRectElementsByNodeId = (element: HTMLElement, id: string | null): HTMLElement[] => {
+    const results: HTMLElement[] = [];
+    const candidates = element.querySelectorAll("[data-node-id]");
+    for (const candidate of candidates) {
+        // 属性值精确比较保持字面 ID 语义，不让引号或 selector 元字符参与选择器解析。
+        if (isHTMLElement(candidate) && candidate.getAttribute("data-node-id") === id) {
+            results.push(candidate);
+        }
+    }
+    return results;
+};

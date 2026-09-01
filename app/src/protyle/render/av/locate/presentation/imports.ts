@@ -1,17 +1,7 @@
-/** 用途：读取 AV 视图属性；使用范围：视图持久化；解耦评估：直达协议常量所有者。 */
-import {Constants} from "../../../../../constants";
-/** 导出 AV 协议常量。 */
-export {Constants};
-
 /** 用途：显示目标缺失消息；使用范围：完成阶段；解耦评估：直达消息唯一实现。 */
 import {showMessage} from "../../../../../dialog/message";
 /** 导出消息能力。 */
 export {showMessage};
-
-/** 用途：提交已同步应用的 AV 视图事务；使用范围：跨视图定位；解耦评估：直达专用命令唯一实现，不加载通用本地同步器。 */
-import {submitAppliedAVViewTransaction} from "../../../../wysiwyg/transaction/applied/avView";
-/** 导出已应用 AV 视图事务提交。 */
-export {submitAppliedAVViewTransaction};
 
 /** 用途：清除旧单元格选择；使用范围：表格目标选择；解耦评估：直达选择唯一实现。 */
 import {clearSelect} from "../../../../util/clearSelect";
@@ -47,3 +37,8 @@ export {getAVLocateRegistry};
 import {clearLocatedHighlight} from "../state/state";
 /** 导出高亮清理。 */
 export {clearLocatedHighlight};
+
+/** 用途：持久化视图切换；使用范围：完成呈现；解耦评估：直达定位状态真实所有者。 */
+import {persistAVLocateView} from "../state/state";
+/** 导出视图持久化能力。 */
+export {persistAVLocateView};

@@ -152,7 +152,8 @@ describe("Layer类测试", () => {
         url: "/users/123",
         params: {},
         query: {},
-        headers: {}
+        headers: {},
+        body: undefined
       },
       response: {
         status: 200,
@@ -162,6 +163,7 @@ describe("Layer类测试", () => {
         redirect: vi.fn()
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [],
       set: vi.fn(),

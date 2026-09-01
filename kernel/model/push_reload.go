@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -83,6 +83,9 @@ func PushReloadPlugin(uninstallPluginNameSet, unloadPluginNameSet, reloadPluginS
 		"reloadPlugins":     slices[2], // 插件启用，或插件代码变更
 		"dataChangePlugins": slices[3], // 插件存储数据变更
 	}
+	if 0 < len(slices[0])+len(slices[1])+len(slices[2]) {
+		util.ReloadPublishServiceSessions()
+	}
 
 	if "" == excludeApp {
 		util.BroadcastByType("main", "reloadPlugin", 0, "", payload)
@@ -97,6 +100,14 @@ func refreshDocInfo(tree *parse.Tree) {
 	}
 
 	refreshDocInfoWithSize(tree, filesys.TreeSize(tree))
+}
+
+func refreshDocInfoWithoutParent(tree *parse.Tree) {
+	if nil == tree {
+		return
+	}
+
+	refreshDocInfo0(tree, filesys.TreeSize(tree))
 }
 
 func refreshDocInfoWithSize(tree *parse.Tree, size uint64) {
@@ -143,6 +154,13 @@ func refreshBoxDocInfoByBoxID(boxID string) {
 		return
 	}
 	util.BroadcastByType("filetree", "reloadNotebookInfo", 0, "", boxID)
+}
+
+func pushNotebookIconChanged(boxID, icon string) {
+	util.BroadcastByType("filetree", "notebookIconChanged", 0, "", map[string]any{
+		"boxID": boxID,
+		"icon":  icon,
+	})
 }
 
 func refreshDocInfo0(tree *parse.Tree, size uint64) {
@@ -253,17 +271,17 @@ func refreshRefCount(blockID string) {
 	isDoc := bt.ID == bt.RootID
 	var rootRefIDs []string
 	var refCount, rootRefCount int
-	refIDs := sql.QueryRefIDsByDefID(bt.ID, isDoc)
+	refIDs := sql.QueryRefIDsByDefIDInBox(bt.ID, isDoc, bt.BoxID)
 	if isDoc {
 		rootRefIDs = refIDs
 	} else {
-		rootRefIDs = sql.QueryRefIDsByDefID(bt.RootID, true)
+		rootRefIDs = sql.QueryRefIDsByDefIDInBox(bt.RootID, true, bt.BoxID)
 	}
 	refCount = len(refIDs)
 	rootRefCount = len(rootRefIDs)
 	var defIDs []string
 	if isDoc {
-		defIDs = sql.QueryChildDefIDsByRootDefID(bt.ID)
+		defIDs = sql.QueryChildDefIDsByRootDefIDInBox(bt.ID, bt.BoxID)
 	} else {
 		defIDs = append(defIDs, bt.ID)
 	}
@@ -311,7 +329,8 @@ func refreshDynamicRefTexts0(updatedDefNodes map[string]*ast.Node, updatedTrees 
 	var changedNodes []*ast.Node
 	var refs []*sql.Ref
 	for _, updateNode := range updatedDefNodes {
-		refs, changedNodes = getRefsCacheByDefNode(updateNode)
+		boxID := updatedNodeBoxID(updateNode, updatedTrees)
+		refs, changedNodes = getRefsCacheByDefNode(updateNode, boxID)
 		for _, ref := range refs {
 			if refIDs, ok := treeRefNodeIDs[ref.RootID]; !ok {
 				refIDs = hashset.New()
@@ -380,6 +399,14 @@ func refreshDynamicRefTexts0(updatedDefNodes map[string]*ast.Node, updatedTrees 
 	return
 }
 
+func updatedNodeBoxID(updateNode *ast.Node, updatedTrees map[string]*parse.Tree) string {
+	rootID := treenode.TreeRoot(updateNode).ID
+	if updatedTree := updatedTrees[rootID]; nil != updatedTree {
+		return updatedTree.Box
+	}
+	return updateNode.Box
+}
+
 var (
 	setRefDynamicTextTaskLock     sync.Mutex
 	setRefDynamicTextTaskSequence uint64
@@ -443,12 +470,17 @@ func updateAttributeViewBlockText(updatedDefNodes map[string]*ast.Node) {
 			for _, blockValue := range blockValues.Values {
 				if blockValue.Block.ID == updatedDefNode.ID {
 					newIcon, newContent := getNodeAvBlockText(updatedDefNode, avID)
+					newRefSubtype := getNodeAvBlockRefSubtype(updatedDefNode, avID)
 					if newIcon != blockValue.Block.Icon {
 						blockValue.Block.Icon = newIcon
 						changedAv = true
 					}
 					if newContent != blockValue.Block.Content {
 						blockValue.Block.Content = util.UnescapeHTML(newContent)
+						changedAv = true
+					}
+					if newRefSubtype != blockValue.Block.RefSubtype {
+						blockValue.Block.RefSubtype = newRefSubtype
 						changedAv = true
 					}
 					break

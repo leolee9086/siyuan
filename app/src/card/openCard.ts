@@ -22,7 +22,12 @@ import {showMessage} from "../dialog/message";
 import {Menu} from "../plugin/Menu";
 import {transaction} from "../protyle/wysiwyg/transaction/submit";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getEditor } from "./getEditor";
+import {
+    getEditor,
+    getFlashcardRevealState,
+    revealFlashcardAnswer,
+    showRatingActions
+} from "./getEditor";
 
 const genCardCount = (cardsData: ICardData, allIndex = 0) => {
     let newIndex = 0;
@@ -95,7 +100,7 @@ export const genCardHTML = (options: {
     ${iconsHTML}
     <div class="card__block fn__flex-1 ${options.cardsData.cards.length === 0 ? "fn__none" : ""}" data-type="render"></div>
     <div class="card__empty card__empty--space${options.cardsData.cards.length === 0 ? "" : " fn__none"}" data-type="empty">
-        <div>🔮</div>
+        <div class="card__empty-icon">🔮</div>
         ${siyuanI18n.noDueCard}
     </div>
     <div class="fn__flex card__action fn__none">
@@ -596,6 +601,12 @@ export const bindCardEvent = async (options: {
         if (!type || !currentCard) {
             return;
         }
+        const revealState = getFlashcardRevealState(editor.protyle);
+        if (revealState.pendingGeneration === revealState.generation) {
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
         event.preventDefault();
         event.stopPropagation();
         hideElements(["toolbar", "hint", "util", "gutter"], editor.protyle);
@@ -603,16 +614,16 @@ export const bindCardEvent = async (options: {
             if (actionElements[0].classList.contains("fn__none")) {
                 type = "3";
             } else {
-                editor.protyle.element.classList.remove("card__block--hidemark", "card__block--hideli", "card__block--hidesb", "card__block--hideh");
-                actionElements[0].classList.add("fn__none");
-                actionElements[1].querySelectorAll("button.b3-button").forEach((element, btnIndex) => {
-                    if (btnIndex < 2) {
-                        return;
-                    }
-                    element.previousElementSibling.textContent = currentCard.nextDues[btnIndex - 1];
+                revealFlashcardAnswer(editor.protyle, () => {
+                    showRatingActions(actionElements, currentCard);
+                    emitEvent(options.app, currentCard, type);
                 });
-                actionElements[1].classList.remove("fn__none");
-                emitEvent(options.app, currentCard, type);
+                const currentRevealState = getFlashcardRevealState(editor.protyle);
+                if (currentRevealState.pendingGeneration === currentRevealState.generation) {
+                    actionElements[0].querySelectorAll("button").forEach(item => {
+                        item.setAttribute("disabled", "disabled");
+                    });
+                }
                 return;
             }
         } else if (type === "-2") {    // 上一步
@@ -801,7 +812,7 @@ const allDone = (countElement: Element, editor: ProtyleDomain, actionElements: N
     countElement.classList.add("fn__none");
     editor.protyle.element.classList.add("fn__none");
     const emptyElement = editor.protyle.element.nextElementSibling;
-    emptyElement.innerHTML = `<div>🔮</div>${siyuanI18n.noDueCard}`;
+    emptyElement.innerHTML = `<div class="card__empty-icon">🔮</div>${siyuanI18n.noDueCard}`;
     emptyElement.classList.remove("fn__none");
     actionElements[0].classList.add("fn__none");
     actionElements[1].classList.add("fn__none");
@@ -814,7 +825,7 @@ const newRound = (countElement: Element, editor: ProtyleDomain, actionElements: 
     countElement.classList.add("fn__none");
     editor.protyle.element.classList.add("fn__none");
     const emptyElement = editor.protyle.element.nextElementSibling;
-    emptyElement.innerHTML = `<div>♻️ </div>
+    emptyElement.innerHTML = `<div class="card__empty-icon">♻️ </div>
 <span>${siyuanI18n.continueReview2.replace("${count}", unreviewedCount)}</span>
 <div class="fn__hr"></div>
 <button data-type="newround" class="b3-button fn__size200">${siyuanI18n.continueReview1}</button>`;

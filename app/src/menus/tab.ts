@@ -148,7 +148,7 @@ const splitSubMenu = (app: AppFacade, tab: Tab) => {
             }
         });
     }
-    let wndsTemp: Wnd[] = [];
+    const wndsTemp: Wnd[] = [];
     getAllWnds(window.siyuan.layout.centerLayout, wndsTemp);
     if (wndsTemp.length > 1) {
         subMenus.push({
@@ -156,17 +156,7 @@ const splitSubMenu = (app: AppFacade, tab: Tab) => {
             label: siyuanI18n.unsplit,
             accelerator: window.siyuan.config.keymap.general.unsplit.custom,
             click: () => {
-                let layout = tab.parent.parent;
-                while (layout.id !== window.siyuan.layout.centerLayout.id) {
-                    wndsTemp = [];
-                    getAllWnds(layout, wndsTemp);
-                    if (wndsTemp.length > 1) {
-                        break;
-                    } else {
-                        layout = layout.parent;
-                    }
-                }
-                unsplitWnd(tab.parent.parent.children[0], layout, true);
+                unsplitCurrentWnd(tab.parent);
                 resizeTabs();
             }
         });
@@ -175,7 +165,7 @@ const splitSubMenu = (app: AppFacade, tab: Tab) => {
             label: siyuanI18n.unsplitAll,
             accelerator: window.siyuan.config.keymap.general.unsplitAll.custom,
             click: () => {
-                unsplitWnd(window.siyuan.layout.centerLayout, window.siyuan.layout.centerLayout, false);
+                unsplitWnd(window.siyuan.layout.centerLayout, window.siyuan.layout.centerLayout);
                 resizeTabs();
             }
         });
@@ -262,15 +252,33 @@ export const initTabMenu = (app: AppFacade, tab: Tab) => {
     return window.siyuan.menus.menu;
 };
 
-export const unsplitWnd = (target: Wnd | Layout, layout: Layout, onlyWnd: boolean) => {
+export const unsplitCurrentWnd = (wnd: Wnd) => {
+    const wnds: Wnd[] = [];
+    getAllWnds(window.siyuan.layout.centerLayout, wnds);
+    const index = wnds.indexOf(wnd);
+    if (index === -1) {
+        return;
+    }
+    const target = wnds[index - 1] || wnds[index + 1];
+    if (!target) {
+        return;
+    }
+    while (wnd.children.length > 0) {
+        const tab = wnd.children[0];
+        target.headersElement.append(tab.headElement);
+        target.moveTab(tab);
+    }
+};
+
+export const unsplitWnd = (target: Wnd | Layout, layout: Layout) => {
     let wnd: Wnd = target as Wnd;
     while (wnd instanceof Layout) {
         wnd = wnd.children[0] as Wnd;
     }
     for (let i = 0; i < layout.children.length; i++) {
         const item = layout.children[i];
-        if (item instanceof Layout && !onlyWnd) {
-            unsplitWnd(wnd, item, onlyWnd);
+        if (item instanceof Layout) {
+            unsplitWnd(wnd, item);
         } else if (item instanceof Wnd && item.id !== wnd.id && item.children.length > 0) {
             for (let j = 0; j < item.children.length; j++) {
                 const tab = item.children[j];

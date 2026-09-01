@@ -21,6 +21,8 @@ import {saveAgentSession} from "../../session/AgentSession.repository";
 import {removeAgentSession} from "../../session/AgentSession.repository";
 /** 用途：重命名会话；使用范围：repository 端口。 */
 import {renameAgentSession} from "../../session/AgentSession.repository";
+/** 用途：切换会话权限；使用范围：repository 端口。 */
+import {setAgentSessionPermission} from "../../session/AgentSession.repository";
 /** 用途：校验会话标识；使用范围：repository 端口。 */
 import {createAgentSessionID} from "../../session/AgentSession.id";
 /** 用途：查询目录绑定资格；使用范围：taskDirectories 端口。 */
@@ -70,6 +72,8 @@ export {saveAgentSession};
 export {removeAgentSession};
 /** 导出会话重命名实现。 */
 export {renameAgentSession};
+/** 导出会话权限实现。 */
+export {setAgentSessionPermission};
 /** 导出会话标识生成命令。 */
 export {createAgentSessionID};
 /** 导出目录资格实现。 */

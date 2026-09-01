@@ -18,6 +18,8 @@ import {refreshUndoButtons} from "./globalUndo";
 import {requestRedo} from "./globalUndo";
 /** 用途：发起撤销请求。使用范围：Undo.undo 方法。解耦评估：同目录内部模块，直接依赖。 */
 import {requestUndo} from "./globalUndo";
+/** 用途：解析撤销上下文所属文档 rootID。使用范围：undo/redo/add 的最近撤销文档跟踪。解耦评估：同目录内部模块，直接依赖。 */
+import {getUndoRootID} from "./globalUndo";
 /** 用途：复用两种撤销实现的契约与操作记录类型。使用范围：仅限 undo 模块公开类及本地回放 helper。解耦评估：同目录纯类型定义，不引入运行时耦合。 */
 import type {IOperations, IUndo} from "./undo.types";
 
@@ -81,12 +83,18 @@ const renderLocalUndo = (protyle: IProtyle, state: IOperations, redo: boolean) =
 // 本类仅保留发起窗口本地乐观应用的渲染逻辑，以及按钮态刷新。
 export class Undo implements IUndo {
     /** 发起撤销操作：委托 requestUndo 处理完整撤销流程（含 Kernel 请求与本地乐观渲染） */
+    private lastHistoryRootID?: string;
+
     public undo(protyle: IProtyle) {
         if (protyle.disabled) {
             return;
         }
+        // 输入提交或嵌入块重渲染可能使选区失效，需提前保存实际编辑文档。
+        const rootID = getUndoRootID(protyle);
+        this.lastHistoryRootID = rootID;
         protyle.wysiwyg.flushPendingInput();
-        requestUndo(protyle);
+        // 转发到全局 Manager，由 kernel 弹栈 + 广播，发起窗口本地乐观应用
+        requestUndo(protyle, rootID);
     }
 
     /** 发起重做操作：委托 requestRedo 处理完整重做流程（含 Kernel 请求与本地乐观渲染） */
@@ -94,8 +102,10 @@ export class Undo implements IUndo {
         if (protyle.disabled) {
             return;
         }
+        const rootID = getUndoRootID(protyle, undefined, this.lastHistoryRootID);
+        this.lastHistoryRootID = rootID;
         protyle.wysiwyg.flushPendingInput();
-        requestRedo(protyle);
+        requestRedo(protyle, rootID);
     }
 
     // renderLocal 仅在发起窗口本地应用操作，不 POST 到 kernel。
@@ -125,21 +135,24 @@ export class Undo implements IUndo {
     public add(doOperations: IOperation[], undoOperations: IOperation[], protyle: IProtyle) {
         void doOperations;
         void undoOperations;
-        // 确保文档已初始化（rootID 存在）后才标记可撤销镜像
-        if (protyle.block?.rootID) {
-            markMirror(protyle.block.rootID, {canUndo: true, canRedo: false});
+        const rootID = getUndoRootID(protyle);
+        this.lastHistoryRootID = rootID;
+        // 确保文档已初始化后才标记可撤销镜像
+        if (rootID) {
+            markMirror(rootID, {canUndo: true, canRedo: false});
         }
-        refreshUndoButtons(protyle);
+        refreshUndoButtons(protyle, rootID);
     }
 
     /** 替换操作后标记可撤销状态并刷新按钮态 */
     public replace(doOperations: IOperation[], protyle: IProtyle) {
         void doOperations;
+        const rootID = getUndoRootID(protyle);
         // 确保文档已初始化后才更新撤销镜像状态
-        if (protyle.block?.rootID) {
-            markMirror(protyle.block.rootID, {canUndo: true});
+        if (rootID) {
+            markMirror(rootID, {canUndo: true});
         }
-        refreshUndoButtons(protyle);
+        refreshUndoButtons(protyle, rootID);
     }
 
     /**
@@ -239,3 +252,6 @@ export class LocalUndo implements IUndo {
         this.redoStack = [];
     }
 }
+
+/** Electron 文本输入上下文的撤销/重做快捷键适配器：实现已拆分至 keyboard 子模块，此处保留桶式导出兼容旧引用路径。 */
+export {electronUndo} from "./keyboard/electronUndo";

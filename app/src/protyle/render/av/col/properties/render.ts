@@ -11,15 +11,16 @@ import {unicode2Emoji} from "./imports";
  * 将 IAVColumn 预处理为字段按钮可直接使用的安全 HTML 数据。
  * 返回形状由实现推导，并由 buildColItemHTML 直接引用，避免建立只服务单个调用点的碎片类型。
  */
-const toColItemSafeHTML = (item: IAVColumn) => ({
+const toColItemSafeHTML = (item: IAVColumn, viewType?: TAVView) => ({
     id: item.id,
     iconHTML: item.icon
         ? unicode2Emoji(item.icon, "b3-menu__icon", true)
         : `<svg class="b3-menu__icon"><use xlink:href="#${getColIconByType(item.type)}"></use></svg>`,
     nameHTML: escapeHtml(item.name) || "&nbsp;",
+    // 画廊布局允许隐藏整块字段，因此 block 字段的隐藏按钮仅在非画廊视图下收起
     actionHTML: item.hidden
         ? "<svg class=\"b3-menu__action\" data-type=\"showCol\"><use xlink:href=\"#iconEye\"></use></svg>"
-        : `<svg class="b3-menu__action${item.type === "block" ? " fn__none" : ""}" data-type="hideCol"><use xlink:href="#iconEyeoff"></use></svg>`,
+        : `<svg class="b3-menu__action${item.type === "block" && viewType !== "gallery" ? " fn__none" : ""}" data-type="hideCol"><use xlink:href="#iconEyeoff"></use></svg>`,
 });
 
 /**
@@ -69,15 +70,15 @@ ${hideHTML}`;
  * 调用时机：在 openMenuPanel 中 type="properties" 时调用，以及在 handleViewClick/handleColOpsClick 中刷新面板时调用
  * @同步豁免: UI构建
  */
-export const getPropertiesHTML = (fields: IAVColumn[]) => {
+export const getPropertiesHTML = (fields: IAVColumn[], viewType?: TAVView) => {
     let showHTML = "";
     let hideHTML = "";
     for (const item of fields) {
         if (item.hidden) {
-            hideHTML += buildColItemHTML(toColItemSafeHTML(item));
+            hideHTML += buildColItemHTML(toColItemSafeHTML(item, viewType));
             continue;
         }
-        showHTML += buildColItemHTML(toColItemSafeHTML(item));
+        showHTML += buildColItemHTML(toColItemSafeHTML(item, viewType));
     }
     return `<div class="b3-menu__items">
 <button class="b3-menu__item" data-type="nobg">

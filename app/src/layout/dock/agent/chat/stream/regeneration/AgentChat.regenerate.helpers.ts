@@ -20,6 +20,8 @@ import {requireSiyuanConfig} from "./imports";
 import {resolveTargetPolicy} from "./imports";
 /** 用途：读取重新生成模型；使用范围：旧链路请求参数；解耦评估：模型选择规则仍由既有 UI 模块拥有。 */
 import {getSelectedModel} from "./imports";
+/** 用途：冻结本轮浏览器能力声明；使用范围：旧链路重新生成请求。 */
+import {listCapabilityManifests} from "./imports";
 /** 用途：移除跨实例流式占位；使用范围：重新生成启动；解耦评估：镜像 DOM 由会话视图领域集中维护。 */
 import {removeMirrorPlaceholder} from "./imports";
 /** 用途：提交待恢复轮次；使用范围：重新生成前；解耦评估：commit barrier 继续复用会话持久化流程。 */
@@ -264,6 +266,7 @@ export async function dispatchRegeneration(runtime: AgentChatRuntime, targetEntr
     }
     await fetchAgentSSE({
         message: targetEntry.content,
+        ...(targetEntry.blockHTML !== undefined ? {blockHTML: targetEntry.blockHTML} : {}),
         language: requireSiyuanConfig().appearance.lang,
         references: targetEntry.references || [],
         /** 仅提交仍属于当前会话和当前中止信号的重新生成事件。 */
@@ -294,6 +297,7 @@ export async function dispatchRegeneration(runtime: AgentChatRuntime, targetEntr
         regenerate: true,
         ...(request.editorContext ? {editorContext: request.editorContext} : {}),
         pluginActions: request.pluginActions,
+        frontendCapabilities: listCapabilityManifests(),
         ...(targetEntry.id ? {userEntryID: targetEntry.id} : {}),
         contentRevision: runtime.sessionPorts.repository.getRevision(runtime.sessionId),
         requestHeaders: runtime.sessionPorts.requestHeaders({

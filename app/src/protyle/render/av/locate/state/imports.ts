@@ -17,3 +17,18 @@ export {setSForgeState};
 import {Constants} from "../../../../../constants";
 /** 导出 AV 协议常量。 */
 export {Constants};
+
+/** 用途：显示定位失败提示；使用范围：failAVRender；解耦评估：经消息端口直达轻量提示。 */
+import {showMessage} from "../../../../../dialog/message";
+/** 导出消息提示。 */
+export {showMessage};
+
+/** 用途：跨视图定位视图切换判定；使用范围：persistAVLocateView；解耦评估：经本地 locateView 契约直达纯函数。 */
+import {getAVLocateViewChange} from "../../locateView";
+/** 导出视图切换判定。 */
+export {getAVLocateViewChange};
+
+/** 用途：提交视图切换事务；使用范围：persistAVLocateView；解耦评估：经事务提交网关直达提交实现。 */
+import {transaction} from "../../../../wysiwyg/transaction/submit";
+/** 导出事务提交。 */
+export {transaction};

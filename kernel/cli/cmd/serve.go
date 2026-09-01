@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -42,6 +42,7 @@ var (
 	serveAttachUI       bool
 	serveNoBrowser      bool
 	serveSafeMode       bool
+	serveEnablePprof    bool
 )
 
 var serveCmd = &cobra.Command{
@@ -62,7 +63,7 @@ var serveCmd = &cobra.Command{
 		// --workspace 优先取 serve 自己的（rootCmd 的 persistent flag），兜底环境变量与默认值交给 util.BootWithFlags 内部处理（与原 Boot() 行为一致）。
 		ws := workspacePath
 
-		util.BootWithFlags(ws, serveWdPath, servePort, serveReadOnly, serveAccessAuthCode, serveLang, serveMode, serveSSL, serveAttachUI, serveNoBrowser, serveSafeMode)
+		util.BootWithFlags(ws, serveWdPath, servePort, serveReadOnly, serveAccessAuthCode, serveLang, serveMode, serveSSL, serveAttachUI, serveNoBrowser, serveSafeMode, serveEnablePprof)
 
 		model.InitJwtKey()
 		model.InitConf()
@@ -110,11 +111,12 @@ func init() {
 	serveCmd.Flags().StringVar(&serveReadOnly, "readonly", "false", "read-only mode")
 	serveCmd.Flags().StringVar(&serveAccessAuthCode, "accessAuthCode", "", "access auth code")
 	serveCmd.Flags().StringVar(&serveLang, "lang", "", "ar/de/en/es/fr/he/hi/id/it/ja/ko/nl/pl/pt-BR/ru/sk/th/tr/uk/zh-CN/zh-TW")
-	serveCmd.Flags().StringVar(&serveMode, "mode", util.ModeProd, "dev/prod/forge")
+	serveCmd.Flags().StringVar(&serveMode, "mode", util.ModeProd, "dev/prod/forge (non-prod values must not be used on network-exposed instances)")
 	serveCmd.Flags().BoolVar(&serveSSL, "ssl", false, "for https and wss")
 	serveCmd.Flags().BoolVar(&serveAttachUI, "attach-ui", false, "attach kernel lifecycle to desktop UI process (used by Electron)")
 	serveCmd.Flags().BoolVar(&serveNoBrowser, "no-browser", false, "disable auto-open browser in forge mode")
 	serveCmd.Flags().BoolVar(&serveSafeMode, "safe-mode", false, "boot in safe mode")
+	serveCmd.Flags().BoolVar(&serveEnablePprof, "enable-pprof", false, "register unauthenticated /debug/pprof/ endpoints exposing process memory dumps (dev only, never enable on a network-exposed instance)")
 
 	rootCmd.AddCommand(serveCmd)
 }

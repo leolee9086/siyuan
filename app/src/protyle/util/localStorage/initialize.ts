@@ -63,7 +63,7 @@ const addInterfaceDefaults = (defaults: NonNullable<ISiyuan["storage"]>) => {
     defaults[Constants.LOCAL_AI] = [];
     defaults[Constants.LOCAL_PLUGIN_DOCKS] = {};
     defaults[Constants.LOCAL_PLUGINTOPUNPIN] = [];
-    defaults[Constants.LOCAL_OUTLINE] = {keepCurrentExpand: false};
+    defaults[Constants.LOCAL_OUTLINE] = {keepCurrentExpand: false, expandLevel: 6};
     defaults[Constants.LOCAL_FILEPOSITION] = {};
     defaults[Constants.LOCAL_DIALOGPOSITION] = {};
     defaults[Constants.LOCAL_FLASHCARD] = {fullscreen: false};

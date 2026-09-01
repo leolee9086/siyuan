@@ -1,3 +1,9 @@
+/**
+ * 用途：转义字段名称。
+ * 使用范围：排序字段 Select 的 option 文案。
+ * 解耦评估：转义为通用 DOM 安全能力，继续通过本域网关复用最稳妥。
+ */
+import {escapeHtml} from "./imports";
 /** 用途：读取列类型图标；使用范围：排序字段菜单；解耦评估：经本域网关直达列元数据。 */
 import {getColIconByType} from "./imports";
 /** 用途：提交封闭的排序列表事务；使用范围：添加与修改排序；解耦评估：经本域网关直达现有严格命令。 */
@@ -42,8 +48,50 @@ const requireSortByColumn = (sorts: IAVSort[], columnId: string | null) => {
     return sort;
 };
 
+/**
+ * 作用：处理排序列变更，更新排序指向并清理日期端点
+ * 意图：将列切换的副作用（data-id 同步、dateEndpoint 清理）收敛到独立函数，避免在主流程嵌套
+ * 调用时机：handleSortChange 识别到 sortColumn 类型时调用
+ * 问题/改进：当前通过额外查询 old/new 列类型决定是否清理，后续可由列元数据直接驱动
+ * @参数豁免: 遗留代码
+ */
+const handleSortColumnChange = (sort: IAVSort, sortElement: HTMLElement, fields: IAVColumn[], item: HTMLSelectElement) => {
+    const oldColumn = fields.find((column) => column.id === sort.column);
+    const newColumn = fields.find((column) => column.id === item.value);
+    sort.column = item.value;
+    sortElement.setAttribute("data-id", item.value);
+    const shouldClearDateEndpoint = oldColumn?.type !== "date" || newColumn?.type !== "date";
+    if (shouldClearDateEndpoint) {
+        delete sort.dateEndpoint;
+    }
+    return true;
+};
+
+/**
+ * 作用：处理日期端点变更
+ * 意图：将 end/start 的赋值与清理逻辑独立，避免在主流程使用 else
+ * 调用时机：handleSortChange 识别到 sortDateEndpoint 类型时调用
+ */
+const handleSortDateEndpointChange = (sort: IAVSort, item: HTMLSelectElement) => {
+    // 日期端点为 end 时需显式标记，否则清理旧值以回退到 start
+    if (item.value === "end") {
+        sort.dateEndpoint = "end";
+        return;
+    }
+    delete sort.dateEndpoint;
+};
+
+/**
+ * 作用：处理排序方向变更
+ * 意图：将方向解析与赋值独立，避免主流程分支膨胀
+ * 调用时机：handleSortChange 识别到 sortOrder 类型时调用
+ */
+const handleSortOrderChange = (sort: IAVSort, item: HTMLSelectElement) => {
+    sort.order = parseSortOrder(item.value);
+};
+
 /** 处理一个排序 Select 的字段或方向变更，并提交变更前后的完整列表。 */
-const handleSortChange = ({protyle, data, blockID}: SortPanelBinding, event: Event) => {
+const handleSortChange = ({protyle, menuElement, data, blockID}: SortPanelBinding, event: Event) => {
     if (!(event.currentTarget instanceof HTMLSelectElement)) {
         throw new Error("AV sort change target must be a select element");
     }
@@ -52,27 +100,27 @@ const handleSortChange = ({protyle, data, blockID}: SortPanelBinding, event: Eve
     if (!sortElement) {
         throw new Error("AV sort select must belong to a sort item");
     }
-    const selectorIcon = item.previousElementSibling;
-    if (!selectorIcon) {
-        throw new Error("AV sort select must follow its selector icon");
-    }
     const colId = sortElement.getAttribute("data-id");
     const oldSort = JSON.parse(JSON.stringify(data.view.sorts));
-    const changesColumn = selectorIcon.classList.contains("b3-menu__icon");
-    if (changesColumn) {
-        for (const sort of data.view.sorts) {
-            // 只替换当前 Select 所属排序项，同时更新 DOM 身份供后续方向变更定位。
-            if (sort.column === colId) {
-                sort.column = item.value;
-                sortElement.setAttribute("data-id", item.value);
-                break;
-            }
-        }
+    const sort = requireSortByColumn(data.view.sorts, colId);
+    const fields = getFieldsByData(data);
+    let reRender = false;
+    const type = item.dataset.type;
+    // 列切换需同步 data-id 并决定是否重绘整个排序面板
+    if (type === "sortColumn") {
+        reRender = handleSortColumnChange(sort, sortElement, fields, item);
     }
-    if (!changesColumn) {
-        const order = parseSortOrder(item.value);
-        const sort = requireSortByColumn(data.view.sorts, colId);
-        sort.order = order;
+    // 日期端点切换仅影响当前排序项的 dateEndpoint 字段
+    if (type === "sortDateEndpoint") {
+        handleSortDateEndpointChange(sort, item);
+    }
+    // 方向切换直接更新 order 字段
+    if (type === "sortOrder") {
+        handleSortOrderChange(sort, item);
+    }
+    const isSupportedType = type === "sortColumn" || type === "sortDateEndpoint" || type === "sortOrder";
+    if (!isSupportedType) {
+        throw new Error(`Unsupported AV sort control: ${type ?? "<missing>"}`);
     }
     submitAVSortTransaction(protyle, [{
         action: "setAttrViewSorts",
@@ -85,13 +133,18 @@ const handleSortChange = ({protyle, data, blockID}: SortPanelBinding, event: Eve
         data: oldSort,
         blockID
     }]);
+    if (!reRender) {
+        return;
+    }
+    menuElement.innerHTML = getSortsHTML(fields, data.view.sorts);
+    bindSortsEvent({protyle, menuElement, data, blockID});
 };
 
 /** 为单个排序项生成保持字段顺序和当前选择状态的 option HTML。 */
 const getSortOptionsHTML = (columns: IAVColumn[], selectedColumnId: string) => {
     let html = "";
     for (const column of columns) {
-        html += `<option value="${column.id}" ${column.id === selectedColumnId ? "selected" : ""}>${column.icon && unicode2Emoji(column.icon)}${column.name}</option>`;
+        html += `<option value="${column.id}" ${column.id === selectedColumnId ? "selected" : ""}>${column.icon && unicode2Emoji(column.icon)}${escapeHtml(column.name)}</option>`;
     }
     return html;
 };
@@ -167,13 +220,20 @@ export const bindSortsEvent = ({protyle, menuElement, data, blockID}: SortPanelB
 export const getSortsHTML = (columns: IAVColumn[], sorts: IAVSort[]) => {
     let html = "";
     for (const item of sorts) {
+        const column = columns.find((candidate) => candidate.id === item.column);
+        const dateEndpointHTML = column?.type === "date" ? `
+    <span class="fn__space"></span>
+    <select class="b3-select" data-type="sortDateEndpoint" style="margin: 4px 0">
+        <option value="start" ${item.dateEndpoint !== "end" ? "selected" : ""}>${siyuanI18n.startDate}</option>
+        <option value="end" ${item.dateEndpoint === "end" ? "selected" : ""}>${siyuanI18n.endDate}</option>
+    </select>` : "";
         html += `<button draggable="true" class="b3-menu__item" data-id="${item.column}">
     <svg class="b3-menu__icon fn__grab"><use xlink:href="#iconDrag"></use></svg>
-    <select class="b3-select fn__flex-1" style="margin: 4px 0">
+    <select class="b3-select fn__flex-1" data-type="sortColumn" style="margin: 4px 0">
         ${getSortOptionsHTML(columns, item.column)}
-    </select>
+    </select>${dateEndpointHTML}
     <span class="fn__space"></span>
-    <select class="b3-select" style="margin: 4px 0">
+    <select class="b3-select" data-type="sortOrder" style="margin: 4px 0">
         <option value="ASC" ${item.order === "ASC" ? "selected" : ""}>${siyuanI18n.asc}</option>
         <option value="DESC" ${item.order === "DESC" ? "selected" : ""}>${siyuanI18n.desc}</option>
     </select>

@@ -28,8 +28,6 @@ import type {ITooltipCalculationContext} from "./dialog.types";
 import type {ITooltipOverflowContext} from "./dialog.types";
 /** 用途：Tooltip 方向定位参数类型。使用范围：本模块四向定位策略。解耦评估：纯类型契约无需运行时注入。 */
 import type {ITooltipPositionContext} from "./dialog.types";
-/** 用途：Tooltip 公共调用元组。使用范围：保持现有位置参数 API。解耦评估：纯类型契约无需运行时注入。 */
-import type {TShowTooltipArguments} from "./dialog.types";
 
 /**
  * 用途：解析 position 属性中的偏移量数值部分
@@ -288,14 +286,30 @@ const calculateTooltipPosition = ({
  * 调用时机：当用户悬停或聚焦到需要提示信息的 UI 元素时调用
  * @同步豁免: UI构建 - 必须在当前鼠标事件内完成尺寸读取和定位，延后会使用到变化后的目标布局
  */
-export const showTooltip = (...[
-    message,
-    target,
-    tooltipClass,
-    event,
-    space = 0.5,
-]: TShowTooltipArguments) => {
+export const showTooltip = (
+    message: string,
+    target: Element,
+    tooltipClass?: string,
+    event?: MouseEvent,
+    space: number = 0.5,
+    positionOverride?: string,
+) => {
     if (isMobile() || !message) {
+        return;
+    }
+    const messageElement = getTooltipElement();
+    // 允许插件在展示前通过事件总线调整提示内容
+    const showDetail = {
+        message,
+        target,
+        tooltipElement: messageElement,
+    };
+    window.siyuan.ws.app.plugins.forEach(plugin => {
+        plugin.eventBus.emit("before-show-tooltip", showDetail);
+    });
+    message = showDetail.message;
+    if (!message) {
+        hideTooltip();
         return;
     }
     let targetRect = target.getBoundingClientRect();
@@ -307,12 +321,11 @@ export const showTooltip = (...[
         hideTooltip();
         return;
     }
-    const messageElement = getTooltipElement();
     messageElement.className = tooltipClass ? `tooltip tooltip--${tooltipClass}` : "tooltip";
     // 使用 DOMPurify 过滤 HTML 防止 XSS
     messageElement.innerHTML = getDOMPurify().sanitize(message);
-
-    const position = target.getAttribute("data-position");
+    // 定位来源优先使用显式覆盖值，未提供时回退到触发元素的 data-position 属性
+    const position = positionOverride || target.getAttribute("data-position");
     const { left, top } = calculateTooltipPosition({messageElement, target, targetRect, position, space});
 
     messageElement.style.top = top + "px";
@@ -330,6 +343,15 @@ export const showTooltip = (...[
  * @同步豁免: UI构建 - 必须在当前鼠标事件内立即隐藏，避免后续事件重新显示时出现竞态闪烁
  */
 export const hideTooltip = () => {
-    const tooltipElement = document.getElementById("tooltip");
-    tooltipElement.classList.add("fn__none");
+    const messageElement = document.getElementById("tooltip");
+    // 已处于隐藏状态时不重复处理，也避免向插件重复广播事件
+    if (messageElement.classList.contains("fn__none")) {
+        return;
+    }
+    window.siyuan.ws.app.plugins.forEach(plugin => {
+        plugin.eventBus.emit("before-hide-tooltip", {
+            tooltipElement: messageElement,
+        });
+    });
+    messageElement.classList.add("fn__none");
 };

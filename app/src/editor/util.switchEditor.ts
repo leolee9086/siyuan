@@ -2,34 +2,36 @@
 import type {EditorDomain} from "./model/editorDomain.types";
 /** 用途：系统常量。使用范围：CB_GET_CONTEXT 等常量。解耦评估：通过 ./imports 转发。 */
 import { Constants } from "./imports";
-/** 用途：编辑器缩放命令。使用范围：切换编辑器时放大块；解耦评估：直达命令唯一实现，不经 Editor 总网关。 */
-import {zoomOut} from "../menus/protyleMenus/editorMenu/protyle.zoomOut";
 /** 用途：阻止滚动。使用范围：定位内容时防止滚动偏移。解耦评估：通过 ./imports 转发。 */
 import { preventScroll } from "./imports";
 /** 用途：嵌入块判断。使用范围：查找块时排除嵌入块。解耦评估：通过 ./imports 转发。 */
 import { isInEmbedBlock } from "./imports";
 /** 用途：查找最近块元素。使用范围：定位编辑器选区。解耦评估：通过 ./imports 转发。 */
 import { hasClosestBlock } from "./imports";
-/** 用途：编辑器内容加载后处理。使用范围：动态加载块内容；解耦评估：直达 Protyle 响应处理唯一实现。 */
-import {onGet} from "../protyle/util/onGet";
+/** 用途：编辑器内容加载后处理。使用范围：动态加载块内容；解耦评估：通过 ./imports 转发，保持 switch owner 不直接依赖 Protyle 响应实现。 */
+import {onGet} from "./imports";
 /** 用途：块元素聚焦。使用范围：定位到指定块。解耦评估：通过 ./imports 转发。 */
 import { focusBlock } from "./imports";
 /** 用途：选区聚焦。使用范围：还原编辑器选区。解耦评估：通过 ./imports 转发。 */
 import { focusByRange } from "./imports";
-/** 用途：后退栈记录。使用范围：切换编辑器时记录位置；解耦评估：直达导航历史唯一实现。 */
-import {pushBack} from "../navigation/history/pushBack";
+/** 用途：后退栈记录。使用范围：切换编辑器时记录位置；解耦评估：通过 ./imports 转发，避免 switch owner 直接耦合导航实现。 */
+import {pushBack} from "./imports";
 /** 用途：网络请求。使用范围：动态加载块内容。解耦评估：通过 ./imports 转发。 */
 import { fetchPost } from "./imports";
-/** 用途：代码高亮。使用范围：定位到指定代码块；解耦评估：直达稳定 DOM 定位唯一实现。 */
-import {highlightById} from "../util/DOM/highlightById";
-/** 用途：滚动居中。使用范围：使定位块居中显示；解耦评估：直达稳定 DOM 定位唯一实现。 */
-import {scrollCenter} from "../util/DOM/highlightById";
+/** 用途：代码高亮。使用范围：定位到指定代码块；解耦评估：通过 ./imports 转发，避免 switch owner 直接依赖 DOM 定位实现。 */
+import {highlightById} from "./imports";
+/** 用途：滚动居中。使用范围：使定位块居中显示；解耦评估：通过 ./imports 转发，避免 switch owner 直接依赖 DOM 定位实现。 */
+import {scrollCenter} from "./imports";
 /** 用途：获取 SiYuan 配置。使用范围：读取动态加载块配置。解耦评估：通过 ./imports 转发。 */
 import { getSiyuanConfig } from "./imports";
 /** 用途：判断笔记本是否加密。使用范围：动态加载块时选择对应笔记本数据源。解耦评估：通过 ./imports 转发。 */
 import { isEncryptedBox } from "./imports";
 /** 用途：更新反链关系图。使用范围：动态加载后刷新反链面板。解耦评估：同目录模块直接导入。 */
 import { updateBacklinkGraph } from "./util.updateBacklinkGraph";
+/** 用途：创建可被用户输入中止的定位监听控制器。使用范围：临时 ResizeObserver 生命周期。解耦评估：浏览器实例化集中在 factory owner。 */
+import { createUserScrollObserver } from "./factory/createUserScrollObserver.factory";
+
+const SCROLL_CANCELLATION_KEY_RE = /^(PageUp|PageDown|Home|End|ArrowUp|ArrowDown| )$/;
 
 /**
  * 在编辑器子元素中查找目标块节点（排除嵌入块）
@@ -47,26 +49,66 @@ function findTargetNode(wysiwyg: Element, targetId: string) {
 /**
  * 加载块内容后的处理
  */
-function handleGetResponse(getResponse: IWebSocketData, editor: EditorDomain, options: IOpenFileOptions, allModels: IModels) {
-    onGet({ data: getResponse, protyle: editor.editor.protyle, action: options.action });
-    updateBacklinkGraph(allModels, editor.editor.protyle);
+function handleGetResponse(options: {
+    getResponse: IWebSocketData,
+    editor: EditorDomain,
+    openOptions: IOpenFileOptions,
+    allModels: IModels,
+}) {
+    onGet({ data: options.getResponse, protyle: options.editor.editor.protyle, action: options.openOptions.action });
+    updateBacklinkGraph(options.allModels, options.editor.editor.protyle);
 }
 
 /**
  * 设置滚动位置观察器，在元素位置变化时重新居中
  */
 function setupScrollObserver(editor: EditorDomain, nodeElement: Element) {
-    editor.editor.protyle.observerLoad = new ResizeObserver(() => {
+    const {abortController: userScrollAbort, observer: observerLoad} = createUserScrollObserver(() => {
         // 元素仍在文档中时重新居中定位
         if (document.contains(nodeElement)) {
             scrollCenter(editor.editor.protyle, nodeElement, true);
         }
     });
+    /**
+     * 作用：停止程序化重定位并注销临时输入监听。
+     * 意图：用户开始滚动后不得再由 ResizeObserver 回写滚动位置。
+     * 调用时机：用户滚动、导航按键或 3 秒保护超时。
+     * 问题/改进：重复调用安全，AbortController 会统一释放 listener。
+     */
+    // @柯里化
+    const stopObserve = () => {
+        userScrollAbort.abort();
+        observerLoad.disconnect();
+    };
+    const contentElement = editor.editor.protyle.contentElement;
+    contentElement.addEventListener("wheel", stopObserve, {
+        capture: true,
+        passive: true,
+        signal: userScrollAbort.signal,
+    });
+    contentElement.addEventListener("touchstart", stopObserve, {
+        capture: true,
+        passive: true,
+        signal: userScrollAbort.signal,
+    });
+    contentElement.addEventListener("touchmove", stopObserve, {
+        capture: true,
+        passive: true,
+        signal: userScrollAbort.signal,
+    });
+    contentElement.addEventListener("keydown", (event: KeyboardEvent) => {
+        // 这些按键会触发用户可见的纵向滚动，应立即放弃初始定位的后续修正。
+        if (SCROLL_CANCELLATION_KEY_RE.test(event.key)) {
+            stopObserve();
+        }
+    }, {
+        capture: true,
+        signal: userScrollAbort.signal,
+    });
+    editor.editor.protyle.observerLoad = observerLoad;
     // 3 秒后自动断开观察器，避免持续监听导致性能问题
-    setTimeout(() => {
-        editor.editor.protyle.observerLoad.disconnect();
-    }, 1000 * 3);
-    editor.editor.protyle.observerLoad.observe(editor.editor.protyle.wysiwyg.element);
+    setTimeout(stopObserve, 1000 * 3);
+    observerLoad.observe(editor.editor.protyle.wysiwyg.element);
 }
 
 /**
@@ -113,6 +155,7 @@ export const switchEditor = async (editor: EditorDomain, options: IOpenFileOptio
 
     // zoomIn 模式：放大块后直接返回
     if (options.zoomIn) {
+        const {zoomOut} = await import("../menus/protyleMenus/editorMenu/protyle.zoomOut");
         zoomOut({ protyle: editor.editor.protyle, id: options.id });
         return true;
     }
@@ -132,9 +175,7 @@ export const switchEditor = async (editor: EditorDomain, options: IOpenFileOptio
             size,
             ...(isEncryptedBox(notebookId) ? {notebook: notebookId} : {}),
         };
-        fetchPost("/api/filetree/getDoc", getDocParams, (getResponse) => {
-            handleGetResponse(getResponse, editor, options, allModels);
-        });
+        fetchPost("/api/filetree/getDoc", getDocParams, (getResponse) => handleGetResponse({getResponse, editor, openOptions: options, allModels}));
         return;
     }
 

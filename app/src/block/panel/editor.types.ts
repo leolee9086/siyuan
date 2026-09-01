@@ -50,4 +50,6 @@ export interface IEditorLoadedContext {
     locateAttributeView: EditorInitContext["locateAttributeView"];
     renderAttributeView: AVRenderer;
     afterCB?: () => void;
+    /** 首次渲染完成后执行一次的面板定位收尾。 */
+    onInitialRender?: () => void;
 }

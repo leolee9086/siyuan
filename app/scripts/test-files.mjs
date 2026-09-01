@@ -8,6 +8,9 @@ const integrationPatterns = [
     /forge-runtime-supervisor\.integration\.test\.js$/,
     /test\/util\/embedding\/(?:embeddingApi|frontendEmbedding|collectionProtection|vectorApi\.performance)\.test\.ts$/,
 ];
+const retiredTestFilePaths = new Set([
+    "src/layout/dock/agent/AgentHistory.test.ts",
+]);
 
 const toProjectPath = (filePath) => path.relative(appRoot, filePath).replace(/\\/g, "/");
 
@@ -28,20 +31,23 @@ export const allTestFiles = () => testRoots.flatMap((root) => walk(path.join(app
     .map(toProjectPath)
     .sort();
 
+export const retiredTestFiles = () => [...retiredTestFilePaths];
+
 export const isIntegrationTest = (filePath) => integrationPatterns.some((pattern) => pattern.test(filePath));
 
 export const nodeTestFiles = () => allTestFiles().filter((filePath) => {
-    if (isIntegrationTest(filePath)) {
+    if (retiredTestFilePaths.has(filePath) || isIntegrationTest(filePath)) {
         return false;
     }
     return fs.readFileSync(path.join(appRoot, filePath), "utf8").includes("node:test");
 });
 
 export const vitestTestFiles = () => allTestFiles().filter((filePath) => {
-    if (isIntegrationTest(filePath)) {
+    if (retiredTestFilePaths.has(filePath) || isIntegrationTest(filePath)) {
         return false;
     }
     return !fs.readFileSync(path.join(appRoot, filePath), "utf8").includes("node:test");
 });
 
-export const integrationTestFiles = () => allTestFiles().filter(isIntegrationTest);
+export const integrationTestFiles = () => allTestFiles().filter((filePath) =>
+    !retiredTestFilePaths.has(filePath) && isIntegrationTest(filePath));

@@ -4,6 +4,7 @@
 
 * [规范](#规范)
     * [参数和返回值](#参数和返回值)
+    * [行为语义](#行为语义)
     * [鉴权](#鉴权)
 * [笔记本](#笔记本)
     * [列出笔记本](#列出笔记本)
@@ -20,6 +21,7 @@
     * [删除文档](#删除文档)
     * [移动文档](#移动文档)
     * [设置笔记本和文档排序值](#设置笔记本和文档排序值)
+    * [设置文档的子文档排序方式](#设置文档的子文档排序方式)
     * [根据路径获取人类可读路径](#根据路径获取人类可读路径)
     * [根据 ID 获取人类可读路径](#根据-ID-获取人类可读路径)
     * [根据 ID 获取存储路径](#根据-ID-获取存储路径)
@@ -59,6 +61,10 @@
     * [设置全局字段排序](#设置全局字段排序)
     * [设置视图内字段排序](#设置视图内字段排序)
 * [向量数据库 (Forge 版本独占)](#向量数据库-forge-版本独占)
+* [搜索](#搜索)
+    * [获取已保存的搜索条件组](#获取已保存的搜索条件组)
+    * [保存搜索条件组](#保存搜索条件组)
+    * [移除搜索条件组](#移除搜索条件组)
 * [SQL](#SQL)
     * [执行 SQL 查询](#执行-SQL-查询)
     * [提交事务](#提交事务)
@@ -81,6 +87,10 @@
     * [推送报错消息](#推送报错消息)
 * [网络](#网络)
     * [正向代理](#正向代理)
+        * [JSON 正向代理](#JSON-正向代理)
+        * [HTTP 正向代理](#HTTP-正向代理)
+        * [WebSocket 正向代理](#WebSocket-正向代理)
+        * [EventSource 正向代理](#EventSource-正向代理)
 * [系统](#系统)
     * [获取启动进度](#获取启动进度)
     * [获取系统版本](#获取系统版本)
@@ -93,8 +103,8 @@
 ### 参数和返回值
 
 * 端点：`http://127.0.0.1:6806`
-* 均是 POST 方法
-* 需要带参的接口，参数为 JSON 字符串，放置到 body 里，标头 Content-Type 为 `application/json`
+* 除非接口中另有说明，否则 API 接口均使用 POST 方法
+* 使用 JSON 入参的接口，参数为 JSON 字符串，放置到 body 里，标头 Content-Type 为 `application/json`
 * 返回值
 
   ```json
@@ -109,9 +119,18 @@
     * `msg`：正常情况下是空字符串，异常情况下会返回错误文案
     * `data`：可能为 `{}`、`[]` 或者 `NULL`，根据不同接口而不同
 
+### 行为语义
+
+* 只有在本文档中设有独立接口说明的接口属于公开 API。其他内核路由和 `/api/transactions` 操作属于内部实现，除非另有说明，否则不承诺兼容性和行为稳定性
+* `code: 0` 表示接口处理请求时未报告错误，只保证该接口明确说明的结果，不表示相关索引、缓存、WebSocket 广播或同步状态均已更新
+* 省略字段、`null`、空对象和空数组的含义由各接口定义。对象或数组是替换、合并还是局部修改现有状态，以及顺序是否具有意义，也以各接口说明为准
+* 接口可能裁剪、忽略、补全或转换输入。接口说明会返回规范化结果时，调用方应将返回的 `data` 作为实际接受的结果
+* 不要根据操作名称推断其为只读操作。存在持久化副作用时，各接口会说明其影响范围
+* 只有接口明确说明时，相同请求才保证幂等或可以安全重试。响应中断或结果无法确定时，应尽可能先读取当前状态再决定是否重试
+
 ### 鉴权
 
-在 <kbd>设置 - 关于</kbd> 里查看 API token，请求标头：`Authorization: Token xxx`
+在 <kbd>设置 - 鉴权 - API token</kbd> 中查看 API token，请求标头：`Authorization: Token xxx`
 
 ## 笔记本
 
@@ -549,6 +568,40 @@
   }
   ```
 
+### 设置文档的子文档排序方式
+
+* `/api/filetree/setDocSortMode`
+* 参数
+
+  ```json
+  {
+    "id": "20210917220056-yxtyl7i",
+    "sortMode": 4
+  }
+  ```
+
+    * `id`：声明子文档排序方式的普通文档 ID，不接受笔记本根文档 ID
+    * `sortMode`：`0` 到 `14` 的整数；传入 `null` 会清除该文档的显式设置，并依次继承最近父文档、笔记本或全局文档树的排序规则
+    * 取值：`0`/`1` 文件名升序/降序；`2`/`3` 更新时间升序/降序；`4`/`5` 文件名自然数升序/降序；`6` 自定义排序；`7`/`8` 引用数升序/降序；`9`/`10` 创建时间升序/降序；`11`/`12` 大小升序/降序；`13`/`14` 子文档数升序/降序
+    * 声明的排序方式会由更深层后代继承，直到其他文档声明自己的排序方式
+* 返回值
+
+  ```json
+  {
+    "code": 0,
+    "msg": "",
+    "data": {
+      "box": "20210817205410-2kvfpfn",
+      "id": "20210917220056-yxtyl7i",
+      "path": "/20210917220056-yxtyl7i.sy",
+      "sortMode": 4,
+      "effectiveSortMode": 4
+    }
+  }
+  ```
+
+    * `sortMode` 为显式设置值（继承时为 `null`），`effectiveSortMode` 为解析继承后的实际生效值
+
 ### 根据路径获取人类可读路径
 
 * `/api/filetree/getHPathByPath`
@@ -667,6 +720,13 @@
     "msg": "",
     "data": {
       "errFiles": [""],
+      "succFiles": [
+        {
+          "index": 0,
+          "name": "foo.png",
+          "path": "assets/foo-20210719092549-9j5y79r.png"
+        }
+      ],
       "succMap": {
         "foo.png": "assets/foo-20210719092549-9j5y79r.png"
       }
@@ -675,7 +735,8 @@
   ```
 
     * `errFiles`：处理时遇到错误的文件名
-    * `succMap`：处理成功的文件，key 为上传时的文件名，value 为 assets/foo-id.png，用于将已有 Markdown 内容中的资源文件链接地址替换为上传后的地址
+    * `succFiles`：按输入顺序记录处理成功的文件，`index` 为文件在 `file[]` 中的索引，`name` 为上传时的文件名，`path` 为上传后的资源文件路径；同一批文件包含同名文件时应使用该字段
+    * `succMap`：为兼容现有调用方保留的成功文件映射，key 为上传时的文件名，value 为 assets/foo-id.png；同一批文件包含同名文件时，同名 key 仅保留最后一项
 
 ## 块
 
@@ -823,13 +884,15 @@
   {
     "dataType": "markdown",
     "data": "foobarbaz",
-    "id": "20211230161520-querkps"
+    "id": "20211230161520-querkps",
+    "lockType": false
   }
   ```
 
     * `dataType`：待更新数据类型，值可选择 `markdown` 或者 `dom`
     * `data`：待更新的数据
     * `id`：待更新块的 ID
+    * `lockType`：解析后的块类型与原块类型不同时是否拒绝更新；非法父子结构始终会被拒绝，空段落可转换为任意有效块类型；默认为 `false`
 * 返回值
 
   ```json
@@ -1004,6 +1067,8 @@
     }
   }
   ```
+
+* 确定性：返回的 Kramdown 会规范化块级 IAL 属性顺序；块内容和属性未变化时，属性顺序保持稳定
 
 ### 获取子块
 
@@ -1512,6 +1577,8 @@
 
 ### 正向代理
 
+#### JSON 正向代理
+
 * `/api/network/forwardProxy`
 * 参数
 
@@ -1526,21 +1593,23 @@
             "Cookie": ""
         }
     ],
+    "redirect": true,
     "payload": {},
-    "payloadEncoding": "text",
+    "payloadEncoding": "json",
     "responseEncoding": "text"
   }
   ```
 
     * `url`：转发的 URL
-    * `method`：HTTP 方法，默认为 `GET`
+    * `method`：HTTP 方法，默认为 `POST`
     * `timeout`：超时时间，单位为毫秒，默认为 `7000` 毫秒
     * `contentType`：HTTP Content-Type，默认为 `application/json`
-    * `headers`：HTTP 请求标头
-    * `payload`：HTTP 请求体，对象或者是字符串
-    * `payloadEncoding`：`pyaload` 所使用的编码方案，默认为 `text`，可选值如下所示
+    * `headers`：HTTP 请求标头数组，每个对象中的键值对都会设置为请求标头
+    * `redirect`：是否跟随重定向，默认为 `true`，最多跟随 2 次；设置为 `false` 时不跟随重定向
+    * `payload`：HTTP 请求体，可以是对象或者字符串
+    * `payloadEncoding`：`payload` 所使用的编码方案，默认为 `json`；`json` 会直接发送 `payload`，二进制请求体可使用以下编码字符串
 
-        * `text`
+        * `json`
         * `base64` | `base64-std`
         * `base64-url`
         * `base32` | `base32-std`
@@ -1568,11 +1637,12 @@
       "headers": {
       },
       "status": 200,
-      "url": "https://b3log.org/siyuan"
+      "url": "https://b3log.org/siyuan/"
     }
   }
   ```
 
+    * `body`：响应体
     * `bodyEncoding`：`body` 所使用的编码方案，与请求中 `responseEncoding` 字段一致，默认为 `text`，可能的值如下所示
 
         * `text`
@@ -1581,6 +1651,45 @@
         * `base32` | `base32-std`
         * `base32-hex`
         * `hex`
+    * `contentType`：响应标头 `Content-Type`
+    * `elapsed`：请求耗时，单位为毫秒
+    * `headers`：目标服务返回的响应标头
+    * `status`：目标服务返回的 HTTP 状态码
+    * `url`：转发的 URL
+
+#### HTTP 正向代理
+
+* `/api/network/proxy`
+* 请求方法：任意 HTTP 方法
+* 查询参数
+
+    * `u`：必填，目标 `http` 或 `https` URL 使用 Go `base64.RawURLEncoding` 编码后的字符串，也就是 URL 安全且不带 `=` 补位的 Base64
+    * `h`：可选，请求标头 JSON 使用同样方式编码后的字符串，JSON 类型为 `map[string][]string`，例如 `{"Authorization":["Bearer token"]}`
+    * `t`：可选，连接超时时间，使用 Go `time.ParseDuration` 格式，例如 `30s`、`1500ms`
+* 请求体：原样转发当前请求体，当前请求的完整 `Content-Type` 标头会转发到目标请求
+* 返回值：直接返回目标服务的 HTTP 状态码和响应体，不包裹 `code`、`msg`、`data`；目标服务响应标头会添加 `Siyuan-Proxy-` 前缀后返回，例如 `Content-Type` 会返回为 `Siyuan-Proxy-Content-Type`
+
+#### WebSocket 正向代理
+
+* `/ws/network/proxy`
+* 请求方法：`GET`
+* 查询参数
+
+    * `u`：必填，目标 `ws` 或 `wss` URL 使用 Go `base64.RawURLEncoding` 编码后的字符串
+    * `h`：可选，握手请求标头 JSON 使用同样方式编码后的字符串，JSON 类型为 `map[string][]string`
+    * `t`：可选，握手超时时间，使用 Go `time.ParseDuration` 格式，例如 `30s`、`1500ms`
+* 返回值：升级为 WebSocket 后双向转发消息；目标服务握手响应标头会添加 `Siyuan-Proxy-` 前缀后返回
+
+#### EventSource 正向代理
+
+* `/es/network/proxy`
+* 请求方法：`GET`
+* 查询参数
+
+    * `u`：必填，目标 `http` 或 `https` URL 使用 Go `base64.RawURLEncoding` 编码后的字符串
+    * `h`：可选，请求标头 JSON 使用同样方式编码后的字符串，JSON 类型为 `map[string][]string`
+    * `t`：可选，连接超时时间，使用 Go `time.ParseDuration` 格式，例如 `30s`、`1500ms`
+* 返回值：直接流式返回目标服务的 HTTP 状态码和响应体，不包裹 `code`、`msg`、`data`；如果请求标头中没有 `Accept`，会自动使用 `text/event-stream`；目标服务响应标头会添加 `Siyuan-Proxy-` 前缀后返回
 
 ## 系统
 
@@ -1877,18 +1986,24 @@
     "pageSize": 50,
     "query": "",
     "groupPaging": {},
-    "createIfNotExist": true
+    "targetItemID": "",
+    "targetGroupID": "",
+    "createIfNotExist": true,
+    "persistView": true
   }
   ```
 
     * `id`: 数据库 ID
-    * `blockID`: 嵌入该数据库的数据库块，用于解析当前视图和发布权限。渲染独立数据库时可省略
-    * `viewID`: 要渲染的视图。省略时使用当前视图（`viewID` 字段）
+    * `blockID`: 嵌入该数据库的数据库块，用于解析当前视图和发布权限。其 `custom-sy-av-view` 缺失或无效时使用第一个可用视图。渲染独立数据库时可省略
+    * `viewID`: 明确指定要渲染的视图。值无效时返回错误；省略时先通过 `blockID` 解析，无法解析则使用第一个可用视图
     * `page`: 页码，从 1 开始。默认为 `1`
     * `pageSize`: 每页条目数。`-1` 或省略表示使用视图默认值（`50`）
     * `query`: 可选的主键值全文过滤关键字
     * `groupPaging`: 分组（看板）视图的可选分页配置
-    * `createIfNotExist`: 为 `true`（默认）时，若数据库不存在视图则创建默认视图
+    * `targetItemID`: 可选的待定位数据库条目 ID。指定后，返回值中包含目标定位信息
+    * `targetGroupID`: 与 `targetItemID` 配合使用的可选分组提示
+    * `createIfNotExist`: 为 `true`（默认）时，若数据库不存在则创建包含默认视图的数据库
+    * `persistView`: 已废弃的兼容参数。接口仍接受该参数但会忽略，因为数据库定义不再存储顶层当前视图
 * 返回值（真实响应，表格布局，展示一行）：
 
   ```json
@@ -1975,9 +2090,10 @@
   }
   ```
 
-    * `data.view`: 渲染后的视图实例。结构随 `viewType` 而变——`table` 返回 `columns`/`rows`/`rowCount`，`gallery` 返回 `columns`/`rows`，`kanban` 返回 `columns`/`groups`（每个分组本身也是视图实例，含 `groupKey`/`groupValue`）。`view` 还包含 `filters`/`sorts`/`group`/`showIcon`/`wrapField`/`groupFolded`/`groupHidden`。注意：启用的过滤/分组可能使 `rows` 为空，即使 `rowCount` > 0
+    * `data.view`: 渲染后的视图实例。结构随 `viewType` 而变：`table` 返回 `columns`/`rows`/`rowCount`，`gallery` 和 `kanban` 返回 `fields`/`cards`/`cardCount`。启用分组时，`groups` 包含各分组的视图实例，每个实例含 `groupKey`/`groupValue`。`view` 还包含 `filters`/`sorts`/`group`/`showIcon`/`wrapField`/`groupFolded`/`groupHidden`。注意：启用的过滤或分组可能使条目列表为空，即使条目总数大于 0
     * `data.view.columns[]`: 每列含 `id`/`name`/`type`/`icon`/`wrap`/`hidden`/`desc`/`calc`/`numberFormat`/`template`/`pin`/`width`；`select`/`mSelect` 列还额外包含 `options`
-    * `data.view.rows[].id`: **行 ID**（一个条目 ID）。对于绑定行，它等于绑定的块 ID；对于独立行，它是生成的条目 ID，与任何块都不同
+    * `data.view.rows[].id`: 表格行的**条目 ID**（`itemID`），也等于该行主键单元格的 `value.blockID`。对于绑定行，绑定块 ID 位于主键单元格的 `value.block.id`；二者是不同概念，不能假设相等
+    * `data.view.cards[].id`: 卡片或看板卡片的**条目 ID**（`itemID`）。启用分组时，表格行或卡片位于 `groups[]` 的对应视图实例中
     * `data.view.rows[].cells[].value`: 一个 `Value` 对象——所有 value 形态见 [设置单元格值](#设置单元格值)。`createdAt`/`updatedAt` 为 int64 毫秒时间戳
     * `data.views`: 所有视图的元数据（不含行数据）
     * `data.isMirror`: 当数据库块为数据库的镜像（只读副本）时为 `true`
@@ -2074,7 +2190,7 @@
   }
   ```
 
-    * `data.av`: 完整的 `AttributeView` 定义——字段（`keyValues`）、字段顺序（`keyIDs`，可能为 `null`）、当前视图（`viewID`）、以及所有视图的原始布局配置（`table`/`gallery`/`kanban`）和条目顺序（`itemIds`）。返回原始定义（不含渲染后的行或分页）；需要计算后的行数据请使用 [渲染](#渲染)
+    * `data.av`: 完整的 `AttributeView` 定义——字段（`keyValues`）、字段顺序（`keyIDs`，可能为 `null`），以及所有视图的原始布局配置（`table`/`gallery`/`kanban`）和条目顺序（`itemIds`）。兼容字段 `viewID` 动态取第一个可用视图，不会持久化。返回值不含渲染后的行或分页；需要计算后的行数据请使用 [渲染](#渲染)
 
 ### 获取主键值
 
@@ -2103,6 +2219,7 @@
     "data": {
       "name": "API 测试",
       "blockIDs": ["20240118120201-kldj15t"],
+      "total": 1,
       "rows": {
         "key": {
           "id": "20240118120204-w6cggab",
@@ -2136,6 +2253,7 @@
 
     * `data.rows`: 一个 `KeyValues` 对象，包含主键（`block`）字段及其分页后的值
     * `data.blockIDs`: 引用该数据库的所有数据库块（镜像）ID
+    * `data.total`: 过滤后、分页前的主键值数量
 
 ### 搜索
 
@@ -2145,12 +2263,14 @@
   ```json
   {
     "keyword": "API",
-    "excludes": []
+    "excludes": [],
+    "includeViewMatches": true
   }
   ```
 
     * `keyword`: 搜索关键字（匹配数据库名称）
     * `excludes`: 可选，需从结果中排除的数据库 ID 列表
+    * `includeViewMatches`: 可选，设为 `true` 时同时搜索视图名称，命中的子视图包含 `"matched": true`
 * 返回值（真实响应）：
 
   ```json
@@ -2174,6 +2294,7 @@
               "viewName": "表格",
               "viewID": "20240118120204-7rnmyc1",
               "viewLayout": "table",
+              "matched": true,
               "blockID": "20240118120201-kldj15t",
               "hPath": "正在跟进的问题/数据库/API"
             }
@@ -2184,7 +2305,7 @@
   }
   ```
 
-    * `data.results[]`: 每个顶层结果按 `avID` 聚合一个数据库；其 `children[]` 列出该数据库的各个视图（`viewName`/`viewID`/`viewLayout`）
+    * `data.results[]`: 每个顶层结果按 `avID` 聚合一个数据库；其 `children[]` 列出该数据库的各个视图（`viewName`/`viewID`/`viewLayout`），启用 `includeViewMatches` 时由 `matched` 标识名称命中的视图
 
 ### 设置单元格值
 
@@ -2203,7 +2324,7 @@
 | `phone`    | `{"phone": {"content": "1234567890"}}`                                                                               |
 | `checkbox` | `{"checkbox": {"checked": true}}`                                                                                    |
 
-> ⚠️ `itemID` 是**行 ID**（[渲染](#渲染) 返回的 `rows[].id`）。对于绑定行，行 ID 等于绑定的块 ID；对于独立行，它是生成的条目 ID。传入错误的 ID 会把值存为孤儿数据，不会出现在渲染后的单元格中。
+> ⚠️ `itemID` 是**条目 ID**，即[渲染](#渲染)返回的条目 `id`：表格为 `rows[].id`，卡片和看板为 `cards[].id`，启用分组时位于 `groups[]` 的对应视图实例中。它也等于主键值的 `value.blockID`。对于绑定条目，绑定块 ID 位于主键值的 `value.block.id`；二者是不同概念，不能假设相等。传入错误的 ID 会把值存为孤儿数据，不会出现在渲染后的单元格中。
 
 * `/api/av/setAttributeViewBlockAttr`
 * 参数
@@ -2281,7 +2402,7 @@
 
     * `avID`: 数据库 ID
     * `blockID`: 拥有该数据库的数据库块（用于解析目标视图/分组）
-    * `viewID`: 目标视图。省略时使用当前视图
+    * `viewID`: 明确指定目标视图。省略时使用 `blockID` 选择的视图，无法解析则使用第一个可用视图
     * `groupID`: 看板视图的目标分组 ID。表格/卡片视图可省略
     * `previousID`: 在此条目 ID 之后插入。为空表示追加到末尾
     * `srcs[].id`: 绑定块时（`isDetached: false`）为要绑定的块 ID，需符合节点 ID 格式
@@ -2329,7 +2450,7 @@
 
 ### 切换布局
 
-在 `table`（表格）、`gallery`（卡片）和 `kanban`（看板）之间切换当前视图的布局类型。成功时服务端会重新渲染并返回视图（结构与 [渲染](#渲染) 相同）。
+在 `table`（表格）、`gallery`（卡片）和 `kanban`（看板）之间切换数据库块所选视图的布局类型。成功时服务端会重新渲染并返回视图（结构与 [渲染](#渲染) 相同）。
 
 * `/api/av/changeAttrViewLayout`
 * 参数
@@ -2641,9 +2762,105 @@
   ```
 
     * `avID`: 数据库 ID
-    * `viewID`: 目标视图。为空时使用当前视图
+    * `viewID`: 目标视图。为空时使用第一个可用视图
     * `keyID`: 要移动的字段 ID
     * `previousKeyID`: `keyID` 应置于其后的字段 ID。为空字符串表示移动到首位
+* 返回值
+
+  ```json
+  {
+    "code": 0,
+    "msg": "",
+    "data": null
+  }
+  ```
+
+## 搜索
+
+已保存的搜索条件组使用以下字段：
+
+* `name`：条件组名称，同时也是条件组的唯一键
+* `sort`：结果排序方式，`0` 为按块类型，`1` 为按创建时间升序，`2` 为按创建时间降序，`3` 为按更新时间升序，`4` 为按更新时间降序，`5` 为按内容顺序，`6` 为按相关度升序，`7` 为按相关度降序
+* `group`：分组方式，`0` 为不分组，`1` 为按文档分组
+* `hasReplace`：是否启用替换
+* `method`：搜索方式，`0` 为关键字，`1` 为查询语法，`2` 为 SQL，`3` 为正则表达式，`4` 为语义搜索
+* `hPath`：人类可读的搜索范围路径
+* `idPath`：搜索范围路径数组
+* `k`：搜索关键字
+* `r`：替换关键字
+* `types`：块类型开关，支持 `mathBlock`、`table`、`blockquote`、`superBlock`、`paragraph`、`document`、`heading`、`list`、`listItem`、`codeBlock`、`htmlBlock`、`embedBlock`、`databaseBlock`、`audioBlock`、`videoBlock`、`iframeBlock`、`widgetBlock` 和 `callout`
+* `subTypes`：块子类型开关，`h1` 至 `h6` 表示标题级别，`o`、`u` 和 `t` 分别表示有序列表、无序列表和任务列表
+* `replaceTypes`：替换类型开关，支持 `text`、`imgText`、`imgTitle`、`imgSrc`、`aText`、`aTitle`、`aHref`、`code`、`em`、`strong`、`inlineMath`、`inlineMemo`、`blockRef`、`fileAnnotationRef`、`kbd`、`mark`、`s`、`sub`、`sup`、`tag`、`u`、`docTitle`、`codeBlock`、`mathBlock` 和 `htmlBlock`
+
+`types`、`subTypes` 或 `replaceTypes` 中省略的布尔开关按 `false` 处理。
+
+### 获取已保存的搜索条件组
+
+* `/api/storage/getCriteria`
+* 无参数
+* 返回值：`data` 为按保存顺序排列的搜索条件组数组；没有已保存的条件组时为空数组
+* 对于只读角色，条件组会根据发布访问权限进行过滤，并清空返回结果中的 `k` 和 `r`
+
+### 保存搜索条件组
+
+创建条件组或完整覆盖同名条件组。覆盖时保留原有位置，新增时追加到末尾。
+
+* `/api/storage/setCriterion`
+* 需要管理员角色，在只读模式下不可用
+* 参数
+
+  ```json
+  {
+    "criterion": {
+      "name": "公开笔记",
+      "sort": 0,
+      "group": 1,
+      "hasReplace": false,
+      "method": 0,
+      "hPath": "公开笔记",
+      "idPath": ["20210808180117-czj9bvb"],
+      "k": "",
+      "r": "",
+      "types": {
+        "document": true,
+        "paragraph": true
+      },
+      "subTypes": {
+        "h1": true
+      },
+      "replaceTypes": {
+        "text": true
+      }
+    }
+  }
+  ```
+
+    * `criterion`：要保存的完整搜索条件组
+* 返回值
+
+  ```json
+  {
+    "code": 0,
+    "msg": "",
+    "data": null
+  }
+  ```
+
+### 移除搜索条件组
+
+移除指定名称的条件组。名称不存在时也视为成功。
+
+* `/api/storage/removeCriterion`
+* 需要管理员角色，在只读模式下不可用
+* 参数
+
+  ```json
+  {
+    "name": "公开笔记"
+  }
+  ```
+
+    * `name`：条件组名称
 * 返回值
 
   ```json

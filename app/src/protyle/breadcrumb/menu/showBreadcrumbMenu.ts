@@ -91,7 +91,7 @@ import { 添加只读模式菜单项 } from "./menuItems";
  * 使用范围：构建面包屑菜单时在桌面端非只读且wysiwyg存在时调用
  * 解耦评估：菜单项构建函数，可通过参数传递解耦，但作为模块内部函数直接导入更合理
  */
-import { 添加全宽模式菜单项 } from "./menuItems";
+import { 添加全宽模式菜单项, 添加标题序号菜单项 } from "./menuItems";
 /*
  * 用途：添加懒加载菜单项
  * 使用范围：构建面包屑菜单时调用
@@ -170,6 +170,7 @@ export function 显示面包屑菜单(
 
 /**
  * 构建菜单内容（fetchPost 回调）
+ * @参数豁免: 遗留代码
  */
 function 构建菜单内容(
     protyle: IProtyle,
@@ -222,6 +223,11 @@ function 构建菜单内容(
     // 全宽模式子菜单
     if (!isMobile && !protyle.disabled && protyle.wysiwyg) {
         添加全宽模式菜单项(protyle, menu);
+    }
+
+    // 标题自动编号子菜单（上游 86953fbcfb）：per-document 覆盖，置于全宽之后、插件之前
+    if (!isMobile && protyle.wysiwyg) {
+        添加标题序号菜单项(protyle, menu);
     }
 
     // 插件菜单

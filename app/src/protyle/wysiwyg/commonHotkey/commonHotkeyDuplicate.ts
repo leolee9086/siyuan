@@ -3,7 +3,6 @@ import { fetchSyncPost } from "../../../util/network/fetch";
 import { hasTopClosestByClassName } from "../../util/hasClosest";
 import { removeEmbed } from "../removeEmbed";
 import { isHTMLElement } from "../../../util/DOM/element.guard";
-import { processClonePHElement } from "../../render/util";
 import { clearBlockElement } from "../../util/clearSelect";
 
 /**
@@ -198,7 +197,7 @@ export const insertDuplicateItem = (
     doOperations: IOperation[],
     undoOperations: IOperation[]
 ) => {
-    lastElement.after(processClonePHElement(tempElement));
+    lastElement.after(tempElement);
     doOperations.push({
         action: "insert",
         data: tempElement.outerHTML,

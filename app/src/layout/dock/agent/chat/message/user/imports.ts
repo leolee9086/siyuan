@@ -28,7 +28,7 @@ export type {UserEditBindingContext};
  * 使用范围：仅供用户消息富文本渲染完成后调用。
  * 解耦评估：该函数是 Protyle 只读渲染的既有边界，本目录不复制编辑器 DOM 规则。
  */
-import {disabledWYSIWYG} from "../../../../../../protyle/util/onGet";
+import {disabledWYSIWYG} from "../../../../../../protyle/util/disabledWYSIWYG";
 /** 导出只读 DOM 处理函数。 */
 export {disabledWYSIWYG};
 

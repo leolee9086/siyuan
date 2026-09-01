@@ -1,6 +1,9 @@
 import { Tab } from "./Tab";
 import {getInstanceById, newModelByInitData} from "./util";
+import {saveLayout} from "./persistence/saveLayout";
 import { getAllModels, getAllTabs, getAllWnds } from "./getAll";
+import {hideAllElements, hideElements} from "../protyle/ui/hideElements";
+import {pdfResize} from "../asset/renderAssets";
 import type { AppFacade } from "../app/AppFacade.types";
 import { Model } from "./Model";
 import { Editor } from "../editor";
@@ -86,6 +89,51 @@ export const switchTabByIndex = (index: number) => {
             tab.parent.showHeading();
         }
     }
+};
+
+let resizeTimeout: number;
+export const resizeTabs = (isSaveLayout = true) => {
+    hideAllElements(["gutter"]);
+    clearTimeout(resizeTimeout);
+    //  .layout .fn__flex-shrink {width .15s cubic-bezier(0, 0, .2, 1) 0ms} 时需要再次计算 padding
+    // PDF 避免分屏多次调用后，页码跳转到1 https://github.com/siyuan-note/siyuan/issues/5646
+    resizeTimeout = window.setTimeout(() => {
+        const models = getAllModels();
+        models.editor.forEach((item) => {
+            if (item.editor && item.editor.protyle &&
+                item.element.parentElement && !item.element.classList.contains("fn__none")) {
+                item.editor.resize();
+            }
+        });
+        // https://github.com/siyuan-note/siyuan/issues/6250
+        models.backlink.forEach(item => {
+            const mTreeElement = item.element.querySelector(".backlinkMList") as HTMLElement;
+            if (mTreeElement.style.height && mTreeElement.style.height !== "0px" && item.element.clientHeight !== 0) {
+                mTreeElement.style.height = (item.element.clientHeight - mTreeElement.previousElementSibling.clientHeight * 2) + "px";
+            }
+            item.editors.forEach(editorItem => {
+                hideElements(["gutter"], editorItem.protyle);
+                editorItem.resize();
+            });
+        });
+        models.search.forEach(item => {
+            if (item.element.querySelector("#searchUnRefPanel").classList.contains("fn__none")) {
+                item.editors.edit.resize();
+            } else {
+                item.editors.unRefEdit.resize();
+            }
+        });
+        models.custom.forEach(item => {
+            if (item.resize) {
+                item.resize();
+            }
+        });
+        pdfResize();
+        hideAllElements(["gutter"]);
+        if (isSaveLayout) {
+            saveLayout();
+        }
+    }, 200);
 };
 
 export const newCenterEmptyTab = (app: AppFacade) => {
@@ -224,6 +272,7 @@ export const copyTab = (app: AppFacade, tab: Tab) => {
                     tab: newTab,
                     blockId: tab.model.blockId,
                     rootId: tab.model.rootId,
+                    notebookId: tab.model.notebookId,
                     type: tab.model.type,
                 });
             } else if (tab.model instanceof Files) {
@@ -236,6 +285,7 @@ export const copyTab = (app: AppFacade, tab: Tab) => {
                     app,
                     tab: newTab,
                     blockId: tab.model.blockId,
+                    notebookId: tab.model.notebookId,
                     type: tab.model.type,
                     isPreview: tab.model.isPreview
                 });
@@ -245,6 +295,7 @@ export const copyTab = (app: AppFacade, tab: Tab) => {
                     tab: newTab,
                     blockId: tab.model.blockId,
                     rootId: tab.model.rootId,
+                    notebookId: tab.model.notebookId,
                     type: tab.model.type
                 });
             } else if (tab.model instanceof Bookmark) {
@@ -302,7 +353,7 @@ export const closeTabByType = (tab: Tab, type: "closeOthers" | "closeAll" | "oth
     if (type === "closeOthers") {
         for (let index = 0; index < tab.parent.children.length; index++) {
             const item = tab.parent.children[index];
-            if (item.id !== tab.id && !item.headElement.classList.contains("item--pin")) {
+            if (item.id !== tab.id && item.headElement && !item.headElement.classList.contains("item--pin")) {
                 pushRootID(rootIDs, item);
                 item.parent.removeTab(item.id, true, false);
                 index--;
@@ -311,7 +362,7 @@ export const closeTabByType = (tab: Tab, type: "closeOthers" | "closeAll" | "oth
     } else if (type === "closeAll") {
         for (let index = 0; index < tab.parent.children.length; index++) {
             const item = tab.parent.children[index];
-            if (!item.headElement.classList.contains("item--pin")) {
+            if (item.headElement && !item.headElement.classList.contains("item--pin")) {
                 pushRootID(rootIDs, item);
                 item.parent.removeTab(item.id, true);
                 index--;
@@ -319,8 +370,9 @@ export const closeTabByType = (tab: Tab, type: "closeOthers" | "closeAll" | "oth
         }
     } else if (tabs.length > 0) {
         for (let index = 0; index < tabs.length; index++) {
-            if (!tabs[index].headElement.classList.contains("item--pin")) {
-                tabs[index].parent.removeTab(tabs[index].id);
+            const item = tabs[index];
+            if (item.headElement && !item.headElement.classList.contains("item--pin")) {
+                item.parent.removeTab(item.id);
             }
         }
     }
@@ -328,9 +380,15 @@ export const closeTabByType = (tab: Tab, type: "closeOthers" | "closeAll" | "oth
     if (rootIDs.length > 0) {
         fetchPost("/api/storage/batchUpdateRecentDocCloseTime", {rootIDs});
     }
-    if (tab.headElement.parentElement && !tab.headElement.parentElement.querySelector(".item--focus")) {
+    if (tab.headElement?.parentElement && !tab.headElement.parentElement.querySelector(".item--focus")) {
         tab.parent.switchTab(tab.headElement, true);
-    } else if (tab.parent.children.length > 0) {
-        tab.parent.switchTab(tab.parent.children[tab.parent.children.length - 1].headElement, true);
+    } else {
+        for (let index = tab.parent.children.length - 1; index >= 0; index--) {
+            const item = tab.parent.children[index];
+            if (item.headElement) {
+                tab.parent.switchTab(item.headElement, true);
+                break;
+            }
+        }
     }
 };

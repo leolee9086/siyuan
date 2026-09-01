@@ -1,6 +1,9 @@
 /** 用途：关联会话和任务目录摘要；使用范围：会话领域持久化模型。 */
 import type {TaskDirectoryBinding} from "./imports";
 
+/** Agent 会话中后续能力调用的确认策略。 */
+export type AgentPermissionMode = "confirm" | "allowSession";
+
 /** 会话目标种类。 */
 export type AgentSessionTargetKind = "native-agent" | "magi";
 
@@ -11,6 +14,7 @@ export interface SessionIndexItem {
     targetKind?: AgentSessionTargetKind;
     createdAt: number;
     updatedAt: number;
+    agentRunning?: boolean;
     taskDirectory?: TaskDirectoryBinding;
 }
 
@@ -48,6 +52,7 @@ export interface AgentChatSessionRepository {
     save(session: AgentSession): Promise<SessionSaveResult>;
     remove(id: string): Promise<void>;
     rename(input: Readonly<{id: string; title: string}>): Promise<void>;
+    setPermission(id: string, permissionMode: AgentPermissionMode): Promise<AgentPermissionMode>;
     getRevision(id: string): number;
     newSessionId(): string;
 }
@@ -59,6 +64,7 @@ export interface AgentSession {
     targetKind?: AgentSessionTargetKind;
     titled?: boolean;
     model?: string;
+    permissionMode?: AgentPermissionMode;
     taskDirectory?: TaskDirectoryBinding;
     messages?: Array<{
         role: string;
@@ -82,18 +88,29 @@ export interface AgentSession {
         steps?: Array<{
             reasoning: string;
             reasoningContent: string;
+            roundID?: string;
             toolNames?: string[];
+            toolCallIDs?: string[];
             content?: string;
             text?: string;
             toolCalls?: Array<{name: string; result?: string}>;
         }>;
         reasoningContent?: string;
+        responseOutput?: Array<Record<string, unknown>>;
+        responseOutputTokens?: number;
+        roundID?: string;
         toolCalls?: Array<{
             id?: string;
             name: string;
             arguments?: Record<string, unknown>;
+            argumentsJSON?: string;
             result?: string;
             state?: string;
+            providerData?: {
+                google?: {
+                    thoughtSignature?: string;
+                };
+            };
         }>;
         duration?: number;
         timestamp?: number;

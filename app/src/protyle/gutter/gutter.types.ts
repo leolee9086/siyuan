@@ -41,6 +41,23 @@ export interface IGutterTurnIntoContext {
     protyle: IProtyle;
 }
 
+/** 标题转换目标的静态菜单描述。 */
+export interface IGutterHeadingTargetDescriptor {
+    subType: "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+    menuId: string;
+    icon: string;
+    labelKey: keyof typeof import("../../util/siyuanEnvironments/i18n.getI18n.environment").siyuanI18n;
+    level: 1 | 2 | 3 | 4 | 5 | 6;
+}
+
+/** 空段落可直接转换的目标描述。 */
+export interface IGutterEmptyParagraphTargetDescriptor {
+    id: "code" | "table" | "line" | "math";
+    icon: string;
+    labelKey: keyof typeof import("../../util/siyuanEnvironments/i18n.getI18n.environment").siyuanI18n;
+    type: "code" | "table" | "line" | "math";
+}
+
 /**
  * 进度状态更新器接口
  * 用于更新 UI 组件的加载状态和消息

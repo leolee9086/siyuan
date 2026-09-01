@@ -72,15 +72,19 @@ type agentChatTurnParams struct {
 	// 避免用解析后的 Name 重建时命中同名模型导致 provider 漂移。
 	ModelID string `json:"modelID,omitempty"`
 
-	UserEntryID     string               `json:"userEntryID"`
-	BlockHTML       string               `json:"blockHTML,omitempty"`
-	ContentRevision int64                `json:"contentRevision"`
-	Language        string               `json:"language"`
-	References      []agent.Reference    `json:"references,omitempty"`
-	EditorContext   agent.EditorContext  `json:"editorContext,omitempty"`
-	PluginActions   []agent.PluginAction `json:"pluginActions,omitempty"`
-	Regenerate      bool                 `json:"regenerate,omitempty"`
-	ReasoningEffort string               `json:"reasoningEffort,omitempty"`
+	UserEntryID          string                     `json:"userEntryID"`
+	BlockHTML            *string                    `json:"blockHTML,omitempty"`
+	ContentRevision      int64                      `json:"contentRevision"`
+	Language             string                     `json:"language"`
+	References           []agent.Reference          `json:"references,omitempty"`
+	EditorContext        agent.EditorContext        `json:"editorContext,omitempty"`
+	PluginActions        []agent.PluginAction       `json:"pluginActions,omitempty"`
+	FrontendCapabilities []agent.FrontendCapability `json:"frontendCapabilities,omitempty"`
+	Regenerate           bool                       `json:"regenerate,omitempty"`
+	ReasoningEffort      string                     `json:"reasoningEffort,omitempty"`
+	Protocol             string                     `json:"protocol,omitempty"`
+	ImageCapabilityKey   string                     `json:"imageCapabilityKey,omitempty"`
+	ContextLimit         int                        `json:"contextLimit,omitempty"`
 	// AppendUserEntry 标记由 session-event admission 创建、尚未写入 canonical session 的用户输入。
 	AppendUserEntry bool `json:"appendUserEntry,omitempty"`
 
@@ -97,16 +101,17 @@ type agentChatTurnParams struct {
 }
 
 type agentTurnRequestOptions struct {
-	ModelID         string
-	UserEntryID     string
-	BlockHTML       string
-	ContentRevision int64
-	Language        string
-	References      []agent.Reference
-	EditorContext   agent.EditorContext
-	PluginActions   []agent.PluginAction
-	Regenerate      bool
-	ReasoningEffort string
+	ModelID              string
+	UserEntryID          string
+	BlockHTML            *string
+	ContentRevision      int64
+	Language             string
+	References           []agent.Reference
+	EditorContext        agent.EditorContext
+	PluginActions        []agent.PluginAction
+	FrontendCapabilities []agent.FrontendCapability
+	Regenerate           bool
+	ReasoningEffort      string
 }
 
 func buildAgentTurnParams(options agentTurnRequestOptions, ownerAuth *agentOwnerAuthorization) (*agentChatTurnParams, error) {
@@ -136,21 +141,33 @@ func buildAgentTurnParams(options agentTurnRequestOptions, ownerAuth *agentOwner
 	if streamIdleTimeout <= 0 {
 		streamIdleTimeout = 120 * time.Second
 	}
+	var blockHTML *string
+	if options.BlockHTML != nil {
+		value := *options.BlockHTML
+		blockHTML = &value
+	}
+	contextLimit := agent.ResolveModelContextLimit(selectedModel.Name, selectedModel.ContextLength)
+	imageCapabilityKey := fmt.Sprintf("%s\x00%s\x00%s\x00%s\x00%s",
+		provider.ID, selectedModel.ID, provider.BaseURL, provider.Protocol, selectedModel.Name)
 	params := &agentChatTurnParams{
-		ModelID:             options.ModelID,
-		UserEntryID:         options.UserEntryID,
-		BlockHTML:           options.BlockHTML,
-		ContentRevision:     options.ContentRevision,
-		Language:            options.Language,
-		References:          append([]agent.Reference(nil), options.References...),
-		EditorContext:       options.EditorContext,
-		PluginActions:       append([]agent.PluginAction(nil), options.PluginActions...),
-		Regenerate:          options.Regenerate,
-		ReasoningEffort:     options.ReasoningEffort,
-		ConfirmTimeoutMs:    confirmTimeout.Milliseconds(),
-		MaxRetries:          maxRetries,
-		RequestTimeoutMs:    requestTimeout.Milliseconds(),
-		StreamIdleTimeoutMs: streamIdleTimeout.Milliseconds(),
+		ModelID:              options.ModelID,
+		UserEntryID:          options.UserEntryID,
+		BlockHTML:            blockHTML,
+		ContentRevision:      options.ContentRevision,
+		Language:             options.Language,
+		References:           append([]agent.Reference(nil), options.References...),
+		EditorContext:        options.EditorContext,
+		PluginActions:        append([]agent.PluginAction(nil), options.PluginActions...),
+		FrontendCapabilities: append([]agent.FrontendCapability(nil), options.FrontendCapabilities...),
+		Regenerate:           options.Regenerate,
+		ReasoningEffort:      options.ReasoningEffort,
+		Protocol:             provider.Protocol,
+		ImageCapabilityKey:   imageCapabilityKey,
+		ContextLimit:         contextLimit,
+		ConfirmTimeoutMs:     confirmTimeout.Milliseconds(),
+		MaxRetries:           maxRetries,
+		RequestTimeoutMs:     requestTimeout.Milliseconds(),
+		StreamIdleTimeoutMs:  streamIdleTimeout.Milliseconds(),
 	}
 	if ownerAuth != nil {
 		params.OwnerIdentityID = ownerAuth.IdentityID
@@ -1325,7 +1342,14 @@ func (e *agentSessionExecutor) runAgentChat(ctx context.Context, input *agentque
 		params.References, params.EditorContext, params.PluginActions, params.Regenerate,
 		time.Duration(params.ConfirmTimeoutMs)*time.Millisecond, params.MaxRetries,
 		params.ReasoningEffort, taskDirectory, params.OwnerIdentityID, params.OwnerExpiresAt,
-		time.Duration(params.RequestTimeoutMs)*time.Millisecond, time.Duration(params.StreamIdleTimeoutMs)*time.Millisecond, e.turn)
+		time.Duration(params.RequestTimeoutMs)*time.Millisecond, time.Duration(params.StreamIdleTimeoutMs)*time.Millisecond,
+		e.turn, agent.AgentChatCallOptions{
+			Protocol:             params.Protocol,
+			ImageCapabilityKey:   params.ImageCapabilityKey,
+			ContextLimit:         params.ContextLimit,
+			UserBlockHTML:        params.BlockHTML,
+			FrontendCapabilities: params.FrontendCapabilities,
+		})
 }
 
 func (e *agentSessionExecutor) prepareAdmittedUserEntry(input *agentqueue.Input, params *agentChatTurnParams) error {
@@ -1349,13 +1373,17 @@ func (e *agentSessionExecutor) prepareAdmittedUserEntry(input *agentqueue.Input,
 		value := params.EditorContext
 		editorContext = &value
 	}
+	blockHTML := ""
+	if params.BlockHTML != nil {
+		blockHTML = *params.BlockHTML
+	}
 	revision := params.ContentRevision
 	if !params.Regenerate {
 		revision, err = agent.AppendQueuedUserEntry(e.sessionID, agent.SessionEntry{
 			ID:            params.UserEntryID,
 			Type:          "user",
 			Content:       input.Content,
-			BlockHTML:     params.BlockHTML,
+			BlockHTML:     blockHTML,
 			References:    append([]agent.Reference(nil), params.References...),
 			EditorContext: editorContext,
 			Timestamp:     input.CreatedAt,
@@ -1366,7 +1394,7 @@ func (e *agentSessionExecutor) prepareAdmittedUserEntry(input *agentqueue.Input,
 	}
 	e.hub.publish("input_promoted", map[string]any{
 		"inputID": input.ID, "userEntryID": params.UserEntryID, "content": input.Content,
-		"blockHTML": params.BlockHTML, "references": params.References, "editorContext": params.EditorContext,
+		"blockHTML": blockHTML, "references": params.References, "editorContext": params.EditorContext,
 		"queueVersion": e.manager.SnapshotVersioned(e.sessionID).QueueVersion, "contentRevision": revision,
 	})
 	params.ContentRevision = revision

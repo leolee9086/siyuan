@@ -3,6 +3,7 @@ import * as assert from "node:assert/strict";
 import {
     getAssetName,
     getDisplayName,
+    originalPath,
     pathPosix,
 } from "../../../src/util/file/path/operations";
 
@@ -23,11 +24,17 @@ function exposesPosixOperations() {
     assert.equal(pathPosix().join("folder", "document.sy"), "folder/document.sy");
 }
 
+/** 验证非 Electron 宿主不加载 Node require，仍可处理路径。 */
+function keepsBrowserPathGatewaySelfContained() {
+    assert.equal(originalPath().join("folder", "document.sy"), "folder/document.sy");
+}
+
 /** 注册纯路径领域的全部契约测试。 */
 function registerPathOperationTests() {
     it("preserves display name options", preservesDisplayNameOptions);
     it("removes asset suffixes", removesAssetSuffixes);
     it("exposes POSIX operations", exposesPosixOperations);
+    it("keeps the browser path gateway self-contained", keepsBrowserPathGatewaySelfContained);
 }
 
 describe("file path operations", registerPathOperationTests);

@@ -37,10 +37,36 @@ import { handleGroupFoldClick } from "./dataType.advanced";
 import { handleLoadMoreClick } from "./dataType.advanced";
 /** 用途：处理较长的高级 data-type 分支。使用范围：搜索图标点击。解耦评估：移动端键盘和焦点时序逻辑拆出后更便于维护。 */
 import { handleSearchIconClick } from "./dataType.advanced";
-import {addDragFill, createAttributeViewItem, focusByRange, hintRef, openNewItemTemplateMenu} from "./imports";
+/** 用途：处理覆盖位置点击。使用范围：`av-cover-position` 点击。解耦评估：该逻辑已下沉至 `selectionToolbar`，当前模块仅路由。 */
+import { handleCoverPositionClick } from "./selectionToolbar";
+/** 用途：处理选中删除点击。使用范围：`av-selection-delete` 点击。解耦评估：删除逻辑已收敛至 `selectionToolbar`，当前模块仅转发。 */
+import { handleSelectionDeleteClick } from "./selectionToolbar";
+/** 用途：处理选中编辑点击。使用范围：`av-selection-edit` 点击。解耦评估：编辑流程由 `selectionToolbar` 维护，当前模块不内联。 */
+import { handleSelectionEditClick } from "./selectionToolbar";
+/** 用途：处理选中更多菜单点击。使用范围：`av-selection-more` 点击。解耦评估：更多菜单逻辑由 `selectionToolbar` 统一管理。 */
+import { handleSelectionMoreClick } from "./selectionToolbar";
+/** 用途：为单元格提供拖拽填充能力。使用范围：`av-row-update` 分支。解耦评估：填充逻辑经 `imports.ts` 网关转发，适合直接调用。 */
+import { addDragFill } from "./imports";
+/** 用途：按模板创建视图条目。使用范围：`createItem` 内部。解耦评估：模板创建由视图模块维护，当前仅消费。 */
+import { createAttributeViewItem } from "./imports";
+/** 用途：按 Range 聚焦选区。使用范围：`av-row-update` 分支。解耦评估：选区聚焦为共享工具，经网关复用。 */
+import { focusByRange } from "./imports";
+/** 用途：触发块引用提示。使用范围：`av-row-update` 分支。解耦评估：提示逻辑由 hint 模块维护，当前模块仅触发。 */
+import { hintRef } from "./imports";
+/** 用途：打开看板分组菜单。使用范围：`av-kanban-group-more` 点击。解耦评估：分组菜单逻辑已收敛至看板模块。 */
+import { openKanbanGroupMenu } from "./imports";
+/** 用途：打开新建条目模板菜单。使用范围：`av-add-template` 点击。解耦评估：模板菜单由视图模块维护，当前模块仅路由。 */
+import { openNewItemTemplateMenu } from "./imports";
 
+/**
+ * 作用：按模板或普通方式创建一行/卡片。
+ * 意图：统一 `createItem` 的 previousID/groupID 处理，避免在各新增入口重复分支。
+ * 调用时机：`av-add-more` / `av-add-bottom` / `av-add-top` 等需要插入行的分支调用。
+ * 问题/改进：仍依赖 `av__header` 的 `defaultTemplateId` 属性。
+ */
 const createItem = (protyle: IProtyle, blockElement: HTMLElement, position: {previousID?: string; groupID?: string}) => {
-    const templateID = blockElement.querySelector<HTMLElement>(".av__header")?.dataset.defaultTemplateId;
+    const headerElement = blockElement.querySelector<HTMLElement>(".av__header");
+    const templateID = headerElement?.dataset.defaultTemplateId;
     if (templateID) {
         createAttributeViewItem({blockElement, protyle, templateID, position});
         return;
@@ -49,7 +75,7 @@ const createItem = (protyle: IProtyle, blockElement: HTMLElement, position: {pre
         blockElement,
         protyle,
         count: 1,
-        previousID: position.previousID,
+        previousID: position.previousID || "",
         groupID: position.groupID || "",
     });
 };
@@ -60,11 +86,11 @@ const createItem = (protyle: IProtyle, blockElement: HTMLElement, position: {pre
  * 调用时机：data-type 分发命中 `av-header-add` 时调用。
  * 问题/改进：定位仍依赖按钮矩形。
  */
-const handleHeaderAddClick = (protyle: IProtyle, target: HTMLElement, blockElement: HTMLElement, event: MouseEvent) => {
-    const addMenu = addCol({protyle, blockElement, panel: avMenuPanel});
-    const addRect = target.getBoundingClientRect();
+const handleHeaderAddClick = (ctx: {protyle: IProtyle; target: HTMLElement; blockElement: HTMLElement; event: MouseEvent}) => {
+    const addMenu = addCol({protyle: ctx.protyle, blockElement: ctx.blockElement, panel: avMenuPanel});
+    const addRect = ctx.target.getBoundingClientRect();
     addMenu.open({ x: addRect.left, y: addRect.bottom, h: addRect.height });
-    return consumeClickEvent(event);
+    return consumeClickEvent(ctx.event);
 };
 
 /**
@@ -73,14 +99,9 @@ const handleHeaderAddClick = (protyle: IProtyle, target: HTMLElement, blockEleme
  * 调用时机：`getMenuPanelType` 命中后调用。
  * 问题/改进：若未来某些面板需要差异化上下文，可以再拆回独立 handler。
  */
-const handleMenuPanelClick = (
-    protyle: IProtyle,
-    blockElement: HTMLElement,
-    panelType: "properties" | "config" | "switcher" | "sorts" | "filters",
-    event: MouseEvent,
-) => {
-    openMenuPanel({ protyle, blockElement, type: panelType });
-    return consumeClickEvent(event);
+const handleMenuPanelClick = (ctx: {protyle: IProtyle; blockElement: HTMLElement; panelType: "properties" | "config" | "switcher" | "sorts" | "filters"; event: MouseEvent}) => {
+    openMenuPanel({ protyle: ctx.protyle, blockElement: ctx.blockElement, type: ctx.panelType });
+    return consumeClickEvent(ctx.event);
 };
 
 /**
@@ -115,13 +136,13 @@ const handleAddViewClick = (protyle: IProtyle, blockElement: Element, event: Mou
  * 调用时机：data-type 分发命中 `set-page-size` 时调用。
  * 问题/改进：仍依赖 blockElement 上的 avID。
  */
-const handleSetPageSizeClick = (protyle: IProtyle, target: HTMLElement, blockElement: HTMLElement, event: MouseEvent) => {
-    const avID = blockElement.getAttribute("data-av-id");
+const handleSetPageSizeClick = (ctx: {protyle: IProtyle; target: HTMLElement; blockElement: HTMLElement; event: MouseEvent}) => {
+    const avID = ctx.blockElement.getAttribute("data-av-id");
     if (!avID) {
         return false;
     }
-    setPageSize({ target, protyle, avID, nodeElement: blockElement });
-    return consumeClickEvent(event);
+    setPageSize({ target: ctx.target, protyle: ctx.protyle, avID, nodeElement: ctx.blockElement });
+    return consumeClickEvent(ctx.event);
 };
 
 /**
@@ -130,15 +151,16 @@ const handleSetPageSizeClick = (protyle: IProtyle, target: HTMLElement, blockEle
  * 调用时机：data-type 分发命中 `av-add-bottom` 时调用。
  * 问题/改进：仍依赖多段 DOM 回退取尾项。
  */
-const handleAddBottomClick = (protyle: IProtyle, target: HTMLElement, blockElement: HTMLElement, event: MouseEvent) => {
-    const bodyCandidate = hasClosestByClassName(target, "av__body");
+const handleAddBottomClick = (ctx: {protyle: IProtyle; target: HTMLElement; blockElement: HTMLElement; event: MouseEvent}) => {
+    const bodyCandidate = hasClosestByClassName(ctx.target, "av__body");
     const utilRow = isHTMLElement(bodyCandidate) ? bodyCandidate.querySelector(".av__row--util") : null;
-    const previousID = utilRow?.previousElementSibling?.getAttribute("data-id") || target.previousElementSibling?.getAttribute("data-id") || undefined;
-    createItem(protyle, blockElement, {
-        previousID: previousID ?? undefined,
-        groupID: isHTMLElement(bodyCandidate) ? bodyCandidate.getAttribute("data-group-id") || "" : "",
+    const previousID = utilRow?.previousElementSibling?.getAttribute("data-id") || ctx.target.previousElementSibling?.getAttribute("data-id") || "";
+    const groupID = isHTMLElement(bodyCandidate) ? bodyCandidate.getAttribute("data-group-id") || "" : "";
+    createItem(ctx.protyle, ctx.blockElement, {
+        previousID,
+        groupID,
     });
-    return consumeClickEvent(event);
+    return consumeClickEvent(ctx.event);
 };
 
 /**
@@ -147,14 +169,14 @@ const handleAddBottomClick = (protyle: IProtyle, target: HTMLElement, blockEleme
  * 调用时机：data-type 分发命中 `av-add-top` 时调用。
  * 问题/改进：仍依赖标题和 body 的相邻 DOM 结构。
  */
-const handleAddTopClick = (protyle: IProtyle, target: HTMLElement, blockElement: HTMLElement, event: MouseEvent) => {
-    const titleCandidate = hasClosestByClassName(target, "av__group-title");
+const handleAddTopClick = (ctx: {protyle: IProtyle; target: HTMLElement; blockElement: HTMLElement; event: MouseEvent}) => {
+    const titleCandidate = hasClosestByClassName(ctx.target, "av__group-title");
     const bodyElement = isHTMLElement(titleCandidate) ? titleCandidate.nextElementSibling : null;
-    createItem(protyle, blockElement, {
+    createItem(ctx.protyle, ctx.blockElement, {
         previousID: "",
         groupID: bodyElement?.getAttribute("data-group-id") || "",
     });
-    return consumeClickEvent(event);
+    return consumeClickEvent(ctx.event);
 };
 
 /**
@@ -196,11 +218,23 @@ const handleCopyClick = (target: HTMLElement, event: MouseEvent) => {
     return consumeClickEvent(event);
 };
 
-const handleAddTemplateClick = (protyle: IProtyle, target: HTMLElement, blockElement: HTMLElement, event: MouseEvent) => {
-    openNewItemTemplateMenu({protyle, blockElement, target});
-    return consumeClickEvent(event);
+/**
+ * 作用：处理新增模板行按钮点击。
+ * 意图：保持 `av-add-template` 打开新建条目模板菜单的原行为。
+ * 调用时机：data-type 分发命中 `av-add-template` 时调用。
+ * 问题/改进：模板选择仍依赖 `blockElement` 的上下文。
+ */
+const handleAddTemplateClick = (ctx: {protyle: IProtyle; target: HTMLElement; blockElement: HTMLElement; event: MouseEvent}) => {
+    openNewItemTemplateMenu({protyle: ctx.protyle, blockElement: ctx.blockElement, target: ctx.target});
+    return consumeClickEvent(ctx.event);
 };
 
+/**
+ * 作用：解析数据库单元格与行容器。
+ * 意图：为 `av-row-open` / `av-gallery-open` 提供统一的行列元素查找，避免重复的 DOM 遍历。
+ * 调用时机：打开或更新数据库行前调用。
+ * 问题/改进：仍依赖 `av__cell` / `av__row` / `av__gallery-item` 的类名约定。
+ */
 const getDatabaseRowElements = (target: HTMLElement) => {
     const cellElement = hasClosestByClassName(target, "av__cell");
     const rowElement = hasClosestByClassName(target, "av__row") || hasClosestByClassName(target, "av__gallery-item");
@@ -210,29 +244,53 @@ const getDatabaseRowElements = (target: HTMLElement) => {
     return {cellElement, rowElement};
 };
 
-const handleOpenDatabaseRow = (protyle: IProtyle, target: HTMLElement, blockElement: HTMLElement, event: MouseEvent) => {
-    const elements = getDatabaseRowElements(target);
+/**
+ * 作用：处理数据库行打开点击。
+ * 意图：保持 `av-row-open` / `av-gallery-open` 打开行详情的原行为。
+ * 调用时机：data-type 分发命中行打开类型时调用。
+ * 问题/改进：仍依赖 `blockElement.dataset` 与单元格内部结构。
+ */
+const handleOpenDatabaseRow = (ctx: {protyle: IProtyle; target: HTMLElement; blockElement: HTMLElement; event: MouseEvent}) => {
+    const elements = getDatabaseRowElements(ctx.target);
     if (!elements) {
         return false;
     }
     const textElement = elements.cellElement.querySelector<HTMLElement>(".av__celltext");
-    protyle.app.openDatabaseRow(protyle, {
-        avID: blockElement.dataset.avId,
-        databaseBlockID: blockElement.dataset.nodeId,
-        notebookID: protyle.notebookId,
-        itemID: elements.rowElement.dataset.id,
-        valueID: elements.cellElement.dataset.id,
-        title: textElement?.textContent.trim(),
-        boundBlockID: elements.cellElement.querySelector<HTMLElement>(".av__celltext--ref")?.dataset.id,
-        isDetached: elements.cellElement.dataset.detached === "true" || !elements.cellElement.querySelector(".av__celltext--ref"),
+    const refElement = elements.cellElement.querySelector<HTMLElement>(".av__celltext--ref");
+    const boundBlockID = refElement?.getAttribute("data-id") || undefined;
+    const isDetached = elements.cellElement.getAttribute("data-detached") === "true" || !refElement;
+    const avID = ctx.blockElement.getAttribute("data-av-id") || "";
+    const databaseBlockID = ctx.blockElement.getAttribute("data-node-id") || "";
+    const itemID = elements.rowElement.getAttribute("data-id") || "";
+    const valueID = elements.cellElement.getAttribute("data-id") || "";
+    const title = textElement?.textContent?.trim() || "";
+    const notebookID = ctx.protyle.notebookId || "";
+    ctx.protyle.app.openDatabaseRow(ctx.protyle, {
+        avID,
+        databaseBlockID,
+        notebookID,
+        itemID,
+        valueID,
+        title,
+        ...(boundBlockID ? {boundBlockID} : {}),
+        isDetached,
     });
-    return consumeClickEvent(event);
+    return consumeClickEvent(ctx.event);
 };
 
+/**
+ * 作用：处理数据库单元格进入编辑态的点击。
+ * 意图：保持 `av-row-update` 选中单元格并触发引用提示的原行为。
+ * 调用时机：data-type 分发命中 `av-row-update` 时调用。
+ * 问题/改进：仍依赖 `protyle.toolbar` 的存在性校验。
+ */
 const handleUpdateDatabaseRow = (protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
     const cellElement = hasClosestByClassName(target, "av__cell");
-    const textElement = cellElement?.querySelector<HTMLElement>(".av__celltext");
-    if (!isHTMLElement(cellElement) || !textElement || !protyle.toolbar) {
+    if (!isHTMLElement(cellElement) || !protyle.toolbar) {
+        return false;
+    }
+    const textElement = cellElement.querySelector<HTMLElement>(".av__celltext");
+    if (!textElement) {
         return false;
     }
     protyle.toolbar.range = document.createRange();
@@ -244,28 +302,40 @@ const handleUpdateDatabaseRow = (protyle: IProtyle, target: HTMLElement, event: 
     return consumeClickEvent(event);
 };
 
-const DATA_TYPE_HANDLERS = new Map<string, (
-    protyle: IProtyle,
-    target: HTMLElement,
-    blockElement: HTMLElement,
-    viewType: TAVView,
-    event: MouseEvent,
-) => boolean>([
-    ["av-header-add", (protyle, target, blockElement, _viewType, event) => protyle.disabled ? false : handleHeaderAddClick(protyle, target, blockElement, event)],
-    ["av-add-more", (protyle, _target, blockElement, _viewType, event) => protyle.disabled ? false : handleAddMoreClick(protyle, blockElement, event)],
-    ["av-add-template", (protyle, target, blockElement, _viewType, event) => protyle.disabled ? false : handleAddTemplateClick(protyle, target, blockElement, event)],
-    ["av-add", (protyle, _target, blockElement, _viewType, event) => protyle.disabled ? false : handleAddViewClick(protyle, blockElement, event)],
-    ["av-row-open", (protyle, target, blockElement, _viewType, event) => handleOpenDatabaseRow(protyle, target, blockElement, event)],
-    ["av-row-update", (protyle, target, _blockElement, _viewType, event) => protyle.disabled ? false : handleUpdateDatabaseRow(protyle, target, event)],
-    ["set-page-size", (protyle, target, blockElement, _viewType, event) => protyle.disabled ? false : handleSetPageSizeClick(protyle, target, blockElement, event)],
-    ["av-add-bottom", (protyle, target, blockElement, _viewType, event) => protyle.disabled ? false : handleAddBottomClick(protyle, target, blockElement, event)],
-    ["av-add-top", (protyle, target, blockElement, _viewType, event) => protyle.disabled ? false : handleAddTopClick(protyle, target, blockElement, event)],
-    ["av-gallery-edit", (protyle, target, _blockElement, _viewType, event) => protyle.disabled ? false : handleGalleryEditClick(target, event)],
-    ["av-gallery-more", (protyle, target, _blockElement, _viewType, event) => protyle.disabled ? false : handleGalleryMoreClick(protyle, target, event)],
-    ["av-group-fold", (protyle, target, blockElement, _viewType, event) => handleGroupFoldClick(protyle, target, blockElement, event)],
-    ["av-load-more", (protyle, target, blockElement, _viewType, event) => handleLoadMoreClick(protyle, target, blockElement, event)],
-    ["copy", (_protyle, target, _blockElement, _viewType, event) => handleCopyClick(target, event)],
-    ["av-search-icon", (_protyle, target, blockElement, _viewType, event) => handleSearchIconClick(target, blockElement, event)],
+/**
+ * 作用：处理看板分组更多按钮点击。
+ * 意图：保持 `av-kanban-group-more` 打开分组菜单的原行为。
+ * 调用时机：data-type 分发命中 `av-kanban-group-more` 时调用。
+ * 问题/改进：分组菜单的定位仍依赖目标按钮矩形。
+ */
+const handleKanbanGroupMoreClick = (ctx: {protyle: IProtyle; target: HTMLElement; blockElement: HTMLElement; event: MouseEvent}) => {
+    openKanbanGroupMenu({protyle: ctx.protyle, blockElement: ctx.blockElement, target: ctx.target});
+    return consumeClickEvent(ctx.event);
+};
+
+/* @允许模块级变量: DATA_TYPE_HANDLERS 为 data-type 到处理函数的只读路由映射，初始化后仅通过 Map#get 读取，不会在运行时动态增删或替换；其值为纯函数引用，不持有 DOM 或闭包可变状态，不会跨测试用例残留；该路由表与模块生命周期强绑定，HMR 时随模块重载整体重置，不存在新旧状态分裂；若迁移至 Symbol 注册表需额外引入全局键管理与惰性初始化，反而增加间接层与维护成本，且无实际隔离收益，因此保留为模块级常量更利于可审计性与性能。已评估替代方案包括工厂函数与注册表，均因该表为静态只读且无状态而被排除，未来若需动态注册再考虑迁移。 */
+const DATA_TYPE_HANDLERS = new Map<string, (ctx: {protyle: IProtyle; target: HTMLElement; blockElement: HTMLElement; viewType: TAVView; event: MouseEvent}) => boolean>([
+    ["av-selection-edit", (ctx) => ctx.protyle.disabled ? false : handleSelectionEditClick(ctx.protyle, ctx.target, ctx.blockElement, ctx.event)],
+    ["av-selection-delete", (ctx) => ctx.protyle.disabled ? false : handleSelectionDeleteClick(ctx.protyle, ctx.blockElement, ctx.event)],
+    ["av-selection-more", (ctx) => handleSelectionMoreClick(ctx.protyle, ctx.target, ctx.blockElement, ctx.event)],
+    ["av-header-add", (ctx) => ctx.protyle.disabled ? false : handleHeaderAddClick({protyle: ctx.protyle, target: ctx.target, blockElement: ctx.blockElement, event: ctx.event})],
+    ["av-add-more", (ctx) => ctx.protyle.disabled ? false : handleAddMoreClick(ctx.protyle, ctx.blockElement, ctx.event)],
+    ["av-add-template", (ctx) => ctx.protyle.disabled ? false : handleAddTemplateClick({protyle: ctx.protyle, target: ctx.target, blockElement: ctx.blockElement, event: ctx.event})],
+    ["av-add", (ctx) => ctx.protyle.disabled ? false : handleAddViewClick(ctx.protyle, ctx.blockElement, ctx.event)],
+    ["av-row-open", (ctx) => handleOpenDatabaseRow({protyle: ctx.protyle, target: ctx.target, blockElement: ctx.blockElement, event: ctx.event})],
+    ["av-gallery-open", (ctx) => handleOpenDatabaseRow({protyle: ctx.protyle, target: ctx.target, blockElement: ctx.blockElement, event: ctx.event})],
+    ["av-row-update", (ctx) => ctx.protyle.disabled ? false : handleUpdateDatabaseRow(ctx.protyle, ctx.target, ctx.event)],
+    ["av-cover-position", (ctx) => ctx.protyle.disabled ? false : handleCoverPositionClick(ctx.protyle, ctx.target, ctx.event)],
+    ["av-kanban-group-more", (ctx) => ctx.protyle.disabled ? false : handleKanbanGroupMoreClick({protyle: ctx.protyle, target: ctx.target, blockElement: ctx.blockElement, event: ctx.event})],
+    ["set-page-size", (ctx) => ctx.protyle.disabled ? false : handleSetPageSizeClick({protyle: ctx.protyle, target: ctx.target, blockElement: ctx.blockElement, event: ctx.event})],
+    ["av-add-bottom", (ctx) => ctx.protyle.disabled ? false : handleAddBottomClick({protyle: ctx.protyle, target: ctx.target, blockElement: ctx.blockElement, event: ctx.event})],
+    ["av-add-top", (ctx) => ctx.protyle.disabled ? false : handleAddTopClick({protyle: ctx.protyle, target: ctx.target, blockElement: ctx.blockElement, event: ctx.event})],
+    ["av-gallery-edit", (ctx) => ctx.protyle.disabled ? false : handleGalleryEditClick(ctx.target, ctx.event)],
+    ["av-gallery-more", (ctx) => ctx.protyle.disabled ? false : handleGalleryMoreClick(ctx.protyle, ctx.target, ctx.event)],
+    ["av-group-fold", (ctx) => handleGroupFoldClick(ctx.protyle, ctx.target, ctx.blockElement, ctx.event)],
+    ["av-load-more", (ctx) => handleLoadMoreClick(ctx.protyle, ctx.target, ctx.blockElement, ctx.event)],
+    ["copy", (ctx) => handleCopyClick(ctx.target, ctx.event)],
+    ["av-search-icon", (ctx) => handleSearchIconClick(ctx.target, ctx.blockElement, ctx.event)],
 ]);
 
 /**
@@ -275,18 +345,19 @@ const DATA_TYPE_HANDLERS = new Map<string, (
  * 问题/改进：如后续 data-type 继续增长，可以按菜单/插入/配置继续细拆。
  *
  * @同步豁免: 需要绝对同步的DOM访问
+ * @参数豁免: 遗留代码
  */
-export const handleTargetDataTypeClick = (
+export function handleTargetDataTypeClick(
     protyle: IProtyle,
     target: HTMLElement,
     blockElement: HTMLElement,
     viewType: TAVView,
     event: MouseEvent,
-) => {
+) {
     const dataType = target.getAttribute("data-type");
     const panelType = getMenuPanelType(dataType);
     if (panelType && !protyle.disabled) {
-        return handleMenuPanelClick(protyle, blockElement, panelType, event);
+        return handleMenuPanelClick({protyle, blockElement, panelType, event});
     }
     if (!dataType) {
         return false;
@@ -295,5 +366,5 @@ export const handleTargetDataTypeClick = (
     if (!handler) {
         return false;
     }
-    return handler(protyle, target, blockElement, viewType, event);
-};
+    return handler({protyle, target, blockElement, viewType, event});
+}

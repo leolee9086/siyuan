@@ -17,6 +17,8 @@ export function loadSessionForFloating(runtime: AgentChatRuntime, session: Agent
     runtime.contextTokenBreakdown = session.contextTokenBreakdown ?? {};
     runtime.contextCachedTokens = session.contextCachedTokens ?? 0;
     runtime.contextLimit = session.contextLimit ?? 0;
+    runtime.permissionMode = session.permissionMode ?? "confirm";
+    runtime.permissionSelect.value = runtime.permissionMode;
     if (session.model) {
         runtime.sessionPorts.presentation.applySessionModel(runtime, session.model);
     }

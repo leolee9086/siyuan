@@ -1,11 +1,7 @@
-import {genCellValue} from "../cell.value";
-import {getTypeByCellElement} from "../cell/position";
-import {renderCell} from "../cell/render";
-import {renderCellAttr} from "../cell/render";
-import { fetchPost } from "../../../../util/network/fetch";
+import {genCellValue, getTypeByCellElement, renderCell, renderCellAttr} from "../cell";
+import {fetchPost} from "../../../../util/network/fetch";
 import {syncAVPageSize} from "../view/pagination";
-import { Constants } from "../../../../constants";
-import { clearSelect } from "../../../util/clearSelect";
+import {clearSelect} from "../../../util/clearSelect";
 
 export const insertGalleryItemAnimation = (options: {
     blockElement: HTMLElement;
@@ -45,14 +41,16 @@ export const insertGalleryItemAnimation = (options: {
 data-field-id="${item.dataset.fieldId}" 
 data-wrap="${item.dataset.wrap}" 
 data-dtype="${item.dataset.dtype}" 
-${fieldType === "block" ? ' data-detached="true"' : ""}>${renderCell(genCellValue(fieldType, null), lineNumber, false, type)}</div>`;
+data-date-format="${item.dataset.dateFormat || ""}"
+${fieldType === "block" ? ' data-detached="true"' : ""}>${renderCell(genCellValue(fieldType, null), lineNumber,
+    false, type, undefined, item.dataset.dateFormat as TAVDateFormat)}</div>`;
         if (item.previousElementSibling.classList.contains("av__gallery-name")) {
-            cellsHTML += `<div class="av__gallery-field av__gallery-field--name" data-empty="${item.parentElement.dataset.empty}">
+            cellsHTML += `<div class="${item.parentElement.className}" data-empty="${item.parentElement.dataset.empty}">
     ${item.previousElementSibling.outerHTML}
     ${cellHTML}
 </div>`;
         } else {
-            cellsHTML += `<div class="av__gallery-field" data-empty="${item.parentElement.dataset.empty}">
+            cellsHTML += `<div class="${item.parentElement.className}" data-empty="${item.parentElement.dataset.empty}">
     ${item.previousElementSibling.outerHTML}
     ${cellHTML}
 </div>`;
@@ -61,10 +59,13 @@ ${fieldType === "block" ? ' data-detached="true"' : ""}>${renderCell(genCellValu
     clearSelect(["galleryItem"], options.blockElement);
     let html = "";
     const coverClass = sideItemElement?.querySelector(".av__gallery-cover")?.className || "fn__none";
+    const fieldsClass = sideItemElement?.querySelector(".av__gallery-fields")?.className || "av__gallery-fields";
+    const emptyClass = coverClass === "fn__none" && fieldsClass.includes("fn__none") ?
+        " av__gallery-item--empty" : "";
     options.srcIDs.forEach(() => {
-        html += `<div class="av__gallery-item" data-type="ghost">
+        html += `<div class="av__gallery-item${emptyClass}" data-type="ghost">
     <div class="${coverClass}"><span style="width: 100%;height: 100%;border-radius: var(--b3-border-radius) var(--b3-border-radius) 0 0;" class="av__pulse"></span></div>
-    <div class="av__gallery-fields">${cellsHTML}</div>
+    <div class="${fieldsClass}">${cellsHTML}</div>
 </div>`;
     });
     if (sideItemElement) {
@@ -74,7 +75,7 @@ ${fieldType === "block" ? ' data-detached="true"' : ""}>${renderCell(genCellValu
     }
     fetchPost("/api/av/getAttributeViewAddingBlockDefaultValues", {
         avID: options.blockElement.getAttribute("data-av-id"),
-        viewID: options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW),
+        blockID: options.blockElement.dataset.nodeId,
         groupID: options.groupID,
         previousID: options.previousId,
     }, (response) => {
@@ -91,7 +92,8 @@ ${fieldType === "block" ? ' data-detached="true"' : ""}>${renderCell(genCellValu
                         if (cellValue.type === "checkbox" && cellItem.parentElement.querySelector(".av__gallery-tip")) {
                             cellValue.checkbox.content = cellItem.getAttribute("aria-label").split('<div class="ft__on-surface">')[0];
                         }
-                        cellItem.innerHTML = renderCell(cellValue, undefined, false, type);
+                        cellItem.innerHTML = renderCell(cellValue, undefined, false, type, undefined,
+                            cellItem.dataset.dateFormat as TAVDateFormat);
                         renderCellAttr(cellItem, cellValue);
                     }
                 });
@@ -100,3 +102,13 @@ ${fieldType === "block" ? ' data-detached="true"' : ""}>${renderCell(genCellValu
         syncAVPageSize(options.blockElement);
     });
 };
+
+/** Gallery owner 使用此具名全局键向行事务暴露插入动画，避免 row.ts 反向加载本模块。 */
+const galleryInsertionVisualEffectsKey = Symbol.for("sforge.protyle.av.galleryInsertionVisualEffects");
+const didRegisterGalleryInsertionVisualEffects = Reflect.set(globalThis, galleryInsertionVisualEffectsKey, {
+    insertGalleryItemAnimation,
+});
+// 注册失败意味着运行环境拒绝写入生命周期槽，此时继续运行会静默丢失插入动画。
+if (!didRegisterGalleryInsertionVisualEffects) {
+    throw new Error("Unable to register gallery insertion visual effects");
+}

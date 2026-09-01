@@ -17,7 +17,11 @@ import {isIPad} from "../../util/platform/functions";
 import {isIPhone} from "../../util/platform/functions";
 import {setStorageVal} from "../../util/storage/setStorageVal";
 import {getWindowJSAndroid, getWindowJSHarmony, getWindowWebkit} from "../../util/siyuanEnvironments/windowNative.environment";
+import {genUUID} from "../../util/platform/genID";
+import {buildWebClipboardHTML, getTextSiyuanFromTextHTML} from "./clipboardData";
 export {getLocalStorage} from "./localStorage/initialize";
+
+export {encodeBase64, getTextSiyuanFromTextHTML} from "./clipboardData";
 
 export {getEventName};
 export {isIPad};
@@ -29,68 +33,53 @@ export {updateHotkeyAfterTip};
 export {updateHotkeyTip};
 export {setStorageVal};
 
+export type TSaveExportFileResult = {
+    status: "success" | "canceled" | "error";
+    name?: string;
+    message?: string;
+};
+
+const mobileExportFileRequests = new Map<string, (result: TSaveExportFileResult) => void>();
+
+window.handleSaveExportFileResult = (requestID: string, resultJSON: string) => {
+    const resolve = mobileExportFileRequests.get(requestID);
+    if (!resolve) {
+        return;
+    }
+    mobileExportFileRequests.delete(requestID);
+    try {
+        const result = JSON.parse(resultJSON) as TSaveExportFileResult;
+        if (["success", "canceled", "error"].includes(result.status)) {
+            resolve(result);
+            return;
+        }
+    } catch (e) {
+        console.error("parse saveExportFile result failed:", e);
+    }
+    resolve({status: "error"});
+};
+
+const waitMobileExportFile = (callback: (requestID: string) => void) => {
+    return new Promise<TSaveExportFileResult>((resolve) => {
+        const requestID = genUUID();
+        mobileExportFileRequests.set(requestID, resolve);
+        try {
+            callback(requestID);
+        } catch (e) {
+            mobileExportFileRequests.delete(requestID);
+            console.error("saveExportFile failed:", e);
+            resolve({status: "error", message: String(e)});
+        }
+    });
+};
+
 export const isPhablet = () => {
     return /Android|webOS|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(navigator.userAgent) || isIPhone() || isIPad();
 };
 
-export const encodeBase64 = (text: string): string => {
-    if (typeof Buffer !== "undefined") {
-        return Buffer.from(text, "utf8").toString("base64");
-    } else {
-        const encoder = new TextEncoder();
-        const bytes = encoder.encode(text);
-        let binary = "";
-        const chunkSize = 0x8000; // 避免栈溢出
-
-        for (let i = 0; i < bytes.length; i += chunkSize) {
-            const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-            binary += String.fromCharCode(...chunk);
-        }
-
-        return btoa(binary);
-    }
-};
-
-export const getTextSiyuanFromTextHTML = (html: string) => {
-    if (html.trimStart().startsWith("<html") &&
-        html.substring(0, html.indexOf(">")).includes('xmlns:x="urn:schemas-microsoft-com:office:excel"')) {
-        // 移除 Microsoft Excel 中的 data-siyuan https://github.com/siyuan-note/siyuan/pull/16338
-        return {
-            textSiyuan: "",
-            textHtml: html.replace(/<!--data-siyuan='[^']+'-->/g, "")
-        };
-    }
-    const siyuanMatch = html.match(/<!--data-siyuan='([^']+)'-->/);
-    let textSiyuan = "";
-    let textHtml = html;
-    if (siyuanMatch) {
-        const encoded = siyuanMatch[1];
-        if (encoded) {
-            try {
-                if (typeof Buffer !== "undefined") {
-                    const decodedBytes = Buffer.from(encoded, "base64");
-                    textSiyuan = decodedBytes.toString("utf8");
-                } else {
-                    const decoder = new TextDecoder();
-                    const bytes = Uint8Array.from(atob(encoded), char => char.charCodeAt(0));
-                    textSiyuan = decoder.decode(bytes);
-                }
-                // 移除注释节点，保持原有的 text/html 内容
-                textHtml = html.replace(/<!--data-siyuan='[^']+'-->/g, "");
-            } catch (e) {
-                console.log("Failed to decode siyuan data from HTML comment:", e);
-            }
-        }
-    }
-    return {
-        textSiyuan,
-        textHtml
-    };
-};
-
-export const saveExportFile = async (uri: string, msgId?: string) => {
+export const saveExportFile = async (uri: string, msgId?: string): Promise<TSaveExportFileResult> => {
     if (!uri) {
-        return;
+        return {status: "error"};
     }
     if (isElectron) {
         let saveErrorMsgId: string | undefined;
@@ -120,7 +109,7 @@ export const saveExportFile = async (uri: string, msgId?: string) => {
                     if (saveErrorMsgId) {
                         hideMessage(saveErrorMsgId);
                     }
-                    return;
+                    return {status: "canceled"};
                 }
                 const copyResponse = await (await fetch("/api/export/copyExportFile", {
                     method: "POST",
@@ -148,7 +137,7 @@ export const saveExportFile = async (uri: string, msgId?: string) => {
                 hideMessage(saveErrorMsgId);
             }
             showMessage(siyuanI18n.exported);
-            return;
+            return {status: "success", name: fileName};
         } catch (e) {
             if (msgId) {
                 hideMessage(msgId);
@@ -159,42 +148,61 @@ export const saveExportFile = async (uri: string, msgId?: string) => {
             } else {
                 showMessage(siyuanI18n.exportFileSaveFailed, 0, "error");
             }
-            return;
+            return {status: "error", message: String(e)};
         }
     }
     try {
+        let result: TSaveExportFileResult;
+        let hasCompletionResult = false;
         if (isInAndroid()) {
-            window.JSAndroid.saveExportFile(uri);
-            if (msgId) {
-                hideMessage(msgId);
+            if (window.JSAndroid.saveExportFileV2) {
+                result = await waitMobileExportFile((requestID) => {
+                    window.JSAndroid.saveExportFileV2(uri, requestID);
+                });
+                hasCompletionResult = true;
+            } else {
+                window.JSAndroid.saveExportFile(uri);
+                result = {status: "success"};
             }
-            return;
-        }
-        if (isInIOS()) {
-            window.webkit.messageHandlers.saveExportFile.postMessage(uri);
-            if (msgId) {
-                hideMessage(msgId);
+        } else if (isInIOS()) {
+            if (window.webkit.messageHandlers.saveExportFileV2) {
+                result = await waitMobileExportFile((requestID) => {
+                    window.webkit.messageHandlers.saveExportFileV2.postMessage({uri, requestID});
+                });
+                hasCompletionResult = true;
+            } else {
+                window.webkit.messageHandlers.saveExportFile.postMessage(uri);
+                result = {status: "success"};
             }
-            return;
-        }
-        if (isInHarmony()) {
-            window.JSHarmony.saveExportFile(uri);
-            if (msgId) {
-                hideMessage(msgId);
+        } else if (isInHarmony()) {
+            if (window.JSHarmony.saveExportFileV2) {
+                result = await waitMobileExportFile((requestID) => {
+                    window.JSHarmony.saveExportFileV2(uri, requestID);
+                });
+                hasCompletionResult = true;
+            } else {
+                window.JSHarmony.saveExportFile(uri);
+                result = {status: "success"};
             }
-            return;
+        } else {
+            const openUrl = new URL(uri, `${location.origin}/`);
+            openUrl.searchParams.set("download", "true");
+            window.open(openUrl.href);
+            result = {status: "success"};
         }
-        const openUrl = new URL(uri, `${location.origin}/`);
-        openUrl.searchParams.set("download", "true");
-        window.open(openUrl.href);
         if (msgId) {
             hideMessage(msgId);
         }
+        if (hasCompletionResult && result.status === "success") {
+            showMessage(window.siyuan.languages.exported);
+        }
+        return result;
     } catch (e) {
         if (msgId) {
             hideMessage(msgId);
         }
         showMessage("saveExportFile failed: " + e);
+        return {status: "error", message: String(e)};
     }
 };
 
@@ -434,6 +442,128 @@ export const writeText = (text: string) => {
             console.error("Clipboard text write was not accepted by the active platform");
         }
     });
+};
+
+const writePlainTextFallback = async (text: string) => {
+    try {
+        if (isInAndroid()) {
+            window.JSAndroid.writeClipboard(text);
+            return true;
+        }
+        if (isInHarmony()) {
+            window.JSHarmony.writeClipboard(text);
+            return true;
+        }
+        if (isInIOS()) {
+            window.webkit.messageHandlers.setClipboard.postMessage(text);
+            return true;
+        }
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+    } catch (e) {
+        console.log("Write plain text clipboard error:", e);
+    }
+
+    let range: Range;
+    if (getSelection().rangeCount > 0) {
+        range = getSelection().getRangeAt(0).cloneRange();
+    }
+    const textElement = document.createElement("textarea");
+    textElement.value = text;
+    textElement.style.position = "fixed";
+    document.body.appendChild(textElement);
+    textElement.focus();
+    textElement.select();
+    let copied = false;
+    try {
+        copied = document.execCommand("copy");
+    } catch (e) {
+        console.log("Copy plain text clipboard error:", e);
+    }
+    document.body.removeChild(textElement);
+    if (range) {
+        focusByRange(range);
+    }
+    return copied;
+};
+
+export interface IClipboardWriteData {
+    textPlain: string;
+    textHTML?: string;
+    textSiyuan?: string;
+}
+
+export type TClipboardWriteStatus = "rich" | "plain" | "failed";
+
+export interface IClipboardWriteResult {
+    status: TClipboardWriteStatus;
+    error?: unknown;
+}
+
+export interface IClipboardWriteOptions {
+    fallbackToPlainText?: boolean;
+}
+
+export const writeClipboardData = async (data: IClipboardWriteData, options: IClipboardWriteOptions = {}): Promise<IClipboardWriteResult> => {
+    const textPlain = data.textPlain || "";
+    const textHTML = data.textHTML || "";
+    const textSiyuan = data.textSiyuan || "";
+    const fallbackToPlainText = options.fallbackToPlainText !== false;
+    try {
+        if (isInAndroid()) {
+            if (textSiyuan) {
+                window.JSAndroid.writeSiYuanHTMLClipboard(textPlain, textHTML, textSiyuan);
+                return {status: "rich"};
+            }
+            if (textHTML) {
+                window.JSAndroid.writeHTMLClipboard(textPlain, textHTML);
+                return {status: "rich"};
+            }
+            window.JSAndroid.writeClipboard(textPlain);
+            return {status: "plain"};
+        }
+        if (isInHarmony()) {
+            if (textSiyuan) {
+                window.JSHarmony.writeSiYuanHTMLClipboard(textPlain, textHTML, textSiyuan);
+                return {status: "rich"};
+            }
+            if (textHTML) {
+                window.JSHarmony.writeHTMLClipboard(textPlain, textHTML);
+                return {status: "rich"};
+            }
+            window.JSHarmony.writeClipboard(textPlain);
+            return {status: "plain"};
+        }
+        if (isInIOS()) {
+            window.webkit.messageHandlers.setClipboard.postMessage(textPlain || textHTML);
+            return {status: "plain"};
+        }
+        if (textHTML && navigator.clipboard?.write && typeof ClipboardItem !== "undefined") {
+            const clipboardItem: Record<string, Blob> = {};
+            if (textPlain) {
+                clipboardItem["text/plain"] = new Blob([textPlain], {type: "text/plain"});
+            }
+            const webHTML = buildWebClipboardHTML(textHTML, textSiyuan);
+            clipboardItem["text/html"] = new Blob([webHTML], {type: "text/html"});
+            await navigator.clipboard.write([new ClipboardItem(clipboardItem)]);
+            return {status: "rich"};
+        }
+        if (!textHTML && navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(textPlain);
+            return {status: "plain"};
+        }
+    } catch (error) {
+        if (fallbackToPlainText && await writePlainTextFallback(textPlain || textHTML)) {
+            return {status: "plain", error};
+        }
+        return {status: "failed", error};
+    }
+    if (fallbackToPlainText && await writePlainTextFallback(textPlain || textHTML)) {
+        return {status: "plain"};
+    }
+    return {status: "failed"};
 };
 
 export const copyPlainText = (text: string) => {

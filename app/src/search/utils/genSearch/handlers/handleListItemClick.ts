@@ -3,7 +3,7 @@
  */
 
 /** 用途：拼接 Electron 资源绝对路径；使用范围：资源双击打开系统目录；解耦评估：经同级网关直达标准路径实现。 */
-import {path} from "./imports";
+import {originalPath} from "./imports";
 /** 用途：读取双击阈值、搜索存储键；使用范围：列表交互；解耦评估：经同级网关直达稳定协议常量。 */
 import {Constants} from "./imports";
 /** 用途：排除带 Ctrl/Meta 的双击；使用范围：列表双击打开；解耦评估：复用统一热键判定，避免本地复制平台规则。 */
@@ -244,7 +244,7 @@ function handleDoubleClick(
 ) {
     // Electron 资源双击继续交给系统文件管理器。
     if (searchType === "asset" && isElectron) {
-        useShell("showItemInFolder", path.join(
+        useShell("showItemInFolder", originalPath().join(
             window.siyuan.config.system.dataDir,
             target.lastElementChild?.getAttribute("aria-label") || ""
         ));

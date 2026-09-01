@@ -108,11 +108,13 @@ export function flushPendingConfirmEntries(runtime: AgentChatRuntime) {
  * @同步豁免: 生命周期
  */
 export function appendCurrentAssistantEntry(runtime: AgentChatRuntime, timestamp: number, includeToolOnly: boolean) {
+    const roundID = runtime.currentRoundID || runtime.currentToolCalls[0]?.roundID;
     if (runtime.currentContent) {
         const entry: SessionEntry = {
             type: "assistant",
             content: runtime.currentContent,
             timestamp,
+            ...(roundID ? {roundID} : {}),
             ...(runtime.currentAssistantEntryId ? {id: runtime.currentAssistantEntryId} : {}),
             ...(runtime.currentToolCalls.length > 0 ? {
                 toolCalls: slimToolCallsForPersistence(runtime.currentToolCalls),
@@ -127,6 +129,7 @@ export function appendCurrentAssistantEntry(runtime: AgentChatRuntime, timestamp
             id: runtime.sessionPorts.repository.newSessionId(),
             type: "assistant",
             toolCalls: slimToolCallsForPersistence(runtime.currentToolCalls),
+            ...(roundID ? {roundID} : {}),
         });
     }
 }
@@ -142,6 +145,7 @@ export function resetStreamingResponseState(runtime: AgentChatRuntime) {
     runtime.currentContent = "";
     runtime.fullContent = "";
     runtime.currentToolCalls = [];
+    runtime.currentRoundID = "";
     runtime.lastStepToolCount = 0;
     runtime.renderedToolNames = {};
     runtime.requestStartTime = 0;

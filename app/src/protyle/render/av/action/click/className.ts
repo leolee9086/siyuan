@@ -167,11 +167,12 @@ const handleViewTabClick = (protyle: IProtyle, target: HTMLElement, blockElement
     }
     // 历史模式下不走事务，而是直接切本地 view 并重渲染。
     const targetViewId = target.dataset.id;
-    if (protyle.options.action?.includes(Constants.CB_GET_HISTORY)) {
-        if (!targetViewId) {
-            return false;
-        }
-        switchHistoryView(protyle, target, blockElement, targetViewId);
+    const isHistory = Boolean(protyle.options.action?.includes(Constants.CB_GET_HISTORY));
+    if (isHistory && !targetViewId) {
+        return false;
+    }
+    if (isHistory) {
+        switchHistoryView(protyle, target, blockElement, targetViewId as string);
         return consumeClickEvent(event);
     }
     const focusItem = parentElement.querySelector(".item--focus");
@@ -211,12 +212,13 @@ const handleAssetPreviewClick = (target: HTMLElement, blockElement: Element, eve
     }
     const searchElement = blockElement.querySelector('[data-type="av-search"]');
     const searchQuery = searchElement?.textContent?.trim() || "";
-    previewAttrViewImages(
-        removeCompressURL(currentSrc),
-        blockElement.getAttribute("data-av-id") || "",
-        blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) || "",
-        searchQuery
-    );
+    const avID = blockElement.getAttribute("data-av-id") || "";
+    const viewID = blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) || "";
+    // S-Forge: removeCompressURL is async (Promise<string>) but pure string logic; handle both sync and async
+    const maybeUrl = removeCompressURL(currentSrc);
+    Promise.resolve(maybeUrl).then((url) => {
+        previewAttrViewImages(url, avID, viewID, searchQuery);
+    });
     return consumeClickEvent(event);
 };
 

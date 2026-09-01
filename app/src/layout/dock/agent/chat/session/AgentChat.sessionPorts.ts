@@ -14,6 +14,8 @@ import {saveAgentSession} from "./imports";
 import {removeAgentSession} from "./imports";
 /** 用途：装配会话重命名；使用范围：repository 端口；解耦评估：命令实现只在组合根绑定。 */
 import {renameAgentSession} from "./imports";
+/** 用途：装配会话权限切换；使用范围：repository 端口；解耦评估：命令实现只在组合根绑定。 */
+import {setAgentSessionPermission} from "./imports";
 /** 用途：校验会话标识；使用范围：repository 端口；解耦评估：领域校验通过仓储能力暴露。 */
 import {createAgentSessionID} from "./imports";
 /** 用途：装配目录资格查询；使用范围：taskDirectories 端口；解耦评估：网络实现只在组合根绑定。 */
@@ -140,6 +142,7 @@ function createSessionRepository(
         save: saveAgentSession.bind(null, revisionState, requestHeaders),
         remove: removeAgentSession.bind(null, revisionState, requestHeaders),
         rename: renameAgentSession.bind(null, revisionState, requestHeaders),
+        setPermission: setAgentSessionPermission.bind(null, requestHeaders),
         getRevision: getAgentSessionRevision.bind(null, revisionState),
         newSessionId,
     } satisfies AgentChatSessionPorts["repository"];

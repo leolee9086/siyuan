@@ -35,6 +35,7 @@ function buildQueuedInput(input: AgentConversationSubmitInput) {
         references: input.references,
         ...(input.editorContext ? {editorContext: input.editorContext} : {}),
         ...(input.pluginActions ? {pluginActions: input.pluginActions} : {}),
+        ...(input.frontendCapabilities ? {frontendCapabilities: input.frontendCapabilities} : {}),
         ...(input.model ? {model: input.model} : {}),
         ...(input.reasoningEffort ? {reasoningEffort: input.reasoningEffort} : {}),
         ...(input.regenerate ? {regenerate: true, contentRevision: input.contentRevision} : {}),

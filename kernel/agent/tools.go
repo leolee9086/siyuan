@@ -19,12 +19,44 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"maps"
 	"strings"
 	"time"
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/siyuan/kernel/mcp/tools"
 )
+
+type executedToolResult struct {
+	Text             string
+	ModelAttachments []tools.ModelAttachment
+	IsError          bool
+	ExecutionUnknown bool
+}
+
+func validateCapabilityCall(ctx context.Context, registration *capabilityRegistration, args map[string]any) error {
+	if registration == nil {
+		return fmt.Errorf("capability was not exposed in this model round")
+	}
+	if !capabilityStillExecutable(registration, args) {
+		return fmt.Errorf("capability is disabled or no longer available: %s", registration.ID)
+	}
+	if ctx.Err() != nil {
+		return fmt.Errorf("capability execution was cancelled before it started")
+	}
+	if registration.Validator == nil {
+		return fmt.Errorf("capability validator unavailable: %s", registration.ID)
+	}
+	if err := registration.Validator.ValidateInputContext(ctx, args); err != nil {
+		return fmt.Errorf("invalid capability arguments: %w", err)
+	}
+	if !registration.isBrowser() && (registration.Tool == nil ||
+		registration.Tool.ContextHandler == nil && registration.Tool.ProgressHandler == nil && registration.Tool.Handler == nil) {
+		return fmt.Errorf("capability handler unavailable: %s", registration.ID)
+	}
+	return nil
+}
 
 func convertMCPToolsToOpenAI(includeTaskDirectory bool) []openai.Tool {
 	allTools := tools.GetAgentTools(includeTaskDirectory)
@@ -46,8 +78,8 @@ func convertMCPToolsToOpenAI(includeTaskDirectory bool) []openai.Tool {
 // 返回值：结果文本（已展平为字符串），isErr 表示工具是否返回错误结果，executionUnknown 表示副作用结果无法确定。
 func executeTool(ctx context.Context, tc openai.ToolCall, sessionID string, taskDirectory *TaskDirectoryBinding,
 	ownerIdentityID string, ownerAuthorizationExpiresAt int64, agentApproved bool,
-	emitProgress tools.ToolProgressCallback) (resultText string, isErr, executionUnknown bool) {
-	t := tools.GetTool(tc.Function.Name)
+	emitProgress tools.ToolProgressCallback, attachmentTargets ...*[]tools.ModelAttachment) (resultText string, isErr, executionUnknown bool) {
+	t, validator := tools.LookupToolWithValidator(tc.Function.Name)
 	if t == nil {
 		return "unknown tool: " + tc.Function.Name, true, false
 	}
@@ -65,6 +97,9 @@ func executeTool(ctx context.Context, tc openai.ToolCall, sessionID string, task
 	}
 
 	args := parseToolArgs(tc.Function.Arguments)
+	if err := validator.ValidateInputContext(ctx, args); err != nil {
+		return "invalid tool arguments: " + err.Error(), true, false
+	}
 	if agentApproved {
 		tools.WithForgeRuntimeApproval(args)
 		tools.WithForgeProtectedApproval(args)
@@ -138,11 +173,22 @@ func executeTool(ctx context.Context, tc openai.ToolCall, sessionID string, task
 		}
 		return "tool execution error: " + err.Error(), true, false
 	}
+	if err = validator.ValidateOutputContext(ctx, result); err != nil {
+		return "invalid tool output after execution; execution result may have side effects and must not be retried automatically: " +
+			err.Error(), true, true
+	}
 
+	if len(attachmentTargets) > 0 && attachmentTargets[0] != nil {
+		*attachmentTargets[0] = append((*attachmentTargets[0])[:0], result.ModelAttachments...)
+	}
 	return resultToString(result), result.IsError, result.ExecutionUnknown
 }
 
 func convertSchema(schema tools.ToolSchema) any {
+	if schema.Raw != nil {
+		return maps.Clone(schema.Raw)
+	}
+
 	// 根级 anyOf 常见于 Zod 生成的 schema，取第一个 object 变体展开。
 	if schema.Type == "" && len(schema.AnyOf) > 0 {
 		for _, variant := range schema.AnyOf {
@@ -270,30 +316,41 @@ func resultToString(result tools.CallToolResult) string {
 	for _, item := range result.Content {
 		if item.Type == "text" {
 			parts = append(parts, item.Text)
+			continue
+		}
+		if data, err := json.Marshal(item); err == nil {
+			parts = append(parts, string(data))
 		}
 	}
-	if len(parts) == 0 {
-		return "(empty result)"
+	if joined := strings.Join(parts, "\n"); joined != "" {
+		return joined
 	}
-	return strings.Join(parts, "\n")
+	if result.HasStructuredContent() {
+		if data, err := json.Marshal(result.StructuredContent); err == nil {
+			return string(data)
+		}
+	}
+	return "(empty result)"
+}
+
+func parseToolArgsStrict(argsJSON string) (map[string]any, error) {
+	if strings.TrimSpace(argsJSON) == "" {
+		return map[string]any{}, nil
+	}
+	var args map[string]any
+	if err := json.Unmarshal([]byte(argsJSON), &args); err != nil {
+		return nil, fmt.Errorf("tool arguments are not valid JSON: %w", err)
+	}
+	if args == nil {
+		return nil, fmt.Errorf("tool arguments must be a JSON object")
+	}
+	return args, nil
 }
 
 func parseToolArgs(argsJSON string) map[string]any {
-	args := map[string]any{}
-	if argsJSON == "" {
-		return args
-	}
-
-	dec := json.NewDecoder(strings.NewReader(argsJSON))
-	dec.UseNumber()
-	_ = dec.Decode(&args)
-
-	for k, v := range args {
-		if num, ok := v.(json.Number); ok {
-			if f, err := num.Float64(); err == nil {
-				args[k] = f
-			}
-		}
+	args, err := parseToolArgsStrict(argsJSON)
+	if err != nil {
+		return map[string]any{}
 	}
 	return args
 }

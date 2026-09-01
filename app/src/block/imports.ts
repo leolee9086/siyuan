@@ -216,7 +216,7 @@ import {transaction} from "../protyle/wysiwyg/transaction/submit";
 // 导出 transaction
 export { transaction };
 // 用途：合并为单个事务；使用范围：block 模块合并操作；解耦评估：Protyle 核心工具
-import {turnsIntoOneTransaction} from "../protyle/wysiwyg/transaction.turns";
+import {turnsIntoOneTransaction} from "../protyle/wysiwyg/transaction/turns/container";
 // 导出 turnsIntoOneTransaction
 export { turnsIntoOneTransaction };
 // 用途：更新事务；使用范围：block 模块事务更新；解耦评估：Protyle 核心工具

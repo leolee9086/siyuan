@@ -6,4 +6,5 @@ export type TreeRenderOptions = {
     blockDraggable: TreeOptions["blockDraggable"];
     blockExtHTML: TreeOptions["blockExtHTML"];
     topExtHTML: TreeOptions["topExtHTML"];
+    titleTooltipPosition: TreeOptions["titleTooltipPosition"];
 };

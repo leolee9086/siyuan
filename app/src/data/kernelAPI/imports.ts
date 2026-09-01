@@ -9,10 +9,10 @@ import { fetchSyncPost } from "../../util/network/fetch";
 /** 导出 fetchSyncPost，供 kernelAPI 模块使用 */
 export { fetchSyncPost };
 
-/** 用途：Node path 模块。使用范围：kernelAPI 模块路径处理。解耦评估：第三方依赖，通过 imports.ts 转发。 */
-import * as path from "path";
-/** 导出 path，供 kernelAPI 模块使用 */
-export { path };
+/** 用途：协议路径运算。使用范围：kernelAPI 模块文件路径处理。解耦评估：通过浏览器安全 POSIX 边界转发。 */
+import {pathPosix} from "../../util/file/path/operations";
+/** 导出 POSIX 路径工具，供 kernelAPI 模块使用。 */
+export {pathPosix};
 
 /** 用途：内核客户端类型定义。使用范围：kernelAPI 模块类型约束。解耦评估：通过 imports.ts 转发。 */
 import type { KernelClientType } from "../kernelSDK";

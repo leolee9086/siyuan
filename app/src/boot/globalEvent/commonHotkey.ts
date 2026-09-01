@@ -10,6 +10,8 @@ import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.e
 import { getSiyuanDialogs } from "../../util/siyuanEnvironments/siyuanDialogs.environment";
 import { setSiyuanCtrlIsPressed, setSiyuanShiftIsPressed, setSiyuanAltIsPressed } from "../../util/siyuanEnvironments/keyboardStatus.environment";
 import { isHTMLElement, isKeymapEditorSection, isKeymapGeneral } from "./commonHotkey.guard";
+// 上游 v3.8.0 新增：清理配置中不允许作为文本输入触发的快捷键
+import { clearDisallowedKeymapItems } from "../../util/hotKeyPolicy";
 
 /**
  * 作用：在 Electron 环境下通过 IPC 写入日志
@@ -143,6 +145,26 @@ const hasKeymap = (keymap: Record<string, IKeymapItem>, key1: "general" | "edito
     return true;
 };
 
+/**
+ * 作用：清理配置里不允许作为文本输入触发的快捷键（上游 v3.8.0 引入）
+ * 意图：通用与编辑器快捷键只清理 custom，插件快捷键连同 default 一起清理
+ * 调用时机：correctHotkey 校验之前执行，返回本次是否有改动
+ */
+const clearDisallowedKeymap = () => {
+    let changed = clearDisallowedKeymapItems(window.siyuan.config.keymap.general);
+    Object.values(window.siyuan.config.keymap.editor).forEach((keymap) => {
+        if (clearDisallowedKeymapItems(keymap)) {
+            changed = true;
+        }
+    });
+    Object.values(window.siyuan.config.keymap.plugin || {}).forEach((keymap) => {
+        if (clearDisallowedKeymapItems(keymap, true)) {
+            changed = true;
+        }
+    });
+    return changed;
+};
+
 export const correctHotkey = (app: AppFacade) => {
     if (!["darwin", "ios"].includes(window.siyuan.config.system.os)) {
         ["fileTree", "outline", "bookmark", "tag", "dailyNote", "inbox", "backlinks",
@@ -151,6 +173,10 @@ export const correctHotkey = (app: AppFacade) => {
                 Constants.SIYUAN_KEYMAP.general[key].default.replace("⌃", "⌥");
         });
         Constants.SIYUAN_KEYMAP.editor.general.redo.custom = Constants.SIYUAN_KEYMAP.editor.general.redo.default = "⌘Y";
+        Constants.SIYUAN_KEYMAP.editor.general.selectToPageStart.custom =
+            Constants.SIYUAN_KEYMAP.editor.general.selectToPageStart.default = "⇧⌘Home";
+        Constants.SIYUAN_KEYMAP.editor.general.selectToPageEnd.custom =
+            Constants.SIYUAN_KEYMAP.editor.general.selectToPageEnd.default = "⇧⌘End";
     }
     const matchKeymap1 = matchKeymap(Constants.SIYUAN_KEYMAP.general, "general");
     const matchKeymap2 = matchKeymap(Constants.SIYUAN_KEYMAP.editor.general, "editor", "general");
@@ -165,15 +191,18 @@ export const correctHotkey = (app: AppFacade) => {
     const hasKeymap4 = hasKeymap(Constants.SIYUAN_KEYMAP.editor.heading, "editor", "heading");
     const hasKeymap5 = hasKeymap(Constants.SIYUAN_KEYMAP.editor.list, "editor", "list");
     const hasKeymap6 = hasKeymap(Constants.SIYUAN_KEYMAP.editor.table, "editor", "table");
+    const clearedDisallowedKeymap = clearDisallowedKeymap();
     if (!getSiyuanConfig().readonly &&
         (!matchKeymap1 || !matchKeymap2 || !matchKeymap3 || !matchKeymap4 || !matchKeymap5 || !matchKeymap6 ||
-            !hasKeymap1 || !hasKeymap2 || !hasKeymap3 || !hasKeymap4 || !hasKeymap5 || !hasKeymap6)) {
+            !hasKeymap1 || !hasKeymap2 || !hasKeymap3 || !hasKeymap4 || !hasKeymap5 || !hasKeymap6 ||
+            clearedDisallowedKeymap)) {
         writeKeymapLog("update keymap");
         fetchPost("/api/setting/setKeymap", {
             data: getSiyuanConfig().keymap
         }, () => {
             if (isElectron) {
                 sendGlobalShortcut(app);
+                syncAppMenuShortcuts();
             }
         });
     }
@@ -187,6 +216,8 @@ const handleDialogOpencard = (event: KeyboardEvent) => {
     // 点击最近的文档列表会 dispatch keydown 的 Enter https://github.com/siyuan-note/siyuan/issues/12967
     if (!event.isTrusted || !isNotCtrl(event) || event.shiftKey || event.altKey ||
         ["INPUT", "TEXTAREA"].includes(target.tagName) ||
+        // 内容可编辑元素中的按键属于文本输入，不触发闪卡快捷键（上游 v3.8.0 补充）
+        (target as HTMLElement).isContentEditable ||
         !["0", "1", "2", "3", "4", "j", "k", "l", ";", "s", " ", "p", "enter", "a", "s", "d", "f", "q", "x"].includes(event.key.toLowerCase())) {
         return false;
     }
@@ -239,6 +270,71 @@ const handleSearchShortcut = (event: KeyboardEvent, app: AppFacade) => {
     if (!event.repeat) {
         showPopover(app, true);
     }
+};
+
+let lastHotkeys: Record<string, string>;
+
+/**
+ * 作用：把应用菜单快捷键与 i18n 文案同步给主进程以刷新 macOS 应用菜单
+ * 意图：仅在快捷键真正变化时发送一次 IPC，避免重复重建菜单
+ * 调用时机：应用启动、快捷键更新落盘后、快捷键设置界面修改后
+ */
+export const syncAppMenuShortcuts = () => {
+    // 应用菜单仅存在于 Electron 桌面端的 macOS；非 Electron 环境直接跳过
+    if (!isElectron || !isMac()) {
+        return;
+    }
+    const config = getSiyuanConfig();
+    const appMenuHotkeyItems: Record<string, IKeymapItem> = {
+        config: config.keymap.general.config,
+        toggleWin: config.keymap.general.toggleWin,
+        undo: config.keymap.editor.general.undo,
+        redo: config.keymap.editor.general.redo,
+    };
+    const hotkey: Record<string, string> = {};
+    Object.keys(appMenuHotkeyItems).forEach(id => {
+        const item = appMenuHotkeyItems[id];
+        hotkey[id] = item.custom ?? item.default ?? "";
+    });
+    if (lastHotkeys && Object.keys(appMenuHotkeyItems).every(id => lastHotkeys[id] === hotkey[id])) {
+        return;
+    }
+    lastHotkeys = {...hotkey};
+    ipcSend(Constants.SIYUAN_SYNC_APP_MENU, {
+        workspaceDir: config.system.workspaceDir,
+        lang: config.lang,
+        readonly: config.readonly,
+        hotkey,
+        i18n: {
+            config: window.siyuan.languages.config,
+            about: window.siyuan.languages.appMenuAbout,
+            services: window.siyuan.languages.appMenuServices,
+            toggleMainWindow: window.siyuan.languages.toggleWin,
+            hide: window.siyuan.languages.appMenuHide,
+            hideOthers: window.siyuan.languages.appMenuHideOthers,
+            showAll: window.siyuan.languages.showAll,
+            quit: window.siyuan.languages.appMenuQuit,
+            edit: window.siyuan.languages.edit,
+            undo: window.siyuan.languages.undo,
+            redo: window.siyuan.languages.redo,
+            cut: window.siyuan.languages.cut,
+            copy: window.siyuan.languages.copy,
+            paste: window.siyuan.languages.paste,
+            pasteAndMatchStyle: window.siyuan.languages.appMenuPasteAndMatchStyle,
+            selectAll: window.siyuan.languages.selectAll,
+            window: window.siyuan.languages.appMenuWindow,
+            minimize: window.siyuan.languages.appMenuMinimize,
+            zoom: window.siyuan.languages.zoom,
+            togglefullscreen: window.siyuan.languages.appMenuTogglefullscreen,
+            help: window.siyuan.languages.help,
+            userGuide: window.siyuan.languages.userGuide,
+            feedback: window.siyuan.languages.feedback,
+            debug: window.siyuan.languages.debug,
+            officialWebsite: window.siyuan.languages._trayMenu.officialWebsite,
+            openSource: window.siyuan.languages._trayMenu.openSource,
+            bringAllToFront: window.siyuan.languages.appMenuBringAllToFront,
+        },
+    });
 };
 
 export const filterHotkey = (event: KeyboardEvent, app: AppFacade) => {

@@ -21,4 +21,8 @@ export interface IFilesContext {
     getLeaf: (liElement: Element, notebookId: string, focusUpdate?: boolean) => void;
     onRename: (data: { box: string; path: string; title: string; }) => void;
     reloadNotebookInfo: () => void;
+    recordMovedExpandedDocIDs: (ids: Iterable<string>) => void;
+    restoreMovedExpandedItems: (listElement: Element, notebookId: string) => void;
+    updateDocActionElement: (liElement: HTMLElement) => void;
+    persistOpenPaths: () => void;
 }

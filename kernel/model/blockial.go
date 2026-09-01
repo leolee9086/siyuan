@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -148,6 +148,12 @@ func BatchSetBlockAttrs(blockAttrs []map[string]any) (err error) {
 
 	trees := filesys.LoadTrees(blockIDs)
 	var nodes []*ast.Node
+	type docSortModeChange struct {
+		oldAttrs map[string]string
+		node     *ast.Node
+		tree     *parse.Tree
+	}
+	var docSortModeChanges []docSortModeChange
 	boxIcons := map[string]string{}
 	for _, blockAttr := range blockAttrs {
 		id := blockAttr["id"].(string)
@@ -176,6 +182,7 @@ func BatchSetBlockAttrs(blockAttrs []map[string]any) (err error) {
 
 		cache.PutBlockIALInBox(node.ID, tree.Box, parse.IAL2Map(node.KramdownIAL))
 		pushBlockAttrs(oldAttrs, node)
+		docSortModeChanges = append(docSortModeChanges, docSortModeChange{oldAttrs: oldAttrs, node: node, tree: tree})
 		nodes = append(nodes, node)
 	}
 
@@ -187,13 +194,22 @@ func BatchSetBlockAttrs(blockAttrs []map[string]any) (err error) {
 	for boxID, icon := range boxIcons {
 		box := &Box{ID: boxID}
 		boxConf := box.GetConf()
+		oldIcon := boxConf.Icon
 		boxConf.Icon = icon
 		if err = box.SaveConf(boxConf); err != nil {
 			return
 		}
+		if oldIcon != icon {
+			pushNotebookIconChanged(boxID, icon)
+		}
 	}
-	if 0 < len(boxIcons) {
-		ReloadFiletree()
+	for _, change := range docSortModeChanges {
+		newAttrs := parse.IAL2Map(change.node.KramdownIAL)
+		if change.oldAttrs[DocSortModeAttr] != newAttrs[DocSortModeAttr] && ast.NodeDocument == change.node.Type {
+			cache.RemoveDocIALInBox(change.tree.Path, change.tree.Box)
+			cache.PutDocIALInBox(change.tree.Path, change.tree.Box, newAttrs)
+		}
+		pushDocSortModeChanged(change.oldAttrs, change.node, change.tree)
 	}
 
 	IncSync()
@@ -232,10 +248,11 @@ func SetBlockAttrs(id string, nameValues map[string]string) (err error) {
 		if icon, ok := nameValues["icon"]; ok {
 			box := &Box{ID: tree.Box}
 			boxConf := box.GetConf()
+			oldIcon := boxConf.Icon
 			boxConf.Icon = icon
 			err = box.SaveConf(boxConf)
-			if nil == err {
-				ReloadFiletree()
+			if nil == err && oldIcon != icon {
+				pushNotebookIconChanged(tree.Box, icon)
 			}
 		}
 	}
@@ -253,9 +270,15 @@ func setNodeAttrs(node *ast.Node, tree *parse.Tree, nameValues map[string]string
 	}
 
 	IncSync()
-	cache.PutBlockIALInBox(node.ID, tree.Box, parse.IAL2Map(node.KramdownIAL))
+	newAttrs := parse.IAL2Map(node.KramdownIAL)
+	cache.PutBlockIALInBox(node.ID, tree.Box, newAttrs)
+	if oldAttrs[DocSortModeAttr] != newAttrs[DocSortModeAttr] && ast.NodeDocument == node.Type {
+		cache.RemoveDocIALInBox(tree.Path, tree.Box)
+		cache.PutDocIALInBox(tree.Path, tree.Box, newAttrs)
+	}
 
 	pushBlockAttrs(oldAttrs, node)
+	pushDocSortModeChanged(oldAttrs, node, tree)
 
 	if ("true" == oldAttrs[DocHiddenAttr]) != ("true" == nameValues[DocHiddenAttr]) {
 		ReloadFiletree()
@@ -324,8 +347,14 @@ func setNodeAttrsWithTx(tx *Transaction, node *ast.Node, tree *parse.Tree, nameV
 	tx.writeTree(tree)
 
 	IncSync()
-	cache.PutBlockIALInBox(node.ID, tree.Box, parse.IAL2Map(node.KramdownIAL))
+	newAttrs := parse.IAL2Map(node.KramdownIAL)
+	cache.PutBlockIALInBox(node.ID, tree.Box, newAttrs)
+	if oldAttrs[DocSortModeAttr] != newAttrs[DocSortModeAttr] && ast.NodeDocument == node.Type {
+		cache.RemoveDocIALInBox(tree.Path, tree.Box)
+		cache.PutDocIALInBox(tree.Path, tree.Box, newAttrs)
+	}
 	pushBlockAttrs(oldAttrs, node)
+	pushDocSortModeChanged(oldAttrs, node, tree)
 	return
 }
 
@@ -342,6 +371,12 @@ func setNodeAttrs0(node *ast.Node, nameValues map[string]string, boxID string) (
 	}
 	oldAttrs = parse.IAL2Map(node.KramdownIAL)
 	newAttrsUnEsc := parse.IAL2MapUnEsc(node.KramdownIAL)
+	for name := range nameValues {
+		if "fold" == strings.ToLower(name) {
+			delete(newAttrsUnEsc, "heading-fold")
+			break
+		}
+	}
 
 	for name, value := range nameValues {
 		value = util.RemoveInvalidRetainCtrl(value)
@@ -355,6 +390,20 @@ func setNodeAttrs0(node *ast.Node, nameValues map[string]string, boxID string) (
 		if lowerName == "data-task" {
 			err = errors.New(`setting or removing [data-task] attribute is not allowed via this interface. Please use "/api/block/updateTaskListItemMarker" or "/api/block/batchUpdateTaskListItemMarker" to update the task list item marker`)
 			return
+		}
+		if DocSortModeAttr == lowerName {
+			if ast.NodeDocument != node.Type || IsBoxDoc(boxID, node.ID) {
+				err = fmt.Errorf("attribute [%s] is only supported on regular document roots", DocSortModeAttr)
+				return
+			}
+			if "" != value {
+				sortMode, parseErr := strconv.Atoi(value)
+				if nil != parseErr || !IsValidDocSortMode(sortMode) {
+					err = fmt.Errorf("invalid document sort mode [%s]", value)
+					return
+				}
+				value = strconv.Itoa(sortMode)
+			}
 		}
 
 		// 处理文档标签 https://github.com/siyuan-note/siyuan/issues/13311
@@ -464,6 +513,11 @@ func normalizeIconValue(value string) string {
 		}
 	}
 	if allASCII {
+		if !util.IsValidIconUnicode(value) {
+			// 非法图标值，置空以删除该属性，防止存储可执行标记
+			// https://github.com/siyuan-note/siyuan/security/advisories/GHSA-vx5w-qrvp-mmcq
+			return ""
+		}
 		return value
 	}
 
@@ -471,7 +525,11 @@ func normalizeIconValue(value string) string {
 	for _, r := range value {
 		parts = append(parts, strconv.FormatInt(int64(r), 16))
 	}
-	return strings.Join(parts, "-")
+	ret := strings.Join(parts, "-")
+	if !util.IsValidIconUnicode(ret) {
+		return ""
+	}
+	return ret
 }
 
 func pushBlockAttrs(oldAttrs map[string]string, node *ast.Node) {

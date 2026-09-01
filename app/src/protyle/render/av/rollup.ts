@@ -3,7 +3,7 @@ import {hasClosestByClassName} from "../../util/hasClosest";
 import {upDownHint} from "../../../util/DOM/upDownHint";
 import {fetchPost} from "../../../util/network/fetch";
 import {escapeHtml} from "../../../util/DOM/escape";
-import {submitAVCalcTransaction} from "../../wysiwyg/transaction/prepared/av/avCalc";
+import {transaction} from "../../wysiwyg/transaction/submit";
 import {unicode2Emoji} from "../../../emoji";
 import {getColId} from "./col/identity/resolve";
 import {getColIconByType} from "./col/col.typeUtils";
@@ -23,7 +23,8 @@ const updateCol = (options: {
         return;
     }
     options.target.querySelector(".b3-menu__accelerator").textContent = itemElement.querySelector(".b3-list-item__text").textContent;
-    const colData = getFieldsByData(options.data).find((item) => {
+    const fields = getFieldsByData(options.data);
+    const colData = fields.find((item) => {
         if (item.id === options.colId) {
             if (!item.rollup) {
                 item.rollup = {};
@@ -31,12 +32,16 @@ const updateCol = (options: {
             return true;
         }
     });
+    const oldColValue = JSON.parse(JSON.stringify(colData.rollup)) as IAVCellRollupValue;
     if (options.isRelation) {
         if (itemElement.dataset.colId === colData.rollup?.relationKeyID) {
             return;
         }
+        const oldRelationColumn = fields.find((item) => item.id === oldColValue.relationKeyID);
         colData.rollup = {
-            relationKeyID: itemElement.dataset.colId
+            relationKeyID: itemElement.dataset.colId,
+            filters: oldRelationColumn?.relation?.avID === itemElement.dataset.targetAvId ?
+                oldColValue.filters : undefined,
         };
         const goSearchRollupTargetElement = options.target.nextElementSibling as HTMLElement;
         goSearchRollupTargetElement.querySelector(".b3-menu__accelerator").textContent = "";
@@ -56,8 +61,12 @@ const updateCol = (options: {
         goSearchRollupCalcElement.setAttribute("data-col-type", itemElement.dataset.colType);
         goSearchRollupCalcElement.querySelector(".b3-menu__accelerator").textContent = siyuanI18n.original;
     }
-    const oldColValue = JSON.parse(JSON.stringify(colData.rollup));
-    submitAVCalcTransaction(options.protyle, [{
+    const relationColumn = fields.find((item) => item.id === colData.rollup?.relationKeyID);
+    const filterElement = options.target.closest(".b3-menu")?.querySelector(
+        '[data-type="goAttrViewColFilters"][data-filter-type="rollup"]');
+    const canFilter = options.isRelation ? !!itemElement.dataset.targetAvId : !!relationColumn?.relation?.avID;
+    filterElement?.classList.toggle("b3-menu__item--disabled", !canFilter);
+    const doOperations: IOperation[] = [{
         action: "updateAttrViewColRollup",
         id: options.colId,
         avID: options.data.id,
@@ -66,7 +75,17 @@ const updateCol = (options: {
         data: {
             calc: colData.rollup.calc,
         },
-    }], [{
+    }];
+    if (colData.rollup.relationKeyID) {
+        doOperations.push({
+            action: "setAttrViewColRollupFilters",
+            id: options.colId,
+            avID: options.data.id,
+            keyID: options.colId,
+            data: JSON.parse(JSON.stringify(colData.rollup.filters || [])),
+        });
+    }
+    const undoOperations: IOperation[] = [{
         action: "updateAttrViewColRollup",
         id: options.colId,
         avID: options.data.id,
@@ -75,7 +94,17 @@ const updateCol = (options: {
         data: {
             calc: oldColValue.calc,
         }
-    }]);
+    }];
+    if (oldColValue.relationKeyID) {
+        undoOperations.push({
+            action: "setAttrViewColRollupFilters",
+            id: options.colId,
+            avID: options.data.id,
+            keyID: options.colId,
+            data: JSON.parse(JSON.stringify(oldColValue.filters || [])),
+        });
+    }
+    transaction(options.protyle, doOperations, undoOperations);
 };
 
 const genSearchList = (element: Element, keyword: string, avId: string, isRelation: boolean, cb?: () => void) => {
@@ -176,6 +205,8 @@ export const getRollupHTML = (options: { data?: IAV, cellElements?: HTMLElement[
             }
         });
     }
+    const relationColumn = getFieldsByData(options.data).find((item) => item.id === colData.rollup?.relationKeyID);
+    const canFilter = !!relationColumn?.relation?.avID;
     return `<button class="b3-menu__item" data-type="goSearchRollupCol" data-old-value='${JSON.stringify(colData.rollup || {})}'>
     <span class="b3-menu__label">${siyuanI18n.relation}</span>
     <span class="b3-menu__accelerator"></span>
@@ -189,6 +220,11 @@ export const getRollupHTML = (options: { data?: IAV, cellElements?: HTMLElement[
 <button class="b3-menu__item" data-type="goSearchRollupCalc">
     <span class="b3-menu__label">${siyuanI18n.rollupCalc}</span>
     <span class="b3-menu__accelerator">${getNameByOperator(colData.rollup?.calc?.operator, true)}</span>
+    <svg class="b3-menu__icon b3-menu__icon--small"><use xlink:href="#iconRight"></use></svg>
+</button>
+<button class="b3-menu__item${canFilter ? "" : " b3-menu__item--disabled"}" data-type="goAttrViewColFilters" data-filter-type="rollup">
+    <svg class="b3-menu__icon"><use xlink:href="#iconFilter"></use></svg>
+    <span class="b3-menu__label">${siyuanI18n.filter}</span>
     <svg class="b3-menu__icon b3-menu__icon--small"><use xlink:href="#iconRight"></use></svg>
 </button>`;
 };

@@ -54,8 +54,8 @@ export function destroyModel(model: ILayoutModel): void {
         return;
     }
     if (model instanceof Search) {
-        model.editors.edit.destroy();
-        model.editors.unRefEdit.destroy();
+        // Search.destroy 负责取消未完成的搜索请求并释放全部编辑器。
+        model.destroy();
         return;
     }
     if (model instanceof Asset) {

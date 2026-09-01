@@ -73,8 +73,33 @@ describe("table grid", () => {
         const cellE = getCellByText(table, "E");
 
         expect(getTableRangeHTML(table, cellC, cellE)).toBe(
-            '<table><thead><tr><th class="" rowspan="2">C</th><th class="">D</th></tr><tr><th class="fn__none"></th><th class="">E</th></tr></thead></table>'
+            '<table><colgroup><col style=\'min-width: 60px;\'><col style=\'min-width: 60px;\'></colgroup><thead><tr><th class="" rowspan="2">C</th><th class="">D</th></tr><tr><th class="fn__none"></th><th class="">E</th></tr></thead></table>'
         );
+    });
+
+    it("preserves source colgroup styles when cloning selected columns", () => {
+        const host = document.createElement("div");
+        host.innerHTML = `<table><colgroup><col style="width: 120px; min-width: 60px;"><col style="width: 80px;"><col style="min-width: 100px;"></colgroup><thead><tr><th>A</th><th>B</th><th>C</th></tr></thead><tbody><tr><td>A1</td><td>B1</td><td>C1</td></tr></tbody></table>`;
+        const table = host.querySelector("table") as HTMLTableElement;
+        const cellB = Array.from(table.querySelectorAll<HTMLTableCellElement>("th, td")).find(item => item.textContent === "B")!;
+        const cellC = Array.from(table.querySelectorAll<HTMLTableCellElement>("th, td")).find(item => item.textContent === "C")!;
+        const html = getTableRangeHTML(table, cellB, cellC);
+        expect(html).toContain('<col style="width: 80px;">');
+        expect(html).toContain('<col style="min-width: 100px;">');
+        expect(html).not.toContain('width: 120px');
+        expect(html).toContain("<colgroup>");
+        expect(html.indexOf("<colgroup>")).toBeLessThan(html.indexOf("<thead>"));
+    });
+
+    it("falls back to default col when source colgroup is missing or partial", () => {
+        const host = document.createElement("div");
+        host.innerHTML = `<table><colgroup><col style="width: 200px;"></colgroup><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><td>A1</td><td>B1</td></tr></tbody></table>`;
+        const table = host.querySelector("table") as HTMLTableElement;
+        const cellA = Array.from(table.querySelectorAll<HTMLTableCellElement>("th, td")).find(item => item.textContent === "A")!;
+        const cellB = Array.from(table.querySelectorAll<HTMLTableCellElement>("th, td")).find(item => item.textContent === "B")!;
+        const html = getTableRangeHTML(table, cellA, cellB);
+        expect(html).toContain('<col style="width: 200px;">');
+        expect(html).toContain("<col style='min-width: 60px;'>");
     });
 
     it("returns empty HTML when a range endpoint is outside the source table", () => {

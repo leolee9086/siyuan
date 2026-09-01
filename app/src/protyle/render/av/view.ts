@@ -1,7 +1,8 @@
 import {Menu} from "../../../plugin/Menu";
 import {unicode2Emoji} from "../../../emoji";
 import {submitAVViewTransaction} from "../../wysiwyg/transaction/prepared/av/view/avView";
-import {focusBlock} from "../../util/selection";
+import {transaction} from "../../wysiwyg/transaction/submit";
+import {focusBlock, focusByRange, getEditorRange} from "../../util/selection";
 import {upDownHint} from "../../../util/DOM/upDownHint";
 import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/DOM/escape";
 import {hasClosestByClassName} from "../../util/hasClosest";
@@ -9,21 +10,61 @@ import {Constants} from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {getFieldsByData, getViewIcon} from "./view/metadata";
 import {getViewName} from "./view/name/resolve";
+import {clearSelect} from "../../util/clearSelect";
+import {getAVVisibleViewIDs, setAVVisibleViewIDs} from "./viewVisibility";
+import {isNotEditBlock} from "../../wysiwyg/getBlock";
+import {countFilterLeaves} from "./filterTree";
 
-// countFilterLeaves 递归统计过滤节点树中的叶子数量（分组不计入）。
-const countFilterLeaves = (filters: IAVFilter[]): number => {
-    let count = 0;
-    const walk = (nodes: IAVFilter[]) => {
-        nodes.forEach(n => {
-            if (n.filters) {
-                walk(n.filters);
-            } else {
-                count++;
-            }
-        });
-    };
-    walk(filters);
-    return count;
+export const setAVBlockVisibleViewIDs = (
+    protyle: IProtyle,
+    blockElement: Element,
+    requestedViewIDs: string[]
+) => {
+    const allViewIDs = (blockElement.querySelector(".av__header")?.getAttribute("data-view-ids") || "")
+        .split(",").filter(Boolean);
+    const oldViewIDs = getAVVisibleViewIDs(blockElement, allViewIDs);
+    const requested = new Set(requestedViewIDs);
+    const viewIDs = allViewIDs.filter((viewID) => requested.has(viewID));
+    if (viewIDs.length === 0 || viewIDs.join(",") === oldViewIDs.join(",")) {
+        return false;
+    }
+
+    setAVVisibleViewIDs(blockElement, viewIDs);
+    transaction(protyle, [{
+        action: "setAttrViewBlockVisibleViews",
+        avID: blockElement.getAttribute("data-av-id"),
+        blockID: blockElement.getAttribute("data-node-id"),
+        viewIDs,
+    }], [{
+        action: "setAttrViewBlockVisibleViews",
+        avID: blockElement.getAttribute("data-av-id"),
+        blockID: blockElement.getAttribute("data-node-id"),
+        viewIDs: oldViewIDs,
+    }]);
+    return true;
+};
+
+const copyViewMirror = (blockElement: Element, viewID: string) => {
+    const oldVisibleViewIDs = blockElement.getAttribute(Constants.CUSTOM_SY_AV_VISIBLE_VIEWS);
+    const oldViewID = blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW);
+    blockElement.setAttribute(Constants.CUSTOM_SY_AV_VISIBLE_VIEWS, viewID);
+    blockElement.setAttribute(Constants.CUSTOM_SY_AV_VIEW, viewID);
+    if (isNotEditBlock(blockElement)) {
+        focusBlock(blockElement);
+    } else {
+        focusByRange(getEditorRange(blockElement));
+    }
+    document.execCommand("copy");
+    if (null === oldVisibleViewIDs) {
+        blockElement.removeAttribute(Constants.CUSTOM_SY_AV_VISIBLE_VIEWS);
+    } else {
+        blockElement.setAttribute(Constants.CUSTOM_SY_AV_VISIBLE_VIEWS, oldVisibleViewIDs);
+    }
+    if (null === oldViewID) {
+        blockElement.removeAttribute(Constants.CUSTOM_SY_AV_VIEW);
+    } else {
+        blockElement.setAttribute(Constants.CUSTOM_SY_AV_VIEW, oldViewID);
+    }
 };
 
 /** 注册不触发 Panel 导航的视图复制和删除项。 */
@@ -37,12 +78,18 @@ export const addViewMutationMenuItems = (menu: Menu, options: {
     menu.addItem({
         id: "duplicate",
         icon: "iconCopy",
-        label: siyuanI18n.duplicate,
+        label: window.siyuan.languages.duplicateCopy,
         /** 作用：复制当前视图；意图：保持视图菜单的原事务与撤销语义；调用时机：用户点击复制菜单项。 */
         click() {
             const panelElement = document.querySelector(".av__panel");
             panelElement?.remove();
             const id = Lute.NewNodeID();
+            const allViewIDs = (options.blockElement.querySelector(".av__header")?.getAttribute("data-view-ids") || "")
+                .split(",").filter(Boolean);
+            setAVVisibleViewIDs(
+                options.blockElement,
+                getAVVisibleViewIDs(options.blockElement, allViewIDs).concat(id)
+            );
             submitAVViewTransaction(options.protyle, [{
                 action: "duplicateAttrViewView",
                 avID: options.blockElement.dataset.avId,
@@ -57,13 +104,40 @@ export const addViewMutationMenuItems = (menu: Menu, options: {
             }]);
         }
     });
-    const viewTabElements = options.blockElement.querySelectorAll(".layout-tab-bar .item");
+    menu.addItem({
+        id: "copyViewMirror",
+        icon: "iconCopy",
+        label: window.siyuan.languages.copyViewMirror,
+        click() {
+            document.querySelector(".av__panel")?.remove();
+            copyViewMirror(options.blockElement, options.element.dataset.id);
+        }
+    });
+    const allViewIDs = (options.blockElement.querySelector(".av__header")?.getAttribute("data-view-ids") || "")
+        .split(",").filter(Boolean);
+    const visibleViewIDs = getAVVisibleViewIDs(options.blockElement, allViewIDs);
+    const isVisible = visibleViewIDs.includes(options.element.dataset.id);
+    if (!isVisible || visibleViewIDs.length > 1) {
+        menu.addItem({
+            id: "setViewVisibility",
+            icon: isVisible ? "iconEyeoff" : "iconEye",
+            label: isVisible ? window.siyuan.languages.hideViewTab : window.siyuan.languages.showViewTab,
+            click() {
+                document.querySelector(".av__panel")?.remove();
+                const viewIDs = isVisible ?
+                    visibleViewIDs.filter((viewID) => viewID !== options.element.dataset.id) :
+                    visibleViewIDs.concat(options.element.dataset.id);
+                setAVBlockVisibleViewIDs(options.protyle, options.blockElement, viewIDs);
+            }
+        });
+    }
     // 至少保留一个视图；仅多视图数据库显示删除入口。
-    if (viewTabElements.length > 1) {
+    if (allViewIDs.length > 1) {
         menu.addItem({
             id: "delete",
             icon: "iconTrashcan",
             label: siyuanI18n.delete,
+            warning: true,
             /** 作用：删除当前视图；意图：保持原单向事务语义；调用时机：用户点击删除菜单项。 */
             click() {
                 const panelElement = document.querySelector(".av__panel");
@@ -172,7 +246,7 @@ export const getViewHTML = (data: IAV) => {
         </div>
         <div class="fn__none">
             <div class="fn__hr"></div>
-            <textarea placeholder="${siyuanI18n.addDesc}" rows="1" data-type="desc" class="b3-text-field fn__block" type="text" data-value="${escapeAttr(view.desc)}">${view.desc}</textarea>
+            <textarea placeholder="${siyuanI18n.addDesc}" rows="1" data-type="desc" class="b3-text-field fn__block" type="text" data-value="${escapeAttr(view.desc)}">${escapeHtml(view.desc)}</textarea>
         </div>
         <div class="fn__hr"></div>
     </div>
@@ -205,7 +279,7 @@ export const getViewHTML = (data: IAV) => {
 <button class="b3-menu__item" data-type="goGroups">
     <svg class="b3-menu__icon"><use xlink:href="#iconGroups"></use></svg>
     <span class="b3-menu__label">${siyuanI18n.group}</span>
-    <span class="b3-menu__accelerator">${(data.view.group && data.view.group.field) ? fields.filter((item: IAVColumn) => item.id === data.view.group.field)[0].name : ""}</span>
+    <span class="b3-menu__accelerator">${escapeHtml((data.view.group && data.view.group.field) ? fields.filter((item: IAVColumn) => item.id === data.view.group.field)[0].name : "")}</span>
     <svg class="b3-menu__icon b3-menu__icon--small"><use xlink:href="#iconRight"></use></svg>
 </button>
 <button class="b3-menu__separator"></button>
@@ -213,9 +287,9 @@ export const getViewHTML = (data: IAV) => {
     <svg class="b3-menu__icon">
         <use xlink:href="#iconCopy"></use>
     </svg>
-    <span class="b3-menu__label">${siyuanI18n.duplicate}</span>
+    <span class="b3-menu__label">${window.siyuan.languages.duplicateCopy}</span>
 </button>
-<button class="b3-menu__item${data.views.length > 1 ? "" : " fn__none"}" data-type="delete-view">
+<button class="b3-menu__item b3-menu__item--warning${data.views.length > 1 ? "" : " fn__none"}" data-type="delete-view">
     <svg class="b3-menu__icon"><use xlink:href="#iconTrashcan"></use></svg>
     <span class="b3-menu__label">${siyuanI18n.delete}</span>
 </button>
@@ -234,6 +308,11 @@ export const bindSwitcherEvent = (options: { protyle: IProtyle, menuElement: Ele
         if (event.key === "Enter") {
             const currentElement = options.menuElement.querySelector(".b3-menu__item--current") as HTMLElement;
             if (currentElement) {
+                const currentViewID = options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) ||
+                    options.blockElement.querySelector(".av__views .item--focus")?.getAttribute("data-id");
+                if (currentElement.dataset.id !== currentViewID) {
+                    clearSelect(["row", "galleryItem"], options.blockElement);
+                }
                 submitAVViewTransaction(options.protyle, [{
                     action: "setAttrViewBlockView",
                     blockID: options.blockElement.getAttribute("data-node-id"),
@@ -242,7 +321,7 @@ export const bindSwitcherEvent = (options: { protyle: IProtyle, menuElement: Ele
                 }], [{
                     action: "setAttrViewBlockView",
                     blockID: options.blockElement.getAttribute("data-node-id"),
-                    id: options.blockElement.querySelector(".av__views .item--focus").getAttribute("data-id"),
+                    id: currentViewID,
                     avID: options.blockElement.getAttribute("data-av-id"),
                 }]);
                 options.menuElement.remove();
@@ -277,35 +356,72 @@ const filterSwitcher = (menuElement: Element) => {
             item.classList.remove("b3-menu__item--current");
         }
     });
+    menuElement.querySelectorAll("[data-av-view-section]").forEach((sectionElement: HTMLElement) => {
+        const hasMatchedView = Array.from(menuElement.querySelectorAll(`[data-av-view-visibility="${sectionElement.dataset.avViewSection}"]`))
+            .some((item) => !item.classList.contains("fn__none"));
+        sectionElement.classList.toggle("fn__none", !!key && !hasMatchedView);
+    });
     if (!menuElement.querySelector(".b3-menu__item--current")) {
-        menuElement.querySelector(".fn__flex-1 .b3-menu__item:not(.fn__none)")?.classList.add("b3-menu__item--current");
+        menuElement.querySelector('.fn__flex-1 .b3-menu__item[draggable="true"]:not(.fn__none)')?.classList.add("b3-menu__item--current");
     }
 };
 
-export const getSwitcherHTML = (views: IAVView[], viewId: string) => {
-    let html = "";
+export const getSwitcherHTML = (views: IAVView[], viewId: string, blockElement: Element) => {
+    const visibleViewIDs = getAVVisibleViewIDs(blockElement, views);
+    let visibleHTML = "";
+    let hiddenHTML = "";
     views.forEach((item) => {
-        html += `<button draggable="true" class="b3-menu__item${item.id === viewId ? " b3-menu__item--current" : ""}" data-id="${item.id}">
+        const visible = visibleViewIDs.includes(item.id);
+        const html = `<button draggable="true" class="b3-menu__item${item.id === viewId ? " b3-menu__item--current" : ""}" data-id="${item.id}" data-av-view-visibility="${visible ? "visible" : "hidden"}">
     <svg class="b3-menu__icon fn__grab"><use xlink:href="#iconDrag"></use></svg>
     <div class="b3-menu__label fn__flex" data-type="av-view-switch" data-av-type="${item.type}">
         ${item.icon ? unicode2Emoji(item.icon, "b3-menu__icon", true) : `<svg class="b3-menu__icon"><use xlink:href="#${getViewIcon(item.type)}"></use></svg>`}
-        <span class="fn__ellipsis">${item.name}</span>
+        <span class="fn__ellipsis">${escapeHtml(item.name)}</span>
     </div>
+    <svg class="b3-menu__action ariaLabel${visibleViewIDs.length === 1 && visible ? " fn__none" : ""}" data-type="av-view-visibility" data-position="4west" aria-label="${visible ? window.siyuan.languages.hideViewTab : window.siyuan.languages.showViewTab}"><use xlink:href="#${visible ? "iconEyeoff" : "iconEye"}"></use></svg>
     <svg class="b3-menu__action" data-type="av-view-edit"><use xlink:href="#iconEdit"></use></svg>
 </button>`;
+        if (visible) {
+            visibleHTML += html;
+        } else {
+            hiddenHTML += html;
+        }
     });
+    const visibleSectionHTML = `<div data-av-view-section="visible">
+<button class="b3-menu__separator"></button>
+<button class="b3-menu__item" data-type="nobg">
+    <span class="b3-menu__label">${window.siyuan.languages.visibleViews}</span>
+    <span class="block__icon" data-type="av-view-hide-all">
+        ${siyuanI18n.hideAll}
+        <span class="fn__space"></span>
+        <svg><use xlink:href="#iconEyeoff"></use></svg>
+    </span>
+</button>
+</div>${visibleHTML}`;
+    const hiddenSectionHTML = hiddenHTML ? `<div data-av-view-section="hidden">
+<button class="b3-menu__separator"></button>
+<button class="b3-menu__item" data-type="nobg">
+    <span class="b3-menu__label">${window.siyuan.languages.hiddenViews}</span>
+    <span class="block__icon" data-type="av-view-show-all">
+        ${siyuanI18n.showAll}
+        <span class="fn__space"></span>
+        <svg><use xlink:href="#iconEye"></use></svg>
+    </span>
+</button>
+</div>${hiddenHTML}` : "";
     return `<div class="b3-menu__items fn__flex-column">
-<button class="b3-menu__item" data-type="av-add">
+<div class="b3-menu__item fn__flex-shrink" data-type="nobg">
+    <input class="b3-text-field fn__block" type="text" style="margin: 4px 0" placeholder="${window.siyuan.languages.searchPlaceholder}">
+</div>
+<div class="fn__flex-1" style="overflow: auto">
+    ${visibleSectionHTML}
+    ${hiddenSectionHTML}
+</div>
+<button class="b3-menu__separator fn__flex-shrink"></button>
+<button class="b3-menu__item fn__flex-shrink" data-type="av-add">
     <svg class="b3-menu__icon"><use xlink:href="#iconAdd"></use></svg>
     <span class="b3-menu__label">${siyuanI18n.newView}</span>
 </button>
-<button class="b3-menu__separator"></button>
-<div class="b3-menu__item fn__flex-shrink" data-type="nobg">
-    <input class="b3-text-field fn__block" type="text" style="margin: 4px 0" placeholder="${siyuanI18n.search}">
-</div>
-<div class="fn__flex-1" style="overflow: auto">
-    ${html}
-</div>
 </div>`;
 };
 
@@ -313,6 +429,11 @@ export const addView = (protyle: IProtyle, blockElement: Element) => {
     const id = Lute.NewNodeID();
     const avID = blockElement.getAttribute("data-av-id");
     const viewElement = blockElement.querySelector(".av__views");
+    const addVisibleView = () => {
+        const allViewIDs = (blockElement.querySelector(".av__header")?.getAttribute("data-view-ids") || "")
+            .split(",").filter(Boolean);
+        setAVVisibleViewIDs(blockElement, getAVVisibleViewIDs(blockElement, allViewIDs).concat(id));
+    };
     const addMenu = new Menu(undefined, () => {
         viewElement.classList.remove("av__views--show");
     });
@@ -320,6 +441,7 @@ export const addView = (protyle: IProtyle, blockElement: Element) => {
         icon: "iconTable",
         label: siyuanI18n.table,
         click() {
+            addVisibleView();
             submitAVViewTransaction(protyle, [{
                 action: "addAttrViewView",
                 avID,
@@ -337,6 +459,7 @@ export const addView = (protyle: IProtyle, blockElement: Element) => {
         icon: "iconBoard",
         label: siyuanI18n.kanban,
         click() {
+            addVisibleView();
             submitAVViewTransaction(protyle, [{
                 action: "addAttrViewView",
                 avID,
@@ -356,6 +479,7 @@ export const addView = (protyle: IProtyle, blockElement: Element) => {
         icon: "iconGallery",
         label: siyuanI18n.gallery,
         click() {
+            addVisibleView();
             submitAVViewTransaction(protyle, [{
                 action: "addAttrViewView",
                 avID,

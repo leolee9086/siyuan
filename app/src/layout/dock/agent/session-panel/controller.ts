@@ -230,7 +230,7 @@ function showAgentSessionMoreMenu(state: types.AgentSessionPanelState, anchor: H
         menu.addItem({
             icon: "iconFolder",
             label: window.siyuan.languages.showInFolder,
-            click: imports.useShell.bind(null, "openPath", imports.path.join(
+            click: imports.useShell.bind(null, "openPath", imports.originalPath().join(
                 window.siyuan.config.system.dataDir,
                 "storage", "ai", "agent", "sessions", id,
             )),

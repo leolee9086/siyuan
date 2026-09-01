@@ -19,6 +19,15 @@ describe("App configuration bootstrap", () => {
         runtime.fetchPost.mockReset();
     });
 
+    it("allows the application bootstrap to own the initial notebook refresh", () => {
+        const config = {fileTree: {boxDocEnabled: false}} as Config.IConf;
+
+        expect(installAppConfiguration(config, false, {startNotebookRefresh: false})).toBe(config);
+        expect(runtime.fetchPost).not.toHaveBeenCalled();
+        expect(window.siyuan.config).toBe(config);
+        expect(window.siyuan.isPublish).toBe(false);
+    });
+
     it("installs getConf before a synchronously returned notebook response reads it", () => {
         const config = {fileTree: {boxDocEnabled: false}} as Config.IConf;
         const notebooks = [{id: "notebook-id", name: "Notebook"}] as INotebook[];

@@ -20,8 +20,10 @@ export { getTypeByCellElement };
 /** 导出 popTextCell 供 click 子模块复用。 */
 export { popTextCell };
 
-/** 用途：复用 row 子模块中的行级操作。使用范围：选中、插入、分页大小与头部刷新。解耦评估：行语义由 row 模块集中维护，click 侧只应触发。 */
-import { insertRows, selectRow, setPageSize } from "../../row";
+/** 用途：复用 row 子模块中的行级操作。使用范围：选中、插入、删除、分页大小与头部刷新。 */
+import { deleteRow, insertRows, selectRow, setPageSize } from "../../row";
+/** 导出 deleteRow 供批量选择工具栏复用。 */
+export {deleteRow};
 /** 用途：同步 AV 选择计数与表头状态。使用范围：普通单元格点击；解耦评估：直达选择子域唯一实现，避免加载行渲染组合根。 */
 import {updateHeader} from "../../selection/header";
 /** 导出 insertRows 供 click 子模块复用。 */
@@ -67,9 +69,14 @@ import { openCalcMenu } from "../../calc";
 export { openCalcMenu };
 
 /** 用途：重渲染属性视图。使用范围：load-more 与历史视图切换。解耦评估：整体渲染由 render 模块维护，click 只保留触发时机。 */
-import { avRender } from "../../render";
+import { avRender, initUnfoldedGroupTables } from "../../render";
 /** 导出 avRender 供 click 子模块复用。 */
 export { avRender };
+/** 导出展开分组表格的延迟初始化能力。 */
+export {initUnfoldedGroupTables};
+/** 用途：记录分组折叠快照。使用范围：Alt 批量折叠的 do/undo 数据。 */
+import {getGroupFoldTip, getGroupFoldedStates, updateGroupFoldedStates} from "../../groupFold";
+export {getGroupFoldTip, getGroupFoldedStates, updateGroupFoldedStates};
 
 /** 用途：复用 gallery 子模块能力。使用范围：gallery 编辑与更多菜单。解耦评估：gallery 特有交互由 gallery 模块维护更合理。 */
 import { editGalleryItem, openGalleryItemMenu } from "../../gallery/util";
@@ -77,6 +84,32 @@ import { editGalleryItem, openGalleryItemMenu } from "../../gallery/util";
 export { editGalleryItem };
 /** 导出 openGalleryItemMenu 供 click 子模块复用。 */
 export { openGalleryItemMenu };
+
+/** 用途：打开批量字段编辑器并写入布尔字段。使用范围：选择工具栏编辑菜单。 */
+import {getEditableAVFields, openAVFieldEditor, updateAVFieldValue} from "../../batchEdit";
+export {getEditableAVFields, openAVFieldEditor, updateAVFieldValue};
+/** 用途：读取列类型的默认图标与名称。使用范围：批量字段编辑菜单。 */
+import {getColIconByType, getColNameByType} from "../../col/col.typeUtils";
+export {getColIconByType, getColNameByType};
+/** 用途：启动画廊封面位置调整。使用范围：封面位置按钮。 */
+import {startCardCoverPosition} from "../../coverPosition";
+export {startCardCoverPosition};
+/** 用途：从选择工具栏打开完整 AV 右键菜单。 */
+import {avContextmenu} from "../contextmenu";
+export {avContextmenu};
+/** 用途：构建批量字段编辑菜单。 */
+import {Menu} from "../../../../../plugin/Menu";
+export {Menu};
+/** 用途：安全输出字段名称。 */
+import {escapeHtml} from "../../../../../util/DOM/escape";
+export {escapeHtml};
+/** 用途：决定批量编辑菜单是否使用移动端全屏样式。 */
+import {isMobile} from "../../../../../platform";
+export {isMobile};
+
+/** 用途：打开看板分组快捷操作菜单。使用范围：分组标题更多按钮。 */
+import {openKanbanGroupMenu} from "../../kanban/groupMenu";
+export {openKanbanGroupMenu};
 
 /** 用途：访问通用常量。使用范围：视图切换、emoji、本地图标与定时器。解耦评估：常量属于跨模块共享协议，继续直接复用即可。 */
 import { Constants } from "../../../../../constants";

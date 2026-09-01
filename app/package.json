@@ -1,11 +1,11 @@
 {
   "name": "s-forge",
   "desktopName": "org.b3log.sforge",
-  "version": "3.7.3",
-  "description": "Refactor your thinking",
+  "version": "3.8.2-alpha.2",
+  "description": "From thought to insight, with agents",
   "homepage": "https://b3log.org/siyuan",
   "main": "./electron/main.js",
-  "packageManager": "pnpm@11.12.0",
+  "packageManager": "pnpm@11.22.0",
   "scripts": {
     "lint": "pnpm run typecheck && eslint . --fix --cache",
     "typecheck": "vue-tsc -p tsconfig.typecheck.json --noEmit",
@@ -47,6 +47,7 @@
     "build:export": "webpack --mode production --env target=export",
     "gen:types": "tsc -d",
     "start": "cross-env NODE_ENV=development electron ./electron/main.js",
+    "start:simulate-rosetta": "cross-env NODE_ENV=development electron ./electron/main.js --simulate-rosetta",
     "install:electron": "cross-env ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ node node_modules/electron/install.js",
     "sign:dev": "node scripts/signDevElectron.js",
     "dist": "cross-env ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ electron-builder --config electron-builder.yml --publish=never",
@@ -103,6 +104,7 @@
     }
   ],
   "devDependencies": {
+    "@breezystack/lamejs": "1.2.7",
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.24.0",
     "@huggingface/transformers": "3.1.0",
@@ -129,7 +131,7 @@
     "cross-env": "^10.1.0",
     "css-loader": "^7.1.2",
     "dayjs": "^1.11.5",
-    "electron": "42.6.1",
+    "electron": "42.9.2",
     "electron-builder": "26.15.7",
     "encoding": "^0.1.13",
     "esbuild-loader": "^3.0.1",
@@ -156,6 +158,7 @@
     "ts-jest": "^29.4.5",
     "tsx": "^4.22.4",
     "typescript": "^5.9.3",
+    "unzipper": "0.12.5",
     "vitest": "^4.0.6",
     "vue": "^3.5.22",
     "vue-eslint-parser": "^10.2.0",

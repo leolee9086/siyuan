@@ -7,10 +7,14 @@ import {openHistory} from "../../history/history.panel";
 import type { AppFacade } from "../../app/AppFacade.types";
 import { setTitle } from "../../util/processTitle";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {clearMobileBarsScroll} from "./mobileBars";
 
 export const setEmpty = (app: AppFacade) => {
     setTitle("", true);
+    clearMobileBarsScroll();
+    document.getElementById("mobileTopBar").classList.add("fn__none");
     document.getElementById("toolbarName").classList.add("fn__hidden");
+    document.getElementById("toolbarNameReadonly").classList.add("fn__hidden");
     document.getElementById("editor").classList.add("fn__none");
     const emptyElement = document.getElementById("empty");
     emptyElement.classList.remove("fn__none");

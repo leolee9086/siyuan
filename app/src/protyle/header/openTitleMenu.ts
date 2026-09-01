@@ -6,11 +6,10 @@ import {openFileAttr} from "../../menus/commonMenuItem/fileAttr/openFileAttr";
 import { updateHotkeyTip } from "../util/compatibility";
 import { isMobile, isElectron } from "../../platform";
 import { openBacklink, openGraph, openOutline } from "../../layout/dock/util";
-import * as path from "path";
 import { Constants } from "../../constants";
 import { openCardByData } from "../../card/openCard";
 import { viewCards } from "../../card/viewCards";
-import { getDisplayName, getNotebookName, pathPosix, useShell } from "../../util/file/pathName";
+import { getDisplayName, getNotebookName, originalPath, pathPosix, useShell } from "../../util/file/pathName";
 import { makeCard, quickMakeCard } from "../../card/makeCard";
 import { emitOpenMenu } from "../../plugin/menu/emitOpenMenu.factory";
 import * as dayjs from "dayjs";
@@ -25,6 +24,9 @@ import { appendFileOperationsMenuItemGroup } from "./openTitleMenu.FileOperation
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import {isEncryptedBox, withEncryptedNotebook} from "../../util/file/notebook/store";
+import {hasTopClosestByClassName} from "../util/hasClosest";
+
+// 仅桌面端展示的菜单组：大纲、反链、关系图，移动端直接跳过
 const appendDesktopOnlyMenuItemGroup = (protyle: IProtyle) => {
     if (isMobile) {
         return;
@@ -40,6 +42,7 @@ const appendDesktopOnlyMenuItemGroup = (protyle: IProtyle) => {
                 {
                     app: protyle.app,
                     rootId: protyle.block.rootID,
+                    notebookId: protyle.notebookId,
                     title: protyle.options.render.title ? (protyle.title.editElement.textContent || siyuanI18n.untitled) : "",
                     isPreview: false
                 }
@@ -56,6 +59,7 @@ const appendDesktopOnlyMenuItemGroup = (protyle: IProtyle) => {
                 app: protyle.app,
                 blockId: protyle.block.id,
                 rootId: protyle.block.rootID,
+                notebookId: protyle.notebookId,
                 useBlockId: protyle.block.showAll,
                 title: protyle.title ? (protyle.title.editElement.textContent || siyuanI18n.untitled) : null
             });
@@ -71,6 +75,7 @@ const appendDesktopOnlyMenuItemGroup = (protyle: IProtyle) => {
                 app: protyle.app,
                 blockId: protyle.block.id,
                 rootId: protyle.block.rootID,
+                notebookId: protyle.notebookId,
                 useBlockId: protyle.block.showAll,
                 title: protyle.title ? (protyle.title.editElement.textContent || siyuanI18n.untitled) : null
             });
@@ -79,7 +84,7 @@ const appendDesktopOnlyMenuItemGroup = (protyle: IProtyle) => {
 };
 
 
-export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
+export const openTitleMenu = (protyle: IProtyle, position: IPosition, from?: string) => {
     hideTooltip();
     if (closeTitleMenuIfOpened()) {
         return;
@@ -88,8 +93,13 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
         id: protyle.block.rootID
     }), async (response) => {
         window.siyuan.menus.menu.remove();
-        window.siyuan.menus.menu.element.setAttribute("data-name", "titleMenu");
+        window.siyuan.menus.menu.element.setAttribute("data-name", Constants.MENU_TITLE);
         const isBoxDoc = protyle.notebookId === protyle.block.rootID;
+        // 记录菜单来源（编辑器标题或面包屑），供菜单定位逻辑区分弹出层级
+        if (from) {
+            const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
+            window.siyuan.menus.menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover-" + from : "app-" + from);
+        }
         window.siyuan.menus.menu.append(createProtyleCopyMenu(protyle).element);
         if (!protyle.disabled) {
             appendFileOperationsMenuItemGroup(protyle, isBoxDoc);
@@ -197,6 +207,10 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
                         notebook: protyle.notebookId,
                         path: searchPath + ".sy"
                     });
+                    // 路径查询失败时中止，避免搜索面板拿到无效的路径数据
+                    if (!isBoxDoc && (pathResponse?.code !== 0 || typeof pathResponse?.data !== "string")) {
+                        return;
+                    }
                     popSearch(protyle.app, {
                         hasReplace: false,
                         hPath: isBoxDoc ? getNotebookName(protyle.notebookId) : pathPosix().join(getNotebookName(protyle.notebookId), pathResponse.data),
@@ -215,7 +229,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
             }
         }).element);
         if (!protyle.disabled) {
-            transferBlockRef(protyle.block.rootID);;
+            transferBlockRef(protyle.block.rootID);
         }
         window.siyuan.menus.menu.append(new MenuItem({ id: "separator_3", type: "separator" }).element);
         if (!protyle.model) {
@@ -248,7 +262,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
                 icon: "iconFolder",
                 label: siyuanI18n.showInFolder,
                 click: () => {
-                    useShell("showItemInFolder", path.join(window.siyuan.config.system.dataDir, protyle.notebookId, protyle.path));
+                    useShell("showItemInFolder", originalPath().join(window.siyuan.config.system.dataDir, protyle.notebookId, protyle.path));
                 }
             }).element);
         }

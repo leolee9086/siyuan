@@ -30,6 +30,7 @@ export type TreeNodeData = Omit<IBlockTree, "blocks" | "children"> & {
     folded?: boolean;
     showArrow?: boolean;
     icon?: string;
+    number?: string;
     blocks?: (IBlock | TreeBlockData)[];
     children?: TreeNodeData[];
 };
@@ -40,6 +41,7 @@ export interface TreeOptions {
     data: TreeNodeData[] | null;
     blockExtHTML?: string | undefined;
     topExtHTML?: string | undefined;
+    titleTooltipPosition?: string | undefined;
     blockDraggable?: boolean | undefined;
     click?(element: HTMLElement, event?: MouseEvent): void;
     ctrlClick?(element: HTMLElement, event: MouseEvent): void;
@@ -61,4 +63,5 @@ export interface TreeDomain {
     collapseAll(): void;
     getExpandIds(): string[];
     setExpandIds(ids: string[]): void;
+    createTopLevelItem(data: TreeNodeData): HTMLLIElement;
 }

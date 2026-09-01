@@ -1,6 +1,7 @@
 import { IDndState } from "./onDrop.types";
 import { cleanupDragIndicators } from "./util";
 import { hideDragTip } from "../dragTip";
+import { cleanupKanbanGroupDragover } from "./onDragOver";
 
 export const onDragLeave = (protyle: IProtyle, editorElement: HTMLElement, event: DragEvent, state: IDndState) => {
     if (protyle.disabled) {
@@ -10,6 +11,7 @@ export const onDragLeave = (protyle: IProtyle, editorElement: HTMLElement, event
     }
     state.counter--;
     if (state.counter === 0) {
+        cleanupKanbanGroupDragover();
         cleanupDragIndicators(editorElement);
         state.dragoverElement = undefined;
         hideDragTip();

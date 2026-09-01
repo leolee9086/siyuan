@@ -49,6 +49,13 @@ describe("notebook request context", () => {
         expect(withEncryptedNotebook("encrypted-box", params)).not.toBe(params);
     });
 
+    it("returns the request promise so application startup can await the initial refresh", () => {
+        const request = Promise.resolve();
+        runtime.fetchPost.mockReturnValueOnce(request);
+
+        expect(setNoteBook()).toBe(request);
+    });
+
     it("applies notebooks and top-level document mode from an ordinary refresh", () => {
         const refreshed = [{id: "refreshed-box", name: "Refreshed", closed: false}] as INotebook[];
         setNoteBook();

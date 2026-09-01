@@ -233,6 +233,13 @@ export const processMessage = async (
         handleCronjobAuthMessage(response, resolvedDependencies);
         return false;
     }
+    // 发布页面收到内容刷新通知时立即重载；普通应用页面只消费命令。
+    if ("reloadpublishpage" === response.cmd) {
+        if (window.siyuan.isPublish) {
+            reloadLocation();
+        }
+        return false;
+    }
     // 服务端通知发布服务已关闭，在浏览器环境下保存关闭信息并重载页面
     if ("closepublishpage" === response.cmd) {
         await handlePublishServiceClosed(response.msg);

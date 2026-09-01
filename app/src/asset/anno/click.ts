@@ -8,6 +8,8 @@ import { setStorageVal } from "./imports";
 import { getHightlightCoordsByRange } from "./anno.getHightlightCoordsByRange";
 /** 用途：显示高亮。使用范围：点击响应。解耦评估：同目录模块。 */
 import { showHighlight } from "./anno.showHighlight";
+/** 用途：按属性值安全查找同一标注矩形。使用范围：颜色更新时避免未可信 ID 进入 CSS selector。解耦评估：同目录 guard 统一所有标注 DOM 查找策略。 */
+import { getRectElementsByNodeId } from "./anno.guard";
 /** 用途：复制标注。使用范围：点击处理。解耦评估：同目录模块。 */
 import { copyAnno } from "./anno.copy";
 /** 用途：隐藏工具栏。使用范围：点击处理。解耦评估：同目录模块。 */
@@ -28,10 +30,10 @@ import { setRectElement } from "./state/selection";
 import { AnnoConstants } from "./constants";
 /** 用途：PDF 实例类型。使用范围：点击处理类型标注。解耦评估：同目录类型文件。 */
 import type { IPdfInstance } from "./anno.types";
-/** 用途：创建工具栏操作上下文。使用范围：点击响应。解耦评估：同目录模块。 */
+/** 用途：创建工具栏操作上下文。使用范围：点击分发前收集当前注释状态。解耦评估：同目录 handler owner 负责动作协议。 */
 import { createToolbarActionContext } from "./click.handleToolbarAction";
-/** 用途：工具栏操作注册表。使用范围：点击分发。解耦评估：同目录模块。 */
-import { toolbarActionRegistry } from "./click.handleToolbarAction";
+/** 用途：解析无状态工具栏动作。使用范围：点击分发按 data-type 获取 handler。解耦评估：同目录 handler owner 避免模块级可变 registry。 */
+import { getToolbarAction } from "./click.handleToolbarAction";
 /** 用途：外部事件点击处理。使用范围：全局点击事件。解耦评估：同目录子模块。 */
 import { externalEventClickHandler } from "./click/handleExternalEvent";
 /** 用途：获取窗口来源和选区。使用范围：点击事件处理。解耦评估：通过 ./imports 转发。 */
@@ -72,7 +74,7 @@ const updateExistingAnnotation = (color: string, element: HTMLElement, pdf: IPdf
     }
 
     annoItem.color = color;
-    const rectItems = element.querySelectorAll(`.${AnnoConstants.CSS.PDF_RECT}[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`);
+    const rectItems = getRectElementsByNodeId(element, id);
     for (const rectItem of rectItems) {
         for (const item of Array.from(rectItem.children)) {
             // Element.children 返回 HTMLCollection<Element>，Element 类型没有 style 属性。
@@ -206,12 +208,12 @@ export const processSelection = (element: HTMLElement) => {
  * 执行工具栏操作
  * 
  * 作用：
- * 根据操作类型从注册表中查找对应的处理函数并执行。支持的操作包括：
+ * 根据操作类型从 resolver 中取得对应的处理函数并执行。支持的操作包括：
  * 移除注释、复制注释、关联注释、切换注释类型、下载注释为PNG等。
  * 
  * 意图：
- * 使用策略模式统一管理所有工具栏操作,避免冗长的 if-else 或 switch 语句。
- * 通过注册表模式使代码更易维护和扩展,添加新操作只需在 toolbarActionRegistry 中注册即可。
+ * 使用无状态 resolver 统一管理所有工具栏操作，避免模块级 registry 在 HMR 或测试之间残留。
+ * 新动作只需在 getToolbarAction 的 switch 中增加稳定 action 分支。
  * 
  * 调用时机：
  * 在 handlePdfClick 函数中,当用户点击工具栏按钮时被调用(第 149 行)。
@@ -222,7 +224,7 @@ export const processSelection = (element: HTMLElement) => {
  * @param element - 容器元素,用于DOM操作(如查找/移除注释元素、隐藏工具栏等)
  */
 const executeToolbarAction = (type: string, pdf: IPdfInstance, element: HTMLElement) => {
-    const handler = toolbarActionRegistry[type];
+    const handler = getToolbarAction(type);
     if (handler) {
         const context = createToolbarActionContext(pdf, element);
         handler(context);

@@ -7,6 +7,7 @@ export interface IBlockRefCheckOptions {
     scope: "blocks" | "documents" | "notebook";
     ids?: string[];
     exactIDs?: string[];
+    deletedIDs?: string[];
     paths?: string[];
     notebook?: string;
 }
@@ -31,6 +32,9 @@ export const checkBlockRef = async (options: IBlockRefCheckOptions, protyle?: IP
 };
 
 export const confirmBlockRef = async (options: IBlockRefCheckOptions, protyle?: IProtyle) => {
+    if (protyle?.lite) {
+        return true;
+    }
     if (protyle && pendingChecks.has(protyle)) {
         return false;
     }

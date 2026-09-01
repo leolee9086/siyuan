@@ -6,6 +6,7 @@ import { setStorageVal } from "../../protyle/util/compatibility";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import type { AppFacade } from "../../app/AppFacade.types";
 import { handleBazaarClick } from "./bazaarEventAction";
+import { getDownloadedSortStorageKey, reorderDownloadedCards, sortDownloadedPackages } from "./bazaarRender";
 import { IBazaar, IBazaarDataObj } from "./types";
 
 export const bindBazaarEvent = (bazaar: IBazaar<AppFacade>, app: AppFacade) => {
@@ -135,11 +136,28 @@ const bindSelectChangeEvent = (bazaar: IBazaar<AppFacade>) => {
 
 const handleSelectChange = (bazaar: IBazaar<AppFacade>, selectElement: HTMLSelectElement, event: Event) => {
     const target = event.target as HTMLElement;
+    if (selectElement.getAttribute("data-type") === "downloaded-sort") {
+        handleDownloadedSortChange(bazaar, selectElement);
+        return;
+    }
     if (selectElement.id === "bazaarSelect") {
         handleThemeSelect(bazaar, selectElement, target);
         return;
     }
     handleSortSelect(bazaar, selectElement);
+};
+
+const handleDownloadedSortChange = (bazaar: IBazaar<AppFacade>, selectElement: HTMLSelectElement) => {
+    if (!window.siyuan || !window.siyuan.storage) {
+        return;
+    }
+    const bazaarType = getDownloadedCurrentPackageType(bazaar);
+    const storageKey = getDownloadedSortStorageKey(bazaarType);
+    window.siyuan.storage[Constants.LOCAL_BAZAAR][storageKey] = selectElement.value;
+    setStorageVal(Constants.LOCAL_BAZAAR, window.siyuan.storage[Constants.LOCAL_BAZAAR]);
+    if (bazaar.element) {
+        reorderDownloadedCards(bazaar.element, sortDownloadedPackages(bazaar._data.downloadedDefault, selectElement.value));
+    }
 };
 
 const handleThemeSelect = (bazaar: IBazaar<AppFacade>, selectElement: HTMLSelectElement, target: HTMLElement) => {

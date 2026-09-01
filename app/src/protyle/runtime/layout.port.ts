@@ -45,7 +45,13 @@ export const resetProtyleLayoutPort = () => {
 };
 
 /** 统一转发面板刷新请求。 */
-export const refreshProtyleOutline = (rootId: string, notebookId?: string) => getProtyleLayoutPort().refreshOutline(rootId, notebookId);
+export const refreshProtyleOutline = (rootId: string, notebookId?: string) => {
+    const port = getProtyleLayoutPort();
+    if (notebookId === undefined) {
+        return port.refreshOutline(rootId);
+    }
+    return port.refreshOutline(rootId, notebookId);
+};
 /** 统一转发独立数据库条目视图刷新请求。 */
 export const refreshProtyleDatabaseRows = (avID: string) => getProtyleLayoutPort().refreshDatabaseRows?.(avID);
 /** 统一转发编辑器模式切换后的大纲同步请求。 */

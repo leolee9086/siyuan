@@ -43,7 +43,7 @@ import { Layout } from "../../../../../layout";
 /** 用途：引入新窗口打开入口；使用范围：split.ts；解耦评估：窗口创建逻辑由窗口模块封装。 */
 import { openNewWindow } from "../../../../../window/openNewWindow";
 /** 用途：引入取消拆分工具；使用范围：split.ts；解耦评估：布局重组仍由菜单层既有工具执行。 */
-import { unsplitWnd } from "../../../../../menus/tab";
+import { unsplitWnd, unsplitCurrentWnd } from "../../../../../menus/tab";
 /** 用途：引入运行态访问器；使用范围：close.ts、split.ts；解耦评估：避免新增直接 window 访问。 */
 import { getSiyuanLayout, getSiyuanBlockPanels } from "../../../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 /** 用途：引入路由 DSL；使用范围：index.ts 与各子路由；解耦评估：用户指定的声明式路由模式。 */
@@ -110,7 +110,7 @@ export { Layout };
 /** 导出新窗口打开入口。 */
 export { openNewWindow };
 /** 导出取消拆分工具。 */
-export { unsplitWnd };
+export { unsplitWnd, unsplitCurrentWnd };
 /** 导出布局访问器。 */
 export { getSiyuanLayout };
 /** 导出块面板访问器。 */

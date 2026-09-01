@@ -96,7 +96,7 @@ const renderSelectionValue = (value: IAVCellValue) => {
         if (value.type === "select" && index > 0) {
             break;
         }
-        html += `<span class="b3-chip b3-chip--middle" style="background-color:var(--b3-font-background${item.color});color:var(--b3-font-color${item.color})">${escapeHtml(item.content)}</span>`;
+        html += `<span class="b3-chip b3-chip--middle" style="background-color:var(--b3-font-background${escapeAttr(item.color)});color:var(--b3-font-color${escapeAttr(item.color)})">${escapeHtml(item.content)}</span>`;
     }
     return html;
 };
@@ -161,7 +161,7 @@ const renderRelationValue = (value: IAVCellValue) => {
         }
         const localImages = window.siyuan.storage[Constants.LOCAL_IMAGES];
         const displayIcon = item.block.icon || localImages.file;
-        html += `<span data-row-id="${rowID}" class="av__cell--relation" data-block-id="${item.block.id}"><span class="b3-menu__avemoji" data-unicode="${item.block.icon || ""}">${unicode2Emoji(displayIcon)}</span><span data-type="block-ref" data-id="${item.block.id}" data-subtype="s" class="av__celltext av__celltext--ref">${Lute.EscapeHTMLStr(item.block.content || siyuanI18n.untitled)}</span></span>`;
+        html += `<span data-row-id="${rowID}" class="av__cell--relation" data-block-id="${item.block.id}"><span class="b3-menu__avemoji" data-unicode="${escapeAttr(item.block.icon || "")}">${unicode2Emoji(displayIcon)}</span><span data-type="block-ref" data-id="${item.block.id}" data-subtype="s" class="av__celltext av__celltext--ref">${Lute.EscapeHTMLStr(item.block.content || siyuanI18n.untitled)}</span></span>`;
     }
     return html.endsWith(", ") ? html.substring(0, html.length - 2) : html;
 };

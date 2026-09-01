@@ -27,3 +27,20 @@ export {getContenteditableElement};
 import {getSiyuanStorage} from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 /** 导出严格存储访问器。 */
 export {getSiyuanStorage};
+
+/** 用途：同步请求属性视图搜索目标；使用范围：数据库搜索结果直达打开；解耦评估：网络能力经网关集中，测试可替换。 */
+import {fetchSyncPost} from "../../util/network/fetch";
+/** 导出同步请求能力。 */
+export {fetchSyncPost};
+
+/** 用途：识别加密笔记本；使用范围：加密文档跳过阅读位置持久化；解耦评估：直达加密子域唯一判定实现。 */
+import {isEncryptedBox} from "../../util/file/notebook/store";
+/** 导出加密笔记本判定。 */
+export {isEncryptedBox};
+
+/** 用途：打开属性视图定位目标项；使用范围：数据库搜索结果导航；解耦评估：直达 AV 渲染子域唯一实现。 */
+import {openDatabaseItem} from "../../protyle/render/av/openDatabaseItem";
+/** 导出数据库项打开能力。 */
+export {openDatabaseItem};
+/** 导出数据库项打开数据契约。 */
+export type {IDatabaseItemOpenData} from "../../protyle/render/av/openDatabaseItem";

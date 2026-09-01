@@ -12,6 +12,13 @@ import type {AgentConversationSubmitInput} from "../../../../../src/layout/dock/
 import {createNativeAgentConversationAdapter} from "../../../../../src/layout/dock/agent/runtime/conversation/nativeAgentConversation.adapter";
 
 const requestHeaders = vi.fn(() => ({Authorization: "Bearer test"}));
+const frontendCapabilities = [{
+    id: "native/open_document",
+    description: "Open a document",
+    inputSchema: {type: "object"},
+    source: "native" as const,
+    generation: 1,
+}];
 
 function createInput(delivery: AgentConversationSubmitInput["delivery"] = "queue") {
     return {
@@ -26,6 +33,7 @@ function createInput(delivery: AgentConversationSubmitInput["delivery"] = "queue
         references: [{id: "block-1", title: "Block"}],
         editorContext: {activeDocID: "doc-1"},
         pluginActions: [{name: "plugin-action", description: "Action"}],
+        frontendCapabilities,
         model: "provider:model",
         reasoningEffort: "high",
         contentRevision: 7,
@@ -76,6 +84,7 @@ describe("native Agent conversation adapter", () => {
                 references: [{id: "block-1", title: "Block"}],
                 editorContext: {activeDocID: "doc-1"},
                 pluginActions: [{name: "plugin-action", description: "Action"}],
+                frontendCapabilities,
                 model: "provider:model",
                 reasoningEffort: "high",
             },
@@ -97,6 +106,7 @@ describe("native Agent conversation adapter", () => {
 				references: [{id: "block-1", title: "Block"}],
 				editorContext: {activeDocID: "doc-1"},
 				pluginActions: [{name: "plugin-action", description: "Action"}],
+                frontendCapabilities,
 				model: "provider:model",
 				reasoningEffort: "high",
 			},

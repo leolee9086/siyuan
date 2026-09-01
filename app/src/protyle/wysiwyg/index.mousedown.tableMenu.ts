@@ -3,6 +3,7 @@ import {focusBlock, focusByRange, focusByWbr, getEditorRange} from "../util/sele
 import {MenuItem} from "../../menus/Menu.Item";
 import {copyPlainText, readClipboard} from "../util/compatibility";
 import {clearTableCell, setTableAlign} from "../util/table/table";
+import {deleteTableColumns, deleteTableRows, getTableFullColumnSelection, getTableFullRowSelection} from "../util/table/selection/operations";
 import {isIncludeCell} from "../util/table/selection/geometry";
 import {updateTransaction} from "./transaction/update";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -42,6 +43,53 @@ export function buildTableCellMenu(
     appendCopyMenuItems(protyle, tableBlockElement);
     if (!protyle.disabled) {
         appendEditMenuItems(protyle, tableBlockElement);
+        // S-Forge: 使用本地投影感知删除，保留合并单元格超集
+        const tableElement = tableBlockElement.querySelector("table");
+        if (tableElement) {
+            const selectedCellElements: HTMLTableCellElement[] = [];
+            const scrollLeft = tableBlockElement.firstElementChild.scrollLeft;
+            const scrollTop = tableElement.scrollTop;
+            tableBlockElement.querySelectorAll("th, td").forEach((item: HTMLTableCellElement) => {
+                if (!item.classList.contains("fn__none") && isIncludeCell({
+                    tableSelectElement,
+                    scrollLeft,
+                    scrollTop,
+                    item,
+                })) {
+                    selectedCellElements.push(item);
+                }
+            });
+            const rowSelection = getTableFullRowSelection(tableElement, selectedCellElements);
+            const columnSelection = getTableFullColumnSelection(tableElement, selectedCellElements);
+            if (rowSelection.indexes.length > 0 || columnSelection.indexes.length > 0) {
+                window.siyuan.menus.menu.append(new MenuItem({
+                    id: "deleteRowsSeparator",
+                    type: "separator",
+                }).element);
+            }
+            if (rowSelection.indexes.length > 0) {
+                window.siyuan.menus.menu.append(new MenuItem({
+                    id: "deleteRows",
+                    icon: "iconTrashcan",
+                    label: siyuanI18n["delete-row"],
+                    click() {
+                        tableSelectElement.removeAttribute("style");
+                        deleteTableRows(protyle, tableBlockElement as HTMLElement, rowSelection.indexes);
+                    },
+                }).element);
+            }
+            if (columnSelection.indexes.length > 0) {
+                window.siyuan.menus.menu.append(new MenuItem({
+                    id: "deleteColumns",
+                    icon: "iconTrashcan",
+                    label: siyuanI18n["delete-column"],
+                    click() {
+                        tableSelectElement.removeAttribute("style");
+                        deleteTableColumns(protyle, tableBlockElement as HTMLElement, columnSelection.indexes);
+                    },
+                }).element);
+            }
+        }
     }
     window.siyuan.menus.menu.popup({x: mouseUpEvent.clientX - 8, y: mouseUpEvent.clientY - 16});
 }
@@ -286,15 +334,6 @@ function appendEditMenuItems(
         }
     }).element);
     window.siyuan.menus.menu.append(new MenuItem({
-        id: "clear",
-        label: siyuanI18n.clear,
-        icon: "iconTrashcan",
-        accelerator: "⌦",
-        click() {
-            clearTableCell(protyle, tableBlockElement as HTMLElement);
-        }
-    }).element);
-    window.siyuan.menus.menu.append(new MenuItem({
         id: "paste",
         label: siyuanI18n.paste,
         icon: "iconPaste",
@@ -310,6 +349,15 @@ function appendEditMenuItems(
                     console.log(e);
                 }
             }
+        }
+    }).element);
+    window.siyuan.menus.menu.append(new MenuItem({
+        id: "clear",
+        label: siyuanI18n.clear,
+        icon: "iconTrashcan",
+        accelerator: "⌦",
+        click() {
+            clearTableCell(protyle, tableBlockElement as HTMLElement);
         }
     }).element);
 }

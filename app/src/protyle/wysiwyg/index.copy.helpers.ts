@@ -11,6 +11,7 @@ import {getTypeByCellElement} from "../render/av/cell/position";
 import {getCellText} from "../render/av/cell/render";
 import { removeZWJ } from "../util/normalizeText";
 import { enableLuteMarkdownSyntax, getTextStar, restoreLuteMarkdownSyntax } from "../util/paste";
+import { enhanceRichClipboard } from "../util/richClipboard";
 import type {CopyClipboardEvent} from "./index.copy.types";
 
 export function processSelectAV(nodeElement: HTMLElement) {
@@ -241,4 +242,6 @@ export async function writeClipboardData(
             console.log("Copy write clipboard error:", e);
         }
     }
+    // 移植上游 cf578cf166：富文本剪贴板增强（图片转 file:// 协议），保持本地 richClipboard 实现
+    enhanceRichClipboard({text: textPlain, html: textHTML, notebookID: protyle.notebookId});
 }

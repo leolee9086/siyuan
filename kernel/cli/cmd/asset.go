@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -24,7 +24,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/siyuan-note/siyuan/kernel/model"
-	"github.com/siyuan-note/siyuan/kernel/util"
 
 	"github.com/spf13/cobra"
 )
@@ -61,9 +60,12 @@ var assetUploadCmd = &cobra.Command{
 			return nil
 		}
 
-		succMap, err := model.InsertLocalAssets(id, files, true)
+		succMap, _, failedFiles, err := model.InsertLocalAssets(id, files, true)
 		if err != nil {
 			return err
+		}
+		if 0 < len(failedFiles) {
+			return fmt.Errorf("upload asset %s failed: %s", failedFiles[0].Name, failedFiles[0].Error)
 		}
 
 		switch outputFormat {
@@ -113,12 +115,22 @@ var assetCleanCmd = &cobra.Command{
 	Short: "Clean unused assets",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		singlePath, _ := cmd.Flags().GetString("path")
-		if singlePath != "" {
+		if cmd.Flags().Changed("path") {
+			if singlePath == "" {
+				return fmt.Errorf("--path must not be empty")
+			}
 			if dryRun {
-				fmt.Printf("[dry-run] Would remove unused asset: %s\n", singlePath)
+				relativePath, _, err := model.ResolveUnusedDataAssetPath(singlePath)
+				if err != nil {
+					return err
+				}
+				fmt.Printf("[dry-run] Would remove unused asset: %s\n", relativePath)
 				return nil
 			}
-			ret := model.RemoveUnusedAsset(singlePath)
+			ret, err := model.RemoveUnusedAsset(singlePath)
+			if err != nil {
+				return err
+			}
 			fmt.Println(ret)
 			return nil
 		}
@@ -149,7 +161,10 @@ var assetStatCmd = &cobra.Command{
 		if p == "" {
 			return fmt.Errorf("--path is required")
 		}
-		abs := filepath.Join(util.DataDir, p)
+		relativePath, abs, err := model.ResolveDataAssetPath(p)
+		if err != nil {
+			return err
+		}
 		info, err := os.Stat(abs)
 		if err != nil {
 			return err
@@ -157,14 +172,14 @@ var assetStatCmd = &cobra.Command{
 		switch outputFormat {
 		case "json":
 			data, _ := json.MarshalIndent(map[string]any{
-				"path":    p,
+				"path":    relativePath,
 				"size":    info.Size(),
 				"isDir":   info.IsDir(),
 				"modTime": info.ModTime().Format("2006-01-02 15:04:05"),
 			}, "", "  ")
 			fmt.Println(string(data))
 		default:
-			fmt.Printf("Path:    %s\n", p)
+			fmt.Printf("Path:    %s\n", relativePath)
 			fmt.Printf("Size:    %d\n", info.Size())
 			fmt.Printf("IsDir:   %v\n", info.IsDir())
 			fmt.Printf("ModTime: %s\n", info.ModTime().Format("2006-01-02 15:04:05"))

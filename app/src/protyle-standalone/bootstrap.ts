@@ -1,17 +1,17 @@
 /** 用途：加载独立脚本。使用范围：Protyle bootstrap 静态资源阶段。解耦评估：经入口网关复用无状态资源能力。 */
-import {loadStandaloneScript} from "./imports";
+import {loadStandaloneScript} from "./bootstrap.imports";
 /** 用途：加载独立样式。使用范围：Protyle bootstrap 主题阶段。解耦评估：经入口网关复用无状态资源能力。 */
-import {loadStandaloneStyle} from "./imports";
+import {loadStandaloneStyle} from "./bootstrap.imports";
 /** 用途：加载语言字典。使用范围：Protyle bootstrap 国际化阶段。解耦评估：经入口网关复用同源环境能力。 */
-import {fetchStandaloneLanguage} from "./imports";
+import {fetchStandaloneLanguage} from "./bootstrap.imports";
 /** 用途：读取 Kernel 数据。使用范围：Protyle bootstrap 与日记创建。解耦评估：经入口网关复用同源环境能力。 */
-import {postStandaloneKernel} from "./imports";
+import {postStandaloneKernel} from "./bootstrap.imports";
 /** 用途：写入根元素主题属性。使用范围：Protyle bootstrap 首帧阶段。解耦评估：经入口网关复用纯主题能力。 */
-import {applyStandaloneThemeAttributes} from "./imports";
+import {applyStandaloneThemeAttributes} from "./bootstrap.imports";
 /** 用途：解析当前主题选择。使用范围：Protyle bootstrap 首帧阶段。解耦评估：经入口网关复用纯主题能力。 */
-import {resolveStandaloneTheme} from "./imports";
+import {resolveStandaloneTheme} from "./bootstrap.imports";
 /** 用途：合并同一 Protyle 入口的并发启动。使用范围：Protyle bootstrap 公开函数。解耦评估：经入口网关复用通用 Promise 生命周期能力。 */
-import {bootstrapStandaloneOnce} from "./imports";
+import {bootstrapStandaloneOnce} from "./bootstrap.imports";
 /** 用途：约束配置响应和迁移期运行时；使用范围：bootstrap 内部；解耦评估：类型随运行时 Port 演进，不产生运行时依赖。 */
 import type {IKernelConfigResponse} from "./standalone.types";
 /** 用途：约束共享运行时结果；使用范围：bootstrap Promise；解耦评估：字段随各 Port 落地而缩减。 */

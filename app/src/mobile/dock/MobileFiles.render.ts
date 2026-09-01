@@ -73,6 +73,7 @@ export function onLsHTML(files: MobileFilesRenderPort, data: { files: IFile[], b
             }
         });
         nextElement.innerHTML = tempElement.innerHTML;
+        files.restoreMovedExpandedItems(nextElement, data.box);
         if (typeof scrollTop === "number") {
             files.element.scroll({top: scrollTop, behavior: "smooth"});
         }
@@ -82,6 +83,9 @@ export function onLsHTML(files: MobileFilesRenderPort, data: { files: IFile[], b
     liElement.querySelector(".b3-list-item__arrow").classList.add("b3-list-item__arrow--open");
     liElement.insertAdjacentHTML("afterend", `<ul>${fileHTML}</ul>`);
     nextElement = liElement.nextElementSibling;
+    if (nextElement) {
+        files.restoreMovedExpandedItems(nextElement, data.box);
+    }
     expandFileTree(nextElement as HTMLElement, () => {
         if (typeof scrollTop === "number") {
             files.element.scroll({top: scrollTop, behavior: "smooth"});
@@ -121,6 +125,9 @@ export async function onLsSelect(files: MobileFilesRenderPort, data: {
         emojiElement.textContent = unicode2Emoji(window.siyuan.storage[Constants.LOCAL_IMAGES].folder);
     }
     liElement.insertAdjacentHTML("afterend", `<ul>${fileHTML}</ul>`);
+    if (liElement.nextElementSibling) {
+        files.restoreMovedExpandedItems(liElement.nextElementSibling, data.box);
+    }
     let newLiElement;
     for (let i = 0; i < data.files.length; i++) {
         const item = data.files[i];

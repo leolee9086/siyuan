@@ -28,6 +28,10 @@ import {getFieldsByData} from "../view/metadata";
 /** 导出字段读取。 */
 export {getFieldsByData};
 
+/** 用途：转义排序字段名称。使用范围：Select option 文本。 */
+import {escapeHtml} from "../../../../util/DOM/escape";
+export {escapeHtml};
+
 /** 用途：提供添加排序菜单身份；使用范围：Sort 菜单工厂；解耦评估：直达不可变协议常量。 */
 import {Constants} from "../../../../constants";
 /** 导出菜单常量。 */

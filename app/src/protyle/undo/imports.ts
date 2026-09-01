@@ -2,6 +2,7 @@
 
 /** 用途：事务处理核心函数。使用范围：undo 模块 renderLocal 本地乐观应用操作。解耦评估：通过 imports.ts 转发。 */
 import {onTransaction} from "../wysiwyg/transaction.onTransaction";
+/** 用途：提交本地撤销回放事务。使用范围：undo 模块在 lite 编辑器跳过远端同步地应用操作。解耦评估：事务入口属于 Protyle 基础设施，经 undo 网关转发而不向调用方暴露实现。 */
 import {transaction} from "../wysiwyg/transaction/submit";
 /** 用途：等待编辑器事务队列清空。使用范围：仅供全局撤销请求建立提交屏障。解耦评估：队列属于 Protyle 事务基础设施，经本依赖网关转发比向调用方注入更细且不暴露实现。 */
 import {waitForPendingTransactions} from "../util/transactionQueue";
@@ -54,7 +55,7 @@ import { showMessage } from "../runtime/dialog.port";
 export { showMessage };
 
 /** 用途：获取当前激活的页签。使用范围：getActiveProtyle 定位当前编辑器。解耦评估：通过 imports.ts 转发。 */
-import { getActiveTab } from "../../layout/tabUtil";
+import { getActiveTab } from "../../layout/query/activeTab";
 /** 导出 getActiveTab，供 undo 模块调用 */
 export { getActiveTab };
 
@@ -82,3 +83,13 @@ export { getSiyuanBlockPanels };
 import { isHTMLElement } from "../../util/DOM/element.guard";
 /** 导出 isHTMLElement，供 undo 模块调用 */
 export { isHTMLElement };
+
+/** 用途：向上按 className 查找祖先元素。使用范围：getRangeRootID 识别嵌入块投影容器。解耦评估：通过 imports.ts 转发。 */
+import { hasClosestByClassName } from "../util/hasClosest";
+/** 导出 hasClosestByClassName，供 undo 模块调用 */
+export { hasClosestByClassName };
+
+/** 用途：从候选元素中定位撤销焦点目标。使用范围：嵌入块与源文档同 ID 块共存时的焦点定位。解耦评估：通过 imports.ts 转发。 */
+import { getUndoFocusTarget } from "../util/selectionFocus";
+/** 导出 getUndoFocusTarget，供 undo 模块调用 */
+export { getUndoFocusTarget };

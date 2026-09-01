@@ -5,6 +5,7 @@ import {buildGutterMultipleMenu} from "./buildGutterMultipleMenu";
 import {buildGutterMenu} from "./buildGutterMenu";
 import {renderGutter} from "./renderGutter";
 import {bindEvent, isMatchNode} from "./bindEvent";
+import {getGutterNodeElement} from "./gutter.node";
 
 /**
  * 管理 Protyle 块标的事件、菜单与渲染生命周期。
@@ -44,6 +45,11 @@ export class Gutter {
     /** 作用：判定候选块是否与当前块标垂直位置匹配。 */
     public isMatchNode(item: Element) {
         return isMatchNode(item, this.element);
+    }
+
+    /** 作用：把块标按钮稳定解析为当前可视的真实块元素；调用时机：事件、菜单与宿主需要从按钮回到块 DOM 时。 */
+    public getNodeElement(protyle: IProtyle, element: Element) {
+        return getGutterNodeElement(protyle, element);
     }
 
     /** 作用：构建多选块菜单；调用时机：多块选区中触发 Gutter 菜单时。 */

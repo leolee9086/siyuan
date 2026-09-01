@@ -15,7 +15,7 @@ import { openFileById } from "../editor/utils.openFileById";
 export { openFileById };
 
 /** 用途：移动端打开文件。使用范围：uri 模块移动端处理块 URI。解耦评估：通过 imports.ts 转发。 */
-import { openMobileFileById } from "../mobile/editor";
+import { openMobileFileByIdViaPort as openMobileFileById } from "../plugin/api/openMobileFile.port";
 /** 导出 openMobileFileById，供 util 模块使用 */
 export { openMobileFileById };
 

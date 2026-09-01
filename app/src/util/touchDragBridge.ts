@@ -1,7 +1,13 @@
 import {stopScrollAnimation} from "../boot/globalEvent/dragover";
 import {Constants} from "../constants";
 import {isInAndroid} from "../protyle/util/compatibility";
-
+import {
+    completeDrag,
+    dispatchWithNativeDragEnabled,
+    restoreNativeDrag,
+    shouldSuppressNativeContextMenu,
+    suspendNativeDrag,
+} from "./touchDragBridgeCore";
 // 长按门槛共享状态：触摸后短时间内滑动视为滚动放行原生滚动，长按静止后再滑动才进入拖拽
 interface LongPressGate {
     startX: number;
@@ -104,10 +110,12 @@ const handleTouchStart = (e: TouchEvent) => {
     if (dragState || manualState) return;
 
     // 原生 Drag 路径：元素有 draggable="true" 祖先（如文件树、列表标记、AV 行拖拽），优先走 Drag API
-    if (!target.classList.contains("av__widthdrag")) {
+    if (!target.classList.contains("av__widthdrag") && !target.classList.contains("av__freeze-drag")) {
         const draggable = getDraggableAncestor(target);
         if (draggable) {
             dragState = createDragState(draggable, touch, "touch", isMouseInput(touch));
+            // WebKit 会接管 draggable 元素的长按并取消触摸序列，临时关闭原生拖拽以保留 touchend。
+            suspendNativeDrag(dragState);
             return;
         }
     }
@@ -130,6 +138,7 @@ const handleTouchStart = (e: TouchEvent) => {
         !target.closest(".search__drag") &&
         // 编辑器内部调整大小的控件不使用原生 Drag API。
         !target.closest(".av__widthdrag") &&
+        !target.closest(".av__freeze-drag") &&
         !target.closest(".av__drag-fill") &&
         !target.closest(".protyle-action__drag") &&
         !target.closest(".table__resize") &&
@@ -206,14 +215,22 @@ const handleTouchEnd = (e: TouchEvent) => {
     if (dragState) {
         if (dragState.isDragging) {
             e.preventDefault();
-            endBridgeDrag(e.changedTouches[0]);
         }
-        cleanupDrag();
+        completeBridgeDrag(e.changedTouches[0], false);
         return;
     }
     if (!manualState) return;
     // 派发 mouseup 触发组件（如 Outline.bindSort）注册的 onmouseup 清理回调，并复位状态
     cancelManualTouch();
+};
+
+const handleContextMenu = (event: MouseEvent) => {
+    // WebView 会在手指仍按住时派发原生长按菜单，菜单遮罩会截获后续 drop。
+    // 松手后由 event.ts 合成的 contextmenu 不是可信事件，需要保留以打开正常的长按菜单。
+    if (shouldSuppressNativeContextMenu(event.isTrusted, !!(dragState || manualState))) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }
 };
 
 const getDraggableAncestor = (el: Element): HTMLElement | null => {
@@ -246,6 +263,7 @@ const createDragState = (draggableElement: HTMLElement, point: DragPoint, inputT
         requireLongPress: draggableElement.closest(".sy__file") !== null ||
             draggableElement.closest(".sy__outline") !== null ||
             draggableElement.closest(".av__gallery-item") !== null ||
+            draggableElement.closest(".av__group-title") !== null ||
             draggableElement.closest(".layout-tab-bar") !== null ||
             draggableElement.closest(".protyle-action") !== null,
         longPressCancelled: false,
@@ -257,7 +275,8 @@ let suppressMouseClick = false;
 
 const handlePointerDown = (event: PointerEvent) => {
     if (event.pointerType !== "mouse" || event.button !== 0 || dragState || manualState ||
-        !(event.target instanceof Element) || event.target.closest(".av__widthdrag")) {
+        !(event.target instanceof Element) ||
+        event.target.closest(".av__widthdrag") || event.target.closest(".av__freeze-drag")) {
         return;
     }
 
@@ -268,8 +287,7 @@ const handlePointerDown = (event: PointerEvent) => {
 
     dragState = createDragState(draggable, event, "pointer", true, event.pointerId);
     // Android WebView 会在原生 dragstart 后取消 Pointer 流，临时关闭 draggable 以保留 pointermove 和 pointerup。
-    draggable.setAttribute("draggable", "false");
-    dragState.restoreDraggable = true;
+    suspendNativeDrag(dragState);
 };
 
 const handlePointerMove = (event: PointerEvent) => {
@@ -277,7 +295,7 @@ const handlePointerMove = (event: PointerEvent) => {
         return;
     }
     if ((event.buttons & 1) === 0) {
-        cleanupDrag();
+        completeBridgeDrag(event, true);
         return;
     }
     if (!dragState.isDragging) {
@@ -299,9 +317,8 @@ const handlePointerUp = (event: PointerEvent) => {
     const isDragging = dragState.isDragging;
     if (isDragging) {
         event.preventDefault();
-        endBridgeDrag(event);
     }
-    cleanupDrag();
+    completeBridgeDrag(event, false);
     if (isDragging) {
         suppressMouseClick = true;
         setTimeout(() => {
@@ -312,7 +329,7 @@ const handlePointerUp = (event: PointerEvent) => {
 
 const handlePointerCancel = (event: PointerEvent) => {
     if (dragState?.inputType === "pointer" && dragState.pointerId === event.pointerId) {
-        cleanupDrag();
+        completeBridgeDrag(event, true);
     }
 };
 
@@ -367,7 +384,8 @@ const startBridgeDrag = (touch: DragPoint) => {
         dataTransfer: dt,
         view: window,
     });
-    dragState.draggableElement.dispatchEvent(dragStartEvent);
+    // 部分拖拽处理会在 dragstart 中再次检查 draggable 属性，派发合成事件时短暂恢复。
+    dispatchWithNativeDragEnabled(dragState, () => dragState.draggableElement.dispatchEvent(dragStartEvent));
 
     dragState.ghostElement = window.siyuan.touchDragGhost || null;
     if (dragState.ghostElement) {
@@ -442,7 +460,7 @@ const continueBridgeDrag = (touch: DragPoint) => {
     positionGhost(touch.clientX, touch.clientY);
 };
 
-const endBridgeDrag = (touch: DragPoint) => {
+const dispatchBridgeDrop = (touch: DragPoint) => {
     if (!dragState.isDragging) return;
 
     const elementUnderTouch = getElementUnderPoint(touch.clientX, touch.clientY);
@@ -457,25 +475,39 @@ const endBridgeDrag = (touch: DragPoint) => {
         });
         elementUnderTouch.dispatchEvent(dropEvent);
     }
+};
+
+const dispatchBridgeDragEnd = (point?: DragPoint) => {
+    if (!dragState?.isDragging) return;
 
     const dragEndEvent = new DragEvent("dragend", {
         bubbles: true,
         cancelable: true,
-        clientX: touch.clientX,
-        clientY: touch.clientY,
+        clientX: point?.clientX ?? dragState.startX,
+        clientY: point?.clientY ?? dragState.startY,
         dataTransfer: dragState.dataTransfer,
         view: window,
     });
     dragState.draggableElement.dispatchEvent(dragEndEvent);
 };
 
+const completeBridgeDrag = (point: DragPoint | undefined, canceled: boolean) => {
+    completeDrag(!!dragState?.isDragging, canceled, {
+        drop: () => {
+            if (point) {
+                dispatchBridgeDrop(point);
+            }
+        },
+        dragEnd: () => dispatchBridgeDragEnd(point),
+        cleanup: cleanupDrag,
+    });
+};
+
 const cleanupDrag = () => {
     stopScrollAnimation();
     clearDragoverClasses();
 
-    if (dragState?.restoreDraggable) {
-        dragState.draggableElement.setAttribute("draggable", "true");
-    }
+    restoreNativeDrag(dragState);
     if (dragState?.ghostElement) {
         dragState.ghostElement.remove();
     }
@@ -488,7 +520,7 @@ const cleanupDrag = () => {
 
 const handleCancel = () => {
     // touchcancel 时两条路径都需无条件清理（cleanupDrag/cancelManualTouch 内部均做空状态处理）
-    cleanupDrag();
+    completeBridgeDrag(undefined, true);
     cancelManualTouch();
 };
 
@@ -517,7 +549,7 @@ export const initTouchDragBridge = () => {
         document.addEventListener("click", handleMouseClick, {capture: true, passive: false});
         window.addEventListener("blur", () => {
             if (dragState?.inputType === "pointer") {
-                cleanupDrag();
+                completeBridgeDrag(undefined, true);
             }
         });
     }
@@ -527,4 +559,5 @@ export const initTouchDragBridge = () => {
     document.addEventListener("touchmove", handleTouchMove, {passive: false});
     document.addEventListener("touchend", handleTouchEnd);
     document.addEventListener("touchcancel", handleCancel);
+    document.addEventListener("contextmenu", handleContextMenu, {capture: true});
 };

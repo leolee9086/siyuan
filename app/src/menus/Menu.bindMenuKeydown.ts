@@ -32,6 +32,12 @@ import { getCurrentMenuItem } from "./Menu.uills";
 import { setCurrent } from "./Menu.uills";
 /** 用途：获取子菜单当前选中项。使用范围：左键返回父级。解耦评估：同目录工具，无需解耦。 */
 import { getCurrentSubMenuItem } from "./Menu.uills";
+/*
+ * 用途：触发懒加载子菜单的自定义事件名
+ * 使用范围：键盘导航进入含 loadSubmenu 的菜单项时触发异步加载，与 Menu.Item 中 mouseenter/click 的懒加载保持一致
+ * 解耦评估：常量通过同模块 Menu.Item 转发，避免硬编码字符串扩散；可通过事件名注入解耦，但当前为菜单内部契约，直接引用更清晰
+ */
+import { CUSTOM_EVENT_LOAD_SUBMENU } from "./Menu.Item";
 
 /**
  * 在起点存在时查找可操作菜单项，否则返回 null
@@ -177,6 +183,8 @@ const handleMenuItemSelection = (actionMenuElement: Element) => {
  * @param {HTMLElement} subMenuElement - 子菜单元素
  */
 const openSubMenuFromItem = (currentElement: Element, subMenuElement: HTMLElement) => {
+    // 触发懒加载（若该项为 loadSubmenu），键盘场景需带 focus 标记以便加载完成后聚焦首项
+    currentElement.dispatchEvent(new CustomEvent(CUSTOM_EVENT_LOAD_SUBMENU, {detail: {focus: true}}));
     setNotCurrent(currentElement);
     currentElement.classList.add("b3-menu__item--show");
     const menu = getSiyuanGlobalMenusMenu();

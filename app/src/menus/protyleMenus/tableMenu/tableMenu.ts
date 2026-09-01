@@ -101,7 +101,8 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
         });
     }
     const colElements = nodeElement.querySelectorAll("col");
-    const thMatchElement = colElements[colIndex];
+    const colCandidate = colElements.item(colIndex);
+    const thMatchElement = colCandidate instanceof HTMLElement ? colCandidate : undefined;
     if (thMatchElement && (thMatchElement.style.width || thMatchElement.style.minWidth !== "60px")) {
         otherMenus.push({
             id: "useDefaultWidth",

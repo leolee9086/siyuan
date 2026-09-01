@@ -2,6 +2,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type {IGutterTurnIntoContext} from "./gutter.types";
 import {genTurnsIntoOne, genTurnsOneInto} from "./turnInto/items";
+import {turnListsRecursively} from "../wysiwyg/transaction/transforms/list";
 
 type TTurnIntoOne = "BlocksMergeSuperBlock" | "Blocks2ULs" | "Blocks2OLs" | "Blocks2TLs" | "Blocks2Blockquote" | "Blocks2Callout";
 type TTurnIntoOneSub = "row" | "col";
@@ -150,17 +151,112 @@ export const buildListMenu = (ctx: IGutterTurnIntoContext, turnIntoSubmenu: IMen
     });
 
     const listSubType = ctx.nodeElement.getAttribute("data-subtype");
+    // S-Forge: 上游递归转换语义，包含子列表
+    const listElements = [ctx.nodeElement];
+    const recursiveSubmenu: IMenu[] = [{
+        id: "recursiveParagraph",
+        icon: "iconParagraph",
+        label: siyuanI18n.paragraph,
+        click() {
+            turnListsRecursively({
+                protyle: ctx.protyle,
+                nodeElements: listElements,
+                type: "CancelListRecursively"
+            });
+        }
+    }];
 
     if (listSubType === "o") { // Ordered list
         buildOrderedListItems(ctx, turnIntoSubmenu);
-        return;
-    }
-
-    if (listSubType === "t") { // Task list
+        recursiveSubmenu.push({
+            id: "recursiveList",
+            icon: "iconList",
+            label: siyuanI18n.list,
+            click() {
+                turnListsRecursively({
+                    protyle: ctx.protyle,
+                    nodeElements: listElements,
+                    type: "ConvertListType",
+                    targetListType: "u"
+                });
+            }
+        });
+        recursiveSubmenu.push({
+            id: "recursiveCheck",
+            icon: "iconCheck",
+            label: siyuanI18n.check,
+            click() {
+                turnListsRecursively({
+                    protyle: ctx.protyle,
+                    nodeElements: listElements,
+                    type: "ConvertListType",
+                    targetListType: "t"
+                });
+            }
+        });
+    } else if (listSubType === "t") { // Task list
         buildTaskListItems(ctx, turnIntoSubmenu);
-        return;
+        recursiveSubmenu.push({
+            id: "recursiveList",
+            icon: "iconList",
+            label: siyuanI18n.list,
+            click() {
+                turnListsRecursively({
+                    protyle: ctx.protyle,
+                    nodeElements: listElements,
+                    type: "ConvertListType",
+                    targetListType: "u"
+                });
+            }
+        });
+        recursiveSubmenu.push({
+            id: "recursiveOrderedList",
+            icon: "iconOrderedList",
+            label: siyuanI18n["ordered-list"],
+            click() {
+                turnListsRecursively({
+                    protyle: ctx.protyle,
+                    nodeElements: listElements,
+                    type: "ConvertListType",
+                    targetListType: "o"
+                });
+            }
+        });
+    } else { // Unordered list (default)
+        buildUnorderedListItems(ctx, turnIntoSubmenu);
+        recursiveSubmenu.push({
+            id: "recursiveOrderedList",
+            icon: "iconOrderedList",
+            label: siyuanI18n["ordered-list"],
+            click() {
+                turnListsRecursively({
+                    protyle: ctx.protyle,
+                    nodeElements: listElements,
+                    type: "ConvertListType",
+                    targetListType: "o"
+                });
+            }
+        });
+        recursiveSubmenu.push({
+            id: "recursiveCheck",
+            icon: "iconCheck",
+            label: siyuanI18n.check,
+            click() {
+                turnListsRecursively({
+                    protyle: ctx.protyle,
+                    nodeElements: listElements,
+                    type: "ConvertListType",
+                    targetListType: "t"
+                });
+            }
+        });
     }
 
-    // Unordered list (default)
-    buildUnorderedListItems(ctx, turnIntoSubmenu);
+    turnIntoSubmenu.push({
+        id: "includeSublists",
+        icon: "iconListItem",
+        label: siyuanI18n.includeSublists,
+        type: "submenu",
+        submenu: recursiveSubmenu
+    });
 };

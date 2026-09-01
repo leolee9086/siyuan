@@ -8,7 +8,7 @@ import {
     getEditorRange,
 } from "../util/selection";
 import { Constants } from "../../constants";
-import { isMobile } from "../../util/platform/functions";
+import { isIPhone, isMobile } from "../../util/platform/functions";
 import { dropEvent } from "../util/editorCommonEvent";
 import { hideElements } from "../ui/hideElements";
 import { keydown } from "./keydown";
@@ -34,6 +34,13 @@ import { getDiagramBlock, previewDiagram } from "../preview/diagram";
 import {transaction} from "./transaction/submit";
 import { countSelectWord } from "../runtime/status.port";
 import {wysiwygBrand} from "./domain/wysiwyg.types";
+// 上游移植：数据库模板交互元素守卫（https://github.com/siyuan-note/siyuan/issues/12012）
+import { getAVTemplateInteractiveElement } from "../render/av/attributeValue";
+// 上游移植：双击列宽拖拽手柄自动适配列宽（https://github.com/siyuan-note/siyuan/issues/12952）
+import {autoFitAVColumns} from "../render/av/col/width";
+// 上游移植：数据库表格控件与大型列表虚拟化的类级接线
+import { TableControl } from "../util/tableControl";
+import { LargeListVirtualizer } from "./listVirtualization";
 
 export class WYSIWYG {
     public get [wysiwygBrand]() {
@@ -43,32 +50,44 @@ export class WYSIWYG {
     public lastHTMLs: { [key: string]: string } = {};
     public element: HTMLDivElement;
     public preventKeyup: boolean;
+    public tableControl?: TableControl;
 
     private preventClick: boolean;
     private preventInput = false;
     private readonly inputScheduler = new PendingInputScheduler();
+    private copyAsRichText = false;
+    private largeListVirtualizer?: LargeListVirtualizer;
 
     constructor(protyle: IProtyle) {
         this.element = document.createElement("div");
         this.element.className = "protyle-wysiwyg";
         this.element.setAttribute("spellcheck", "false");
-        if (isMobile()) {
-            // iPhone，iPad 端输入 contenteditable 为 true 时会在块中间插入 span
-            // Android 端空块输入法弹出会收起 https://ld246.com/article/1689713888289
-            this.element.setAttribute("contenteditable", "false");
-        } else {
-            this.element.setAttribute("contenteditable", "true");
-        }
+        // iPhone 根编辑宿主会绕过区块结构生成富文本 DOM，具体内容节点仍保持可编辑。
+        this.element.setAttribute("contenteditable", isIPhone() ? "false" : "true");
         if (window.siyuan.config.editor.displayBookmarkIcon) {
             this.element.classList.add("protyle-wysiwyg--attr");
+        }
+        if (!isMobile()) {
+            this.tableControl = new TableControl(protyle, this.element);
         }
         this.bindCommonEvent(protyle);
         this.bindEvent(protyle);
         if (protyle.options.action.includes(Constants.CB_GET_HISTORY)) {
             return;
         }
+        if (!isMobile() && !protyle.options.backlinkData && !protyle.lite) {
+            this.largeListVirtualizer = new LargeListVirtualizer(protyle.element, this.element, protyle.id);
+        }
         keydown(protyle, this.element);
         dropEvent(protyle, this.element);
+    }
+
+    public destroy() {
+        this.largeListVirtualizer?.destroy();
+    }
+
+    public prepareLargeListVirtualization(contentElement: Element, replace: boolean) {
+        this.largeListVirtualizer?.prepare(contentElement, replace);
     }
 
     public renderCustom(ial: Record<string, string>) {
@@ -77,6 +96,15 @@ export class WYSIWYG {
 
     public flushPendingInput() {
         this.inputScheduler.flush();
+    }
+
+    public copyRichText() {
+        this.copyAsRichText = true;
+        try {
+            document.execCommand("copy");
+        } finally {
+            this.copyAsRichText = false;
+        }
     }
 
     public withInputSuppressed<T>(callback: () => T) {
@@ -124,6 +152,8 @@ export class WYSIWYG {
         });
 
         this.element.addEventListener("mousedown", (event: MouseEvent) => {
+            // 常规划选时排除属性占位，三击时恢复以保留浏览器的整段选择行为
+            this.element.classList.toggle("protyle-wysiwyg--select-attr", event.button === 0 && event.detail > 2);
             if (protyle.toolbar.isMultiSelectMode()) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -134,9 +164,14 @@ export class WYSIWYG {
                 // 右键
                 return;
             }
+            if (getAVTemplateInteractiveElement(event.target)) {
+                event.stopPropagation();
+                return;
+            }
             const documentSelf = document;
             documentSelf.onmouseup = null;
             let target = event.target as HTMLElement;
+            const customElement = hasClosestByClassName(target, "protyle-custom");
             let nodeElement = hasClosestBlock(target) as HTMLElement;
             const hasSelectClassElement = this.element.querySelector(".protyle-wysiwyg--select");
             const galleryItemElement = hasClosestByClassName(target, "av__gallery-item");
@@ -182,6 +217,7 @@ export class WYSIWYG {
             const startsFromPadding = event.clientX < mostLeft - 1 || event.clientX > mostRight + 2 ||
                 event.clientY < wysiwygRect.top + (parseFloat(wysiwygStyle.paddingTop) || 0) ||
                 event.clientY > wysiwygRect.bottom - (parseFloat(wysiwygStyle.paddingBottom) || 0);
+            const isBottomBacklink = !!protyle.element.closest(".sy__backlink--bottom");
 
             const protyleRect = protyle.element.getBoundingClientRect();
             const mostBottom = protyleRect.bottom;
@@ -216,12 +252,14 @@ export class WYSIWYG {
             }
             // table cell select
             let tableBlockElement: HTMLElement | false;
-            const targetCellElement = hasClosestByTag(target, "TH") || hasClosestByTag(target, "TD");
+            const targetCellElement = !customElement &&
+                (hasClosestByTag(target, "TH") || hasClosestByTag(target, "TD"));
             if (targetCellElement) {
                 target = targetCellElement;
             }
-            if (target.tagName === "TH" || target.tagName === "TD" || target.firstElementChild?.tagName === "TABLE" ||
-                target.classList.contains("table__resize") || target.classList.contains("table__select")) {
+            if (!customElement &&
+                (target.tagName === "TH" || target.tagName === "TD" || target.firstElementChild?.tagName === "TABLE" ||
+                    target.classList.contains("table__resize") || target.classList.contains("table__select"))) {
                 tableBlockElement = nodeElement;
                 if (tableBlockElement) {
                     tableBlockElement.querySelector(".table__select").removeAttribute("style");
@@ -236,7 +274,12 @@ export class WYSIWYG {
                 // 后续拖拽操作写在多选节点中
             }
             // table col resize
-            if (handleTableColResize(protyle, event, target, nodeElement as HTMLElement, documentSelf)) {
+            if (!customElement && handleTableColResize(protyle, event, target, nodeElement as HTMLElement, documentSelf)) {
+                return;
+            }
+
+            // 编辑器底部反链仅用于浏览和编辑，不参与块、数据库或表格框选
+            if (isBottomBacklink && (startsFromPadding || tableBlockElement)) {
                 return;
             }
 
@@ -290,7 +333,11 @@ export class WYSIWYG {
             });
         });
 
-        this.element.addEventListener("focusout", () => {
+        this.element.addEventListener("focusout", (event) => {
+            if (getAVTemplateInteractiveElement(event.target)) {
+                event.stopPropagation();
+                return;
+            }
             if (getSelection().rangeCount === 0) {
                 return;
             }
@@ -301,6 +348,10 @@ export class WYSIWYG {
         });
 
         this.element.addEventListener("cut", (event) => {
+            if (getAVTemplateInteractiveElement(event.target)) {
+                event.stopPropagation();
+                return;
+            }
             const target = event.target;
             const clipboardData = event.clipboardData;
             if (!(target instanceof HTMLElement) || !clipboardData) {
@@ -367,8 +418,23 @@ export class WYSIWYG {
                 event.stopPropagation();
                 return;
             }
+            if (getAVTemplateInteractiveElement(event.target)) {
+                event.stopPropagation();
+                return;
+            }
             const target = event.target;
             if (!(target instanceof HTMLElement)) {
+                return;
+            }
+            // 双击数据库列宽拖拽手柄时自动适配该列宽度
+            if (!protyle.disabled && target.classList.contains("av__widthdrag")) {
+                const blockElement = hasClosestBlock(target) as HTMLElement;
+                const columnID = target.parentElement?.getAttribute("data-col-id");
+                if (blockElement && columnID) {
+                    autoFitAVColumns(protyle, blockElement, [columnID]);
+                }
+                event.stopPropagation();
+                event.preventDefault();
                 return;
             }
             // 双击超级块拖拽手柄，均分所有列宽。

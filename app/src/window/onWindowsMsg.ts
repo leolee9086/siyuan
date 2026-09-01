@@ -20,6 +20,12 @@ import { getSiyuanConfig } from "./imports";
 import { lockScreen } from "./imports";
 
 /**
+ * 用途：导入标签页拖拽预览清理功能，用于跨窗口拖拽结束后清理预览元素并复位拖拽状态
+ * 使用范围：handleResetTabsStyle 函数的 rmDragStyle 分支
+ * 解耦评估：布局拖拽领域功能，window/imports.ts 网关暂未转发，直接依赖实现模块
+ */
+import {clearTabDragPreview} from "../layout/tabDrag";
+/**
  * 用途：导入 Electron 样式类型守卫，用于判断元素样式是否支持 WebkitAppRegion
  * 使用范围：handleResetTabsStyle 函数中用于类型安全的样式操作
  * 解耦评估：同目录模块，无需解耦
@@ -62,14 +68,11 @@ const closeTab = (ipcData: IWebSocketData) => {
  * @param ipcData - IPC消息数据，data字段可能为"rmDragStyle"、"addRegionStyle"或"removeRegionStyle"
  */
 const handleResetTabsStyle = (ipcData: IWebSocketData) => {
-    // 移除拖拽样式：清理标签页拖拽操作产生的临时样式和克隆元素
+    // 移除拖拽样式：清理标签页拖拽残留样式与克隆页签、复位跨窗口拖拽状态，
+    // 避免拖拽中断后残留预览 DOM 或指向已不存在页签的 dragTab 数据
     if (ipcData.data === "rmDragStyle") {
-        for (const item of document.querySelectorAll(".layout-tab-bars--drag")) {
-            item.classList.remove("layout-tab-bars--drag");
-        }
-        for (const tabItem of document.querySelectorAll(".layout-tab-bar li[data-clone='true']")) {
-            tabItem.remove();
-        }
+        clearTabDragPreview();
+        window.siyuan.dragTab = undefined;
         return;
     }
 
@@ -127,19 +130,26 @@ export const onWindowsMsg = (ipcData: IWebSocketData, app: AppFacade) => {
         closeTab(ipcData);
         return;
     }
-    
+
+    // 跨窗口标签页拖拽数据：其他窗口把正在拖拽的页签信息广播过来，
+    // 记录到全局 siyuan.dragTab 供本窗口放置逻辑使用（发送方见 layout/Tab.ts 的 setTabDragData 广播）
+    if (ipcData.cmd === "setTabDragData") {
+        window.siyuan.dragTab = ipcData.data as ITabDragData;
+        return;
+    }
+
     // 重置标签页样式命令：处理标签页拖拽样式清理或窗口拖拽区域调整
     if (ipcData.cmd === "resetTabsStyle") {
         handleResetTabsStyle(ipcData);
         return;
     }
-    
+
     // 锁屏命令：立即执行锁屏操作
     if (ipcData.cmd === "lockscreen") {
         lockScreen(app);
         return;
     }
-    
+
     // 条件锁屏命令：根据系统配置决定是否锁屏
     if (ipcData.cmd === "lockscreenByMode") {
         lockScreenByMode(app);

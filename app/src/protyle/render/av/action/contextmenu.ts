@@ -46,9 +46,14 @@ const emitAttrViewContextmenuEvent = (protyle: IProtyle, state: ReturnType<typeo
  *
  * @同步豁免: 需要绝对同步的DOM访问
  */
-export const avContextmenu = (protyle: IProtyle, rowElement: HTMLElement, position: IPosition) => {
+export const avContextmenu = (
+    protyle: IProtyle,
+    rowElement: HTMLElement | undefined,
+    position: IPosition,
+    options?: {blockElement?: HTMLElement; anchorElement?: HTMLElement},
+) => {
     hideElements(["hint"], protyle);
-    const state = prepareContextmenuState(rowElement);
+    const state = prepareContextmenuState(rowElement, options);
     if (!state) {
         return false;
     }

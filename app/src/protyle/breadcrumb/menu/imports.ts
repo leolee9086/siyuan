@@ -131,6 +131,11 @@ import { reloadProtyle } from "../../util/reload";
  */
 import { hideElements } from "../../ui/hideElements";
 /*
+ * 用途：判断动态加载文档是否仍有未加载的边界。
+ * 使用范围：面包屑菜单决定是否提供“加载全部内容”操作。
+ */
+import { hasUnloadedDocumentBlocks } from "../../util/documentRange";
+/*
  * 用途：调整编辑器布局尺寸
  * 使用范围：切换全屏状态后重新计算 Protyle 尺寸
  * 解耦评估：布局工具函数，可通过事件总线响应全屏变更解耦，但当前调用点非常局部，直接导入更直观
@@ -202,6 +207,8 @@ export { getEditorRange };
 export { reloadProtyle };
 // UI工具 - 隐藏界面元素
 export { hideElements };
+// 文档范围 - 判断是否尚有动态加载内容
+export { hasUnloadedDocumentBlocks };
 // 布局工具 - 重新计算尺寸
 export { resize };
 // 插件事件 - 触发菜单打开事件

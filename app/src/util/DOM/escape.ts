@@ -14,6 +14,16 @@ export const escapeHtml = (html: string) => {
     return escapedHtml;
 };
 
+/** 剥离内核插入的搜索高亮标签，用于回填纯文本引用名。 */
+export const stripSearchMark = (html: string) => {
+    return html.replace(/<\/?mark>/g, "");
+};
+
+/** 仅保留严格的搜索高亮标签，并转义其余标签起始字符。 */
+export const escapeSearchHighlight = (html: string) => {
+    return html.replace(/<(?!\/?mark>)/g, "&lt;");
+};
+
 /**
  * 仅转义 `<`，用于调用方已经自行处理其余字符、只需要防止标签展开的场景。
  * 调用时机：部分搜索与关系面板会在已有转义链路中追加轻量安全处理时调用。

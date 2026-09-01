@@ -6,7 +6,7 @@ import {genCellValue} from "../cell.value";
 import {openEmojiPanel, unicode2Emoji} from "../../../../emoji";
 import {getColIconByType} from "./col.typeUtils";
 import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../../util/DOM/escape";
-import {updateAttrViewCellAnimation} from "../action/animation";
+import {updateAttrViewColAnimation} from "../action/animation";
 /** 用途：从当前 Protyle 宿主创建关系删除确认框；使用范围：双向关联列删除；解耦评估：依赖完整 Dialog Port，不加载具体 Dialog class。 */
 import {getProtyleDialogPort} from "../../../runtime/dialog.port";
 /** 用途：约束关系删除对话框完整生命周期；使用范围：关系确认事件处理；解耦评估：纯类型依赖稳定领域抽象，不依赖具体实现。 */
@@ -53,7 +53,7 @@ export const buildColHeaderLabel = (ctx: IShowColMenuContext): string => {
 export const applyColIcon = (
     ctx: IShowColMenuContext, iconElement: HTMLElement, unicode: string,
 ): void => {
-    const {protyle, colId, avID, cellElement, type, blockElement} = ctx;
+    const {protyle, colId, avID, cellElement, type} = ctx;
     transaction(protyle, [{
         action: "setAttrViewColIcon", id: colId, avID, data: unicode,
     }], [{
@@ -62,11 +62,7 @@ export const applyColIcon = (
     iconElement.innerHTML = unicode
         ? unicode2Emoji(unicode)
         : `<svg style="height: 14px;width: 14px"><use xlink:href="#${getColIconByType(type)}"></use></svg>`;
-    const headerCell = blockElement.querySelector(`.av__row--header .av__cell[data-col-id="${colId}"]`);
-    // 表头单元格存在时同步图标动画
-    if (headerCell instanceof HTMLElement) {
-        updateAttrViewCellAnimation(headerCell, undefined, {icon: unicode});
-    }
+    updateAttrViewColAnimation(protyle, avID, colId, {icon: unicode});
 };
 
 /** 绑定描述文本域的展开/折叠和键盘事件，由 bindColHeaderEvents 调用 @同步豁免: UI构建 */

@@ -12,6 +12,8 @@ import { getEditorConfig } from "./setLute.environment";
 import { getEditorMarkdownConfig } from "./setLute.environment";
 /** 用途：封装 window.siyuan.emojis 访问。使用范围：applyEmojiOptions 函数。解耦评估：同目录环境层文件。 */
 import { getEmojisList } from "./setLute.environment";
+/** 用途：把 editor.markdown 行内语法开关统一应用到 Lute 实例。使用范围：applyMarkdownOptions 函数。解耦评估：同目录渲染辅助模块，与上游共享。 */
+import { applyLuteMarkdownSyntax } from "./luteMarkdownSyntax";
 let luteInstance: Lute | undefined;
 
 /**
@@ -159,6 +161,8 @@ function applyBaseOptions(lute: Lute) {
  * 配置 Lute 的行内 Markdown 选项。
  *
  * 读取全局 editor.markdown 配置并应用到 Lute 实例。
+ * 具体的语法开关映射统一委托给同目录的 applyLuteMarkdownSyntax（与上游共享），
+ * 其中包含无条件关闭 GFMStrikethrough1 与全角删除线开关等上游语义。
  */
 /** @同步豁免: 遗留代码 - Lute 配置链是同步的 C 扩展调用 */
 /** @显式返回类型原因: 显式标注 void 明确该函数无返回值，禁止调用方意外使用其结果。 */
@@ -167,17 +171,7 @@ function applyMarkdownOptions(lute: Lute) {
     if (!markdownConfig) {
         return;
     }
-    lute.SetInlineAsterisk(markdownConfig.inlineAsterisk);
-    lute.SetInlineUnderscore(markdownConfig.inlineUnderscore);
-    lute.SetSup(markdownConfig.inlineSup);
-    lute.SetSub(markdownConfig.inlineSub);
-    lute.SetTag(markdownConfig.inlineTag);
-    lute.SetInlineMath(markdownConfig.inlineMath);
-    lute.SetGFMStrikethrough(markdownConfig.inlineStrikethrough);
-    lute.SetMark(markdownConfig.inlineMark);
-    if (markdownConfig.inlineStrikethrough) {
-        lute.SetGFMStrikethrough1(false);
-    }
+    applyLuteMarkdownSyntax(lute, markdownConfig);
 }
 
 /**

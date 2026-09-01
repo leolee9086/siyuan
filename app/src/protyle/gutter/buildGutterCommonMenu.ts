@@ -8,7 +8,7 @@
 
 import { isMobile } from "../../platform";
 import * as dayjs from "dayjs";
-import { setFold } from "../util/blockFold";
+import { foldHeadingGroup, setFold } from "../util/blockFold";
 import { enterBack } from "../../menus/protyleMenus/editorMenu/protyle.enterBack";
 import {openAttr} from "../../menus/commonMenuItem/fileAttr/openAttr";
 import { openWechatNotify } from "../../menus/commonMenuItem/commonMenuItem.openWechatNotify";
@@ -160,10 +160,38 @@ const 创建跳转菜单 = (ctx: IGutterCommonMenuContext) => ({
  */
 const 创建折叠菜单项 = (ctx: IGutterCommonMenuContext) => ({
     id: "fold",
+    icon: "iconFoldUnFold",
     label: siyuanI18n.fold,
-    accelerator: `${updateHotkeyTip(getSiyuanConfig().keymap.editor.general.collapse.custom)}/${updateHotkeyTip("⌥" + siyuanI18n.click)}`,
+    accelerator: ctx.type === "NodeHeading" ? updateHotkeyTip(getSiyuanConfig().keymap.editor.general.collapse.custom) :
+        `${updateHotkeyTip(getSiyuanConfig().keymap.editor.general.collapse.custom)}/${updateHotkeyTip("⌥" + siyuanI18n.click)}`,
     click() {
         setFold(ctx.protyle, ctx.nodeElement);
+        focusBlock(ctx.nodeElement);
+    }
+});
+
+const 创建折叠直接子标题菜单项 = (ctx: IGutterCommonMenuContext) => ({
+    id: "foldChildHeadings",
+    icon: "iconHeadings",
+    label: siyuanI18n.foldChildHeadings,
+    accelerator: getSiyuanConfig().keymap.editor.general.foldChildHeadings?.custom || "",
+    async click() {
+        await foldHeadingGroup(ctx.protyle, ctx.nodeElement, "children");
+        focusBlock(ctx.nodeElement);
+    }
+});
+
+const 创建折叠同级标题菜单项 = (ctx: IGutterCommonMenuContext) => ({
+    id: "foldSiblingHeadings",
+    icon: "iconHeadings",
+    label: siyuanI18n.foldSiblingHeadings,
+    accelerator: (() => {
+        const custom = getSiyuanConfig().keymap.editor.general.foldSiblingHeadings?.custom || "";
+        const clickTip = updateHotkeyTip("⌥" + siyuanI18n.click);
+        return custom ? `${custom}/${clickTip}` : clickTip;
+    })(),
+    async click() {
+        await foldHeadingGroup(ctx.protyle, ctx.nodeElement, "siblings");
         focusBlock(ctx.nodeElement);
     }
 });
@@ -338,6 +366,10 @@ const 添加编辑菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]) =
 const 添加视图菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]) => {
     if (ctx.type !== "NodeThematicBreak") {
         menuItems.push(创建折叠菜单项(ctx));
+        if (ctx.type === "NodeHeading") {
+            menuItems.push(创建折叠直接子标题菜单项(ctx));
+            menuItems.push(创建折叠同级标题菜单项(ctx));
+        }
     }
     if (ctx.type !== "NodeThematicBreak" && !ctx.protyle.disabled && !isEncryptedBox(ctx.protyle.notebookId)) {
         menuItems.push(创建属性菜单项(ctx));

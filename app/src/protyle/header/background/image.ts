@@ -12,6 +12,18 @@ import type {BackgroundDomain} from "./background.types";
 import { renderBackground } from "./render";
 import {fetchCoverData, getCategoryLabel} from "../coverData";
 
+/** 将题头图对话框归属到所在块浮窗，确保浮窗层级关闭时能一并处理。 */
+export const bindPopoverDialog = (dialog: Dialog, ownerElement: HTMLElement) => {
+    const popoverElement = ownerElement.closest<HTMLElement>(".block__popover");
+    const popoverOID = popoverElement?.dataset.oid;
+    const popoverLevel = popoverElement?.dataset.level;
+    if (!popoverOID || !popoverLevel) {
+        return;
+    }
+    dialog.element.dataset.popoverOid = popoverOID;
+    dialog.element.dataset.popoverLevel = popoverLevel;
+};
+
 /**
  * 作用：处理题头图点击事件。
  * 意图：如果是点击图片本身，触发预览。
@@ -213,6 +225,7 @@ const openBuiltInBackgroundDialog = async (background: BackgroundDomain, protyle
         height: isMobile ? "80vh" : "70vh",
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_BACKGROUNDRANDOM);
+    bindPopoverDialog(dialog, protyle.element);
     const coverData = await fetchCoverData();
     if (!coverData) {
         renderCssPatternDialog(background, protyle, dialog);
@@ -342,6 +355,7 @@ export const clickLink = (background: BackgroundDomain, protyle: IProtyle, event
 </div>`,
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_BACKGROUNDLINK);
+    bindPopoverDialog(dialog, protyle.element);
     const btnsElement = dialog.element.querySelectorAll(".b3-button");
     const cancelBtn = btnsElement[0];
     const confirmBtn = btnsElement[1];

@@ -54,6 +54,8 @@ function 处理块信息响应({response, editorElement, refDef, ctx, afterCB}: 
         return;
     }
     const action: TProtyleAction[] = 构建编辑器操作(response.data.rootID, refDef, ctx);
+    const isDocument = response.data.rootID === refDef.refID;
+    let isInitialRender = true;
     const editor = ctx.createEditor(editorElement, {
         databaseAttr: true,
         blockId: refDef.refID,
@@ -64,7 +66,8 @@ function 处理块信息响应({response, editorElement, refDef, ctx, afterCB}: 
             scroll: true,
             gutter: true,
             breadcrumbDocName: true,
-            title: response.data.rootID === refDef.refID,
+            background: isDocument,
+            title: isDocument,
         },
         typewriterMode: false,
         /** 编辑器加载完成回调 */
@@ -80,6 +83,16 @@ function 处理块信息响应({response, editorElement, refDef, ctx, afterCB}: 
                 refDef,
                 locateAttributeView: ctx.locateAttributeView,
                 renderAttributeView: ctx.renderAttributeView,
+                onInitialRender: () => {
+                    if (!isInitialRender) {
+                        return;
+                    }
+                    isInitialRender = false;
+                    if (!isDocument) {
+                        return;
+                    }
+                    滚动文档浮窗到正文(editor.protyle);
+                },
                 ...(afterCB ? {afterCB} : {}),
             });
         }
@@ -97,8 +110,22 @@ function 构建编辑器操作(rootID: string, refDef: IRefDefs, ctx: EditorInit
     return action;
 }
 
+/** 将文档浮窗的初始视口定位在标题之后，避免封面占据可见内容区。 */
+function 滚动文档浮窗到正文(protyle: IProtyle) {
+    const titleElement = protyle.title?.element;
+    if (!titleElement) {
+        return;
+    }
+    const contentElement = protyle.contentElement;
+    const marginTop = parseFloat(getComputedStyle(titleElement).marginTop) || 0;
+    const scrollTop = contentElement.scrollTop + titleElement.getBoundingClientRect().top -
+        contentElement.getBoundingClientRect().top - marginTop;
+    contentElement.scrollTop = scrollTop;
+    protyle.scroll.lastScrollTop = contentElement.scrollTop;
+}
+
 /** 处理编辑器加载完成 */
-function 处理编辑器加载完成({editor, rootID, refDef, locateAttributeView, renderAttributeView, afterCB}: IEditorLoadedContext) {
+function 处理编辑器加载完成({editor, rootID, refDef, locateAttributeView, renderAttributeView, afterCB, onInitialRender}: IEditorLoadedContext) {
     if (refDef.avItemID) {
         locateAttributeView({renderAV: renderAttributeView, protyle: editor.protyle, blockID: refDef.refID}, {
             itemID: refDef.avItemID,
@@ -117,6 +144,7 @@ function 处理编辑器加载完成({editor, rootID, refDef, locateAttributeVie
     if (afterCB) {
         afterCB();
     }
+    onInitialRender?.();
     // https://ld246.com/article/1653639418266
     if (editor.protyle.element.nextElementSibling || editor.protyle.element.previousElementSibling) {
         const innerHeight = getWindowInnerHeight();

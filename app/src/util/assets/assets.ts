@@ -18,8 +18,43 @@ import { setCodeTheme } from "./setCodeTheme";
 import { updateMobileTheme } from "./mobile";
 import { getBackend, getFrontend } from "../platform/functions";
 import {getWorkspaceName} from "../processTitle";
+import {getAllEditor} from "../../layout/getAll";
+import {invalidateHeadingNumberMeasurements} from "../../protyle/util/headingNumberCore";
+import {renderHeadingNumbers} from "../../protyle/util/headingNumber";
+import {isCurrentThemeSupported} from "../themeCompatibility";
+import {loadInlineStyles} from "../../protyle/toolbar/inlineStyle";
 
 export { setInlineStyle, setCodeTheme };
+
+/** 刷新所有编辑器的标题编号测量与展示。 */
+export const refreshHeadingNumberMeasurements = () => {
+    invalidateHeadingNumberMeasurements();
+    getAllEditor().forEach((item) => renderHeadingNumbers(item.protyle));
+};
+
+/** 更新当前主题样式表地址而不重建整个主题。 */
+export const refreshThemeStyle = (themeAddress: string) => {
+    const appearance = getSiyuanConfig().appearance;
+    if (!isCurrentThemeSupported(appearance, getFrontend())) {
+        return;
+    }
+    const isCustomTheme = (appearance.mode === 1 && appearance.themeDark !== "midnight") ||
+        (appearance.mode === 0 && appearance.themeLight !== "daylight");
+    const styleElement = document.getElementById(isCustomTheme ? "themeStyle" : "themeDefaultStyle");
+    if (styleElement instanceof HTMLLinkElement) {
+        styleElement.href = themeAddress;
+    }
+};
+
+/** 重新载入用户内联样式并更新编辑器样式表。 */
+export const reloadInlineStyles = async () => {
+    try {
+        await loadInlineStyles(true);
+    } catch (error) {
+        console.error("reload inline styles error: " + error);
+    }
+    await setInlineStyle();
+};
 
 /** 更新 HTML 元素属性 */
 const updateHTMLAttrs = () => {

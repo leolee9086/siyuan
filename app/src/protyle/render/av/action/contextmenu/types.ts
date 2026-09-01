@@ -1,3 +1,6 @@
+/** 用途：引用菜单实例类型。使用范围：插入菜单上下文类型定义中描述菜单句柄。解耦评估：类型仅用于类型层约束，不产生运行时耦合，适合由共享网关集中管理。 */
+import type { Menu } from "./imports";
+
 /**
  * 用途：表示一条已选中的属性视图记录及其主键单元格上下文。
  * 使用场景：右键菜单复制、插入、字段编辑和添加到数据库都会复用这一组 DOM 引用与标识。
@@ -26,4 +29,34 @@ export type AttrViewContextmenuState = {
     selectedRows: SelectedAttrViewRow[];
     keyRow: SelectedAttrViewRow;
     hasAttachedBlock: boolean;
+};
+
+/**
+ * 用途：插入菜单动作共享上下文。
+ * 使用场景：在插入前后菜单的各类动作间传递，收敛 6 个同传参数为单一对象以满足 max-params 约束。
+ * 关联类型：与 `BindInsertMenuItemContext` 配合，区分动作与绑定阶段的不同载荷。
+ * 问题/改进：后续若需感知分组或虚拟滚动上下文，可扩展此结构而保持调用方参数稳定。
+ */
+export type InsertMenuActionContext = {
+    menu: Menu;
+    protyle: IProtyle;
+    blockElement: HTMLElement;
+    rowElement: HTMLElement;
+    insertAfter: boolean;
+    inputElement: HTMLInputElement;
+};
+
+/**
+ * 用途：绑定插入菜单项所需的上下文。
+ * 使用场景：构建插入前后菜单项的 `bind` 回调时创建，将 6 个同传参数收敛为一个对象。
+ * 关联类型：与 `InsertMenuActionContext` 区分，绑定阶段持有 `element` 而非 `inputElement`。
+ * 问题/改进：若后续 bind 需要感知更多菜单状态，可扩展此结构而保持调用方参数稳定。
+ */
+export type BindInsertMenuItemContext = {
+    menu: Menu;
+    protyle: IProtyle;
+    blockElement: HTMLElement;
+    rowElement: HTMLElement;
+    insertAfter: boolean;
+    element: HTMLElement;
 };

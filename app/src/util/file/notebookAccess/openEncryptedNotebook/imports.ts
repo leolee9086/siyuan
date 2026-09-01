@@ -18,3 +18,7 @@ export {isMobile};
 import {getSiyuanLanguages} from "../../../siyuanEnvironments/getSiyuanConfig.environment";
 /** 导出严格语言表访问器。 */
 export {getSiyuanLanguages};
+/** 用途：编码对话框标题的动态笔记本名；使用范围：加密笔记本访问。 */
+import {escapeHtml} from "../../../DOM/escape";
+/** 导出 HTML 文本编码器。 */
+export {escapeHtml};

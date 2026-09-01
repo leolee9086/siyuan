@@ -20,6 +20,22 @@ import {
     renderBlockReferenceDropIndicator,
 } from "./onDrop.helper.blockRef";
 
+let kanbanGroupDragoverElement: HTMLElement | undefined;
+let kanbanGroupDragoverPosition: "left" | "right" | undefined;
+let kanbanGroupDragHeight = "";
+const clearKanbanGroupDragover = () => {
+    if (kanbanGroupDragoverElement) {
+        kanbanGroupDragoverElement.classList.remove("dragover__left", "dragover__right");
+        kanbanGroupDragoverElement.style.removeProperty("--b3-av-kanban-drag-height");
+        kanbanGroupDragoverElement = undefined;
+        kanbanGroupDragoverPosition = undefined;
+    }
+};
+export const cleanupKanbanGroupDragover = () => {
+    clearKanbanGroupDragover();
+    kanbanGroupDragHeight = "";
+};
+
 const applyLiTarget = (
     editorElement: HTMLElement,
     htmlTarget: HTMLElement,
@@ -126,7 +142,87 @@ export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event:
     const gutterTypes = gutterType ? gutterType.replace(Constants.SIYUAN_DROP_GUTTER, "").split(Constants.ZWSP) : [];
     const isAvSubType = gutterTypes[0] === "nodeattributeviewrowmenu" ||
         gutterTypes[0] === "nodeattributeviewrow" ||
-        (gutterTypes[0] === "nodeattributeview" && ["viewtab", "col", "galleryitem"].includes(gutterTypes[1] || ""));
+        (gutterTypes[0] === "nodeattributeview" && ["viewtab", "col", "galleryitem", "group"].includes(gutterTypes[1] || ""));
+    const isKanbanGroupDrag = gutterTypes[0] === "nodeattributeview" && gutterTypes[1] === "group";
+    if (isKanbanGroupDrag) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        hideDragTip();
+        const sourceElement = window.siyuan.dragElement as HTMLElement;
+        const sourceKanbanElement = sourceElement?.parentElement as HTMLElement;
+        if (!kanbanGroupDragHeight && sourceElement) {
+            const srcRect = sourceElement.getBoundingClientRect();
+            let maxH = srcRect.height;
+            sourceKanbanElement?.querySelectorAll(":scope > .av__kanban-group").forEach((item: HTMLElement) => {
+                maxH = Math.max(maxH, item.offsetHeight);
+            });
+            kanbanGroupDragHeight = `${maxH}px`;
+        }
+        const kanbanElement = hasClosestByClassName(event.target, "av__kanban") as HTMLElement;
+        if (!sourceElement || !sourceKanbanElement?.classList.contains("av__kanban") || kanbanElement !== sourceKanbanElement) {
+            clearKanbanGroupDragover();
+            return;
+        }
+        let targetGroupElement = hasClosestByClassName(event.target, "av__kanban-group") as HTMLElement;
+        if (targetGroupElement === sourceElement) {
+            clearKanbanGroupDragover();
+            return;
+        }
+        let position: "left" | "right" = "left";
+        if (!targetGroupElement) {
+            const srcRect = sourceElement.getBoundingClientRect();
+            if (event.clientX >= srcRect.left && event.clientX <= srcRect.right) {
+                clearKanbanGroupDragover();
+                return;
+            }
+            const groupElements = Array.from(kanbanElement.querySelectorAll(":scope > .av__kanban-group")).filter(item => item !== sourceElement) as HTMLElement[];
+            const fallback = groupElements.find(item => {
+                const rect = item.getBoundingClientRect();
+                return event.clientX < rect.left + rect.width / 2;
+            }) || groupElements[groupElements.length - 1] as HTMLElement;
+            targetGroupElement = fallback;
+            if (!targetGroupElement) {
+                clearKanbanGroupDragover();
+                return;
+            }
+            const fallbackRect = targetGroupElement.getBoundingClientRect();
+            position = event.clientX < fallbackRect.left + fallbackRect.width / 2 ? "left" : "right";
+        } else {
+            const targetRect = targetGroupElement.getBoundingClientRect();
+            position = event.clientX < targetRect.left + targetRect.width / 2 ? "left" : "right";
+        }
+        if (!targetGroupElement) {
+            clearKanbanGroupDragover();
+            return;
+        }
+        const oldVisiblePreviousID = (sourceElement.previousElementSibling as HTMLElement)?.dataset.groupId || "";
+        let visiblePreviousID = position === "left" ? (targetGroupElement.previousElementSibling as HTMLElement)?.dataset.groupId || "" : targetGroupElement.dataset.groupId || "";
+        if (visiblePreviousID === sourceElement.dataset.groupId) {
+            visiblePreviousID = oldVisiblePreviousID;
+        }
+        if (visiblePreviousID === oldVisiblePreviousID) {
+            clearKanbanGroupDragover();
+            return;
+        }
+        const oldPreviousID = sourceElement.dataset.previousGroupId || "";
+        let previousID = position === "left" ? targetGroupElement.dataset.previousGroupId || "" : targetGroupElement.dataset.groupId || "";
+        if (previousID === sourceElement.dataset.groupId) {
+            previousID = oldPreviousID;
+        }
+        if (previousID === oldPreviousID) {
+            clearKanbanGroupDragover();
+            return;
+        }
+        if (kanbanGroupDragoverElement === targetGroupElement && kanbanGroupDragoverPosition === position) {
+            return;
+        }
+        clearKanbanGroupDragover();
+        targetGroupElement.style.setProperty("--b3-av-kanban-drag-height", kanbanGroupDragHeight);
+        targetGroupElement.classList.add(`dragover__${position}`);
+        kanbanGroupDragoverElement = targetGroupElement;
+        kanbanGroupDragoverPosition = position;
+        return;
+    }
     const isAvTarget = !!(hasClosestByClassName(event.target, "av__row") ||
         hasClosestByClassName(event.target, "av__row--util") ||
         hasClosestByClassName(event.target, "av__gallery-item") ||

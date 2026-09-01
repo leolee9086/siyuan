@@ -1,53 +1,72 @@
-import * as path from "path";
-import {useShell} from "../../util/file/pathName";
+import {originalPath, useShell} from "../../util/file/pathName";
 import type {SettingTabBuilder} from "../setting/builder";
 import {Constants} from "../../constants";
 import {resetLayout} from "../../layout/util";
-import {updateHotkeyTip} from "../../protyle/util/compatibility";
+import {isInMobileApp, updateHotkeyTip} from "../../protyle/util/compatibility";
 import {desktopModeCookie} from "../../util/cookie";
-import {isMobile, objEquals} from "../../util/functions";
+import {getFrontend, isBrowser, isMobile, objEquals} from "../../util/functions";
 import {isElectron} from "../../platform";
 import {exitSiYuan} from "../../dialog/processSystem";
-import {fetchPost} from "../../util/network/fetch";
-import {openByMobile} from "../../editor/openLink";
+import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
+import {openLink} from "../../editor/openLink";
 import {openSnippets} from "../util/snippets";
 import {confirmDialog} from "../../dialog/confirmDialog";
 import {Dialog} from "../../dialog";
 import {Menu} from "../../plugin/Menu";
-import {escapeAttr} from "../../util/DOM/escape";
-import {genConfigItemMainHtml, genListSwitchItemHtml} from "../render/fragments";
+import {escapeAttr, escapeHtml} from "../../util/DOM/escape";
+import {genListSwitchItemHtml} from "../render/fragments";
 import {genStackHtml} from "../render/render";
 import {controlBoolean} from "../setting/control";
 import {editorConfigApi} from "./editorRuntime";
 import {appearanceThemeModeValue, saveThemeMode} from "./appearanceRuntime";
 import {upDownHint} from "../../util/DOM/upDownHint";
+import {isThemeFrontendSupported} from "../../util/themeCompatibility";
+import {
+    ICustomFont,
+    invalidateCustomFonts,
+    isNativeMobileContainer,
+    loadCustomFonts,
+    registerCustomFont,
+    unregisterCustomFont
+} from "../../util/customFont";
+import {showMessage} from "../../dialog/message";
+import {genMobileBottomBarSettingHTML, mountMobileBottomBarSetting} from "../../mobile/util/mobileBottomBar";
+import {genMobileSidePanelSettingHTML, mountMobileSidePanelSetting} from "../../mobile/util/mobileSidePanelSetting";
+import {genEntryVisibilityHtml, mountEntryVisibility} from "../entryVisibility/ui";
 
 interface IFontItem {
+    id?: string;
     family: string;
     weight: number;
     displayName: string;
+    aliases?: string[];
 }
+
+const getEditorFonts = (editor: Config.IEditor): IFontItem[] => editor.fontFamilies || [];
+
+const getEditorFontDisplay = (fonts: IFontItem[]) =>
+    fonts.map((font) => font.displayName || font.family).join(", ");
 
 const registerAppearanceContentGroup = (tab: SettingTabBuilder) => {
     const group = tab.group("content", window.siyuan.languages.configGroupContent);
 
     group.slot({
-        key: "fontFamily",
+        key: "fontFamilies",
         keywords: [window.siyuan.languages.font, window.siyuan.languages.font1],
         html: () =>
             `<div class="fn__flex b3-label config-item config-wrap">
-    ${genConfigItemMainHtml(window.siyuan.languages.font, window.siyuan.languages.font1)}
+    <div class="fn__flex-1 config-item__main">
+        <div class="config-name">${window.siyuan.languages.font}</div>
+        <div class="b3-label__text">${window.siyuan.languages.font1}</div>
+        <div class="fn__hr--small"></div>
+        <div class="b3-chips b3-chips__doctag${getEditorFonts(window.siyuan.config.editor).length === 0 ? " fn__none" : ""}" data-type="selected-fonts">${genSelectedFontListHtml(getEditorFonts(window.siyuan.config.editor))}</div>
+    </div>
     <span class="fn__space"></span>
     <input
         class="b3-select fn__flex-center fn__size200"
-        id="editor.fontFamily"
-        data-family="${escapeAttr(window.siyuan.config.editor.fontFamily)}"
-        data-weight="${window.siyuan.config.editor.fontWeight}"
-        data-display="${escapeAttr(window.siyuan.config.editor.fontFamilyDisplay)}"
-        value="${escapeAttr(window.siyuan.config.editor.fontFamilyDisplay || window.siyuan.config.editor.fontFamily || window.siyuan.languages.default)}"
+        id="editor.fontFamilies"
+        value="${escapeAttr(getEditorFontDisplay(getEditorFonts(window.siyuan.config.editor)) || window.siyuan.languages.default)}"
         readonly
-        style="font-family: ${window.siyuan.config.editor.fontFamily ? window.siyuan.config.editor.fontFamily + ", var(--b3-font-family)" : "var(--b3-font-family)"};
-        ${window.siyuan.config.editor.fontWeight ? `font-weight: ${window.siyuan.config.editor.fontWeight};` : ""}"
     >
 </div>`,
         afterMount: mountAppearanceFontFamily,
@@ -85,129 +104,374 @@ const registerAppearanceContentGroup = (tab: SettingTabBuilder) => {
 };
 
 const genFontListItemHtml = (item: IFontItem, checked: boolean) => {
-    return `<div class="b3-list-item b3-list-item--narrow">
-    <span class="b3-menu__label" data-family="${item.family}" style='font-family:"${item.family}", var(--b3-font-family);${item.weight ? ` font-weight: ${item.weight};` : ""}'>${item.displayName}</span>
+    const searchText = [item.family, item.displayName, ...(item.aliases || [])].join("\n").toLowerCase();
+    return `<div class="b3-list-item b3-list-item--narrow" data-id="${escapeAttr(item.id || "")}">
+    <span class="b3-menu__label" data-family="${escapeAttr(item.family)}" data-name="${escapeAttr(item.displayName)}" data-search="${escapeAttr(searchText)}" data-weight="${item.weight || 400}">${escapeHtml(item.displayName)}</span>
     ${checked ? '<svg class="b3-menu__checked"><use xlink:href="#iconSelect"></use></svg>' : ""}
+    ${item.id && !window.siyuan.config.readonly ? `<span class="b3-menu__action ariaLabel" data-type="delete-font" aria-label="${escapeAttr(window.siyuan.languages.delete)}"><svg><use xlink:href="#iconTrashcan"></use></svg></span>` : ""}
 </div>`;
 };
 
-const mountAppearanceFontFamily = (root: HTMLElement) => {
-    const fontFamilyEl = root.querySelector<HTMLInputElement>(`#${CSS.escape("editor.fontFamily")}`);
-    if (!fontFamilyEl) {
-        return;
-    }
-    fontFamilyEl.addEventListener("click", () => {
-        fetchPost("/api/system/getSysFonts", {}, (response) => {
-            const curFamily = fontFamilyEl.dataset.family;
-            const curWeight = parseInt(fontFamilyEl.style.fontWeight || "400", 10);
-            const defaultItemHtml = genFontListItemHtml({
-                family: "",
-                displayName: window.siyuan.languages.default,
-                weight: 400,
-            }, curFamily === "");
-            const fontItemHtml = response.data.map((item: IFontItem) =>
-                genFontListItemHtml(item, item.family === curFamily && item.weight === curWeight)
-            ).join("");
-            const fontMenu = new Menu();
-            fontMenu.addItem({
-                iconHTML: "",
-                type: "empty",
-                label: `<div class="fn__flex-column b3-menu__filter">
-    <input class="b3-text-field fn__block" placeholder="${window.siyuan.languages.search}">
-    <div class="fn__hr"></div>
-    <div class="b3-list fn__flex-1 b3-list--background">${defaultItemHtml}${fontItemHtml}</div>
-</div>`,
-                bind(element) {
-                    const listElement = element.querySelector(".b3-list");
-                    listElement.firstElementChild.classList.add("b3-list-item--focus");
-                    const inputElement = element.querySelector("input");
-                    const filterFontList = () => {
-                        const value = inputElement.value.toLowerCase().trim();
-                        listElement.querySelector(".b3-list-item--focus")?.classList.add("b3-list-item--focus");
-                        listElement.querySelectorAll<HTMLElement>(".b3-list-item .b3-menu__label").forEach((item) => {
-                            const name = item.textContent.trim();
-                            item.parentElement.classList.toggle("fn__none", !(!value || item.dataset.family.toLowerCase().includes(value) || name.toLowerCase().includes(value)));
-                            const idx = name.toLowerCase().indexOf(value);
-                            if (idx === -1 || !value) {
-                                item.innerHTML = name;
-                            } else {
-                                item.innerHTML = `${name.slice(0, idx)}<mark>${name.slice(idx, idx + value.length)}</mark>${name.slice(idx + value.length)}`;
-                            }
-                        });
-                        listElement.querySelector(".b3-list-item:not(.fn__none)")?.classList.add("b3-list-item--focus");
-                    };
-                    inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
-                        event.stopPropagation();
-                        if (event.isComposing) {
-                            return;
-                        }
-                        upDownHint(listElement, event);
-                        if (event.key === "Enter") {
-                            const itemEl = listElement.querySelector(".b3-list-item--focus .b3-menu__label") as HTMLElement;
-                            persistEditorFont({
-                                family: itemEl.dataset.family,
-                                displayName: itemEl.textContent.trim(),
-                                weight: parseInt(itemEl.style.fontWeight) || 400
-                            });
-                            fontMenu.close();
-                        } else if (event.key === "Escape") {
-                            window.siyuan.menus.menu.remove();
-                        }
-                    });
-                    inputElement.addEventListener("input", (event: InputEvent) => {
-                        if (event.isComposing) {
-                            return;
-                        }
-                        filterFontList();
-                    });
-                    inputElement.addEventListener("compositionend", filterFontList);
-                    // 列表点击委托，读取 dataset 应用选中逻辑
-                    listElement.addEventListener("click", (event) => {
-                        const target = event.target as HTMLElement;
-                        const itemEl = target.closest(".b3-list-item")?.querySelector(".b3-menu__label") as HTMLElement;
-                        if (!itemEl) {
-                            return;
-                        }
-                        persistEditorFont({
-                            family: itemEl.dataset.family,
-                            displayName: itemEl.textContent.trim(),
-                            weight: parseInt(itemEl.style.fontWeight) || 400
-                        });
-                        fontMenu.close();
-                    });
-                }
-            });
-            const rect = fontFamilyEl.getBoundingClientRect();
-            fontMenu.open({x: rect.left, y: rect.bottom, h: rect.height});
-            // 内部列表自行滚动，搜索框保持固定
-            fontMenu.element.querySelector(".b3-menu__items").setAttribute("style", "overflow: initial");
-            fontMenu.element.querySelector("input").focus();
-        });
-    });
+const genSelectedFontListHtml = (fonts: IFontItem[]) => fonts.map((font, index) => `<div class="b3-chip b3-chip--middle config-font-family__chip fn__grab" data-index="${index}" data-family="${escapeAttr(font.family)}" data-weight="${font.weight || 400}">
+    <span class="fn__ellipsis config-font-family__text">${escapeHtml(font.displayName || font.family)}</span>
+    <svg class="b3-chip__close ariaLabel" data-type="font-remove" aria-label="${escapeAttr(window.siyuan.languages.remove)}"><use xlink:href="#iconClose"></use></svg>
+</div>`).join("");
 
-    function persistEditorFont(item: IFontItem) {
-        if (fontFamilyEl.dataset.family === item.family && parseInt(fontFamilyEl.style.fontWeight) === item.weight) {
+const bindSelectedFontList = (element: HTMLElement, getFonts: () => IFontItem[],
+                              persist: (fonts: IFontItem[]) => void) => {
+    element.addEventListener("click", (event) => {
+        const action = (event.target as HTMLElement).closest<HTMLElement>('[data-type="font-remove"]');
+        const chipElement = action?.closest<HTMLElement>(".b3-chip");
+        const index = parseInt(chipElement?.dataset.index, 10);
+        if (!action || !Number.isInteger(index)) {
             return;
         }
+        const fonts = [...getFonts()];
+        fonts.splice(index, 1);
+        persist(fonts);
+    });
+    element.addEventListener("mousedown", (event: MouseEvent) => {
+        if (event.button !== 0 || (event.target as HTMLElement).closest('[data-type="font-remove"]')) {
+            return;
+        }
+        const chipElement = (event.target as HTMLElement).closest<HTMLElement>(".b3-chip");
+        if (!chipElement || !element.contains(chipElement)) {
+            return;
+        }
+        event.preventDefault();
+        const fontsBeforeDrag = getFonts();
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const initialRect = chipElement.getBoundingClientRect();
+        const offsetX = startX - initialRect.left;
+        const offsetY = startY - initialRect.top;
+        let dragging = false;
+        let dragClone: HTMLElement;
+        const finishDragging = (upEvent: MouseEvent) => {
+            document.removeEventListener("mousemove", moveChip);
+            document.removeEventListener("mouseup", finishDragging);
+            document.body.style.cursor = "";
+            if (!dragging) {
+                return;
+            }
+            upEvent.preventDefault();
+            upEvent.stopPropagation();
+            dragClone.remove();
+            chipElement.classList.remove("b3-chip--dragging");
+            const fonts = Array.from(element.querySelectorAll<HTMLElement>(".b3-chip")).map((chip) =>
+                fontsBeforeDrag[parseInt(chip.dataset.index, 10)]);
+            if (fonts.some((font, index) => font !== fontsBeforeDrag[index])) {
+                persist(fonts);
+            }
+        };
+        const moveChip = (moveEvent: MouseEvent) => {
+            const deltaX = moveEvent.clientX - startX;
+            const deltaY = moveEvent.clientY - startY;
+            if (!dragging) {
+                if (Math.abs(deltaX) < Constants.SIZE_DRAG_THRESHOLD &&
+                    Math.abs(deltaY) < Constants.SIZE_DRAG_THRESHOLD) {
+                    return;
+                }
+                dragging = true;
+                dragClone = chipElement.cloneNode(true) as HTMLElement;
+                dragClone.classList.add("b3-chip--dragclone");
+                Object.assign(dragClone.style, {
+                    position: "fixed",
+                    left: `${moveEvent.clientX - offsetX}px`,
+                    top: `${moveEvent.clientY - offsetY}px`,
+                    width: `${initialRect.width}px`,
+                    height: `${initialRect.height}px`,
+                    margin: "0",
+                    zIndex: "9999",
+                    pointerEvents: "none",
+                    transition: "none",
+                });
+                document.body.append(dragClone);
+                chipElement.classList.add("b3-chip--dragging");
+                document.body.style.cursor = "grabbing";
+            }
+            dragClone.style.left = `${moveEvent.clientX - offsetX}px`;
+            dragClone.style.top = `${moveEvent.clientY - offsetY}px`;
+            const targetChip = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)
+                ?.closest<HTMLElement>(".b3-chip");
+            if (!targetChip || targetChip === chipElement || !element.contains(targetChip)) {
+                return;
+            }
+            const targetRect = targetChip.getBoundingClientRect();
+            const sameRow = moveEvent.clientY >= targetRect.top && moveEvent.clientY <= targetRect.bottom;
+            const after = sameRow ? moveEvent.clientX > targetRect.left + targetRect.width / 2 :
+                moveEvent.clientY > targetRect.top + targetRect.height / 2;
+            if (after) {
+                targetChip.after(chipElement);
+            } else {
+                targetChip.before(chipElement);
+            }
+        };
+        document.addEventListener("mousemove", moveChip);
+        document.addEventListener("mouseup", finishDragging);
+    });
+};
+
+const mountAppearanceFontFamily = (root: HTMLElement) => {
+    const fontFamiliesElement = root.querySelector<HTMLInputElement>(`#${CSS.escape("editor.fontFamilies")}`);
+    const selectedListElement = root.querySelector<HTMLElement>('[data-type="selected-fonts"]');
+    if (!fontFamiliesElement || !selectedListElement) {
+        return;
+    }
+    let selectedFonts = getEditorFonts(window.siyuan.config.editor);
+    let refreshOpenMenu: (() => void) | undefined;
+    const renderSelectedFonts = () => {
+        selectedListElement.innerHTML = genSelectedFontListHtml(selectedFonts);
+        selectedListElement.classList.toggle("fn__none", selectedFonts.length === 0);
+        selectedListElement.querySelectorAll<HTMLElement>(".b3-chip").forEach((chip) => {
+            const textElement = chip.querySelector<HTMLElement>(".config-font-family__text");
+            if (textElement) {
+                textElement.style.fontFamily = CSS.escape(chip.dataset.family);
+                textElement.style.fontWeight = chip.dataset.weight;
+            }
+        });
+        fontFamiliesElement.value = getEditorFontDisplay(selectedFonts) || window.siyuan.languages.default;
+    };
+    const persistEditorFonts = (fonts: IFontItem[]) => {
         fetchPost(
             "/api/setting/setEditor",
             {
                 ...window.siyuan.config.editor,
-                fontFamily: item.family,
-                fontWeight: item.weight,
-                fontFamilyDisplay: item.displayName,
+                fontFamilies: fonts.map((font) => ({
+                    family: font.family,
+                    weight: font.weight,
+                    displayName: font.displayName,
+                })),
             },
             (response) => {
                 const data = response.data as Config.IEditor;
+                selectedFonts = getEditorFonts(data);
                 editorConfigApi.apply(data);
-                fontFamilyEl.value = data.fontFamilyDisplay || data.fontFamily || window.siyuan.languages.default;
-                fontFamilyEl.dataset.family = data.fontFamily;
-                fontFamilyEl.style.fontFamily = `${data.fontFamily ? data.fontFamily + ", " : ""}var(--b3-font-family)`;
-                fontFamilyEl.style.fontWeight = data.fontWeight ? String(data.fontWeight) : "400";
+                renderSelectedFonts();
+                refreshOpenMenu?.();
             }
         );
+    };
+    bindSelectedFontList(selectedListElement, () => selectedFonts, persistEditorFonts);
+    updateFontInput(window.siyuan.config.editor);
+    fontFamiliesElement.addEventListener("click", async () => {
+        const nativeMobile = isNativeMobileContainer();
+        let systemResponse: IWebSocketData;
+        let customFonts: ICustomFont[];
+        try {
+            [systemResponse, customFonts] = await Promise.all([
+                fetchSyncPost("/api/system/getSysFonts"),
+                nativeMobile ? loadCustomFonts() : Promise.resolve([] as ICustomFont[])
+            ]);
+        } catch (error) {
+            console.warn("load font list failed", error);
+            return;
+        }
+        const systemFonts = Array.isArray(systemResponse.data) ? systemResponse.data as IFontItem[] : [];
+
+        const fontItems = [...customFonts, ...systemFonts];
+        selectedFonts = getEditorFonts(window.siyuan.config.editor).map((selectedFont) =>
+            fontItems.find((font) => font.family === selectedFont.family && font.weight === selectedFont.weight) ||
+            selectedFont);
+        renderSelectedFonts();
+        const fontItemHtml = fontItems.map((item) =>
+            genFontListItemHtml(item, selectedFonts.some((font) =>
+                font.family === item.family && font.weight === item.weight))
+        ).join("");
+        const canManageCustomFonts = nativeMobile && !window.siyuan.config.readonly;
+        const customFontsByID = new Map(customFonts.map((font) => [font.id, font]));
+        let fontPreviewObserver: IntersectionObserver;
+        const fontMenu = new Menu(undefined, () => {
+            fontPreviewObserver?.disconnect();
+            refreshOpenMenu = undefined;
+        });
+        fontMenu.addItem({
+            iconHTML: "",
+            type: "empty",
+            label: `<div class="fn__flex-column b3-menu__filter">
+    <div class="fn__flex">
+        <input class="b3-text-field fn__flex-1" data-type="font-search" placeholder="${escapeAttr(window.siyuan.languages.searchPlaceholder)}">
+        ${canManageCustomFonts ? `<span class="fn__space"></span><button class="b3-button b3-button--outline fn__flex-center" data-type="import-font"><svg><use xlink:href="#iconUpload"></use></svg>${escapeHtml(window.siyuan.languages.importFont)}</button>` : ""}
+    </div>
+    ${nativeMobile ? `<div class="b3-label__text ft__on-surface" style="margin-top: 8px">${escapeHtml(window.siyuan.languages.fontFileTip)}</div>` : ""}
+    ${canManageCustomFonts ? '<input class="fn__none" data-type="font-file" type="file" accept=".ttf,.otf,font/ttf,font/otf">' : ""}
+    <div class="fn__hr"></div>
+    <div class="b3-list fn__flex-1 b3-list--background" data-type="available-fonts">${fontItemHtml}</div>
+</div>`,
+            bind(element) {
+                const listElement = element.querySelector<HTMLElement>('[data-type="available-fonts"]');
+                const inputElement = element.querySelector<HTMLInputElement>('[data-type="font-search"]');
+                const refreshFontMenu = () => {
+                    listElement.querySelectorAll<HTMLElement>(".b3-list-item").forEach((item) => {
+                        const label = item.querySelector<HTMLElement>(".b3-menu__label");
+                        const checked = selectedFonts.some((font) =>
+                            font.family === label.dataset.family && font.weight === parseInt(label.dataset.weight, 10));
+                        item.querySelector(".b3-menu__checked")?.remove();
+                        if (checked) {
+                            item.insertAdjacentHTML("beforeend", '<svg class="b3-menu__checked"><use xlink:href="#iconSelect"></use></svg>');
+                        }
+                    });
+                };
+                refreshOpenMenu = refreshFontMenu;
+                refreshFontMenu();
+                if ("IntersectionObserver" in window) {
+                    fontPreviewObserver = new IntersectionObserver((entries) => {
+                        entries.forEach((entry) => {
+                            const itemElement = entry.target as HTMLElement;
+                            const labelElement = itemElement.querySelector<HTMLElement>(".b3-menu__label");
+                            if (!entry.isIntersecting || !labelElement?.dataset.family) {
+                                labelElement?.style.removeProperty("font-family");
+                                labelElement?.style.removeProperty("font-weight");
+                                return;
+                            }
+                            const customFont = itemElement.dataset.id ? customFontsByID.get(itemElement.dataset.id) : undefined;
+                            if (customFont) {
+                                registerCustomFont(customFont);
+                            }
+                            labelElement.style.fontFamily = labelElement.dataset.family;
+                            labelElement.style.fontWeight = labelElement.dataset.weight;
+                        });
+                    }, {
+                        root: listElement,
+                    });
+                    listElement.querySelectorAll<HTMLElement>(".b3-list-item").forEach((item) => {
+                        fontPreviewObserver.observe(item);
+                    });
+                } else {
+                    listElement.querySelectorAll<HTMLElement>(".b3-menu__label").forEach((item) => {
+                        item.style.fontFamily = item.dataset.family;
+                        item.style.fontWeight = item.dataset.weight;
+                    });
+                    customFonts.forEach(registerCustomFont);
+                }
+                listElement.firstElementChild.classList.add("b3-list-item--focus");
+                const filterFontList = () => {
+                    const value = inputElement.value.toLowerCase().trim();
+                    listElement.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+                    listElement.querySelectorAll<HTMLElement>(".b3-list-item .b3-menu__label").forEach((item) => {
+                        const name = item.dataset.name;
+                        item.parentElement.classList.toggle("fn__none", !(!value ||
+                            item.dataset.search.includes(value)));
+                        const idx = name.toLowerCase().indexOf(value);
+                        item.replaceChildren(document.createTextNode(name));
+                        if (idx !== -1 && value) {
+                            const markElement = document.createElement("mark");
+                            markElement.textContent = name.slice(idx, idx + value.length);
+                            item.replaceChildren(
+                                document.createTextNode(name.slice(0, idx)),
+                                markElement,
+                                document.createTextNode(name.slice(idx + value.length))
+                            );
+                        }
+                    });
+                    listElement.querySelector(".b3-list-item:not(.fn__none)")?.classList.add("b3-list-item--focus");
+                };
+                inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
+                    event.stopPropagation();
+                    if (event.isComposing) {
+                        return;
+                    }
+                    upDownHint(listElement, event);
+                    if (event.key === "Enter") {
+                        const itemEl = listElement.querySelector<HTMLElement>(".b3-list-item--focus .b3-menu__label");
+                        if (itemEl) {
+                            toggleEditorFont(fontItemFromElement(itemEl));
+                        }
+                    } else if (event.key === "Escape") {
+                        window.siyuan.menus.menu.remove();
+                    }
+                });
+                inputElement.addEventListener("input", (event: InputEvent) => {
+                    if (!event.isComposing) {
+                        filterFontList();
+                    }
+                });
+                inputElement.addEventListener("compositionend", filterFontList);
+                element.querySelector<HTMLElement>('[data-type="import-font"]')?.addEventListener("click", () => {
+                    element.querySelector<HTMLInputElement>('[data-type="font-file"]').click();
+                });
+                element.querySelector<HTMLInputElement>('[data-type="font-file"]')?.addEventListener("change", (event) => {
+                    const fileInput = event.currentTarget as HTMLInputElement;
+                    const file = fileInput.files?.[0];
+                    fileInput.value = "";
+                    if (!file) {
+                        return;
+                    }
+                    if (file.size > 64 * 1024 * 1024) {
+                        showMessage(window.siyuan.languages.fontFileTip, 6000, "error");
+                        return;
+                    }
+                    const formData = new FormData();
+                    formData.append("file", file);
+                    fetchPost("/api/system/importCustomFont", formData, (response) => {
+                        const font = response.data as ICustomFont;
+                        invalidateCustomFonts();
+                        registerCustomFont(font);
+                        persistEditorFonts([...selectedFonts.filter((item) => item.family !== font.family), font]);
+                        showMessage(window.siyuan.languages.imported);
+                    });
+                });
+                listElement.addEventListener("click", (event) => {
+                    const target = event.target as HTMLElement;
+                    const itemElement = target.closest<HTMLElement>(".b3-list-item");
+                    const itemEl = itemElement?.querySelector<HTMLElement>(".b3-menu__label");
+                    if (!itemEl) {
+                        return;
+                    }
+                    if (target.closest('[data-type="delete-font"]')) {
+                        const id = itemElement.dataset.id;
+                        confirmDialog(
+                            window.siyuan.languages.deleteOpConfirm,
+                            window.siyuan.languages.deleteFontConfirm.replace(
+                                "${x}", `<b>${escapeHtml(itemEl.dataset.name)}</b>`),
+                            () => {
+                                fetchPost("/api/system/removeCustomFont", {id}, (response) => {
+                                    unregisterCustomFont(id);
+                                    invalidateCustomFonts();
+                                    if (response.data.editor) {
+                                        editorConfigApi.apply(response.data.editor);
+                                        updateFontInput(response.data.editor);
+                                    }
+                                    fontMenu.close();
+                                });
+                            },
+                            undefined,
+                            true
+                        );
+                        return;
+                    }
+                    toggleEditorFont(fontItemFromElement(itemEl));
+                });
+
+                function toggleEditorFont(item: IFontItem) {
+                    const selected = selectedFonts.some((font) => font.family === item.family && font.weight === item.weight);
+                    const fonts = selected ? selectedFonts.filter((font) =>
+                        font.family !== item.family || font.weight !== item.weight) :
+                        [...selectedFonts.filter((font) => font.family !== item.family), item];
+                    persistEditorFonts(fonts);
+                }
+            }
+        });
+        const rect = fontFamiliesElement.getBoundingClientRect();
+        fontMenu.open({x: rect.left, y: rect.bottom, h: rect.height});
+        // 内部列表自行滚动，搜索框保持固定
+        fontMenu.element.querySelector(".b3-menu__items").setAttribute("style", "overflow: initial");
+        fontMenu.element.querySelector<HTMLInputElement>('[data-type="font-search"]').focus();
+    });
+
+    function updateFontInput(data: Config.IEditor) {
+        selectedFonts = getEditorFonts(data);
+        fontFamiliesElement.style.removeProperty("font-family");
+        fontFamiliesElement.style.removeProperty("font-weight");
+        renderSelectedFonts();
     }
 };
+
+const fontItemFromElement = (item: HTMLElement): IFontItem => ({
+    family: item.dataset.family,
+    displayName: item.dataset.name,
+    weight: parseInt(item.dataset.weight, 10) || 400,
+});
 
 const registerAppearanceInterfaceGroup = (tab: SettingTabBuilder) => {
     const group = tab.group("interface", window.siyuan.languages.configGroupInterface);
@@ -245,7 +509,7 @@ const registerAppearanceInterfaceGroup = (tab: SettingTabBuilder) => {
         afterMount: (root) => {
             if (isElectron) {
                 root.querySelector("#appearanceOpenTheme")?.addEventListener("click", () => {
-                    useShell("openPath", path.join(window.siyuan.config.system.confDir, "appearance", "themes"));
+                    useShell("openPath", originalPath().join(window.siyuan.config.system.confDir, "appearance", "themes"));
                 });
             }
         },
@@ -260,14 +524,16 @@ const registerAppearanceInterfaceGroup = (tab: SettingTabBuilder) => {
         }
         stack.select("appearance.themeLight", {
             desc: window.siyuan.languages.theme11,
-            options: window.siyuan.config.appearance.lightThemes.map((item) => ({
+            options: window.siyuan.config.appearance.lightThemes.filter((item) =>
+                isThemeFrontendSupported(item.frontends, getFrontend())).map((item) => ({
                 value: item.name,
                 label: item.label,
             })),
         });
         stack.select("appearance.themeDark", {
             desc: window.siyuan.languages.theme12,
-            options: window.siyuan.config.appearance.darkThemes.map((item) => ({
+            options: window.siyuan.config.appearance.darkThemes.filter((item) =>
+                isThemeFrontendSupported(item.frontends, getFrontend())).map((item) => ({
                 value: item.name,
                 label: item.label,
             })),
@@ -283,7 +549,7 @@ const registerAppearanceInterfaceGroup = (tab: SettingTabBuilder) => {
         afterMount: (root) => {
             if (isElectron) {
                 root.querySelector("#appearanceOpenIcon")?.addEventListener("click", () => {
-                    useShell("openPath", path.join(window.siyuan.config.system.confDir, "appearance", "icons"));
+                    useShell("openPath", originalPath().join(window.siyuan.config.system.confDir, "appearance", "icons"));
                 });
             }
         },
@@ -327,7 +593,37 @@ const registerAppearanceInterfaceGroup = (tab: SettingTabBuilder) => {
 const registerAppearanceControlsGroup = (tab: SettingTabBuilder) => {
     const group = tab.group("controls", window.siyuan.languages.configGroupControls);
 
+    if (isMobile()) {
+        group.slot({
+            key: "mobileBottomBar",
+            keywords: [
+                window.siyuan.languages.mobile,
+                window.siyuan.languages.mobileBottomBar,
+                window.siyuan.languages.reset,
+            ],
+            html: genMobileBottomBarSettingHTML,
+            afterMount: mountMobileBottomBarSetting,
+        });
+        group.slot({
+            key: "mobileSidePanel",
+            keywords: [
+                window.siyuan.languages.mobile,
+                window.siyuan.languages.leftRightLayout,
+                window.siyuan.languages.fileTree,
+                window.siyuan.languages.outline,
+                window.siyuan.languages.reset,
+            ],
+            html: genMobileSidePanelSettingHTML,
+            afterMount: mountMobileSidePanelSetting,
+        });
+    }
     if (!isMobile()) {
+        group.slot({
+            key: "entryVisibility",
+            keywords: [window.siyuan.languages.entryVisibility, window.siyuan.languages.entryVisibilityTip],
+            html: genEntryVisibilityHtml,
+            afterMount: mountEntryVisibility,
+        });
         group.select("editor.floatWindowMode", {
             title: window.siyuan.languages.floatWindowMode,
             desc: window.siyuan.languages.floatWindowModeTip,
@@ -380,70 +676,77 @@ const registerAppearanceControlsGroup = (tab: SettingTabBuilder) => {
             icon: "iconSettings",
         });
     });
-    group.stack({
-        key: "notifications",
+    group.button({
+        id: "notificationsSetting",
+        title: window.siyuan.languages.notifications,
+        desc: window.siyuan.languages.notificationsMsgPushTip,
+        label: window.siyuan.languages.config,
+        icon: "iconSettings",
         keywords: [
-            window.siyuan.languages.notifications,
-            window.siyuan.languages.notificationsMsgPushTip,
             window.siyuan.languages.msgDocTreeMaxList,
             window.siyuan.languages.msgTagMaxList,
             window.siyuan.languages.msgWorkspaceNotSSD,
             window.siyuan.languages.msgBrowserCompatibility,
+            window.siyuan.languages.msgSelectAllTip,
+            window.siyuan.languages.msgSelectAllIncompleteTip,
+            window.siyuan.languages.msgFormatPainterTip,
         ],
         afterMount: mountAppearanceSetNotifications,
-    }, (stack) => {
-        stack.title(window.siyuan.languages.notifications);
-        stack.button({
-            id: "notificationsSetting",
-            label: window.siyuan.languages.config,
-            icon: "iconSettings",
-        });
-        stack.desc(window.siyuan.languages.notificationsMsgPushTip);
     });
     const desktopModeControl = controlBoolean("desktopMode", {
         readConfig: () => desktopModeCookie.read(),
     });
-    // https://github.com/siyuan-note/siyuan/issues/13952
-    group.composite({
-        key: "desktopMode",
-        keywords: [
-            window.siyuan.languages.desktopMode,
-            window.siyuan.languages.mobileModeTip,
-            window.siyuan.languages.reset,
-        ],
-        html: () => genStackHtml([
-            {
-                left: {kind: "title", text: window.siyuan.languages.desktopMode},
-                right: {
-                    kind: "button",
-                    id: "resetDesktopMode",
-                    label: window.siyuan.languages.reset,
-                    icon: "iconUndo",
+    const reloadDesktopMode = () => {
+        if (isInMobileApp()) {
+            void exitSiYuan();
+            return;
+        }
+        window.location.replace("/");
+    };
+    // Electron 桌面端固定访问 /stage/build/app/，其他客户端可切换桌面和移动界面
+    // https://github.com/siyuan-note/siyuan/issues/18559
+    if (isBrowser()) {
+        // https://github.com/siyuan-note/siyuan/issues/13952
+        group.composite({
+            key: "desktopMode",
+            keywords: [
+                window.siyuan.languages.desktopMode,
+                window.siyuan.languages.mobileModeTip,
+                window.siyuan.languages.reset,
+            ],
+            html: () => genStackHtml([
+                {
+                    left: {kind: "title", text: window.siyuan.languages.desktopMode},
+                    right: {
+                        kind: "button",
+                        id: "resetDesktopMode",
+                        label: window.siyuan.languages.reset,
+                        icon: "iconUndo",
+                    },
                 },
+                {
+                    left: {kind: "desc", text: window.siyuan.languages.mobileModeTip},
+                    right: desktopModeControl,
+                },
+                ...(isInMobileApp() ? [{
+                    left: {kind: "desc", text: window.siyuan.languages.desktopModeRestartTip},
+                } as const] : []),
+            ]),
+            controls: [{
+                control: desktopModeControl,
+                save: (value) => {
+                    desktopModeCookie.set(value as boolean);
+                    reloadDesktopMode();
+                },
+            }],
+            afterMount: (root) => {
+                root.querySelector("#resetDesktopMode")?.addEventListener("click", () => {
+                    desktopModeCookie.remove();
+                    reloadDesktopMode();
+                });
             },
-            {
-                left: {kind: "desc", text: window.siyuan.languages.mobileModeTip},
-                right: desktopModeControl,
-            },
-            {
-                left: {kind: "desc", text: window.siyuan.languages.desktopModeRestartTip},
-            },
-        ]),
-        controls: [{
-            control: desktopModeControl,
-            save: (value) => {
-                desktopModeCookie.set(value as boolean);
-                // 切换桌面/移动模式需要重启应用才能加载对应 bundle，走正常退出流程后由用户手动重启
-                void exitSiYuan();
-            },
-        }],
-        afterMount: (root) => {
-            root.querySelector("#resetDesktopMode")?.addEventListener("click", () => {
-                desktopModeCookie.remove();
-                void exitSiYuan();
-            });
-        },
-    });
+        });
+    }
     if (!isMobile()) {
         group.button({
             id: "resetLayout",
@@ -478,16 +781,29 @@ const bindFloatWindowModeVisibility = (root: HTMLElement) => {
     handleFloatWindowModeChange();
 };
 
-const STATUS_BAR_MSG_ITEMS: { key: keyof Config.IAppearanceStatusBar; taskKey: string }[] = [
-    {key: "msgTaskDatabaseIndexCommitDisabled", taskKey: "task.database.index.commit"},
-    {key: "msgTaskAssetDatabaseIndexCommitDisabled", taskKey: "task.asset.database.index.commit"},
-    {key: "msgTaskHistoryDatabaseIndexCommitDisabled", taskKey: "task.history.database.index.commit"},
-    {key: "msgTaskHistoryGenerateFileDisabled", taskKey: "task.history.generateFile"},
+const STATUS_BAR_MSG_ITEMS: { key: keyof Config.IAppearanceStatusBar; getLabel: () => string }[] = [
+    {
+        key: "msgTaskDatabaseIndexCommitDisabled",
+        getLabel: () => window.siyuan.languages._taskAction["task.database.index.commit"]
+    },
+    {
+        key: "msgTaskAssetDatabaseIndexCommitDisabled",
+        getLabel: () => window.siyuan.languages._taskAction["task.asset.database.index.commit"]
+    },
+    {
+        key: "msgTaskHistoryDatabaseIndexCommitDisabled",
+        getLabel: () => window.siyuan.languages._taskAction["task.history.database.index.commit"]
+    },
+    {
+        key: "msgTaskHistoryGenerateFileDisabled",
+        getLabel: () => window.siyuan.languages._taskAction["task.history.generateFile"]
+    },
+    {key: "msgDataSyncDisabled", getLabel: () => window.siyuan.languages.statusBarMsgDataSync},
 ];
 
 const genStatusBarMsgDialogHtml = (): string => {
-    const listItems = STATUS_BAR_MSG_ITEMS.map(({key, taskKey}) =>
-        genListSwitchItemHtml(key, window.siyuan.languages._taskAction[taskKey], !window.siyuan.config.appearance.statusBar[key])
+    const listItems = STATUS_BAR_MSG_ITEMS.map(({key, getLabel}) =>
+        genListSwitchItemHtml(key, getLabel(), !window.siyuan.config.appearance.statusBar[key])
     ).join("");
     return `<div class="fn__hr"></div>
 <div class="b3-label">
@@ -501,7 +817,7 @@ const readStatusBarMsgFromDialog = (root: HTMLElement): Config.IAppearanceStatus
     STATUS_BAR_MSG_ITEMS.reduce((acc, {key}) => {
         acc[key] = !(root.querySelector(`#${CSS.escape(key)}`) as HTMLInputElement).checked;
         return acc;
-    }, {} as Config.IAppearanceStatusBar);
+    }, {...window.siyuan.config.appearance.statusBar});
 
 const mountAppearanceSetStatusBar = (root: HTMLElement) => {
     root.querySelector("#statusBarSetting")?.addEventListener("click", () => {
@@ -524,11 +840,18 @@ const mountAppearanceSetStatusBar = (root: HTMLElement) => {
     });
 };
 
-const NOTIFICATIONS_ITEMS: { field: keyof Config.IAppearanceNotifications; labelKey: "msgDocTreeMaxList" | "msgTagMaxList" | "msgWorkspaceNotSSD" | "msgBrowserCompatibility" }[] = [
+const NOTIFICATIONS_ITEMS: {
+    field: keyof Config.IAppearanceNotifications;
+    labelKey: "msgDocTreeMaxList" | "msgTagMaxList" | "msgWorkspaceNotSSD" | "msgBrowserCompatibility" |
+        "msgSelectAllTip" | "msgSelectAllIncompleteTip" | "msgFormatPainterTip";
+}[] = [
     {field: "docTreeMaxList", labelKey: "msgDocTreeMaxList"},
     {field: "tagMaxList", labelKey: "msgTagMaxList"},
     {field: "workspaceNotSSD", labelKey: "msgWorkspaceNotSSD"},
     {field: "browserCompatibility", labelKey: "msgBrowserCompatibility"},
+    {field: "selectAllTip", labelKey: "msgSelectAllTip"},
+    {field: "selectAllIncompleteTip", labelKey: "msgSelectAllIncompleteTip"},
+    {field: "formatPainterTip", labelKey: "msgFormatPainterTip"},
 ];
 
 const genNotificationsDialogHtml = (): string => {
@@ -551,6 +874,9 @@ const readNotificationsFromDialog = (root: HTMLElement): Config.IAppearanceNotif
         tagMaxList: (root.querySelector("#tagMaxList") as HTMLInputElement).checked,
         workspaceNotSSD: (root.querySelector("#workspaceNotSSD") as HTMLInputElement).checked,
         browserCompatibility: (root.querySelector("#browserCompatibility") as HTMLInputElement).checked,
+        selectAllTip: (root.querySelector("#selectAllTip") as HTMLInputElement).checked,
+        selectAllIncompleteTip: (root.querySelector("#selectAllIncompleteTip") as HTMLInputElement).checked,
+        formatPainterTip: (root.querySelector("#formatPainterTip") as HTMLInputElement).checked,
     };
 };
 
@@ -587,7 +913,7 @@ const registerAppearancePersonalizationGroup = (tab: SettingTabBuilder) => {
             icon: "iconFolder",
             afterMount: (root) => {
                 root.querySelector("#appearanceOpenEmoji")?.addEventListener("click", () => {
-                    useShell("openPath", path.join(window.siyuan.config.system.dataDir, "emojis"));
+                    useShell("openPath", originalPath().join(window.siyuan.config.system.dataDir, "emojis"));
                 });
             },
         });
@@ -621,7 +947,7 @@ const registerAppearancePersonalizationGroup = (tab: SettingTabBuilder) => {
 
 const mountAppearanceCodeSnippet = (root: HTMLElement) => {
     root.querySelector("#codeSnippetCommunityShare")?.addEventListener("click", () => {
-        openByMobile("https://ld246.com/tag/code-snippet");
+        openLink(window.siyuan.ws.app, "https://ld246.com/tag/code-snippet");
     });
     root.querySelector("#codeSnippet")?.addEventListener("click", () => {
         openSnippets();

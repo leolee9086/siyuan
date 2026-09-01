@@ -8,6 +8,13 @@ import {getZenumlModule} from "./mermaidRender.environment";
 import {isDarkMode} from "./mermaidRender.environment";
 import {isHTMLElement} from "./mathRender.guard";
 import {MermaidConfig} from "./render.types";
+import {applyMermaidLayout, getMermaidLayout, MERMAID_LAYOUT_ATTR} from "./mermaidLayout";
+import {MERMAID_SANITIZE_OPTIONS} from "./mermaidSanitize";
+import {isZenumlDiagram} from "./mermaidZenuml";
+
+// 外部脚本体积较大，只加载一次，用模块级 Promise 缓存加载结果供后续渲染复用
+let mermaidTidyTreePromise: Promise<void>;
+let mermaidZenumlPromise: Promise<void>;
 
 /**
  * 收集需要渲染的 Mermaid 图表元素
@@ -119,7 +126,7 @@ function observeHiddenElements(hiddenElements: Element[]) {
  * 使用 DOMPurify 对 Mermaid 生成的 SVG 进行消毒
  *
  * 作用：调用 DOMPurify.sanitize 清理 SVG 中的潜在恶意内容
- * 意图：将消毒逻辑提取为独立函数，避免嵌套 if 块
+ * 意图：将消毒逻辑提取为独立函数，并复用 mermaidSanitize 中的统一消毒配置
  * 调用时机：renderSingleMermaidElement 中 SVG 插入 DOM 前调用
  */
 /** @同步豁免: 纯数据转换，无异步需求 */
@@ -127,13 +134,7 @@ function sanitizeMermaidSvg(svg: string, win: Window | null): string {
     if (!win) {
         return svg;
     }
-    return win.DOMPurify.sanitize(svg, {
-        USE_PROFILES: {svg: true, svgFilters: true, mathMl: true},
-        ADD_TAGS: ["foreignObject", "use", "style"],
-        ADD_ATTR: ["dominant-baseline", "xlink:href", "href"],
-        // 必须添加此项，否则 foreignObject 里的 HTML 内容会被清空
-        HTML_INTEGRATION_POINTS: { foreignobject: true }
-    });
+    return win.DOMPurify.sanitize(svg, MERMAID_SANITIZE_OPTIONS);
 }
 
 /**
@@ -170,7 +171,12 @@ async function renderSingleMermaidElement(
     const id = "mermaid" + Lute.NewNodeID();
     try {
         renderElement.innerHTML = `<span style="position: absolute;left:0;top:0;width: 1px;">${Constants.ZWSP}</span><div contenteditable="false"><span id="${id}"></span></div>`;
-        const mermaidData = await getMermaidInstance().render(id, Lute.UnEscapeHTMLStr(dataContent));
+        // 按元素声明的布局属性追加布局指令（如 tidy-tree），未声明时内容原样返回
+        const content = applyMermaidLayout(
+            Lute.UnEscapeHTMLStr(dataContent),
+            getMermaidLayout(item.getAttribute(MERMAID_LAYOUT_ATTR))
+        );
+        const mermaidData = await getMermaidInstance().render(id, content);
         // renderElement.lastElementChild 是刚插入的 div[contenteditable="false"]
         if (renderElement.lastElementChild) {
             let svg = mermaidData.svg.replace(
@@ -224,23 +230,72 @@ async function initMermaid(mermaidElements: Element[]) {
  * 调用时机：Mermaid registerIconPacks 内部按需调用
  */
 function createIconLoader(cdn: string) {
-    return () => fetch(`${cdn}/js/mermaid/icons.json?v=11.11.0`).then((res) => res.json());
+    return () => fetch(`${cdn}/js/mermaid/icons.json?v=1.2.13`).then((res) => res.json());
 }
 
 /**
- * 加载 Mermaid 及 ZenUML 脚本并注册外部图表和图标包
+ * 按需注册 ZenUML 外部图表
  *
- * 作用：按顺序加载 mermaid.min.js 和 mermaid-zenuml.min.js，
- *       注册 ZenUML 外部图表和图标包
+ * 作用：仅当待渲染元素中存在 ZenUML 图表时加载 mermaid-zenuml 脚本，
+ *       并将其注册为 Mermaid 外部图表
+ * 意图：避免每次渲染都加载 ZenUML 脚本，降低不必要的网络与初始化开销
+ * 调用时机：loadAndInitMermaid 中 Mermaid 主脚本加载完成后调用
+ */
+const registerMermaidExternalDiagrams = (mermaidElements: Element[], cdn: string): Promise<void> => {
+    // 不存在 ZenUML 图表时无需加载对应脚本
+    if (!mermaidElements.some((item) => isZenumlDiagram(item.getAttribute("data-content")))) {
+        return Promise.resolve();
+    }
+    if (!mermaidZenumlPromise) {
+        mermaidZenumlPromise = addScript(
+            `${cdn}/js/mermaid/mermaid-zenuml.min.js?v=0.2.3`,
+            "protyleMermaidZenumlScript"
+        ).then(async () => {
+            await getMermaidInstance().registerExternalDiagrams([getZenumlModule()]);
+        });
+    }
+    return mermaidZenumlPromise;
+};
+
+/**
+ * 按需注册 Mermaid 自定义布局加载器
+ *
+ * 作用：仅当待渲染元素中声明 tidy-tree 布局时加载布局脚本，
+ *       并向 Mermaid 注册布局加载器
+ * 意图：布局脚本体积较大，按需加载可减少常规图表的渲染开销；
+ *       布局加载器必须在 initialize 前注册才能生效
+ * 调用时机：loadAndInitMermaid 中 initialize 调用前调用
+ */
+const registerMermaidLayouts = (mermaidElements: Element[], cdn: string): Promise<void> => {
+    // 不存在自定义布局图表时无需加载布局脚本
+    if (!mermaidElements.some((item) => getMermaidLayout(item.getAttribute(MERMAID_LAYOUT_ATTR)) === "tidy-tree")) {
+        return Promise.resolve();
+    }
+    if (!mermaidTidyTreePromise) {
+        mermaidTidyTreePromise = addScript(
+            `${cdn}/js/mermaid/mermaid-layout-tidy-tree.min.js?v=0.2.2`,
+            "protyleMermaidTidyTreeScript"
+        ).then(() => {
+            getMermaidInstance().registerLayoutLoaders(window.mermaidTidyTree);
+        });
+    }
+    return mermaidTidyTreePromise;
+};
+
+/**
+ * 加载 Mermaid 及外部扩展脚本并完成注册与初始化
+ *
+ * 作用：加载 mermaid.min.js，按需加载并注册 ZenUML 外部图表与 tidy-tree 布局，
+ *       注册图标包后以当前主题配置初始化 Mermaid
  * 意图：将脚本加载和注册逻辑从主入口分离，降低主函数复杂度
  * 调用时机：mermaidRender 确认存在待渲染元素后调用
  */
-async function loadAndInitMermaid(cdn: string) {
-    await addScript(`${cdn}/js/mermaid/mermaid.min.js?v=11.13.0`, "protyleMermaidScript");
-    await addScript(`${cdn}/js/mermaid/mermaid-zenuml.min.js?v=0.2.2`, "protyleMermaidZenumlScript");
+async function loadAndInitMermaid(cdn: string, mermaidElements: Element[]) {
+    await addScript(`${cdn}/js/mermaid/mermaid.min.js?v=11.16.1`, "protyleMermaidScript");
+    await registerMermaidExternalDiagrams(mermaidElements, cdn);
+    await registerMermaidLayouts(mermaidElements, cdn);
 
     const mermaid = getMermaidInstance();
-    await mermaid.registerExternalDiagrams([getZenumlModule()]);
     mermaid.registerIconPacks([
         {
             name: "logos",
@@ -272,7 +327,7 @@ export const mermaidRender = async (
         return;
     }
 
-    await loadAndInitMermaid(cdn);
+    await loadAndInitMermaid(cdn, mermaidElements);
 
     const {hidden, visible} = partitionByVisibility(mermaidElements);
     // 存在隐藏元素时设置 MutationObserver 延迟渲染

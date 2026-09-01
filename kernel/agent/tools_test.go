@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/siyuan/kernel/mcp/tools"
@@ -97,12 +98,20 @@ func TestNeedsConfirmScopesReadOnlyActionsByToolSource(t *testing.T) {
 	const externalRead = "test_external_read"
 	const nativeWrite = "test_native_write"
 	const nativeExternalWrite = "test_native_external_write"
-	tools.SetTool(externalWrite, &tools.Tool{Name: externalWrite, Source: "mcp"})
-	tools.SetTool(externalRead, &tools.Tool{Name: externalRead, Source: "mcp", ReadOnlyHint: true})
-	tools.SetTool(nativeWrite, &tools.Tool{Name: nativeWrite, Source: "native"})
-	tools.SetTool(nativeExternalWrite, &tools.Tool{
-		Name: nativeExternalWrite, Source: "native", EffectScope: tools.EffectScopeExternal,
-	})
+	registrations := map[string]*tools.Tool{
+		externalWrite: {Name: externalWrite, Source: "mcp", InputSchema: tools.ToolSchema{Type: "object"}},
+		externalRead:  {Name: externalRead, Source: "mcp", ReadOnlyHint: true, InputSchema: tools.ToolSchema{Type: "object"}},
+		nativeWrite:   {Name: nativeWrite, Source: "native", InputSchema: tools.ToolSchema{Type: "object"}},
+		nativeExternalWrite: {
+			Name: nativeExternalWrite, Source: "native", EffectScope: tools.EffectScopeExternal,
+			InputSchema: tools.ToolSchema{Type: "object"},
+		},
+	}
+	for name, tool := range registrations {
+		if err := tools.SetTool(name, tool); err != nil {
+			t.Fatal(err)
+		}
+	}
 	t.Cleanup(func() {
 		tools.RemoveTool(externalWrite)
 		tools.RemoveTool(externalRead)
@@ -280,6 +289,62 @@ func TestWaitCompletionKeepsConcurrentlyAcceptedResults(t *testing.T) {
 	}
 }
 
+func TestBrowserCapabilityResultsAreAcceptedOnce(t *testing.T) {
+	const callID = "test-browser-capability-call"
+	capabilityCh := make(chan browserCapabilityResult, 1)
+	browserCapabilityChannelsMu.Lock()
+	browserCapabilityChannels[callID] = capabilityCh
+	browserCapabilityChannelsMu.Unlock()
+	if !BrowserCapabilityResult(callID, "result", nil, false, false) ||
+		BrowserCapabilityResult(callID, "duplicate", nil, false, false) {
+		t.Fatal("browser capability result was not accepted exactly once")
+	}
+	result, accepted := finishBrowserCapabilityWait(callID, capabilityCh)
+	if !accepted || result.result != "result" || result.isError {
+		t.Fatalf("unexpected browser capability result: %#v, accepted=%v", result, accepted)
+	}
+}
+
+func TestBrowserCapabilityValidatesStructuredOutput(t *testing.T) {
+	validationTool := &tools.Tool{
+		Name: "test_browser_capability_output", Description: "Test browser capability output",
+		InputSchema: tools.ToolSchema{Type: "object"},
+		OutputSchema: &tools.ToolSchema{
+			Type: "object",
+			Properties: map[string]tools.Property{
+				"value": {Type: "string"},
+			},
+			Required: []string{"value"},
+		},
+	}
+	validator, err := tools.CompileToolValidator(validationTool)
+	if err != nil {
+		t.Fatal(err)
+	}
+	registration := &capabilityRegistration{
+		ID: "native/frontend/test_output", ModelName: validationTool.Name,
+		Runtime: "browser", Validator: validator,
+	}
+	events := make(chan AgentEvent, 1)
+	resultCh := make(chan executedToolResult, 1)
+	go func() {
+		resultCh <- handleBrowserCapability(context.Background(), openai.ToolCall{
+			Function: openai.FunctionCall{Name: validationTool.Name, Arguments: `{}`},
+		}, registration, map[string]any{}, events, time.Second)
+	}()
+	event := <-events
+	if event.Type != "browser_capability_call" {
+		t.Fatalf("unexpected event: %#v", event)
+	}
+	if !BrowserCapabilityResult(event.CallID, "", map[string]any{"value": 1}, true, false) {
+		t.Fatal("browser capability result was rejected")
+	}
+	result := <-resultCh
+	if !result.IsError || !result.ExecutionUnknown {
+		t.Fatalf("invalid structured output was accepted: %#v", result)
+	}
+}
+
 func TestInteractiveResultsAreIsolatedBySession(t *testing.T) {
 	const (
 		ownerSession = "test-owner-session"
@@ -306,9 +371,10 @@ func TestInteractiveResultsAreIsolatedBySession(t *testing.T) {
 
 func TestExecuteToolPropagatesUnknownExecution(t *testing.T) {
 	const toolName = "test_unknown_execution"
-	tools.SetTool(toolName, &tools.Tool{
-		Name:   toolName,
-		Source: "mcp",
+	if err := tools.SetTool(toolName, &tools.Tool{
+		Name:        toolName,
+		Source:      "mcp",
+		InputSchema: tools.ToolSchema{Type: "object"},
 		Handler: func(args map[string]any) (tools.CallToolResult, error) {
 			return tools.CallToolResult{
 				Content:          []tools.ContentItem{{Type: "text", Text: "result unknown"}},
@@ -316,7 +382,9 @@ func TestExecuteToolPropagatesUnknownExecution(t *testing.T) {
 				ExecutionUnknown: true,
 			}, nil
 		},
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(func() { tools.RemoveTool(toolName) })
 
 	result, isErr, executionUnknown := executeTool(context.Background(), openai.ToolCall{
@@ -331,14 +399,17 @@ func TestExecuteToolCancellationMarksExecutionUnknown(t *testing.T) {
 	const toolName = "test_cancelled_execution"
 	started := make(chan struct{})
 	release := make(chan struct{})
-	tools.SetTool(toolName, &tools.Tool{
-		Name: toolName,
+	if err := tools.SetTool(toolName, &tools.Tool{
+		Name:        toolName,
+		InputSchema: tools.ToolSchema{Type: "object"},
 		Handler: func(args map[string]any) (tools.CallToolResult, error) {
 			close(started)
 			<-release
 			return tools.CallToolResult{Content: []tools.ContentItem{{Type: "text", Text: "late result"}}}, nil
 		},
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(func() {
 		close(release)
 		tools.RemoveTool(toolName)
@@ -371,13 +442,16 @@ func TestExecuteToolCancellationMarksExecutionUnknown(t *testing.T) {
 func TestExecuteToolDoesNotStartAfterCancellation(t *testing.T) {
 	const toolName = "test_pre_cancelled_execution"
 	invoked := false
-	tools.SetTool(toolName, &tools.Tool{
-		Name: toolName,
+	if err := tools.SetTool(toolName, &tools.Tool{
+		Name:        toolName,
+		InputSchema: tools.ToolSchema{Type: "object"},
 		Handler: func(args map[string]any) (tools.CallToolResult, error) {
 			invoked = true
 			return tools.CallToolResult{}, nil
 		},
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(func() { tools.RemoveTool(toolName) })
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -395,9 +469,10 @@ func TestExecuteToolCombinesProgressAndIdempotencyContext(t *testing.T) {
 	const toolName = "test_progress_execution"
 	var receivedArgs map[string]any
 	var emitted tools.ToolProgress
-	tools.SetTool(toolName, &tools.Tool{
-		Name:   toolName,
-		Source: "native",
+	if err := tools.SetTool(toolName, &tools.Tool{
+		Name:        toolName,
+		Source:      "native",
+		InputSchema: tools.ToolSchema{Type: "object"},
 		Handler: func(args map[string]any) (tools.CallToolResult, error) {
 			t.Fatal("plain handler called despite progress callback")
 			return tools.CallToolResult{}, nil
@@ -407,7 +482,9 @@ func TestExecuteToolCombinesProgressAndIdempotencyContext(t *testing.T) {
 			emit(tools.ToolProgress{Phase: "done", Done: 1, Total: 1})
 			return tools.CallToolResult{Content: []tools.ContentItem{{Type: "text", Text: "complete"}}}, nil
 		},
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(func() { tools.RemoveTool(toolName) })
 
 	result, isErr, executionUnknown := executeTool(context.Background(), openai.ToolCall{

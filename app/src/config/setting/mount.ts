@@ -1,12 +1,13 @@
 import {buildGroupedItemsView} from "../render/render";
-import {getSearchKeywordsLower, normalizeSearchText} from "../search/normalize";
-import {Constants} from "../../constants";
+import {normalizeSearchText} from "../search/normalize";
+import type {SettingSearchUnavailableItem} from "./setting.types";
 
 /** mount 时的搜索上下文（keywords 由壳层持有，与扫描结果在调用处拼装）。 */
 export interface SettingTabMountContext {
     keywords: string;
     visibleItemIds?: Set<string>;
     visibleGroupIds?: Set<string>;
+    unavailableItems?: Map<string, SettingSearchUnavailableItem>;
 }
 
 /** 首次挂载：渲染全部注册项并执行 afterMount */
@@ -23,7 +24,9 @@ export const applySettingTabSearchVisibility = (
     root: HTMLElement,
     visibleItemIds: Set<string>,
     visibleGroupIds: Set<string>,
+    unavailableItems?: Map<string, SettingSearchUnavailableItem>,
 ) => {
+    root.querySelectorAll("[data-config-search-unavailable-id]").forEach((element) => element.remove());
     root.querySelectorAll("[data-config-group-id]").forEach((groupEl) => {
         const groupId = groupEl.getAttribute("data-config-group-id");
         const groupVisible = groupId && visibleGroupIds.has(groupId);
@@ -36,10 +39,27 @@ export const applySettingTabSearchVisibility = (
         groupEl.querySelectorAll("[data-config-item-id]").forEach((itemEl) => {
             itemEl.classList.remove("config-item--last-visible");
             const itemId = itemEl.getAttribute("data-config-item-id");
-            const itemVisible = itemId && visibleItemIds.has(itemId);
+            const unavailableItem = itemId ? unavailableItems?.get(itemId) : undefined;
+            const itemVisible = itemId && visibleItemIds.has(itemId) && !unavailableItem;
             itemEl.classList.toggle("config-search-hidden", !itemVisible);
             if (itemVisible) {
                 lastVisibleItem = itemEl;
+            } else if (itemId && unavailableItem) {
+                const unavailableElement = document.createElement("div");
+                unavailableElement.className = "fn__flex b3-label config-item config-wrap";
+                unavailableElement.dataset.configSearchUnavailableId = itemId;
+                const mainElement = document.createElement("div");
+                mainElement.className = "fn__flex-1 config-item__main";
+                const titleElement = document.createElement("div");
+                titleElement.className = "config-name";
+                titleElement.innerHTML = unavailableItem.title;
+                const reasonElement = document.createElement("div");
+                reasonElement.className = "b3-label__text";
+                reasonElement.textContent = unavailableItem.reason;
+                mainElement.append(titleElement, reasonElement);
+                unavailableElement.append(mainElement);
+                itemEl.after(unavailableElement);
+                lastVisibleItem = unavailableElement;
             }
         });
         // 标记每组最后一个未隐藏条目，不显示 border-bottom
@@ -48,6 +68,7 @@ export const applySettingTabSearchVisibility = (
 };
 
 export const clearSettingTabSearch = (root: HTMLElement) => {
+    root.querySelectorAll("[data-config-search-unavailable-id]").forEach((element) => element.remove());
     root.querySelectorAll("[data-config-group-id], [data-config-item-id]").forEach((el) => {
         el.classList.remove("config-search-hidden", "config-item--last-visible");
     });

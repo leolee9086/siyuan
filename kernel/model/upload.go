@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -18,7 +18,6 @@ package model
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -26,7 +25,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/88250/gulu"
 	"github.com/88250/lute/ast"
@@ -78,17 +76,11 @@ func InsertAssetBytes(id, fileName string, data []byte) (assetPath string, creat
 	blockID := ast.NewNodeID()
 	if IsEncryptedBox(bt.BoxID) {
 		fName = encryptedAssetName(util.Ext(fName), blockID)
-		if err = writeAssetNameMapping(bt.BoxID, fName, baseName); err != nil {
-			return "", false, err
-		}
 	} else {
 		fName = util.AssetName(fName, blockID)
 	}
 	writePath := filepath.Join(assetsDirPath, fName)
-	if err = writeAssetFile(writePath, bytes.NewReader(data), bt.BoxID); err != nil {
-		if IsEncryptedBox(bt.BoxID) {
-			_ = removeAssetNameMapping(bt.BoxID, fName)
-		}
+	if err = writeAssetFile(writePath, bytes.NewReader(data), bt.BoxID, baseName); err != nil {
 		return "", false, err
 	}
 
@@ -102,8 +94,44 @@ func InsertAssetBytes(id, fileName string, data []byte) (assetPath string, creat
 	return assetPath, true, nil
 }
 
-func InsertLocalAssets(id string, assetAbsPaths []string, isUpload bool) (succMap map[string]any, err error) {
+// AssetUploadSuccess 记录单个输入文件的成功上传结果。
+type AssetUploadSuccess struct {
+	Index int    `json:"index"`
+	Name  string `json:"name"`
+	Path  string `json:"path"`
+}
+
+// AssetUploadFailure 记录单个输入文件的上传失败结果。
+type AssetUploadFailure struct {
+	Index int    `json:"index"`
+	Name  string `json:"name"`
+	Error string `json:"error"`
+}
+
+func recordAssetUploadSuccess(succMap map[string]any, succFiles *[]AssetUploadSuccess, index int, name, assetPath string) {
+	succMap[name] = assetPath
+	*succFiles = append(*succFiles, AssetUploadSuccess{Index: index, Name: name, Path: assetPath})
+}
+
+func recordAssetUploadFailure(failedFiles *[]AssetUploadFailure, index int, name string, err error) {
+	*failedFiles = append(*failedFiles, AssetUploadFailure{Index: index, Name: name, Error: err.Error()})
+}
+
+func InsertLocalAssets(id string, assetAbsPaths []string, isUpload bool) (succMap map[string]any,
+	succFiles []AssetUploadSuccess, failedFiles []AssetUploadFailure, err error) {
+	return insertLocalAssets(id, assetAbsPaths, isUpload, false)
+}
+
+func InsertHTMLLocalAssets(id string, assetAbsPaths []string) (succMap map[string]any,
+	succFiles []AssetUploadSuccess, failedFiles []AssetUploadFailure, err error) {
+	return insertLocalAssets(id, assetAbsPaths, true, true)
+}
+
+func insertLocalAssets(id string, assetAbsPaths []string, isUpload, validateHTMLPath bool) (succMap map[string]any,
+	succFiles []AssetUploadSuccess, failedFiles []AssetUploadFailure, err error) {
 	succMap = map[string]any{}
+	succFiles = make([]AssetUploadSuccess, 0, len(assetAbsPaths))
+	failedFiles = make([]AssetUploadFailure, 0)
 
 	bt := treenode.GetBlockTree(id)
 	if nil == bt {
@@ -119,8 +147,15 @@ func InsertLocalAssets(id string, assetAbsPaths []string, isUpload bool) (succMa
 		}
 	}
 
-	for _, assetAbsPath := range assetAbsPaths {
+	for index, assetAbsPath := range assetAbsPaths {
+		if strings.HasPrefix(strings.ToLower(assetAbsPath), "file://") {
+			assetAbsPath = util.FileURLToLocalPath(assetAbsPath)
+		}
 		baseName := filepath.Base(assetAbsPath)
+		if validateHTMLPath && (util.IsSensitivePath(assetAbsPath) || EncryptedRawPathBoxID(assetAbsPath) != "") {
+			recordAssetUploadFailure(&failedFiles, index, baseName, errors.New("local asset path is not allowed"))
+			continue
+		}
 		fName := baseName
 		fName = util.FilterUploadFileName(fName)
 		ext := filepath.Ext(fName)
@@ -131,32 +166,33 @@ func InsertLocalAssets(id string, assetAbsPaths []string, isUpload bool) (succMa
 			if !strings.HasPrefix(assetAbsPath, "\\\\") {
 				assetAbsPath = "file://" + assetAbsPath
 			}
-			succMap[baseName] = assetAbsPath
+			recordAssetUploadSuccess(succMap, &succFiles, index, baseName, assetAbsPath)
 			continue
 		}
 
 		if gulu.File.IsSubPath(assetsDirPath, assetAbsPath) {
 			// 已经位于 assets 目录下的资源文件不处理
 			// Dragging a file from the assets folder into the editor causes the kernel to exit https://github.com/siyuan-note/siyuan/issues/15355
-			succMap[baseName] = "assets/" + baseName
+			recordAssetUploadSuccess(succMap, &succFiles, index, baseName, "assets/"+baseName)
 			continue
 		}
 
 		fi, statErr := os.Stat(assetAbsPath)
 		if nil != statErr {
-			err = statErr
-			return
+			recordAssetUploadFailure(&failedFiles, index, baseName, statErr)
+			continue
 		}
 		f, openErr := os.Open(assetAbsPath)
 		if nil != openErr {
-			err = openErr
-			return
+			recordAssetUploadFailure(&failedFiles, index, baseName, openErr)
+			continue
 		}
 
 		hash, hashErr := util.GetEtagByHandle(f, fi.Size())
 		if nil != hashErr {
 			f.Close()
-			return
+			recordAssetUploadFailure(&failedFiles, index, baseName, hashErr)
+			continue
 		}
 
 		if 1 > fi.Size() {
@@ -172,30 +208,26 @@ func InsertLocalAssets(id string, assetAbsPaths []string, isUpload bool) (succMa
 		}
 
 		if "" != existAssetPath && !strings.HasPrefix(hash, "random_") {
-			succMap[baseName] = strings.TrimPrefix(existAssetPath, "/")
+			recordAssetUploadSuccess(succMap, &succFiles, index, baseName, strings.TrimPrefix(existAssetPath, "/"))
 			f.Close()
 		} else {
 			blockID := ast.NewNodeID()
 			if IsEncryptedBox(bt.BoxID) {
 				// 加密 box：磁盘文件名脱敏为 uuid-blockID.ext，原始名存加密映射
 				fName = encryptedAssetName(util.Ext(fName), blockID)
-				// 映射写入失败则不写 asset，避免产出"孤儿密文 asset 无映射"（详见设计文档 §7）
-				if mapErr := writeAssetNameMapping(bt.BoxID, fName, baseName); mapErr != nil {
-					err = mapErr
-					f.Close()
-					return
-				}
 			} else {
 				fName = util.AssetName(fName, blockID)
 			}
 			writePath := filepath.Join(assetsDirPath, fName)
-			if _, err = f.Seek(0, io.SeekStart); err != nil {
+			if _, seekErr := f.Seek(0, io.SeekStart); seekErr != nil {
 				f.Close()
-				return
+				recordAssetUploadFailure(&failedFiles, index, baseName, seekErr)
+				continue
 			}
-			if err = writeAssetFile(writePath, f, bt.BoxID); err != nil {
+			if writeErr := writeAssetFile(writePath, f, bt.BoxID, baseName); writeErr != nil {
 				f.Close()
-				return
+				recordAssetUploadFailure(&failedFiles, index, baseName, writeErr)
+				continue
 			}
 			f.Close()
 
@@ -203,7 +235,7 @@ func InsertLocalAssets(id string, assetAbsPaths []string, isUpload bool) (succMa
 			if IsEncryptedBox(bt.BoxID) {
 				p += "?box=" + bt.BoxID
 			}
-			succMap[baseName] = p
+			recordAssetUploadSuccess(succMap, &succFiles, index, baseName, p)
 			if !IsEncryptedBox(bt.BoxID) {
 				cache.SetAssetHash(hash, p) // 加密笔记本不写全局 cache，避免跨边界去重污染
 			}
@@ -269,7 +301,7 @@ func upload(c *gin.Context, targetBoxID string) {
 			ret.Msg = "Path [" + assetsDirPath + "] is not in workspace"
 			return
 		}
-		// assetsDirPath 可能指向加密 box（调用方未传 id），反查 boxID 让文件名脱敏/.names.json 生效
+		// assetsDirPath 可能指向加密 box（调用方未传 id），反查 boxID 让文件名脱敏和内容加密生效
 		if pathBox := ExtractBoxIDFromAssetsPath(assetsDirPath); pathBox != "" && IsEncryptedBox(pathBox) {
 			uploadBoxID = pathBox
 		}
@@ -285,12 +317,13 @@ func upload(c *gin.Context, targetBoxID string) {
 	var errFiles []string
 	succMap := map[string]any{}
 	files := form.File["file[]"]
+	succFiles := make([]AssetUploadSuccess, 0, len(files))
 	skipIfDuplicated := false // 默认不跳过重复文件，但是有的场景需要跳过，比如上传 PDF 标注图片 https://github.com/siyuan-note/siyuan/issues/10666
 	if nil != form.Value["skipIfDuplicated"] {
 		skipIfDuplicated = "true" == form.Value["skipIfDuplicated"][0]
 	}
 
-	for _, file := range files {
+	for index, file := range files {
 		baseName := file.Filename
 		_, lastID := util.LastID(baseName)
 		if !ast.IsNodeIDPattern(lastID) {
@@ -326,7 +359,7 @@ func upload(c *gin.Context, targetBoxID string) {
 		hash, hashErr := util.GetEtagByHandle(f, file.Size)
 		if nil != hashErr {
 			errFiles = append(errFiles, fName)
-			ret.Msg = err.Error()
+			ret.Msg = hashErr.Error()
 			f.Close()
 			break
 		}
@@ -347,7 +380,7 @@ func upload(c *gin.Context, targetBoxID string) {
 		}
 
 		if "" != existAssetPath && !strings.HasPrefix(hash, "random_") {
-			succMap[baseName] = strings.TrimPrefix(existAssetPath, "/")
+			recordAssetUploadSuccess(succMap, &succFiles, index, baseName, strings.TrimPrefix(existAssetPath, "/"))
 			f.Close()
 		} else {
 			if skipIfDuplicated {
@@ -367,7 +400,8 @@ func upload(c *gin.Context, targetBoxID string) {
 				} else {
 					if 0 < len(matches) {
 						fName = filepath.Base(matches[0])
-						succMap[baseName] = strings.TrimPrefix(path.Join(relAssetsDirPath, fName), "/")
+						recordAssetUploadSuccess(succMap, &succFiles, index, baseName,
+							strings.TrimPrefix(path.Join(relAssetsDirPath, fName), "/"))
 						f.Close()
 						break
 					}
@@ -380,13 +414,6 @@ func upload(c *gin.Context, targetBoxID string) {
 			if IsEncryptedBox(uploadBoxID) {
 				// 加密 box：磁盘文件名脱敏为 uuid-blockID.ext，原始名存加密映射
 				fName = encryptedAssetName(util.Ext(fName), lastID)
-				// 映射写入失败则不写 asset，避免产出"孤儿密文 asset 无映射"（详见设计文档 §7）
-				if mapErr := writeAssetNameMapping(uploadBoxID, fName, baseName); mapErr != nil {
-					errFiles = append(errFiles, fName)
-					ret.Msg = mapErr.Error()
-					f.Close()
-					break
-				}
 			} else {
 				fName = util.AssetName(fName, lastID)
 			}
@@ -409,7 +436,7 @@ func upload(c *gin.Context, targetBoxID string) {
 				f.Close()
 				break
 			}
-			if err = writeAssetFile(writePath, f, uploadBoxID); err != nil {
+			if err = writeAssetFile(writePath, f, uploadBoxID, baseName); err != nil {
 				logging.LogErrorf("write file failed: %s", err)
 				errFiles = append(errFiles, fName)
 				ret.Msg = err.Error()
@@ -475,16 +502,17 @@ func upload(c *gin.Context, targetBoxID string) {
 			if uploadBoxID != "" && (targetBoxID != "" || IsEncryptedBox(uploadBoxID)) {
 				p += "?box=" + uploadBoxID
 			}
-			succMap[baseName] = p
-			if targetBoxID == "" && (uploadBoxID == "" || !IsEncryptedBox(uploadBoxID)) {
+			recordAssetUploadSuccess(succMap, &succFiles, index, baseName, p)
+			if uploadBoxID == "" || !IsEncryptedBox(uploadBoxID) {
 				cache.SetAssetHash(hash, p) // 加密笔记本不写全局 cache
 			}
 		}
 	}
 
 	ret.Data = map[string]any{
-		"errFiles": errFiles,
-		"succMap":  succMap,
+		"errFiles":  errFiles,
+		"succFiles": succFiles,
+		"succMap":   succMap,
 	}
 
 	IncSync()
@@ -511,7 +539,7 @@ func getAssetsDir(boxLocalPath, docDirLocalPath string) (assets string) {
 // 不轻信传入的 boxID（调用方可能未传，或 assetsDirPath 指向加密笔记本但 id 为空）。
 // 加密笔记本必须已解锁（DEK 在内存）才写入；加密但未解锁返回错误（fail-closed，避免明文落盘）。
 // 非加密笔记本按 reader 直接写（走 filelock.WriteFileByReader 原路径，保留锁语义）。
-func writeAssetFile(writePath string, src io.Reader, boxID string) (err error) {
+func writeAssetFile(writePath string, src io.Reader, boxID, originalName string) (err error) {
 	// 从 writePath 反查真实 boxID，与传入 boxID 交叉校验
 	pathBoxID := ExtractBoxIDFromAssetsPath(writePath)
 	// 传入 boxID 与路径 box 都非空但不一致：路径指向另一个 box，拒绝（防跨 box 写入）
@@ -539,7 +567,7 @@ func writeAssetFile(writePath string, src io.Reader, boxID string) (err error) {
 		if readErr != nil {
 			return readErr
 		}
-		enc, encErr := EncryptAsset(actualBoxID, filepath.Base(writePath), dek, raw)
+		enc, encErr := EncryptAsset(actualBoxID, filepath.Base(writePath), originalName, dek, raw)
 		if encErr != nil {
 			return encErr
 		}
@@ -549,7 +577,7 @@ func writeAssetFile(writePath string, src io.Reader, boxID string) (err error) {
 }
 
 // StoreAssetForBox 统一资产写入入口：根据 boxID 决定加密/明文写入，返回磁盘文件名（不含路径前缀）。
-// 加密 box：生成脱敏名 → writeAssetNameMapping 记录映射 → EncryptAsset 加密 → filelock.WriteFile
+// 加密 box：生成脱敏名，把原始名称和内容写入单文件加密容器，再通过 filelock.WriteFile 落盘。
 // 普通 box：util.AssetName 生成名 → filelock.WriteFile 明文写入
 // boxID 为空时按普通 box 处理（写入全局 assets）。
 func StoreAssetForBox(boxID, assetDirPath, originalName string, data []byte) (diskName string, err error) {
@@ -557,7 +585,7 @@ func StoreAssetForBox(boxID, assetDirPath, originalName string, data []byte) (di
 }
 
 // storeAssetForBox 统一资产写入入口：根据 boxID 决定加密/明文写入，返回磁盘文件名（不含路径前缀）。
-// 加密 box：生成脱敏名 → writeAssetNameMapping 记录映射 → EncryptAsset 加密 → filelock.WriteFile
+// 加密 box：生成脱敏名，把原始名称和内容写入单文件加密容器，再通过 filelock.WriteFile 落盘。
 // 普通 box：util.AssetName 生成名 → filelock.WriteFile 明文写入
 // boxID 为空时按普通 box 处理（写入全局 assets）。
 func storeAssetForBox(boxID, assetDirPath, originalName string, data []byte) (diskName string, err error) {
@@ -568,16 +596,12 @@ func storeAssetForBox(boxID, assetDirPath, originalName string, data []byte) (di
 		ext := filepath.Ext(originalName)
 		blockID := ast.NewNodeID()
 		diskName = encryptedAssetName(ext, blockID)
-		// 映射写入失败则不写 asset，避免产出"孤儿密文 asset 无映射"（详见设计文档 §7）
-		if mapErr := writeAssetNameMappingLocked(boxID, diskName, originalName); mapErr != nil {
-			return "", mapErr
-		}
 
 		dek, dekErr := GetDEKIfUnlocked(boxID)
 		if dekErr != nil {
 			return "", dekErr
 		}
-		enc, encErr := EncryptAsset(boxID, diskName, dek, data)
+		enc, encErr := EncryptAsset(boxID, diskName, originalName, dek, data)
 		if encErr != nil {
 			return "", encErr
 		}
@@ -591,6 +615,28 @@ func storeAssetForBox(boxID, assetDirPath, originalName string, data []byte) (di
 	// 普通 box：生成带 ID 的文件名，明文写入
 	diskName = util.AssetName(originalName, ast.NewNodeID())
 	writePath := filepath.Join(assetDirPath, diskName)
+	if existing, readErr := filelock.ReadFile(writePath); readErr == nil {
+		if bytes.Equal(existing, data) {
+			return diskName, nil
+		}
+
+		// 导入带有既有 NodeID 的文件时不能覆盖全局同名资源，冲突后强制生成新的资源 ID。
+		cleanName := util.RemoveID(originalName)
+		ext := filepath.Ext(cleanName)
+		name := strings.TrimSuffix(cleanName, ext)
+		if name == "" || ast.IsNodeIDPattern(name) {
+			name = "asset"
+		}
+		for {
+			diskName = util.AssetName(name+ext, ast.NewNodeID())
+			writePath = filepath.Join(assetDirPath, diskName)
+			if !filelock.IsExist(writePath) {
+				break
+			}
+		}
+	} else if !os.IsNotExist(readErr) {
+		return "", readErr
+	}
 	if err = filelock.WriteFile(writePath, data); err != nil {
 		return "", err
 	}
@@ -598,132 +644,35 @@ func storeAssetForBox(boxID, assetDirPath, originalName string, data []byte) (di
 }
 
 // encryptedAssetName 生成加密笔记本专用的无语义资源文件名：uuid-blockID.ext。
-// 原始语义文件名（如"合同.pdf"）通过 writeAssetNameMapping 存入加密映射，磁盘上只保留随机名。
+// 原始语义文件名（如"合同.pdf"）加密存入资源容器，磁盘上只保留随机名。
 func encryptedAssetName(ext, blockID string) string {
 	return gulu.Rand.String(16) + "-" + blockID + ext
-}
-
-// assetNameMappingPath 返回加密笔记本资源名映射文件路径 <boxID>/assets/.names.json。
-func assetNameMappingPath(boxID string) string {
-	return filepath.Join(util.DataDir, boxID, "assets", ".names.json")
-}
-
-// assetNameMappingLocks 按 boxID 分组的互斥锁，保护 .names.json read-modify-write 的并发安全
-var assetNameMappingLocks sync.Map // map[string]*sync.Mutex
-
-// writeAssetNameMapping 把"磁盘文件名 -> 原始文件名"映射写入加密笔记本的 .names.json（DEK 加密落盘）。
-// 返回错误时调用方不得继续写 asset 密文，避免产出"孤儿密文 asset 无映射"（详见设计文档 §7）。
-func writeAssetNameMapping(boxID, diskName, originalName string) error {
-	if boxID == "" || !IsEncryptedBox(boxID) {
-		return nil
-	}
-	HoldBoxReadLock(boxID)
-	defer ReleaseBoxReadLock(boxID)
-	return writeAssetNameMappingLocked(boxID, diskName, originalName)
-}
-
-func writeAssetNameMappingLocked(boxID, diskName, originalName string) error {
-	muI, _ := assetNameMappingLocks.LoadOrStore(boxID, &sync.Mutex{})
-	mu := muI.(*sync.Mutex)
-	mu.Lock()
-	defer mu.Unlock()
-
-	mapping := readAssetNameMappingLocked(boxID)
-	mapping[diskName] = originalName
-	data, err := json.Marshal(mapping)
-	if err != nil {
-		return fmt.Errorf("marshal asset name mapping failed: %w", err)
-	}
-	dek, err := GetDEK(boxID)
-	if err != nil || dek == nil {
-		return fmt.Errorf("get DEK for asset name mapping failed: %w", err)
-	}
-	enc, err := EncryptAssetNameMapping(boxID, dek, data)
-	if err != nil {
-		return fmt.Errorf("encrypt asset name mapping failed: %w", err)
-	}
-	// 原子写入（temp+rename）：防止半写映射残留，并避免与并发写者竞争同一文件造成 lost update
-	if err = atomicWriteFile(assetNameMappingPath(boxID), enc); err != nil {
-		return fmt.Errorf("write asset name mapping failed: %w", err)
-	}
-	return nil
-}
-
-func removeAssetNameMapping(boxID, diskName string) error {
-	if boxID == "" || !IsEncryptedBox(boxID) {
-		return nil
-	}
-	HoldBoxReadLock(boxID)
-	defer ReleaseBoxReadLock(boxID)
-
-	muI, _ := assetNameMappingLocks.LoadOrStore(boxID, &sync.Mutex{})
-	mu := muI.(*sync.Mutex)
-	mu.Lock()
-	defer mu.Unlock()
-	mapping := readAssetNameMappingLocked(boxID)
-	if _, exists := mapping[diskName]; !exists {
-		return nil
-	}
-	delete(mapping, diskName)
-	data, err := json.Marshal(mapping)
-	if err != nil {
-		return fmt.Errorf("marshal asset name mapping failed: %w", err)
-	}
-	dek, err := GetDEK(boxID)
-	if err != nil || dek == nil {
-		return fmt.Errorf("get DEK for asset name mapping failed: %w", err)
-	}
-	enc, err := EncryptAssetNameMapping(boxID, dek, data)
-	if err != nil {
-		return fmt.Errorf("encrypt asset name mapping failed: %w", err)
-	}
-	if err = atomicWriteFile(assetNameMappingPath(boxID), enc); err != nil {
-		return fmt.Errorf("write asset name mapping failed: %w", err)
-	}
-	return nil
-}
-
-// readAssetNameMapping 读取加密笔记本的资源名映射（DEK 解密）。未解锁或文件不存在时返回空 map。
-func readAssetNameMapping(boxID string) map[string]string {
-	ret := map[string]string{}
-	if boxID == "" || !IsEncryptedBox(boxID) {
-		return ret
-	}
-	HoldBoxReadLock(boxID)
-	defer ReleaseBoxReadLock(boxID)
-	return readAssetNameMappingLocked(boxID)
-}
-
-func readAssetNameMappingLocked(boxID string) map[string]string {
-	ret := map[string]string{}
-	p := assetNameMappingPath(boxID)
-	enc, err := filelock.ReadFile(p)
-	if err != nil {
-		return ret
-	}
-	dek, err := GetDEK(boxID)
-	if err != nil || dek == nil {
-		return ret
-	}
-	data, err := DecryptAssetNameMapping(boxID, dek, enc)
-	if err != nil {
-		logging.LogErrorf("decrypt asset name mapping failed: %s", err)
-		return ret
-	}
-	if err = json.Unmarshal(data, &ret); err != nil {
-		logging.LogErrorf("unmarshal asset name mapping failed: %s", err)
-		return map[string]string{}
-	}
-	return ret
 }
 
 // LookupAssetOriginalName 查询加密笔记本资源的原始文件名（供下载 Content-Disposition 等展示用）。
 // 未找到时返回空串。
 func LookupAssetOriginalName(boxID, diskName string) string {
-	return readAssetNameMapping(boxID)[diskName]
+	if boxID == "" || !IsEncryptedBox(boxID) {
+		return ""
+	}
+	HoldBoxReadLock(boxID)
+	defer ReleaseBoxReadLock(boxID)
+	return LookupAssetOriginalNameLocked(boxID, diskName)
 }
 
 // LookupAssetOriginalNameLocked 在调用方已持有 box 读锁时查询原始资源名。
 func LookupAssetOriginalNameLocked(boxID, diskName string) string {
-	return readAssetNameMappingLocked(boxID)[diskName]
+	assetPath := filepath.Join(util.DataDir, boxID, "assets", diskName)
+	if assetFile, err := filelock.OpenFile(assetPath, os.O_RDONLY, 0); err == nil {
+		defer filelock.CloseFile(assetFile)
+		if dek, dekErr := GetDEK(boxID); dekErr == nil && dek != nil {
+			originalName, nameErr := DecryptAssetNameFromReader(boxID, diskName, dek, assetFile)
+			if nameErr != nil {
+				logging.LogErrorf("decrypt asset name [%s] failed: %s", diskName, nameErr)
+				return ""
+			}
+			return originalName
+		}
+	}
+	return ""
 }

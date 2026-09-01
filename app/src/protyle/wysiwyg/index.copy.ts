@@ -111,8 +111,9 @@ function processMatchHeadingOrRange(range: Range) {
     // 匹配标题时复制整个标题块
     if (matchHeading) {
         tempElement.append(headingElement.cloneNode(true));
+        const textWithoutAttr = clearAttrContent(tempElement);
         headingElement.removeAttribute("fold");
-        return { html: tempElement.innerHTML, textPlain: range.toString() };
+        return { html: tempElement.innerHTML, textPlain: textWithoutAttr ?? range.toString() };
     }
     const parentEl = range.startContainer.parentElement;
     // @内联数组
@@ -124,8 +125,9 @@ function processMatchHeadingOrRange(range: Range) {
         return { html: tempElement.innerHTML, textPlain: range.toString() };
     }
     tempElement.append(range.cloneContents());
+    const textWithoutAttr = clearAttrContent(tempElement);
     emojiToMd(tempElement);
-    return { html: tempElement.innerHTML, textPlain: range.toString() };
+    return { html: tempElement.innerHTML, textPlain: textWithoutAttr ?? range.toString() };
 }
 
 /** 处理部分选中的行内样式 */
@@ -193,6 +195,7 @@ function processGenericRange(protyle: IProtyle, range: Range) {
     if (isCrossBlock) {
         normalizeCrossBlockCopy(protyle.wysiwyg.element, tempElement, range);
     }
+    const textWithoutAttr = clearAttrContent(tempElement);
     const crossBlockTextPlain = isCrossBlock ? getCrossBlockPlainText(tempElement) : undefined;
     emojiToMd(tempElement);
     const inlineMathElement = hasClosestByAttribute(range.commonAncestorContainer, "data-type", "inline-math");
@@ -215,7 +218,7 @@ function processGenericRange(protyle: IProtyle, range: Range) {
     }
     // 非 CODE 标签内的文本
     if (!hasClosestByTag(range.startContainer, "CODE")) {
-        return { html, textPlain: crossBlockTextPlain ?? range.toString(), isInCodeBlock: false };
+        return { html, textPlain: crossBlockTextPlain ?? textWithoutAttr ?? range.toString(), isInCodeBlock: false };
     }
     return { html, textPlain: tempElement.textContent, isInCodeBlock: false };
 }
@@ -254,6 +257,18 @@ function processInlineContent(params: {
     }
     const genericResult = processGenericRange(protyle, range);
     return { html: genericResult.html, textPlain: genericResult.textPlain, isInCodeBlock: genericResult.isInCodeBlock };
+}
+
+/** 复制前将属性占位内容替换为空白标记，避免属性文本进入纯文本结果。 */
+function clearAttrContent(element: HTMLElement) {
+    const attrElements = element.querySelectorAll(".protyle-attr");
+    if (attrElements.length === 0) {
+        return undefined;
+    }
+    attrElements.forEach(item => {
+        item.textContent = Constants.ZWSP;
+    });
+    return element.textContent;
 }
 
 /** 规范化 textPlain */

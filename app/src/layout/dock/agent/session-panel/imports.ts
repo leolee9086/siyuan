@@ -4,10 +4,8 @@ import type {SessionIndexItem} from "../session/AgentSession.types";
 import type {TaskDirectoryMenuAction} from "../task-directory/AgentTaskDirectory.types";
 /** 用途：约束目录动作执行依赖；使用范围：共享目录命令。 */
 import type {AgentTaskDirectoryRepository} from "../task-directory/AgentTaskDirectory.types";
-/** 用途：构造会话目录路径；使用范围：Electron 文件管理器入口；解耦评估：Node path 是桌面路径标准边界。 */
-import * as path from "path";
-/** 用途：打开本地会话目录；使用范围：Electron 会话菜单；解耦评估：复用已有 shell 适配器，不直接依赖 Electron shell。 */
-import {useShell} from "../../../../util/file/pathName";
+/** 用途：打开本地会话目录；使用范围：Electron 会话菜单；解耦评估：复用已有 shell 与路径适配器，不直接依赖 Electron shell。 */
+import {originalPath, useShell} from "../../../../util/file/pathName";
 /** 用途：区分原生目录选择和 Web 路径输入；使用范围：task-directory 绑定；解耦评估：平台判断必须由统一适配层提供。 */
 import {isElectron} from "../../../../platform";
 /** 用途：请求 Electron 主进程打开目录选择器；使用范围：task-directory 选择；解耦评估：IPC 细节经平台适配器集中隔离。 */
@@ -37,8 +35,8 @@ export {hasClosestByClassName};
 export {ipcInvoke};
 /** 导出 Electron 平台标记。 */
 export {isElectron};
-/** 导出 Node 路径工具。 */
-export {path};
+/** 导出 Electron 原生路径入口。 */
+export {originalPath};
 /** 导出弹层定位函数。 */
 export {setPosition};
 /** 导出列表键盘导航函数。 */

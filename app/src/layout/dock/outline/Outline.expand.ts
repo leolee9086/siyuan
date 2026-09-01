@@ -6,6 +6,7 @@ import { Constants } from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
 import { isHTMLElement } from "../../../util/DOM/element.guard";
+import { setStorageVal } from "../../../protyle/util/compatibility";
 /** 用途：Outline 树交互领域根；使用范围：展开、折叠和持久化；解耦评估：替代具体 Outline class。 */
 import type {OutlineDomain} from "./types";
 
@@ -32,6 +33,8 @@ export function expandToLevel(outline: OutlineDomain, targetLevel: number) {
         // 全部展开
         outline.tree.expandAll();
         outline.saveExpendIds();
+        window.siyuan.storage[Constants.LOCAL_OUTLINE].expandLevel = targetLevel;
+        setStorageVal(Constants.LOCAL_OUTLINE, window.siyuan.storage[Constants.LOCAL_OUTLINE]);
         return;
     }
 
@@ -61,6 +64,8 @@ export function expandToLevel(outline: OutlineDomain, targetLevel: number) {
         }
     }
     outline.saveExpendIds();
+    window.siyuan.storage[Constants.LOCAL_OUTLINE].expandLevel = targetLevel;
+    setStorageVal(Constants.LOCAL_OUTLINE, window.siyuan.storage[Constants.LOCAL_OUTLINE]);
 }
 
 /**
@@ -76,6 +81,7 @@ export function showExpandLevelMenu(outline: OutlineDomain, target: HTMLElement)
             id: `heading${i}`,
             icon: `iconH${i}`,
             label: HEADING_LABELS[i - 1] || "",
+            current: window.siyuan.storage[Constants.LOCAL_OUTLINE].expandLevel === i,
             /**
              * 作用：响应菜单项点击，展开到对应的标题层级。
              * 意图：通过菜单操作快速调整大纲的展开深度。

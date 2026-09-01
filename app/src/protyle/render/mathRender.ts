@@ -93,13 +93,14 @@ function handleMathRenderError(mathElement: HTMLElement, isBlock: boolean, error
  * 渲染单个数学公式元素
  *
  * 作用：调用 KaTeX 渲染、根据块级/行内分别处理 DOM、处理导出缩放
- * 意图：将单个元素的完整渲染流程封装，使主循环保持简洁
+ * 意图：将单个元素的完整渲染流程封装，使主循环保持简洁；
+ *       导出场景（maxWidth=true）返回宽度适配完成的 Promise，供调用方等待缩放生效
  * 调用时机：mathRender 遍历每个数学公式元素时调用
  */
 /** @同步豁免: 需要绝对同步的DOM访问 - KaTeX 渲染和 DOM 操作均为同步 */
 function renderSingleMathElement(
     mathElement: HTMLElement, macros: IObject, maxWidth: boolean
-): void {
+): Promise<void> | undefined {
     // 已渲染的元素跳过，避免重复渲染
     if (mathElement.getAttribute("data-render") === "true") {
         return;
@@ -129,14 +130,20 @@ function renderSingleMathElement(
         }
 
         // PDF 导出时需要缩放公式以适应页面宽度，
-        // 使用 requestAnimationFrame 等待布局计算完成后再测量尺寸
+        // 使用 requestAnimationFrame 等待布局计算完成后再测量尺寸，
+        // 并通过返回的 Promise 暴露适配完成时机（对齐上游 fitMathWidth 的等待语义）
         if (!maxWidth) {
             return;
         }
         const scaleHandler = isBlock
             ? () => scaleBlockMathForExport(mathElement)
             : () => scaleInlineMathForExport(mathElement);
-        requestAnimationFrame(scaleHandler);
+        return new Promise<void>((resolve) => {
+            requestAnimationFrame(() => {
+                scaleHandler();
+                resolve();
+            });
+        });
     } catch (e: unknown) {
         handleMathRenderError(mathElement, isBlock, e);
     }
@@ -146,7 +153,8 @@ function renderSingleMathElement(
  * 渲染容器内所有数学公式元素
  *
  * 作用：加载 KaTeX CSS 和 JS 依赖，然后遍历渲染所有数学公式
- * 意图：作为数学公式渲染的统一入口，管理依赖加载和批量渲染
+ * 意图：作为数学公式渲染的统一入口，管理依赖加载和批量渲染；
+ *       导出场景下等待全部宽度适配完成后才结束，保证导出时序正确
  * 调用时机：
  *   - 编辑器内容变更后（输入、粘贴、撤销等）
  *   - 块渲染/刷新时（enter、remove、gutter 操作等）
@@ -169,11 +177,19 @@ export const mathRender = async (
 
     const macros = await parseMacros();
 
+    // 收集每个公式的渲染完成 Promise；仅导出场景（maxWidth=true）会产生宽度适配等待项
+    const renderPromises: Promise<void>[] = [];
     for (const el of mathElements) {
         // querySelectorAll 返回 Element，需要确认为 HTMLElement 才能操作样式和属性
         if (!isHTMLElement(el)) {
             continue;
         }
-        renderSingleMathElement(el, macros, maxWidth);
+        const renderPromise = renderSingleMathElement(el, macros, maxWidth);
+        if (renderPromise) {
+            renderPromises.push(renderPromise);
+        }
     }
+    // 对齐上游导出行为：此处结束后，所有公式的宽度适配均已生效，
+    // 使 export 流程中的 await Protyle.mathRender(...) 能拿到最终布局
+    await Promise.all(renderPromises);
 };

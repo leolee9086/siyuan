@@ -5,7 +5,8 @@ import {showMessage} from "../../dialog/message";
 import {Constants} from "../../constants";
 import {isMobile} from "../../util/functions";
 import {fetchPost} from "../../util/network/fetch";
-import {aiConfigApi} from "./aiRuntime";
+import {escapeHtml} from "../../util/DOM/escape";
+import {aiConfigApi} from "./ai/aiRuntime";
 import {openByMobile} from "../../editor/openLink";
 import {Menu} from "../../plugin/Menu";
 import {upDownHint} from "../../util/DOM/upDownHint";
@@ -209,7 +210,7 @@ export const mountEmbeddingTestBtn = (root: HTMLElement) => {
             }
             showMessage(
                 data.msg
-                    ? window.siyuan.languages.testConnectionFailMsg.replace("${msg}", data.msg)
+                    ? window.siyuan.languages.testConnectionFailMsg.replace("${msg}", escapeHtml(String(data.msg)))
                     : window.siyuan.languages.testConnectionFail,
                 undefined, "error",
             );
@@ -258,7 +259,7 @@ export const mountRerankTestBtn = (root: HTMLElement) => {
             }
             showMessage(
                 data.msg
-                    ? window.siyuan.languages.testConnectionFailMsg.replace("${msg}", data.msg)
+                    ? window.siyuan.languages.testConnectionFailMsg.replace("${msg}", escapeHtml(String(data.msg)))
                     : window.siyuan.languages.testConnectionFail,
                 undefined, "error",
             );
@@ -671,7 +672,7 @@ const addAllModelsForProvider = (root: HTMLElement, providerId: string): void =>
         const data = response.data || {};
         const models: string[] = Array.isArray(data.models) ? data.models : [];
         if (models.length === 0) {
-            showMessage(`${window.siyuan.languages.fetchAvailableModelsFail}${data.msg ? "：" + data.msg : ""}`, undefined, "error");
+            showMessage(`${window.siyuan.languages.fetchAvailableModelsFail}${data.msg ? "：" + escapeHtml(String(data.msg)) : ""}`, undefined, "error");
             return;
         }
         const nextProviders = window.siyuan.config.ai.providers.map((item) => item.id === providerId
@@ -1021,7 +1022,7 @@ const openModelDialog = (root: HTMLElement, providerId: string, modelId: string 
             const data = response.data || {};
             const models: string[] = Array.isArray(data.models) ? data.models : [];
             if (models.length === 0) {
-                showMessage(`${window.siyuan.languages.fetchAvailableModelsFail}${data.msg ? "：" + data.msg : ""}`, undefined, "error");
+                showMessage(`${window.siyuan.languages.fetchAvailableModelsFail}${data.msg ? "：" + escapeHtml(String(data.msg)) : ""}`, undefined, "error");
                 return;
             }
             // 用最新结果替换当前列表，保留当前已填值；若当前模型缺失则追加并警告。
@@ -1064,12 +1065,12 @@ const openModelDialog = (root: HTMLElement, providerId: string, modelId: string 
             }
             const available = data.available;
             if (Array.isArray(available) && available.length > 0) {
-                showMessage(`${window.siyuan.languages.testConnectionFailModelNotFound}（${available.slice(0, 10).join(", ")}）`, undefined, "error");
+                showMessage(`${window.siyuan.languages.testConnectionFailModelNotFound}（${available.slice(0, 10).map((item) => escapeHtml(String(item))).join(", ")}）`, undefined, "error");
                 return;
             }
             showMessage(
                 data.msg
-                    ? window.siyuan.languages.testConnectionFailMsg.replace("${msg}", data.msg)
+                    ? window.siyuan.languages.testConnectionFailMsg.replace("${msg}", escapeHtml(String(data.msg)))
                     : window.siyuan.languages.testConnectionFail,
                 undefined, "error",
             );

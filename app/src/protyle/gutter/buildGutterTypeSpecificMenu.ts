@@ -15,6 +15,12 @@ import { buildGutterMediaMenu } from "./buildGutterHtmlMenu";
 import { buildGutterEmbedMenu } from "./buildGutterEmbedMenu";
 import { buildGutterHeadingMenu } from "./buildGutterHeadingMenu";
 import { isProtyleMenuItemVisible } from "../runtime/menu.visibility";
+import { appendListItem, openOrderedListStartDialog, prependListItem, setOrderedListStart } from "../wysiwyg/list";
+import { fetchSyncPost } from "../../util/network/fetch";
+import { hideElements } from "../ui/hideElements";
+import { countBlockWord } from "../runtime/status.port";
+import { getEditorRange } from "../util/selection";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 
 interface ITypeSpecificMenuContext {
@@ -162,6 +168,84 @@ return false;
     return true;
 }
 
+/** 处理列表块菜单（NodeList / NodeListItem） */
+function handleListBlockMenu(protyle: IProtyle, nodeElement: Element, id: string, type: string): boolean {
+    if (protyle.disabled) {
+        return false;
+    }
+    const isOrderedList = type === "NodeList" && nodeElement.getAttribute("data-subtype") === "o";
+    const range = getEditorRange(nodeElement as HTMLElement);
+    const continueListStartPromise = isOrderedList ? fetchSyncPost("/api/block/getOrderedListContinueStart", {
+        id,
+        notebook: protyle.notebookId,
+    }).then((response) => {
+        const start = (response.data as any)?.start;
+        return (response.data as any)?.found && typeof start === "number" && Number.isInteger(start) ? start : undefined;
+    }).catch(() => undefined) : undefined;
+    const genListBlockSubmenu = (continueListStart?: number): IMenu[] => {
+        const submenu: IMenu[] = [];
+        if (isOrderedList) {
+            submenu.push({
+                id: "orderedListStart",
+                icon: "iconEdit",
+                label: siyuanI18n.orderedListStart,
+                click() {
+                    openOrderedListStartDialog(protyle, nodeElement as HTMLElement, range);
+                }
+            });
+            if (continueListStart !== undefined && Number.isInteger(continueListStart)) {
+                submenu.push({
+                    id: "continueListNumbering",
+                    icon: "iconRefresh",
+                    label: siyuanI18n.continueListNumbering,
+                    click() {
+                        setOrderedListStart(protyle, nodeElement as HTMLElement, continueListStart);
+                    }
+                });
+            }
+            submenu.push({
+                id: "separator_numbering",
+                type: "separator",
+            });
+        }
+        submenu.push({
+            id: "prependListItem",
+            icon: "iconBefore",
+            label: siyuanI18n.prependListItem,
+            accelerator: getSiyuanConfig().keymap.editor.list.prependListItem.custom,
+            click() {
+                hideElements(["select"], protyle);
+                countBlockWord([], protyle.block.rootID);
+                void prependListItem(protyle, nodeElement as HTMLElement, range);
+            }
+        }, {
+            id: "appendListItem",
+            icon: "iconAfter",
+            label: siyuanI18n.appendListItem,
+            accelerator: getSiyuanConfig().keymap.editor.list.appendListItem.custom,
+            click() {
+                hideElements(["select"], protyle);
+                countBlockWord([], protyle.block.rootID);
+                void appendListItem(protyle, nodeElement as HTMLElement, range);
+            }
+        });
+        return submenu;
+    };
+    const menu = getSiyuanGlobalMenus().menu;
+    menu.append(new MenuItem({id: "separator_listBlock", type: "separator"}).element);
+    menu.append(new MenuItem({
+        id: "listBlock",
+        icon: "iconList",
+        label: siyuanI18n.listBlock,
+        type: "submenu",
+        submenu: genListBlockSubmenu(),
+        loadSubmenu: continueListStartPromise ? async () => {
+            return genListBlockSubmenu(await continueListStartPromise);
+        } : undefined,
+    }).element);
+    return true;
+}
+
 /**
  * 构建基于节点类型的特殊菜单项
  * 根据不同的块类型添加相应的特殊操作菜单
@@ -182,6 +266,8 @@ export function buildGutterTypeSpecificMenu(context: ITypeSpecificMenuContext): 
         "NodeHTMLBlock": () => handleMediaMenu(protyle, nodeElement, type),
         "NodeBlockQueryEmbed": () => handleEmbedMenu(protyle, nodeElement, id),
         "NodeHeading": () => handleHeadingMenu(protyle, nodeElement, id, subType, isEmbedMenu),
+        "NodeList": () => handleListBlockMenu(protyle, nodeElement, id, type),
+        "NodeListItem": () => handleListBlockMenu(protyle, nodeElement, id, type),
     };
 
     const handler = handlers[type];

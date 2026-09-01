@@ -4,6 +4,8 @@ import {exportLayout} from "../../layout/export/exportLayout";
 import {syncHideToolbarLayout, updateBarModeIcon} from "../../layout/topBar";
 import {fetchPost} from "../../util/network/fetch";
 import {loadAssets} from "../../util/assets/assets";
+import {getFrontend} from "../../util/functions";
+import {shouldUnloadThemeScript} from "../../util/themeCompatibility";
 import {remountOpenSettingTab} from "../setting/remount";
 import {createConfigNamespaceApi} from "../util/namespaceApi";
 import {isMobile} from "../../platform";
@@ -44,38 +46,32 @@ const applyAppearanceConfig = async (data: Config.IAppearance) => {
         return;
     }
 
-    if (window.siyuan.config.appearance.themeJS) {
-        if (data.mode !== window.siyuan.config.appearance.mode ||
-            (data.mode === window.siyuan.config.appearance.mode && (
-                (data.mode === 0 && window.siyuan.config.appearance.themeLight !== data.themeLight) ||
-                (data.mode === 1 && window.siyuan.config.appearance.themeDark !== data.themeDark))
-            )
-        ) {
-            if (window.destroyTheme) {
-                try {
-                    await window.destroyTheme();
-                    window.destroyTheme = undefined;
-                    document.getElementById("themeScript").remove();
-                } catch (e) {
-                    console.error("destroyTheme error: " + e);
-                }
-            } else {
-                if (isMobile) {
-                    void reloadUI();
-                    return;
-                }
-                void exportLayout({
-                    errorExit: false,
-                    cb() {
-                        window.location.reload();
-                    },
-                });
+    // 需要卸载旧主题脚本时：优先调用主题自带的销毁钩子，无法优雅卸载则整页重载
+    const prevAppearance = window.siyuan.config.appearance;
+    if (shouldUnloadThemeScript(prevAppearance, data, getFrontend())) {
+        if (window.destroyTheme) {
+            try {
+                await window.destroyTheme();
+                window.destroyTheme = undefined;
+                document.getElementById("themeScript").remove();
+            } catch (e) {
+                console.error("destroyTheme error: " + e);
+            }
+        } else {
+            if (isMobile) {
+                void reloadUI();
                 return;
             }
+            void exportLayout({
+                errorExit: false,
+                cb() {
+                    window.location.reload();
+                },
+            });
+            return;
         }
     }
 
-    const prevAppearance = window.siyuan.config.appearance;
     window.siyuan.config.appearance = data;
 
     document.getElementById("status")?.classList.toggle("fn__none", data.hideStatusBar);

@@ -7,7 +7,7 @@ import { updateListOrder } from "./list.updateOrder";
 import {moveToPrevious} from "./remove/focus";
 import {transaction} from "./transaction/submit";
 import {updateTransaction} from "./transaction/update";
-import { turnsIntoOneTransaction } from "./transaction.turns";
+import { turnsIntoOneTransaction } from "./transaction/turns/container";
 import { Constants } from "../../constants";
 import {confirmRefRemoval} from "./remove.refCheck";
 

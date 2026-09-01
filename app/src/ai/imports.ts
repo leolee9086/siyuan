@@ -23,6 +23,8 @@ export { kernelClient } from "../data/kernelSDK";
 
 // 存储工具相关导入
 export { setStorageVal } from "../protyle/util/compatibility";
+// 功能开关：判断特性是否被禁用（上游 v3.8.0 引入，供 AI 菜单入口守卫使用）
+export { isDisabledFeature } from "../protyle/util/compatibility";
 
 /**
  * 用途：获取siyuan存储对象，用于操作本地存储中的AI动作配置

@@ -1,3 +1,5 @@
+/** 用途：匹配可配置发送快捷键；使用范围：发送分派；解耦评估：键位协议经目录网关复用。 */
+import {matchHotKey} from "./imports";
 /** 用途：进入 Composer 历史浏览；使用范围：空输入 ArrowUp；解耦评估：纯状态转换经目录网关复用。 */
 import {beginComposerHistoryBrowsing} from "./imports";
 /** 用途：判断 Composer 是否存在历史；使用范围：ArrowUp 分派；解耦评估：纯状态读取经目录网关复用。 */
@@ -14,10 +16,6 @@ import {resetComposerHistoryCursor} from "./imports";
 import {isProtyleComposerEmpty} from "./content";
 /** 用途：约束 Protyle 生命周期状态；使用范围：完整键盘分派。 */
 import type {AgentProtyleComposerRuntime} from "./types";
-
-/** 判断当前按键是否为不带修饰键的发送 Enter。 */
-const isPlainEnter = (event: KeyboardEvent) =>
-    event.key === "Enter" && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
 
 /** 在原生 Hint 可见时把选择按键交还给 Protyle，并阻止 Composer 发送或浏览历史。 */
 const handleVisibleProtyleHint = (runtime: AgentProtyleComposerRuntime, event: KeyboardEvent) => {
@@ -40,6 +38,10 @@ const handleVisibleProtyleHint = (runtime: AgentProtyleComposerRuntime, event: K
 
 /** 处理已发送消息的上下翻页，并在越过末项后恢复进入浏览前的草稿 HTML。 */
 const handleProtyleHistoryNavigation = (runtime: AgentProtyleComposerRuntime, event: KeyboardEvent) => {
+    // 上游编辑态协议：enableHistory 显式关闭（如用户消息编辑）时不接管方向键。
+    if (!runtime.interaction.enableHistory) {
+        return false;
+    }
     // 空输入或已在浏览历史时，ArrowUp 才接管当前编辑内容。
     if (event.key === "ArrowUp" && !event.shiftKey &&
         (isBrowsingComposerHistory(runtime.history) || isProtyleComposerEmpty(runtime)) &&
@@ -66,23 +68,34 @@ const handleProtyleHistoryNavigation = (runtime: AgentProtyleComposerRuntime, ev
 };
 
 /** @同步豁免: 生命周期 keydown 必须在当前捕获阶段决定是否消费事件，异步函数不符合浏览器事件协议。 */
-/** 按 Hint、发送、历史和普通输入的优先级分派 Protyle Composer 键盘事件。 */
+/** 按输入法组合、Hint、发送快捷键、取消、历史和普通输入的优先级分派 Protyle Composer 键盘事件。 */
 export const handleProtyleComposerKeyDown = (runtime: AgentProtyleComposerRuntime, event: KeyboardEvent) => {
+    // 上游移动端与输入法修复：组合输入进行中的按键不得触发发送、取消或历史动作。
+    if (event.isComposing) {
+        return;
+    }
     if (handleVisibleProtyleHint(runtime, event)) {
         return;
     }
-    // Hint 未占用且没有修饰键时，Enter 才提交当前消息。
-    if (isPlainEnter(event)) {
+    // 发送走可配置快捷键协议（上游 agentSend 键位），不再固定拦截裸 Enter。
+    if (matchHotKey(window.siyuan.config.keymap.general.agentSend.custom, event)) {
         event.preventDefault();
         event.stopPropagation();
         runtime.onSend();
+        return;
+    }
+    // Escape 交给显式取消流程（如退出用户消息编辑并恢复原文）。
+    if (event.key === "Escape" && runtime.interaction.onCancel) {
+        event.preventDefault();
+        event.stopPropagation();
+        runtime.interaction.onCancel();
         return;
     }
     if (handleProtyleHistoryNavigation(runtime, event)) {
         return;
     }
     // 新字符输入会结束历史浏览，后续方向键只操作新草稿。
-    if (isBrowsingComposerHistory(runtime.history) && event.key.length === 1 &&
+    if (runtime.interaction.enableHistory && isBrowsingComposerHistory(runtime.history) && event.key.length === 1 &&
         !event.ctrlKey && !event.metaKey && !event.altKey) {
         resetComposerHistoryCursor(runtime.history);
     }

@@ -37,14 +37,13 @@ import { fetchPost } from "../../util/network/fetch";
  * 使用范围：需要调用系统功能的菜单操作（如在文件夹中显示）
  * 解耦评估：可通过依赖注入解耦，但作为底层系统调用，直接导入是合理的
  */
-import { useShell } from "../../util/file/pathName";
+import { originalPath, useShell } from "../../util/file/pathName";
 
 /**
  * 用途：路径处理工具，用于构建文件路径
  * 使用范围：需要处理文件路径的菜单操作
- * 解耦评估：作为标准库工具，直接导入是标准做法
+ * 解耦评估：通过路径边界按需取得 Electron 原生实现
  */
-import * as path from "path";
 
 // ============ 平台兼容性 ============
 
@@ -69,8 +68,8 @@ export { fetchPost };
 /** 导出系统 Shell 操作工具 */
 export { useShell };
 
-/** 导出路径处理工具 */
-export { path };
+/** 导出原生路径入口。 */
+export { originalPath };
 
 /** 导出移动端兼容性工具 */
 export { openByMobile };
@@ -153,3 +152,21 @@ import { 生成块内容图片 } from "../../ai/imageGeneration";
 
 /** 导出生成块内容图片函数 */
 export { 生成块内容图片 };
+
+/**
+ * 用途：识别空段落并执行其事务转换，供 gutter 转换菜单构建使用。
+ * 使用范围：仅 buildGutterTurnIntoMenu.ts 的空段落菜单分支。
+ * 解耦评估：事务所有者位于 wysiwyg 层，通过本目录入口集中依赖；将 protyle 上下文逐层传递会扩大菜单 API。
+ */
+import {isEmptyParagraph} from "../wysiwyg/transaction/transforms/emptyParagraph";
+/** 导出空段落识别能力。 */
+export {isEmptyParagraph};
+
+/**
+ * 用途：执行空段落结构转换事务，供 gutter 菜单点击动作调用。
+ * 使用范围：仅 buildGutterTurnIntoMenu.ts 的 code/table/line/math 项。
+ * 解耦评估：事务与 undo/focus 恢复必须由 wysiwyg 统一维护，局部重实现会破坏编辑器状态。
+ */
+import {turnEmptyParagraphsIntoTransaction} from "../wysiwyg/transaction/transforms/emptyParagraph";
+/** 导出空段落事务转换能力。 */
+export {turnEmptyParagraphsIntoTransaction};

@@ -8,7 +8,8 @@ const isAVGroupAction = (action: IOperation["action"]) =>
     action === "hideAttrViewGroup" ||
     action === "hideAttrViewAllGroups" ||
     action === "sortAttrViewGroup" ||
-    action === "foldAttrViewGroup";
+    action === "foldAttrViewGroup" ||
+    action === "foldAttrViewGroups";
 
 /** 校验 Groups 命令不会提交其调用域呈现未覆盖的 action。 */
 const assertAVGroupOperations = (operations: IOperation[]) => {

@@ -6,6 +6,20 @@
 /** 用途：绑定上游插件事件名与载荷映射；使用范围：EventBus 全部公开方法；解耦评估：type-only 生态契约，不加载上游运行时。 */
 import type {IEventBusMap, TEventBus} from "siyuan";
 
+/** 单个监听器的注册记录；wrapped 是真正挂载到 EventTarget 的回调，注销时用它精确移除。 */
+interface IEventBusListener {
+    listener: (event: CustomEvent<any>) => unknown;
+    wrapped: EventListener;
+    once: boolean;
+}
+
+/** 安全派发结果：汇总默认行为是否被阻止、首个同步错误与是否存在异步监听器，供上传拦截等调用方判定。 */
+export interface IEventBusSafeEmitResult {
+    defaultPrevented: boolean;
+    error?: unknown;
+    hasAsyncListener: boolean;
+}
+
 /* @允许类: EventBus 是插件公开 API 中已经发布的运行时身份，第三方插件和应用核心都直接构造该类型，
  * 并可能依赖 instanceof、构造器引用以及原型方法身份，因此改写为对象工厂会破坏既有插件兼容性。该对象必须在
  * 多个 on、once、off、emit 调用之间长期持有同一个私有 EventTarget，负责监听器注册、一次性监听、移除和同步
@@ -19,6 +33,8 @@ import type {IEventBusMap, TEventBus} from "siyuan";
  * 取代的状态容器。事件目标还必须随实例长期存活，不能由每次调用临时创建，否则监听器身份和注销语义都会失真。 */
 export class EventBus {
     private eventTarget: EventTarget;
+    private listeners = new Map<TEventBus, Map<(event: CustomEvent<any>) => unknown, IEventBusListener>>();
+    private safeDispatches = new WeakMap<Event, IEventBusSafeEmitResult>();
 
     /**
      * 构造事件总线实例
@@ -29,7 +45,12 @@ export class EventBus {
      *
      * @同步豁免: 生命周期 - 构造函数必须是同步的
      */
-    constructor(name: string | Document = "") {
+    constructor(name: string | Document = "", eventTarget?: EventTarget) {
+        // 显式注入的事件目标优先，便于宿主环境复用既有 EventTarget 并隔离测试观察点。
+        if (eventTarget) {
+            this.eventTarget = eventTarget;
+            return;
+        }
         // 当传入document时，直接使用document作为事件目标，用于全局事件
         if (name === document) {
             this.eventTarget = document;
@@ -37,6 +58,42 @@ export class EventBus {
         }
         // 否则创建一个注释节点作为事件目标，避免污染DOM结构
         this.eventTarget = document.appendChild(document.createComment(typeof name === "string" ? name : ""));
+    }
+
+    private addListener(type: TEventBus, listener: (event: CustomEvent<any>) => unknown, once: boolean) {
+        let typeListeners = this.listeners.get(type);
+        if (!typeListeners) {
+            typeListeners = new Map();
+            this.listeners.set(type, typeListeners);
+        }
+        // 同一监听器重复注册时直接忽略，保持与原生 addEventListener 一致的幂等语义。
+        if (typeListeners.has(listener)) {
+            return;
+        }
+        const wrapped: EventListener = (event) => {
+            if (once) {
+                this.off(type, listener);
+            }
+            const safeResult = this.safeDispatches.get(event);
+            try {
+                // 以事件目标作为 this 调用监听器，保持与原生 DOM 监听一致的绑定行为。
+                const result = listener.call(this.eventTarget, event as CustomEvent<any>);
+                if (safeResult && result && typeof result.then === "function") {
+                    safeResult.hasAsyncListener = true;
+                    void Promise.resolve(result).catch(listenerError => console.error(listenerError));
+                }
+                return result;
+            } catch (error) {
+                if (!safeResult) {
+                    throw error;
+                }
+                // 安全派发模式下记录错误并阻断后续监听器，由 emitWithErrors 汇总返回给调用方。
+                safeResult.error = error;
+                event.stopImmediatePropagation();
+            }
+        };
+        typeListeners.set(listener, {listener, wrapped, once});
+        this.eventTarget.addEventListener(type, wrapped);
     }
 
     /**
@@ -52,7 +109,7 @@ export class EventBus {
         type: K,
         listener: (event: CustomEvent<D>) => unknown,
     ) {
-        this.eventTarget.addEventListener(type, listener as EventListener);
+        this.addListener(type, listener, false);
     }
 
     /**
@@ -68,7 +125,7 @@ export class EventBus {
         type: K,
         listener: (event: CustomEvent<D>) => unknown,
     ) {
-        this.eventTarget.addEventListener(type, listener as EventListener, { once: true });
+        this.addListener(type, listener, true);
     }
 
     /**
@@ -84,7 +141,16 @@ export class EventBus {
         type: K,
         listener: (event: CustomEvent<D>) => unknown,
     ) {
-        this.eventTarget.removeEventListener(type, listener as EventListener);
+        const typeListeners = this.listeners.get(type);
+        const registered = typeListeners?.get(listener);
+        if (!registered) {
+            return;
+        }
+        this.eventTarget.removeEventListener(type, registered.wrapped);
+        typeListeners.delete(listener);
+        if (typeListeners.size === 0) {
+            this.listeners.delete(type);
+        }
     }
 
     /**
@@ -99,4 +165,29 @@ export class EventBus {
     emit<K extends TEventBus, D = IEventBusMap[K]>(type: K, detail?: D) {
         return this.eventTarget.dispatchEvent(new CustomEvent(type, { detail, cancelable: true }));
     }
+
+    /**
+     * 安全派发事件
+     *
+     * 作用：广播事件并汇总派发过程中的错误与状态，不向调用方抛出异常
+     * 意图：让资源上传等关键路径能依据监听器的拦截结果决定后续流程
+     * 调用时机：需要感知监听器是否阻止默认行为、抛出错误或含异步处理时
+     *
+     * @同步豁免: 生命周期 - dispatchEvent是同步API
+     */
+    emitWithErrors<K extends TEventBus, D = IEventBusMap[K]>(type: K, detail?: D): IEventBusSafeEmitResult {
+        const event = new CustomEvent(type, { detail, cancelable: true });
+        const result: IEventBusSafeEmitResult = {defaultPrevented: false, hasAsyncListener: false};
+        this.safeDispatches.set(event, result);
+        try {
+            this.eventTarget.dispatchEvent(event);
+        } finally {
+            this.safeDispatches.delete(event);
+        }
+        result.defaultPrevented = event.defaultPrevented;
+        return result;
+    }
 }
+
+/** 插件菜单构建由独立工厂模块承载，这里转发导出以同时兼容来自本模块的既有导入路径。 */
+export {emitOpenMenu} from "./menu/emitOpenMenu.factory";

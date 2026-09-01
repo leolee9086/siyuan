@@ -171,9 +171,11 @@ describe("函数路由测试 - 前端微应用模块间异步交互", () => {
         status: 200,
         headers: {},
         set: vi.fn(),
-        redirect: vi.fn()
+        redirect: vi.fn(),
+        body: undefined
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [],
       set: vi.fn(),
@@ -209,9 +211,11 @@ describe("函数路由测试 - 前端微应用模块间异步交互", () => {
         status: 200,
         headers: {},
         set: vi.fn(),
-        redirect: vi.fn()
+        redirect: vi.fn(),
+        body: undefined
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [],
       set: vi.fn(),
@@ -275,9 +279,11 @@ describe("函数路由测试 - 前端微应用模块间异步交互", () => {
         status: 200,
         headers: {},
         set: vi.fn(),
-        redirect: vi.fn()
+        redirect: vi.fn(),
+        body: undefined
       },
       status: 200,
+      body: undefined,
       params: { userId: "123" },
       captures: ["123"],
       set: vi.fn(),
@@ -384,9 +390,11 @@ describe("函数路由测试 - 前端微应用模块间异步交互", () => {
         status: 200,
         headers: {},
         set: vi.fn(),
-        redirect: vi.fn()
+        redirect: vi.fn(),
+        body: undefined
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [],
       set: vi.fn(),
@@ -427,9 +435,11 @@ describe("函数路由测试 - 前端微应用模块间异步交互", () => {
         status: 200,
         headers: {},
         set: vi.fn(),
-        redirect: vi.fn()
+        redirect: vi.fn(),
+        body: undefined
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [],
       set: vi.fn(),
@@ -547,8 +557,9 @@ describe("函数路由测试 - 前端微应用模块间异步交互", () => {
             headers: { "content-type": "application/json" },
             body: nextBody,
           },
-          response: { status: 200, headers: {}, set: vi.fn(), redirect: vi.fn() },
+          response: { status: 200, headers: {}, body: undefined, set: vi.fn(), redirect: vi.fn() },
           status: 200,
+          body: undefined,
           params: {},
           captures: [],
           set: vi.fn(),
@@ -577,8 +588,9 @@ describe("函数路由测试 - 前端微应用模块间异步交互", () => {
         headers: { "content-type": "application/json" },
         body: { data: initialData }
       },
-      response: { status: 200, headers: {}, set: vi.fn(), redirect: vi.fn() },
+      response: { status: 200, headers: {}, body: undefined, set: vi.fn(), redirect: vi.fn() },
       status: 200,
+      body: undefined,
       params: {},
       captures: [],
       set: vi.fn(),

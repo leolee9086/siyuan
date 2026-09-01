@@ -7,13 +7,53 @@ import { hasClosestBlock, hasClosestByAttribute } from "../util/hasClosest";
 import {updateBatchTransaction} from "../wysiwyg/transaction/update";
 import { lineNumberRender } from "../render/highlightRender";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { escapeAttr } from "../../util/DOM/escape";
 import { isMobile } from "../../platform";
+import {
+    decodeStyle1,
+    encodeStyle1,
+    getInlineStyleByValue,
+    getInlineStyleIDFromValue,
+    getInlineStylePreview,
+    getInlineStylesCache,
+    getInlineStyleType,
+    getRecentInlineStyleKey,
+    INLINE_BACKGROUND_COLORS,
+    INLINE_FONT_COLORS,
+    TInlineStyleType,
+} from "./inlineStyle";
+import {openInlineStyleDialog} from "./inlineStyleDialog";
+
+const MAX_RECENT_FONT_STYLES = 14;
+
+export const limitRecentFontStyleRows = (element: HTMLElement) => {
+    const wrapElement = element.querySelector('[data-id="lastUsedWrap"]');
+    if (!wrapElement) {
+        return;
+    }
+    const itemElements = Array.from(wrapElement.children) as HTMLElement[];
+    let rowCount = 0;
+    let lastTop: number;
+    let overflowIndex = itemElements.length;
+    itemElements.find((item, index) => {
+        if (item.offsetTop !== lastTop) {
+            rowCount++;
+            lastTop = item.offsetTop;
+        }
+        if (rowCount > 2) {
+            overflowIndex = index;
+            return true;
+        }
+        return false;
+    });
+    itemElements.slice(overflowIndex).forEach(item => item.classList.add("fn__none"));
+};
 
 /**
  * 创建字体样式工具栏项
  *
- * 作用：渲染字体按钮并绑定点击行为
- * 意图：使用函数式渲染替代类继承实现
+ * 作用：渲染字体按钮并绑定点击行为，弹出字体外观面板（含上游自定义样式与管理入口）
+ * 意图：使用函数式渲染实现（本仓库 ToolbarItem 为工厂函数，无基类）
  * 调用时机：ToolbarItemFactory 在识别到 text 时调用
  */
 export const createFontToolbarItem = (protyle: IProtyle, menuItem: IMenuItem): HTMLElement => {
@@ -23,7 +63,9 @@ export const createFontToolbarItem = (protyle: IProtyle, menuItem: IMenuItem): H
         protyle.toolbar.subElement.innerHTML = "";
         protyle.toolbar.subElement.style.width = "";
         protyle.toolbar.subElement.style.padding = "";
-        protyle.toolbar.subElement.append(appearanceMenu(protyle, getFontNodeElements(protyle)));
+        const appearanceElement = appearanceMenu(protyle, getFontNodeElements(protyle));
+        protyle.toolbar.subElement.append(appearanceElement);
+        limitRecentFontStyleRows(appearanceElement);
         protyle.toolbar.subElement.style.zIndex = (++window.siyuan.zIndex).toString();
         protyle.toolbar.subElement.classList.remove("fn__none");
         protyle.toolbar.subElementCloseCB = undefined;
@@ -36,21 +78,77 @@ export const createFontToolbarItem = (protyle: IProtyle, menuItem: IMenuItem): H
     return element;
 };
 
-export const appearanceMenu = (protyle: IProtyle, nodeElements?: Element[]) => {
+export const getFontSizeInfo = (protyle: IProtyle, nodeElements?: Element[]) => {
+    let textElement: HTMLElement;
+    let fontSizeElement: HTMLElement;
+    if (nodeElements && nodeElements.length > 0) {
+        textElement = nodeElements[0] as HTMLElement;
+        fontSizeElement = textElement;
+    } else {
+        textElement = hasClosestByAttribute(protyle.toolbar.range.startContainer, "data-type", "text") as HTMLElement;
+        if (!textElement) {
+            textElement = protyle.toolbar.range.cloneContents().querySelector('[data-type~="text"]') as HTMLElement;
+        }
+        const startContainer = protyle.toolbar.range.startContainer;
+        fontSizeElement = startContainer.nodeType === Node.ELEMENT_NODE ?
+            startContainer as HTMLElement : startContainer.parentElement;
+    }
+
+    let baseFontSize = window.siyuan.config.editor.fontSize;
+    const baseElement = textElement?.isConnected ? textElement.parentElement : fontSizeElement;
+    if (baseElement) {
+        baseFontSize = parseFloat(getComputedStyle(baseElement).fontSize) || baseFontSize;
+    }
+
+    let fontSize = textElement?.style.fontSize;
+    if (!fontSize && fontSizeElement) {
+        fontSize = getComputedStyle(fontSizeElement).fontSize;
+    }
+    return {
+        fontSize: fontSize || window.siyuan.config.editor.fontSize + "px",
+        baseFontSize,
+    };
+};
+
+export const convertFontSize = (fontSize: string, unit: "px" | "em", baseFontSize: number) => {
+    const value = parseFloat(fontSize);
+    const base = baseFontSize || window.siyuan.config.editor.fontSize;
+    if (unit === "em") {
+        return fontSize.endsWith("em") ? value + "em" : parseFloat((value / base).toFixed(2)) + "em";
+    }
+    return fontSize.endsWith("px") ? Math.round(value) + "px" : Math.round(value * base) + "px";
+};
+
+export const appearanceMenu = (protyle: IProtyle, nodeElements?: Element[],
+                               onChange?: (type: string, color?: string) => void) => {
     let colorHTML = "";
-    ["", "var(--b3-font-color1)", "var(--b3-font-color2)", "var(--b3-font-color3)", "var(--b3-font-color4)",
-        "var(--b3-font-color5)", "var(--b3-font-color6)", "var(--b3-font-color7)", "var(--b3-font-color8)",
-        "var(--b3-font-color9)", "var(--b3-font-color10)", "var(--b3-font-color11)", "var(--b3-font-color12)",
-        "var(--b3-font-color13)"].forEach((item) => {
-            colorHTML += `<button ${item ? `class="color__square" style="color:${item}"` : `class="color__square ariaLabel" data-position="3south" aria-label="${siyuanI18n.default}"`} data-type="color">A</button>`;
-        });
+    INLINE_FONT_COLORS.forEach((item) => {
+        colorHTML += `<button ${item ? `class="color__square" style="color:${item}"` : `class="color__square ariaLabel" data-position="3south" aria-label="${window.siyuan.languages.default}"`} data-type="color">A</button>`;
+    });
     let bgHTML = "";
-    ["", "var(--b3-font-background1)", "var(--b3-font-background2)", "var(--b3-font-background3)", "var(--b3-font-background4)",
-        "var(--b3-font-background5)", "var(--b3-font-background6)", "var(--b3-font-background7)", "var(--b3-font-background8)",
-        "var(--b3-font-background9)", "var(--b3-font-background10)", "var(--b3-font-background11)", "var(--b3-font-background12)",
-        "var(--b3-font-background13)"].forEach((item) => {
-            bgHTML += `<button ${item ? `class="color__square" style="background-color:${item}"` : `class="color__square ariaLabel" data-position="3south" aria-label="${siyuanI18n.default}"`} data-type="backgroundColor"></button>`;
-        });
+    INLINE_BACKGROUND_COLORS.forEach((item) => {
+        bgHTML += `<button ${item ? `class="color__square" style="background-color:${item}"` : `class="color__square ariaLabel" data-position="3south" aria-label="${window.siyuan.languages.default}"`} data-type="backgroundColor"></button>`;
+    });
+    let customColorHTML = "";
+    let customBackgroundHTML = "";
+    let customStyleHTML = "";
+    getInlineStylesCache().styles.forEach(style => {
+        const type = getInlineStyleType(style);
+        if (!type) {
+            return;
+        }
+        const preview = getInlineStylePreview(style);
+        const html = `<button class="color__square ariaLabel" data-position="3south" aria-label="${escapeAttr(style.name)}" data-inline-style-id="${style.id}" data-type="${type}" style="${preview.color ? `color:${preview.color};` : ""}${preview.backgroundColor ? `background-color:${preview.backgroundColor};` : ""}">${type === "backgroundColor" ? "" : "A"}</button>`;
+        if (type === "color") {
+            customColorHTML += html;
+        } else if (type === "backgroundColor") {
+            customBackgroundHTML += html;
+        } else {
+            customStyleHTML += html;
+        }
+    });
+    const getManageHTML = (type: TInlineStyleType) => window.siyuan.config.readonly || window.siyuan.isPublish ? "" :
+        `<button class="color__square ariaLabel" data-position="3south" aria-label="${window.siyuan.languages.manageCustomColors}" data-action="manageInlineStyle" data-inline-style-type="${type}"><svg class="svg--mid"><use xlink:href="#iconSettings"></use></svg></button>`;
 
     const element = document.createElement("div");
     element.classList.add("protyle-font");
@@ -73,26 +171,29 @@ export const appearanceMenu = (protyle: IProtyle, nodeElements?: Element[]) => {
 <div data-id="lastUsedWrap" class="fn__flex fn__flex-wrap" style="align-items: center">`;
         lastFonts.forEach((item: string) => {
             const lastFontStatus = item.split(Constants.ZWSP);
+            const customStyle = getInlineStyleByValue(item);
+            const customLabel = customStyle ? escapeAttr(customStyle.name) :
+                (getInlineStyleIDFromValue(item) ? window.siyuan.languages.custom : "");
             switch (lastFontStatus[0]) {
                 case "color":
-                    lastColorHTML += `<button class="color__square ariaLabel" data-position="3south" aria-label="${siyuanI18n.colorFont}${lastFontStatus[1] ? "" : " " + siyuanI18n.default}" ${lastFontStatus[1] ? `style="color:${lastFontStatus[1]}"` : ""} data-type="${lastFontStatus[0]}">A</button>`;
+                    lastColorHTML += `<button class="color__square ariaLabel" data-position="3south" aria-label="${customLabel || window.siyuan.languages.colorFont + (lastFontStatus[1] ? "" : " " + window.siyuan.languages.default)}" ${lastFontStatus[1] ? `style="color:${lastFontStatus[1]}"` : ""} data-type="${lastFontStatus[0]}">A</button>`;
                     break;
                 case "backgroundColor":
-                    lastColorHTML += `<button class="color__square ariaLabel" data-position="3south" aria-label="${siyuanI18n.colorPrimary}${lastFontStatus[1] ? "" : " " + siyuanI18n.default}" ${lastFontStatus[1] ? `style="background-color:${lastFontStatus[1]}"` : ""} data-type="${lastFontStatus[0]}"></button>`;
+                    lastColorHTML += `<button class="color__square ariaLabel" data-position="3south" aria-label="${customLabel || window.siyuan.languages.colorPrimary + (lastFontStatus[1] ? "" : " " + window.siyuan.languages.default)}" ${lastFontStatus[1] ? `style="background-color:${lastFontStatus[1]}"` : ""} data-type="${lastFontStatus[0]}"></button>`;
                     break;
                 case "style2":
-                    lastColorHTML += `<button data-type="${lastFontStatus[0]}" class="protyle-font__style" style="-webkit-text-stroke: 0.2px var(--b3-theme-on-background);-webkit-text-fill-color : transparent;">${siyuanI18n.hollow}</button>`;
+                    lastColorHTML += `<button data-type="${lastFontStatus[0]}" class="color__square ariaLabel" data-position="3south" aria-label="${window.siyuan.languages.hollow}" style="-webkit-text-stroke: 0.2px var(--b3-theme-on-background);-webkit-text-fill-color : transparent;">A</button>`;
                     break;
                 case "style4":
-                    lastColorHTML += `<button data-type="${lastFontStatus[0]}" class="protyle-font__style" style="text-shadow: 1px 1px var(--b3-theme-surface-lighter), 2px 2px var(--b3-theme-surface-lighter), 3px 3px var(--b3-theme-surface-lighter), 4px 4px var(--b3-theme-surface-lighter)">${siyuanI18n.shadow}</button>`;
+                    lastColorHTML += `<button data-type="${lastFontStatus[0]}" class="color__square ariaLabel" data-position="3south" aria-label="${window.siyuan.languages.shadow}" style="text-shadow: 1px 1px var(--b3-theme-surface-lighter), 2px 2px var(--b3-theme-surface-lighter), 3px 3px var(--b3-theme-surface-lighter), 4px 4px var(--b3-theme-surface-lighter)">A</button>`;
                     break;
                 case "fontSize":
                     if (!disableFont) {
-                        lastColorHTML += `<button data-type="${lastFontStatus[0]}" class="protyle-font__style">${lastFontStatus[1]}</button>`;
+                        lastColorHTML += `<button data-type="${lastFontStatus[0]}" data-value="${lastFontStatus[1]}" class="protyle-font__style ariaLabel" data-position="3south" aria-label="${window.siyuan.languages.fontSize} ${lastFontStatus[1]}">${lastFontStatus[1]}</button>`;
                     }
                     break;
                 case "style1":
-                    lastColorHTML += `<button class="color__square ariaLabel" data-position="3south" aria-label="${siyuanI18n.color}${lastFontStatus[1] ? "" : " " + siyuanI18n.default}" ${lastFontStatus[1] ? `style="background-color:${lastFontStatus[1]};color:${lastFontStatus[2]}"` : ""} data-type="${lastFontStatus[0]}">A</button>`;
+                    lastColorHTML += `<button class="color__square ariaLabel" data-position="3south" aria-label="${customLabel || window.siyuan.languages.color + (lastFontStatus[1] ? "" : " " + window.siyuan.languages.default)}" ${lastFontStatus[1] ? `style="background-color:${lastFontStatus[1]};color:${lastFontStatus[2]}"` : ""} data-type="${lastFontStatus[0]}">A</button>`;
                     break;
                 case "clear":
                     lastColorHTML += `<button style="height: 26px;display: flex;align-items: center;padding: 0 5px;" data-type="${lastFontStatus[0]}" class="protyle-font__style ariaLabel" aria-label="${siyuanI18n.clearFontStyle}"><svg class="svg--mid"><use xlink:href="#iconTrashcan"></use></svg></button>`;
@@ -101,19 +202,10 @@ export const appearanceMenu = (protyle: IProtyle, nodeElements?: Element[]) => {
         });
         lastColorHTML += "</div>";
     }
-    let textElement: HTMLElement;
-    let fontSize = window.siyuan.config.editor.fontSize + "px";
-    if (nodeElements && nodeElements.length > 0) {
-        textElement = nodeElements[0] as HTMLElement;
-    } else {
-        textElement = protyle.toolbar.range.cloneContents().querySelector('[data-type~="text"]') as HTMLElement;
-        if (!textElement) {
-            textElement = hasClosestByAttribute(protyle.toolbar.range.startContainer, "data-type", "text") as HTMLElement;
-        }
-    }
-    if (textElement) {
-        fontSize = textElement.style.fontSize || window.siyuan.config.editor.fontSize + "px";
-    }
+    const {fontSize, baseFontSize} = getFontSizeInfo(protyle, nodeElements);
+    const applyFontStyle = (type: string, color?: string) => {
+        fontEvent(protyle, nodeElements, type, color, true, onChange);
+    };
     element.innerHTML = `${lastColorHTML}
 <div class="fn__hr"></div>
 <div data-id="color">${siyuanI18n.color}</div>
@@ -124,25 +216,31 @@ export const appearanceMenu = (protyle: IProtyle, nodeElements?: Element[]) => {
     <button class="color__square" data-type="style1" style="color: var(--b3-card-warning-color);background-color: var(--b3-card-warning-background);">A</button>
     <button class="color__square" data-type="style1" style="color: var(--b3-card-info-color);background-color: var(--b3-card-info-background);">A</button>
     <button class="color__square" data-type="style1" style="color: var(--b3-card-success-color);background-color: var(--b3-card-success-background);">A</button>
+    ${customStyleHTML}
+    ${getManageHTML("style1")}
 </div>
 <div class="fn__hr"></div>
 <div data-id="colorFont">${siyuanI18n.colorFont}</div>
 <div class="fn__hr--small"></div>
 <div data-id="colorFontWrap" class="fn__flex fn__flex-wrap">
     ${colorHTML}
+    ${customColorHTML}
+    ${getManageHTML("color")}
 </div>
 <div class="fn__hr"></div>
 <div data-id="colorPrimary">${siyuanI18n.colorPrimary}</div>
 <div class="fn__hr--small"></div>
 <div data-id="colorPrimaryWrap" class="fn__flex fn__flex-wrap">
     ${bgHTML}
+    ${customBackgroundHTML}
+    ${getManageHTML("backgroundColor")}
 </div>
 <div class="fn__hr"></div>
 <div data-id="fontStyle">${siyuanI18n.fontStyle}</div>
 <div class="fn__hr--small"></div>
 <div data-id="fontStyleWrap" class="fn__flex">
-    <button data-type="style2" class="protyle-font__style" style="-webkit-text-stroke: 0.2px var(--b3-theme-on-background);-webkit-text-fill-color : transparent;">${siyuanI18n.hollow}</button>
-    <button data-type="style4" class="protyle-font__style" style="text-shadow: 1px 1px var(--b3-theme-surface-lighter), 2px 2px var(--b3-theme-surface-lighter), 3px 3px var(--b3-theme-surface-lighter), 4px 4px var(--b3-theme-surface-lighter)">${siyuanI18n.shadow}</button>
+    <button data-type="style2" class="color__square ariaLabel" data-position="3south" aria-label="${window.siyuan.languages.hollow}" style="-webkit-text-stroke: 0.2px var(--b3-theme-on-background);-webkit-text-fill-color : transparent;">A</button>
+    <button data-type="style4" class="color__square ariaLabel" data-position="3south" aria-label="${window.siyuan.languages.shadow}" style="text-shadow: 1px 1px var(--b3-theme-surface-lighter), 2px 2px var(--b3-theme-surface-lighter), 3px 3px var(--b3-theme-surface-lighter), 4px 4px var(--b3-theme-surface-lighter)">A</button>
 </div>
 <div class="fn__hr${disableFont ? " fn__none" : ""}"></div>
 <div data-id="fontSize" class="fn__flex${disableFont ? " fn__none" : ""}">
@@ -177,16 +275,18 @@ export const appearanceMenu = (protyle: IProtyle, nodeElements?: Element[]) => {
         while (target && !target.isEqualNode(element)) {
             const dataType = target.getAttribute("data-type");
             if (target.tagName === "BUTTON") {
-                if (dataType === "style1") {
-                    fontEvent(protyle, nodeElements, dataType, target.style.backgroundColor + Constants.ZWSP + target.style.color);
+                if (target.dataset.action === "manageInlineStyle") {
+                    openInlineStyleDialog(target.dataset.inlineStyleType as TInlineStyleType);
+                } else if (dataType === "style1") {
+                    applyFontStyle(dataType, encodeStyle1(target.style.backgroundColor, target.style.color));
                 } else if (dataType === "fontSize") {
-                    fontEvent(protyle, nodeElements, dataType, target.textContent.trim());
+                    applyFontStyle(dataType, target.getAttribute("data-value"));
                 } else if (dataType === "backgroundColor") {
-                    fontEvent(protyle, nodeElements, dataType, target.style.backgroundColor);
+                    applyFontStyle(dataType, target.style.backgroundColor);
                 } else if (dataType === "color") {
-                    fontEvent(protyle, nodeElements, dataType, target.style.color);
+                    applyFontStyle(dataType, target.style.color);
                 } else {
-                    fontEvent(protyle, nodeElements, dataType);
+                    applyFontStyle(dataType);
                 }
                 break;
             }
@@ -198,29 +298,28 @@ export const appearanceMenu = (protyle: IProtyle, nodeElements?: Element[]) => {
     const fontSizeEMElement = element.querySelector("#fontSizeEM") as HTMLInputElement;
     switchElement.addEventListener("change", function () {
         if (switchElement.checked) {
-            // px -> em
-            const em = parseFloat((parseInt(fontSizePXElement.value) / 16).toFixed(2));
-            fontSizeEMElement.parentElement.setAttribute("aria-label", (em * 100).toString() + "%");
-            fontSizeEMElement.value = em.toString();
+            const em = convertFontSize(fontSizePXElement.value + "px", "em", baseFontSize);
+            fontSizeEMElement.parentElement.setAttribute("aria-label", (parseFloat(em) * 100).toFixed(0) + "%");
+            fontSizeEMElement.value = parseFloat(em).toString();
 
             fontSizePXElement.parentElement.classList.add("fn__none");
             fontSizeEMElement.parentElement.classList.remove("fn__none");
-            fontEvent(protyle, nodeElements, "fontSize", fontSizeEMElement.value + "em");
+            applyFontStyle("fontSize", fontSizeEMElement.value + "em");
         } else {
-            const px = Math.round(parseFloat(fontSizeEMElement.value) * 16);
-            fontSizePXElement.parentElement.setAttribute("aria-label", px + "px");
-            fontSizePXElement.value = px.toString();
+            const px = convertFontSize(fontSizeEMElement.value + "em", "px", baseFontSize);
+            fontSizePXElement.parentElement.setAttribute("aria-label", px);
+            fontSizePXElement.value = parseFloat(px).toString();
 
             fontSizePXElement.parentElement.classList.remove("fn__none");
             fontSizeEMElement.parentElement.classList.add("fn__none");
-            fontEvent(protyle, nodeElements, "fontSize", fontSizePXElement.value + "px");
+            applyFontStyle("fontSize", fontSizePXElement.value + "px");
         }
     });
     fontSizePXElement.addEventListener("change", function () {
-        fontEvent(protyle, nodeElements, "fontSize", fontSizePXElement.value + "px");
+        applyFontStyle("fontSize", fontSizePXElement.value + "px");
     });
     fontSizeEMElement.addEventListener("change", function () {
-        fontEvent(protyle, nodeElements, "fontSize", fontSizeEMElement.value + "em");
+        applyFontStyle("fontSize", fontSizeEMElement.value + "em");
     });
     fontSizePXElement.addEventListener("input", function () {
         fontSizePXElement.parentElement.setAttribute("aria-label", fontSizePXElement.value + "px");
@@ -231,25 +330,29 @@ export const appearanceMenu = (protyle: IProtyle, nodeElements?: Element[]) => {
     return element;
 };
 
-export const fontEvent = (protyle: IProtyle, nodeElements: Element[], type?: string, color?: string) => {
+export const fontEvent = (protyle: IProtyle, nodeElements: Element[], type?: string, color?: string,
+                          focusRange = true, onChange?: (type: string, color?: string) => void) => {
     let localFontStyles = window.siyuan.storage[Constants.LOCAL_FONTSTYLES];
     if (type) {
-        localFontStyles.splice(0, 0, `${type}${Constants.ZWSP}${color}`);
-        localFontStyles = [...new Set(localFontStyles)];
-        if (localFontStyles.length > 8) {
-            localFontStyles.splice(8, 1);
-        }
+        const value = `${type}${Constants.ZWSP}${color}`;
+        const recentKey = getRecentInlineStyleKey(value);
+        localFontStyles = [value, ...localFontStyles.filter((item: string) =>
+            getRecentInlineStyleKey(item) !== recentKey)].slice(0, MAX_RECENT_FONT_STYLES);
         window.siyuan.storage[Constants.LOCAL_FONTSTYLES] = localFontStyles;
         setStorageVal(Constants.LOCAL_FONTSTYLES, window.siyuan.storage[Constants.LOCAL_FONTSTYLES]);
     } else {
         if (localFontStyles.length === 0) {
             type = "style1";
-            color = "var(--b3-card-error-color)" + Constants.ZWSP + "var(--b3-card-error-background)";
+            color = encodeStyle1("var(--b3-card-error-background)", "var(--b3-card-error-color)");
         } else {
             const fontStyles = localFontStyles[0].split(Constants.ZWSP);
             type = fontStyles.splice(0, 1)[0];
             color = fontStyles.join(Constants.ZWSP);
         }
+    }
+    if (onChange) {
+        onChange(type, color);
+        return;
     }
     if (nodeElements && nodeElements.length > 0) {
         updateBatchTransaction(nodeElements, protyle, (e: HTMLElement) => {
@@ -271,10 +374,10 @@ export const fontEvent = (protyle: IProtyle, nodeElements: Element[], type?: str
                 e.style.fontSize = "";
                 e.style.removeProperty("--b3-parent-background");
             } else if (type === "style1") {
-                const colorList = color.split(Constants.ZWSP);
-                e.style.backgroundColor = colorList[0];
-                e.style.color = colorList[1];
-                e.style.setProperty("--b3-parent-background", colorList[0]);
+                const style = decodeStyle1(color);
+                e.style.backgroundColor = style.backgroundColor;
+                e.style.color = style.color;
+                e.style.setProperty("--b3-parent-background", style.backgroundColor);
             } else if (type === "style2") {
                 e.style.webkitTextStroke = "0.2px var(--b3-theme-on-background)";
                 e.style.webkitTextFillColor = "transparent";
@@ -292,12 +395,14 @@ export const fontEvent = (protyle: IProtyle, nodeElements: Element[], type?: str
                 lineNumberRender(e.querySelector(".hljs"));
             }
         });
-        focusByRange(protyle.toolbar.range);
+        if (focusRange) {
+            focusByRange(protyle.toolbar.range);
+        }
     } else {
         if (type === "clear") {
-            protyle.toolbar.setInlineMark(protyle, "clear", "range", { type: "text" });
+            protyle.toolbar.setInlineMark(protyle, "clear", "range", { type: "text" }, focusRange);
         } else {
-            protyle.toolbar.setInlineMark(protyle, "text", "range", { type, color });
+            protyle.toolbar.setInlineMark(protyle, "text", "range", { type, color }, focusRange);
         }
     }
 };
@@ -346,10 +451,12 @@ export const setFontStyle = (textElement: HTMLElement, textOption: ITextOption |
             case "backgroundColor":
                 textElement.style.backgroundColor = textOption.color;
                 break;
-            case "style1":
-                textElement.style.backgroundColor = textOption.color.split(Constants.ZWSP)[0];
-                textElement.style.color = textOption.color.split(Constants.ZWSP)[1];
+            case "style1": {
+                const style = decodeStyle1(textOption.color);
+                textElement.style.backgroundColor = style.backgroundColor;
+                textElement.style.color = style.color;
                 break;
+            }
             case "style2":
                 textElement.style.webkitTextStroke = "0.2px var(--b3-theme-on-background)";
                 textElement.style.webkitTextFillColor = "transparent";
@@ -442,8 +549,9 @@ export const hasSameTextStyle = (currentElement: HTMLElement, sideElement: HTMLE
             return textObj.color === sideElement.style.backgroundColor;
         }
         if (textObj.type === "style1") {
-            return textObj.color.split(Constants.ZWSP)[0] === sideElement.style.color &&
-                textObj.color.split(Constants.ZWSP)[1] === sideElement.style.backgroundColor;
+            const style = decodeStyle1(textObj.color);
+            return style.backgroundColor === sideElement.style.backgroundColor &&
+                style.color === sideElement.style.color;
         }
         if (textObj.type === "style2") {
             return "transparent" === sideElement.style.webkitTextFillColor &&

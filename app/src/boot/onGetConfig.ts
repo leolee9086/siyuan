@@ -19,6 +19,8 @@ import { fetchPost, fetchSyncPost } from "../util/network/fetch";
 import { initAssets, setInlineStyle } from "../util/assets/assets";
 import { renderSnippet } from "../config/util/snippets";
 import {openFile} from "../editor/open/openFile";
+import {openSetting} from "../config";
+import {mountHelp} from "../util/file/mount";
 
 import { exitSiYuan } from "../dialog/processSystem";
 import { isWindow, setToolbarLeftMac } from "../util/platform/functions";
@@ -35,7 +37,7 @@ import type { AppFacade } from "../app/AppFacade.types";
 import { initWindowEvent } from "./globalEvent/event";
 import { sendGlobalShortcut } from "./globalEvent/keydown/windowKeyDown/globalShortcut/send";
 import { closeWindow } from "../window/closeWin";
-import { correctHotkey } from "./globalEvent/commonHotkey";
+import { correctHotkey, syncAppMenuShortcuts } from "./globalEvent/commonHotkey";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig, getSiyuanLanguages, getSiyuanStorage, getSiyuanUILayout, setSiyuanUILayout } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
@@ -120,22 +122,26 @@ const 初始化ResizeHandler = () => {
 /**
  * 处理 Emoji 配置响应（从 API 获取后初始化布局）
  */
-const 处理Emoji配置 = (app: AppFacade, isStart: boolean, response: IWebSocketData) => {
+const 处理Emoji配置 = (app: AppFacade, isStart: boolean, response: IWebSocketData, snippetReady: Promise<void>, resolve: () => void) => {
     window.siyuan.emojis = response.data as IEmoji[];
-    try {
-        JSONToLayout(app, isStart);
-        setTimeout(() => {
-            adjustLayout();
-        });
-        if (isElectron) {
-            sendGlobalShortcut(app);
+    // 等待代码片段加载完成后再构建布局，保证脚本与样式先于界面注入；超时或失败时该 Promise 同样会兑现
+    snippetReady.then(() => {
+        try {
+            JSONToLayout(app, isStart);
+            setTimeout(() => {
+                adjustLayout();
+            }); // 等待 dock 面板固定状态对应的 setTimeout
+            if (isElectron) {
+                sendGlobalShortcut(app);
+            }
+            openChangelog(getProtyleDialogPort());
+        } catch (e) {
+            const error = e instanceof Error ? e : new Error(String(e));
+            resetLayout(error);
         }
-        openChangelog(getProtyleDialogPort());
-    } catch (e) {
-        const error = e instanceof Error ? e : new Error(String(e));
-        resetLayout(error);
-    }
-    openDesktopOnboarding(app);
+        openDesktopOnboarding(app);
+        resolve();
+    });
 };
 
 export const onGetConfig = (isStart: boolean, app: AppFacade) => {
@@ -147,7 +153,11 @@ export const onGetConfig = (isStart: boolean, app: AppFacade) => {
         setSiyuanUILayout(Constants.SIYUAN_EMPTY_LAYOUT);
     }
     initWindowEvent(app);
-    fetchPost("/api/system/getEmojiConf", {}, response => 处理Emoji配置(app, isStart, response));
+    // 先请求代码片段（带超时兜底），布局在其完成后渲染；layoutReady 作为启动完成信号返回给调用方
+    const snippetReady = renderSnippet(Constants.TIMEOUT_SNIPPET_LOAD);
+    const layoutReady = new Promise<void>((resolve) => {
+        fetchPost("/api/system/getEmojiConf", {}, response => 处理Emoji配置(app, isStart, response, snippetReady, resolve));
+    });
     initBar(app);
     initStatus();
     initWindow(app);
@@ -159,7 +169,6 @@ export const onGetConfig = (isStart: boolean, app: AppFacade) => {
     appearanceConfigApi.apply(getSiyuanConfig().appearance);
     initAssets();
     setInlineStyle();
-    renderSnippet();
 // S-forge: 上游改进 - 安全模式下禁用代码片段、插件、自定义主题和图标
     if (getSiyuanConfig().system.safeMode) {
         showMessage(siyuanI18n.safeModeTip);
@@ -167,6 +176,7 @@ export const onGetConfig = (isStart: boolean, app: AppFacade) => {
     // S-forge: 本地重构 - 使用独立函数初始化 resize 处理器
     // S-forge: 上游改进 - 已应用菜单位置重置到重构后的函数中
     初始化ResizeHandler();
+    return layoutReady;
 };
 
 // S-forge: 上游改进 - 删除 winOnMaxRestore 函数，改用 CSS 类管理窗口状态 (#16811)
@@ -250,6 +260,12 @@ export const initWindow = async (app: AppFacade) => {
         }
         openFile(data);
     });
+    ipcOn(Constants.SIYUAN_OPEN_SETTING, () => {
+        openSetting(app);
+    });
+    ipcOn(Constants.SIYUAN_OPEN_HELP, () => {
+        mountHelp();
+    });
     ipcOn(Constants.SIYUAN_SAVE_CLOSE, (event, close) => {
         if (isWindow()) {
             closeWindow(app, ipcSend);
@@ -283,6 +299,8 @@ export const initWindow = async (app: AppFacade) => {
             removeAssets: ipcData.removeAssets,
             keepFold: ipcData.keepFold,
             mergeSubdocs: ipcData.mergeSubdocs,
+            mergeDocHeadingMode: ipcData.mergeDocHeadingMode,
+            mergeContentHeadingMode: ipcData.mergeContentHeadingMode,
             watermark: ipcData.watermark,
             landscape: ipcData.pdfOptions.landscape,
             marginType: ipcData.pdfOptions.marginType,
@@ -318,6 +336,8 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
                 pdf: true,
                 removeAssets: ipcData.removeAssets,
                 merge: ipcData.mergeSubdocs,
+                mergeDocHeadingMode: ipcData.mergeDocHeadingMode,
+                mergeContentHeadingMode: ipcData.mergeContentHeadingMode,
                 savePath,
             }, () => {
                 fs.writeFileSync(pdfFilePath, pdfData);
@@ -325,6 +345,8 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
                 fetchPost("/api/export/processPDF", {
                     id: ipcData.rootId,
                     merge: ipcData.mergeSubdocs,
+                    mergeDocHeadingMode: ipcData.mergeDocHeadingMode,
+                    mergeContentHeadingMode: ipcData.mergeContentHeadingMode,
                     path: pdfFilePath,
                     removeAssets: ipcData.removeAssets,
                     watermark: ipcData.watermark
@@ -464,4 +486,5 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
         });
         // S-forge: 上游改进 - 删除 macOS toolbar padding 处理，改用 CSS 管理 (#16811)
     }
+    syncAppMenuShortcuts();
 };

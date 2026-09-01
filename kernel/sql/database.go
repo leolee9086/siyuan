@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -18,6 +18,7 @@ package sql
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -45,6 +46,7 @@ import (
 	"github.com/siyuan-note/eventbus"
 	"github.com/siyuan-note/logging"
 	assetcolor "github.com/siyuan-note/siyuan/kernel/color"
+	"github.com/siyuan-note/siyuan/kernel/search"
 	"github.com/siyuan-note/siyuan/kernel/treenode"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
@@ -64,6 +66,9 @@ var (
 	// sql 包不直接 import model（循环依赖），路由函数据此 fail-closed：
 	// 加密笔记本未解锁时绝不回退全局库，避免加密笔记本索引污染全局明文库。
 	IsEncryptedBoxFn func(boxID string) bool
+
+	// IsBoxUnlockedFn 由 model 层注入，用于在读取明文缓存前确认加密笔记本仍处于解锁状态。
+	IsBoxUnlockedFn func(boxID string) bool
 )
 
 func init() {
@@ -77,9 +82,15 @@ func init() {
 			if err := conn.RegisterFunc("regexp", regex, true); err != nil {
 				return err
 			}
-			return conn.RegisterFunc("ciede2000_rgb", func(r1, g1, b1, r2, g2, b2 int64) float64 {
+			if err := conn.RegisterFunc("ciede2000_rgb", func(r1, g1, b1, r2, g2, b2 int64) float64 {
 				return assetcolor.CIEDE2000RGB([3]int{int(r1), int(g1), int(b1)}, [3]int{int(r2), int(g2), int(b2)})
-			}, true)
+			}, true); err != nil {
+				return err
+			}
+			normalizeSearchText := func(text string, caseSensitive, hanSensitive int) string {
+				return search.NormalizeSearchText(text, 0 != caseSensitive, 0 != hanSensitive)
+			}
+			return conn.RegisterFunc("search_normalize", normalizeSearchText, true)
 		},
 	})
 }
@@ -113,8 +124,14 @@ func initDatabase(forceRebuild bool) {
 		if util.DatabaseVer == getDatabaseVer() {
 			// 老库版本一致但缺少新加的列时，做幂等迁移（不升 DatabaseVer，避免全库重建丢失已嵌入向量）
 			migrateBlockEmbeddingsSchema()
+			if err := ensureBlocksDocHPathIndex(db); err != nil {
+				logging.LogFatalf(logging.ExitCodeUnavailableDatabase, "create document hpath index failed: %s", err)
+			}
 			if err := ensureRefsDefIndexes(db); err != nil {
 				logging.LogFatalf(logging.ExitCodeUnavailableDatabase, "create refs definition indexes failed: %s", err)
+			}
+			if err := cleanupInvalidRefs(db); err != nil {
+				logging.LogErrorf("cleanup invalid refs failed: %s", err)
 			}
 			recoverIndexQueue()
 			return
@@ -174,6 +191,10 @@ func initDBTables() {
 	_, err = db.Exec("CREATE INDEX idx_blocks_root_id_id_hash ON blocks(root_id, id, hash)")
 	if err != nil {
 		logging.LogFatalf(logging.ExitCodeUnavailableDatabase, "create index [idx_blocks_root_id_id_hash] failed: %s", err)
+	}
+
+	if err = ensureBlocksDocHPathIndex(db); err != nil {
+		logging.LogFatalf(logging.ExitCodeUnavailableDatabase, "create document hpath index failed: %s", err)
 	}
 
 	if err = initFTSBlocks(); err != nil {
@@ -315,14 +336,6 @@ func initDBConnection() {
 	db.SetMaxIdleConns(20)
 	db.SetMaxOpenConns(20)
 	db.SetConnMaxLifetime(365 * 24 * time.Hour)
-}
-
-func ensureRefsDefIndexes(database *sql.DB) (err error) {
-	if _, err = database.Exec("CREATE INDEX IF NOT EXISTS idx_refs_def_block_id ON refs(def_block_id)"); err != nil {
-		return
-	}
-	_, err = database.Exec("CREATE INDEX IF NOT EXISTS idx_refs_def_block_root_id ON refs(def_block_root_id)")
-	return
 }
 
 var initHistoryDatabaseLock = sync.Mutex{}
@@ -1439,6 +1452,25 @@ func batchUpdateHPath(tx *sql.Tx, tree *parse.Tree, context map[string]any) (err
 	return
 }
 
+func ensureBlocksDocHPathIndex(database *sql.DB) (err error) {
+	_, err = database.Exec("CREATE INDEX IF NOT EXISTS idx_blocks_doc_hpath ON blocks(hpath) WHERE type = 'd'")
+	return
+}
+
+func ensureRefsDefIndexes(database *sql.DB) (err error) {
+	if _, err = database.Exec("CREATE INDEX IF NOT EXISTS idx_refs_def_block_id ON refs(def_block_id)"); err != nil {
+		return
+	}
+	_, err = database.Exec("CREATE INDEX IF NOT EXISTS idx_refs_def_block_root_id ON refs(def_block_root_id)")
+	return
+}
+
+func cleanupInvalidRefs(database *sql.DB) (err error) {
+	_, err = database.Exec("DELETE FROM refs WHERE COALESCE(TRIM(def_block_id), '') = '' OR " +
+		"COALESCE(TRIM(block_id), '') = '' OR COALESCE(TRIM(root_id), '') = ''")
+	return
+}
+
 func CloseDatabase() {
 	closeIndexQueue()
 	// 退出时删除所有已打开的加密 db 文件：加密索引可由 box.Index() 全量重建，
@@ -1533,6 +1565,23 @@ func queryForBox(boxID, query string, args ...any) (*sql.Rows, error) {
 		return nil, errors.New("database is nil")
 	}
 	return db.Query(query, args...)
+}
+
+func queryForBoxContext(ctx context.Context, boxID, query string, args ...any) (*sql.Rows, error) {
+	query = strings.TrimSpace(query)
+	if "" == query {
+		return nil, errors.New("statement is empty")
+	}
+	if boxDB := GetEncryptedDB(boxID); boxDB != nil {
+		return boxDB.QueryContext(ctx, query, args...)
+	}
+	if IsEncryptedBoxFn != nil && IsEncryptedBoxFn(boxID) {
+		return nil, errors.New("encrypted box db not opened for box " + boxID)
+	}
+	if nil == db {
+		return nil, errors.New("database is nil")
+	}
+	return db.QueryContext(ctx, query, args...)
 }
 
 func Exec(stmt string, args ...any) error {
@@ -1835,21 +1884,51 @@ func closeDatabase() {
 	return
 }
 
-func SQLTemplateFuncs(templateFuncMap *template.FuncMap) {
+func SQLTemplateFuncs(templateFuncMap *template.FuncMap, boxIDs ...string) {
+	boxID := ""
+	if len(boxIDs) > 0 {
+		boxID = boxIDs[0]
+	}
+	readonlyStmts := &sync.Map{}
+	isReadonlyStmt := func(stmt string) bool {
+		if _, ok := readonlyStmts.Load(stmt); ok {
+			return true
+		}
+		if CheckSingleStatement(stmt) != nil {
+			return false
+		}
+		if boxID == "" {
+			if CheckReadonlyStatement(stmt) != nil {
+				return false
+			}
+		} else if CheckReadonlyStatementInBox(stmt, boxID) != nil {
+			return false
+		}
+		readonlyStmts.Store(stmt, struct{}{})
+		return true
+	}
+
 	(*templateFuncMap)["queryBlocks"] = func(stmt string, args ...string) (retBlocks []*Block) {
 		for _, arg := range args {
 			stmt = strings.Replace(stmt, "?", arg, 1)
 		}
-		retBlocks = SelectBlocksRawStmt(stmt, 1, 512)
+		if !isReadonlyStmt(stmt) {
+			return
+		}
+		if boxID == "" {
+			retBlocks = SelectBlocksRawStmt(stmt, 1, 512)
+		} else {
+			retBlocks = SelectBlocksRawStmtInBox(stmt, 1, 512, boxID)
+		}
 		return
 	}
 	(*templateFuncMap)["getBlock"] = func(arg any) (retBlock *Block) {
 		switch v := arg.(type) {
 		case string:
-			retBlock = GetBlock(v)
+			retBlock = GetBlockInBox(v, boxID)
 		case map[string]any:
 			if id, ok := v["id"]; ok {
-				retBlock = GetBlock(id.(string))
+				retBlock = GetBlockInBox(id.(string), boxID)
 			}
 		}
 		return
@@ -1858,14 +1937,28 @@ func SQLTemplateFuncs(templateFuncMap *template.FuncMap) {
 		for _, arg := range args {
 			stmt = strings.Replace(stmt, "?", arg, 1)
 		}
-		retSpans = SelectSpansRawStmt(stmt, 512)
+		if !isReadonlyStmt(stmt) {
+			return
+		}
+		if boxID == "" {
+			retSpans = SelectSpansRawStmt(stmt, 512)
+		} else {
+			retSpans = SelectSpansRawStmtInBox(stmt, 512, boxID)
+		}
 		return
 	}
 	(*templateFuncMap)["querySQL"] = func(stmt string) (ret []map[string]any) {
-		if err := CheckSingleStatement(stmt); err != nil {
+		if !isReadonlyStmt(stmt) {
 			return
 		}
-		ret, _ = Query(stmt, 1024)
+		if boxID == "" {
+			ret, _ = Query(stmt, 1024)
+		} else {
+			ret, _ = QueryNoLimitInBox(stmt, boxID)
+			if len(ret) > 1024 {
+				ret = ret[:1024]
+			}
+		}
 		return
 	}
 }
@@ -2007,7 +2100,13 @@ func initEncryptedDBTables(boxDB *sql.DB) (err error) {
 			return
 		}
 	}
+	if err = ensureBlocksDocHPathIndex(boxDB); err != nil {
+		return
+	}
 	if err = ensureRefsDefIndexes(boxDB); err != nil {
+		return
+	}
+	if err = cleanupInvalidRefs(boxDB); err != nil {
 		return
 	}
 	// FTS5 external-content 虚拟表，tokenize 与全局保持一致（siyuan 分词器）

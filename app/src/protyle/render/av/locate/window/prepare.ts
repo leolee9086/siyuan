@@ -4,8 +4,10 @@ import {Constants} from "./imports";
 import {showMessage} from "./imports";
 /** 用途：定位请求和渲染数据状态；使用范围：窗口准备；解耦评估：直达统一状态所有者。 */
 import {getAVLocateRequest} from "./imports";
-/** 用途：缓存已渲染数据；使用范围：窗口准备；解耦评估：经本阶段网关直达状态所有者。 */
+/** 用途：缓存已渲染 AV 数据；使用范围：窗口准备；解耦评估：直达统一状态真实所有者。 */
 import {setRenderedAVData} from "./imports";
+/** 用途：读取画廊卡片宽度；使用范围：定位窗口列数计算；解耦评估：经样式所有者统一解析新旧字段。 */
+import {getCardWidth} from "./imports";
 /** 用途：完整定位请求；使用范围：失败消息状态；解耦评估：纯类型直达领域声明。 */
 import type {IAVLocateRequest} from "../locate.types";
 
@@ -55,8 +57,7 @@ const calculateLocateWindow = (blockElement: HTMLElement, data: IAV) => {
     let columns = 1;
     // Gallery 根据卡片尺寸和容器宽度对齐整行窗口，看板保持单列计算。
     if (data.viewType === "gallery") {
-        const cardSize = "cardSize" in view ? view.cardSize : 1;
-        const minWidth = cardSize === 0 ? 180 : (cardSize === 2 ? 320 : 260);
+        const minWidth = getCardWidth(view as IAVGallery) ?? 260;
         columns = Math.max(1, Math.floor((blockElement.clientWidth + 16) / (minWidth + 16)));
         renderedStart -= renderedStart % columns;
     }

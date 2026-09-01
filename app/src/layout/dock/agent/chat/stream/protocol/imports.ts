@@ -31,6 +31,10 @@ export {appendConfirm};
 import {resolveConfirm} from "../../interaction/confirm/AgentChat.confirm.methods";
 /** 导出确认终态命令。 */
 export {resolveConfirm};
+/** 用途：执行浏览器能力；使用范围：browser_capability_call 事件；解耦评估：注册表查询与回传由交互命令集中处理。 */
+import {handleBrowserCapabilityCall} from "../../interaction/confirm/AgentChat.confirm.methods";
+/** 导出浏览器能力处理命令。 */
+export {handleBrowserCapabilityCall};
 /** 用途：执行前端工具；使用范围：前端工具事件；解耦评估：工具注册和回传由现有命令统一处理，事件发射会增加无序中间层。 */
 import {handleFrontendToolCall} from "../../interaction/confirm/AgentChat.confirm.methods";
 /** 导出前端工具处理命令。 */

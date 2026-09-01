@@ -1,4 +1,5 @@
 import type {AppFacade} from "../../app/AppFacade.types";
+import type {SettingSearchUnavailableItem} from "./setting.types";
 import type {StackLine, SwitchQueryItem} from "../render/parts";
 import {genButtonRowHtml, genStackHtml, genSwitchQueryHtml, genTextPairHtml} from "../render/render";
 import {
@@ -11,10 +12,15 @@ import {
     type SettingControl,
 } from "./control";
 import {registerSettingGroup} from "./group";
-import {registerSettingItem, type RegisterSettingItem, removeSettingTabItems} from "./item";
-import {scanSettingTabSearch, type SettingTabSearchResult} from "../search/scan";
+import {
+    registerSettingItem,
+    type RegisterSettingItem,
+    removeSettingTabItems,
+    type SettingItemSearchAvailability,
+} from "./item";
+import {scanSettingTabSearch} from "../search/scan";
 import {buildSearchIndex, normalizeSearchText} from "../search/normalize";
-import {applySettingTabSearchVisibility, mountSettingTab, type SettingTabMountContext} from "./mount";
+import {applySettingTabSearchVisibility, mountSettingTab} from "./mount";
 
 type SaveFn = (value: unknown) => void | Promise<void>;
 
@@ -43,6 +49,8 @@ type ControlSpecBase = {
     desc?: string;
     save?: SaveFn;
     afterMount?: (root: HTMLElement) => void | Promise<void>;
+    /** 搜索时动态判断条目是否可用 */
+    searchAvailability?: () => SettingItemSearchAvailability;
     /** 省略时按控件 id 从 config 读取；嵌套 / 派生项需显式传入 */
     readConfig?: () => unknown;
 };
@@ -134,6 +142,7 @@ type ButtonSpec = {
     desc?: string;
     label: string;
     icon: string;
+    keywords?: string[];
     afterMount?: (root: HTMLElement) => void | Promise<void>;
 };
 
@@ -244,6 +253,8 @@ class SettingGroupBuilder<TId extends string> {
             groupId: this.groupId,
             kind: "full",
             rowParts,
+            searchTitle: spec.title,
+            searchAvailability: spec.searchAvailability,
             readValue: (el) => control.readValue(el),
             save: spec.save ?? this.tab.defaultSave?.bind(null, id),
             afterMount,
@@ -328,7 +339,8 @@ class SettingGroupBuilder<TId extends string> {
     button(spec: ButtonSpec) {
         this.slot({
             key: `button_${spec.id}`,
-            keywords: [spec.title, spec.desc, spec.label].filter((s): s is string => Boolean(s)),
+            keywords: [spec.title, spec.desc, spec.label, ...(spec.keywords ?? [])]
+                .filter((s): s is string => Boolean(s)),
             html: () => genButtonRowHtml(spec.id, spec.title, spec.desc, spec.label, spec.icon),
             afterMount: spec.afterMount,
         });
@@ -414,6 +426,24 @@ export class SettingTabBuilder<TId extends string = string> {
     }
 }
 
+/** `scanSearch` 返回值：侧栏过滤用 `matches`，条目型 SettingTab 另含可见条目 ID / 分组 ID */
+export interface SettingTabSearchResult {
+    matches: boolean;
+    visibleItemIds?: Set<string>;
+    visibleGroupIds?: Set<string>;
+    unavailableItems?: Map<string, SettingSearchUnavailableItem>;
+}
+
+export type {SettingSearchUnavailableItem};
+
+/** mount 时的搜索上下文（`keywords` 由壳层持有，与扫描结果在调用处拼装） */
+export interface SettingTabMountContext {
+    keywords: string;
+    visibleItemIds?: Set<string>;
+    visibleGroupIds?: Set<string>;
+    unavailableItems?: Map<string, SettingSearchUnavailableItem>;
+}
+
 export type SettingTab = SettingTabShell & {
     mount: (
         root: HTMLElement,
@@ -443,7 +473,7 @@ export class SettingBuilder {
         return {
             ...shell,
             mount: async (root, search, app, rebuild) => {
-                const {visibleItemIds, visibleGroupIds} = search ?? {};
+                const {visibleItemIds, visibleGroupIds, unavailableItems} = search ?? {};
                 if (rebuild) {
                     removeSettingTabItems(options.id);
                     registered = false;
@@ -455,7 +485,7 @@ export class SettingBuilder {
                     await afterMount?.(root, app);
                 }
                 if (visibleItemIds && visibleGroupIds) {
-                    applySettingTabSearchVisibility(root, visibleItemIds, visibleGroupIds);
+                    applySettingTabSearchVisibility(root, visibleItemIds, visibleGroupIds, unavailableItems);
                 }
             },
             scanSearch: (keywords) => {
@@ -479,7 +509,7 @@ export class SettingBuilder {
             // panel 型 Tab 不支持 rebuild（无注册项可清），忽略该参数以对齐 SettingTab.mount 签名
             mount: async (root, {keywords} = {}, app, _rebuild) => {
                 void _rebuild;
-                mount(root, keywords, app);
+                await mount(root, keywords, app);
             },
             scanSearch: (keywords) => {
                 if (tabSearchTitle === undefined) {

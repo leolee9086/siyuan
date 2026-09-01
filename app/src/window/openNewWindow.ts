@@ -70,6 +70,12 @@ import { getLocationProtocol } from "./open/imports";
  * 解耦评估：依赖环境配置系统，当前无法解耦
  */
 import { getLocationHost } from "./open/imports";
+/**
+ * 用途：上游新增 - 判断资源路径在浏览器渲染环境下是否可作为图片展示
+ * 使用范围：openAssetNewWindow 中过滤不可内嵌渲染的图片资源（如 HEIC 等浏览器不支持的格式）
+ * 解耦评估：上游图片能力判定工具，window/open/imports.ts 网关暂未转发，直接依赖实现模块
+ */
+import { isBrowserRenderableImagePath } from "../util/imageURL";
 
 /**
  * 用途：导入窗口配置选项类型定义
@@ -241,7 +247,8 @@ const getAssetDocIcon = (suffix: string) => {
  * @description
  * - 作用：将指定的资源文件在独立的新窗口中打开，支持图片、音频、视频和PDF等多媒体资源
  * - 意图：提供资源文件的独立窗口查看能力，使用户可以在不离开当前编辑界面的情况下查看资源
- * - 调用时机：用户在资源文件右键菜单中选择"在新窗口打开"时调用（见 commonMenuItem.openMenu.ts）
+ * - 调用时机：用户在资源文件右键菜单中选择"在新窗口打开"时调用（见 commonMenuItem.openMenu.ts）；
+ *   上游还支持携带显式页码打开（见 editor/openLink.ts 的 openAssetByAction 新窗口分支）
  * - 限制：仅在桌面端（非浏览器环境）生效，浏览器环境下此函数为空操作
  *
  * @同步豁免: UI构建 - 此函数由用户菜单点击事件同步触发，
@@ -250,16 +257,23 @@ const getAssetDocIcon = (suffix: string) => {
  *
  * @param assetPath - 资源文件路径，如 "assets/image.png" 或带查询参数的路径 "assets/doc.pdf?page=5"
  * @param options - 窗口配置选项，包括位置、宽度、高度等
+ * @param page - 可选的显式页码（数字或字符串），未提供时回退解析 assetPath 的 page 查询参数（上游新增）
  */
-export const openAssetNewWindow = (assetPath: string, options: WindowOptions = {}) => {
+export const openAssetNewWindow = (
+    assetPath: string,
+    options: WindowOptions = {},
+    page?: number | string,
+) => {
     // 仅桌面端支持通过IPC打开资源新窗口
     if (!isElectron) {
         return;
     }
-    const suffix = pathPosix().extname(assetPath).split("?")[0] ?? "";
-    // 仅当文件扩展名属于思源支持的资源类型（图片、音视频、PDF）时才打开新窗口
+    const suffix = (pathPosix().extname(assetPath).split("?")[0] ?? "").toLowerCase();
+    // 仅当文件扩展名属于思源支持的资源类型，且该路径可在浏览器环境内嵌渲染时才打开新窗口
+    // （上游改进：过滤 HEIC/HEIF 等浏览器无法直接渲染的图片格式，避免打开空白窗口）
     // 非支持类型的文件静默忽略，避免打开无法渲染的内容
-    if (Constants.SIYUAN_ASSETS_EXTS.includes(suffix)) {
+    if (Constants.SIYUAN_ASSETS_EXTS.includes(suffix) &&
+        isBrowserRenderableImagePath(assetPath)) {
         const docIcon = getAssetDocIcon(suffix);
         const json: AssetTabConfig[] = [{
             title: getDisplayName(assetPath),
@@ -270,7 +284,9 @@ export const openAssetNewWindow = (assetPath: string, options: WindowOptions = {
             action: "Tab",
             children: {
                 path: assetPath,
-                page: parseInt(getSearch("page", assetPath) ?? ""),
+                // 上游改进：优先使用调用方显式传入的页码；未提供时回退解析资源 URL 的 page 参数。
+                // AssetTabConfig 契约目前声明为 number，显式收窄以兼容字符串页码透传。
+                page: (page ?? parseInt(getSearch("page", assetPath) ?? "")) as number,
                 instance: "Asset",
             }
         }];

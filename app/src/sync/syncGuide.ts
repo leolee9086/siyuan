@@ -11,6 +11,14 @@ import {Constants} from "../constants";
 import {getCloudURL} from "../config/util/about";
 import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
+/** 引导打开同步设置；桌面打开设置面板，移动端经宿主 openSettings 路由到设置菜单。 */
+const openSyncSetting = (app?: AppFacade) => {
+    if (!app) {
+        return;
+    }
+    app.openSettings("sync");
+};
+
 export const addCloudName = (cloudListElement: Element) => {
     const dialog = new Dialog({
         title: siyuanI18n.cloudSyncDir,
@@ -167,6 +175,10 @@ export const syncGuide = (app?: AppFacade) => {
             app.openSettings("sync");
         }
         showMessage(siyuanI18n._kernel[214].replaceAll("${accountServer}", getCloudURL("")));
+        return;
+    }
+    if (!window.siyuan.config.sync.enabled && window.siyuan.config.sync.provider !== 0) {
+        openSyncSetting(app);
         return;
     }
     if (!window.siyuan.config.repo.key) {

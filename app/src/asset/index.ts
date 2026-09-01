@@ -15,6 +15,8 @@ import {getDisplayName} from "../util/file/path/operations";
 import { isMobile } from "../platform";
 import {assetModelBrand} from "./asset.types";
 import {resolveAssetURL} from "./assetUrl";
+/** 上游 v3.8.0 引入的 PDF 加载状态机：登记超时与观察者，在模型销毁后拦截迟到回调。 */
+import {PdfLoadState} from "./pdfLoadState";
 
 /** 资产页签模型的具体运行时实现。 */
 export class Asset extends Model<AppFacade, LayoutTab> {
@@ -29,6 +31,8 @@ export class Asset extends Model<AppFacade, LayoutTab> {
   private pdfId: number | string | undefined;
   private pdfPage: number | undefined;
   public pdfObject: any;
+  /** 上游引入的加载状态机：销毁后拒绝迟到的渲染与取号回调。 */
+  private pdfLoadState = new PdfLoadState();
 
   public get windowHashIdentity() {
     return {kind: "asset-path", value: this.path} as const;
@@ -74,6 +78,10 @@ export class Asset extends Model<AppFacade, LayoutTab> {
     fetchPost("/api/asset/getFileAnnotation", {
       path: this.path + ".sya",
     }, (response) => {
+      // 上游修复：页签销毁后直接丢弃迟到的批注定位响应。
+      if (this.pdfLoadState.isDestroyed) {
+        return;
+      }
       if (response.code === 1) {
         cb();
         return;
@@ -111,7 +119,17 @@ export class Asset extends Model<AppFacade, LayoutTab> {
     }
   }
 
-  private render(_isInit = true) {
+  private render(isInit = true) {
+    // 上游修复：模型已销毁时不再渲染；重渲染前清理未决的加载任务。
+    if (this.pdfLoadState.isDestroyed) {
+      return;
+    }
+    this.pdfLoadState.clearPending();
+    // 上游修复：非首次渲染（切换资产）时先安全关闭旧 PDF 实例，避免加载任务泄漏。
+    if (!isInit && this.pdfObject) {
+      void this.pdfObject.close();
+      this.pdfObject = undefined;
+    }
     const type = this.path.substr(this.path.lastIndexOf(".")).toLowerCase().split("?")[0] || "";
     const assetURL = resolveAssetURL(this.path);
     // 音视频路径会进入 HTML 属性，必须在模板拼接前转义以防止属性闭合。
@@ -138,5 +156,16 @@ export class Asset extends Model<AppFacade, LayoutTab> {
         }
       );
     }
+  }
+
+  /** 上游新增：页签关闭时终止未完成的 PDF 加载任务并释放 viewer 资源。 */
+  public destroy() {
+    if (!this.pdfLoadState.destroy()) {
+      return;
+    }
+    if (this.pdfObject?.pdfLoadingTask) {
+      void this.pdfObject.pdfLoadingTask.destroy();
+    }
+    this.pdfObject = undefined;
   }
 }

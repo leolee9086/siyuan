@@ -17,7 +17,14 @@ import { siyuanI18n } from "./imports";
  */
 import { unicode2Emoji } from "./imports";
 /**
- * 用途：从render.ts导入URL渲染函数
+ * 用途：从 imports.ts 导入属性转义函数。
+ * 使用范围：renderRollup 的 block 图标 data-unicode 属性。
+ * 解耦评估：通过 cell gateway 复用唯一 DOM 属性编码器。
+ */
+import {escapeAttr} from "./imports";
+
+/**
+ * 用途：从 render.ts 导入 URL 渲染函数
  * 使用范围：renderRollup中处理url类型单元格
  * 解耦评估：已经是独立函数，无需进一步解耦
  */
@@ -36,7 +43,7 @@ import { getDefaultFileIcon } from "./storage.environment";
  * 调用时机：renderRollup处理text类型时
  */
 /** @同步豁免: UI构建 */
-const renderTextCell = (cellValue: IAVCellValue): string => {
+const renderTextCell = (cellValue: IAVCellValue) => {
     const textValue = cellValue.text;
     return Lute.EscapeHTMLStr(textValue?.content || "");
 };
@@ -48,7 +55,7 @@ const renderTextCell = (cellValue: IAVCellValue): string => {
  * 调用时机：renderRollup处理email或phone类型时
  */
 /** @同步豁免: UI构建 */
-const renderEmailOrPhoneCell = (cellValue: IAVCellValue): string => {
+const renderEmailOrPhoneCell = (cellValue: IAVCellValue) => {
     const type = cellValue.type;
     const value = type === "email" ? cellValue.email : cellValue.phone;
     const content = value?.content;
@@ -67,7 +74,7 @@ const renderEmailOrPhoneCell = (cellValue: IAVCellValue): string => {
  * 调用时机：renderRollup处理url类型时
  */
 /** @同步豁免: UI构建 */
-const renderUrlCell = (cellValue: IAVCellValue): string => {
+const renderUrlCell = (cellValue: IAVCellValue) => {
     const urlValue = cellValue.url;
     const urlContent = urlValue?.content || "";
     
@@ -85,7 +92,7 @@ const renderUrlCell = (cellValue: IAVCellValue): string => {
  * 调用时机：renderRollup处理block类型时
  */
 /** @同步豁免: UI构建 */
-const renderBlockCell = (cellValue: IAVCellValue, showIcon: boolean): string => {
+const renderBlockCell = (cellValue: IAVCellValue, showIcon: boolean) => {
     const blockValue = cellValue.block;
     const blockContent = blockValue?.content || siyuanI18n.untitled;
     
@@ -97,7 +104,7 @@ const renderBlockCell = (cellValue: IAVCellValue, showIcon: boolean): string => 
     const blockId = blockValue?.id || "";
     const emojiClass = showIcon ? "" : " fn__none";
     
-    return `<span class="b3-menu__avemoji${emojiClass}" data-unicode="${blockIcon}">${unicode2Emoji(blockIcon)}</span><span data-type="block-ref" data-id="${blockId}" data-subtype="s" class="av__celltext av__celltext--ref">${Lute.EscapeHTMLStr(blockContent)}</span>`;
+    return `<span class="b3-menu__avemoji${emojiClass}" data-unicode="${escapeAttr(blockIcon)}">${unicode2Emoji(blockIcon)}</span><span data-type="block-ref" data-id="${blockId}" data-subtype="s" class="av__celltext av__celltext--ref">${Lute.EscapeHTMLStr(blockContent)}</span>`;
 };
 
 /**
@@ -107,7 +114,7 @@ const renderBlockCell = (cellValue: IAVCellValue, showIcon: boolean): string => 
  * 调用时机：renderRollup处理number类型时
  */
 /** @同步豁免: UI构建 */
-const renderNumberCell = (cellValue: IAVCellValue): string => {
+const renderNumberCell = (cellValue: IAVCellValue) => {
     const numberValue = cellValue.number;
     
     if (!numberValue) {
@@ -124,7 +131,7 @@ const renderNumberCell = (cellValue: IAVCellValue): string => {
  * 调用时机：renderRollup处理checkbox类型时
  */
 /** @同步豁免: UI构建 */
-const renderCheckboxCell = (cellValue: IAVCellValue): string => {
+const renderCheckboxCell = (cellValue: IAVCellValue) => {
     const checkboxValue = cellValue.checkbox;
     const isChecked = checkboxValue?.checked;
     const iconType = isChecked ? "Check" : "Uncheck";
@@ -139,7 +146,7 @@ const renderCheckboxCell = (cellValue: IAVCellValue): string => {
  * 调用时机：renderRollup处理date/updated/created类型时
  */
 /** @同步豁免: UI构建 */
-const renderDateCell = (cellValue: IAVCellValue): string => {
+const renderDateCell = (cellValue: IAVCellValue) => {
     const dateValue = cellValue.type === "date" ? cellValue.date : 
                      cellValue.type === "updated" ? cellValue.updated : 
                      cellValue.created;
@@ -180,7 +187,7 @@ const renderDateCell = (cellValue: IAVCellValue): string => {
  * 调用时机：在属性视图渲染汇总行时调用
  */
 /** @同步豁免: UI构建 */
-export const renderRollup = (cellValue: IAVCellValue, showIcon: boolean): string => {
+export const renderRollup = (cellValue: IAVCellValue, showIcon: boolean) => {
     if (cellValue.type === "text") {
         return renderTextCell(cellValue);
     }

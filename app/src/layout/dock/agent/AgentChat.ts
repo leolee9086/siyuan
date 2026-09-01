@@ -120,6 +120,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> implements Agen
     public currentAssistantEntryId = "";
     public currentThinkingEntryId = "";
     public currentTurnID = "";
+    public currentRoundID = "";
     public recoveryCommitTurnIDs = new Map<string, string>();
     public pendingRecoverySessionIDs = new Set<string>();
     public recoveryInFlightSessionIDs = new Set<string>();
@@ -140,6 +141,7 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> implements Agen
     public currentToolCalls: Array<{
         id?: string;
         name: string;
+        roundID?: string;
         arguments: Record<string, unknown>;
         result?: string;
         state?: string;
@@ -151,12 +153,14 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> implements Agen
     public currentThinkingReasoningContent = "";
     public editingUserEntryID = "";
     public pendingEditDraft: { entryID: string; content: string } | null = null;
-    // thinking step 只保留工具名列表（去重：arguments/result 仅在 assistant entry 存一份），
+    // thinking step 只保留工具名与调用 ID（去重：arguments/result 仅在 assistant entry 存一份），
     // 不再保存 text（"已思考：Xs" 由 i18n 在渲染时从 duration 生成）。
     public currentThinkingSteps: Array<{
         reasoning: string;
         reasoningContent: string;
+        roundID?: string;
         toolNames?: string[];
+        toolCallIDs?: string[];
         content?: string
     }> = [];
     // 当前请求的思考耗时（秒）。持久化为 entry.duration，"已思考"文本不落盘。
@@ -173,6 +177,8 @@ export class AgentChat extends Model<AppFacade | undefined, Tab> implements Agen
     // 推理努力度（iconBrain + 原生 select），仅实例记忆，刷新后回到默认。
     public reasoningEffortSelect!: HTMLSelectElement;
     public selectedReasoningEffort = "";
+    public permissionSelect!: HTMLSelectElement;
+    public permissionMode: "confirm" | "allowSession" = "confirm";
     public userScrolledUp = false;
     public programmaticScroll = false;
     public stickResizeObserver: ResizeObserver | null = null;

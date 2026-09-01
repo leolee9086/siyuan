@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -44,6 +43,9 @@ func checkWorkspaceDir(c *gin.Context) {
 	}
 
 	path := arg["path"].(string)
+	if rejectMobileWorkspaceBaseDir(ret, path) {
+		return
+	}
 	// 检查路径是否是分区根路径
 	if util.IsPartitionRootPath(path) {
 		ret.Code = -1
@@ -97,6 +99,9 @@ func createWorkspaceDir(c *gin.Context) {
 	absPath := arg["path"].(string)
 	absPath = util.RemoveInvalid(absPath)
 	absPath = strings.TrimSpace(absPath)
+	if rejectMobileWorkspaceBaseDir(ret, absPath) {
+		return
+	}
 	if isInvalidWorkspacePath(absPath) {
 		ret.Code = -1
 		ret.Msg = "This workspace name is not allowed, please use another name"
@@ -173,21 +178,19 @@ func removeWorkspaceDirPhysically(c *gin.Context) {
 
 	path := arg["path"].(string)
 
-	// 硬边界：只允许删除已登记的工作空间目录，禁止删除当前工作空间和任意路径
+	// 硬边界：只允许删除已登记的工作空间目录或新建的空目录，禁止删除当前工作空间和任意路径
 	cleanPath, absErr := filepath.Abs(path)
 	if absErr != nil {
 		ret.Code = -1
 		ret.Msg = absErr.Error()
 		return
 	}
-	if cleanPath == util.WorkspaceDir {
-		ret.Code = -1
-		ret.Msg = "cannot remove current workspace"
+	if rejectMobileWorkspaceBaseDir(ret, cleanPath) {
 		return
 	}
-	if !util.IsWorkspaceDir(cleanPath) {
+	if util.IsWorkspaceLocked(cleanPath) || cleanPath == util.WorkspaceDir {
 		ret.Code = -1
-		ret.Msg = "path is not a workspace directory"
+		ret.Msg = "cannot remove opened workspace"
 		return
 	}
 	knownPaths, err := util.ReadWorkspacePaths()
@@ -196,11 +199,24 @@ func removeWorkspaceDirPhysically(c *gin.Context) {
 		ret.Msg = err.Error()
 		return
 	}
-	isKnown := slices.Contains(knownPaths, cleanPath)
-	if !isKnown {
+	remainingPaths := util.RemoveWorkspacePath(knownPaths, cleanPath)
+	if len(remainingPaths) == len(knownPaths) {
 		ret.Code = -1
 		ret.Msg = "path is not a registered workspace"
 		return
+	}
+	if !util.IsWorkspaceDir(cleanPath) {
+		entries, readErr := os.ReadDir(cleanPath)
+		if readErr != nil {
+			ret.Code = -1
+			ret.Msg = readErr.Error()
+			return
+		}
+		if 0 < len(entries) {
+			ret.Code = -1
+			ret.Msg = "path is not a workspace directory"
+			return
+		}
 	}
 
 	if err := os.RemoveAll(cleanPath); err != nil {
@@ -208,11 +224,13 @@ func removeWorkspaceDirPhysically(c *gin.Context) {
 		ret.Msg = err.Error()
 		return
 	}
+	if err = util.WriteWorkspacePaths(remainingPaths); err != nil {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return
+	}
 
 	logging.LogInfof("removed workspace [%s] physically", path)
-	if util.WorkspaceDir == path {
-		os.Exit(logging.ExitCodeOk)
-	}
 }
 
 type Workspace struct {
@@ -300,6 +318,9 @@ func setWorkspaceDir(c *gin.Context) {
 	}
 
 	path := arg["path"].(string)
+	if rejectMobileWorkspaceBaseDir(ret, path) {
+		return
+	}
 	if util.WorkspaceDir == path {
 		ret.Code = -1
 		ret.Msg = model.Conf.Language(78)
@@ -368,6 +389,9 @@ func isInvalidWorkspacePath(absPath string) bool {
 	if "" == absPath {
 		return true
 	}
+	if util.IsMobileWorkspaceBaseDir(absPath) {
+		return true
+	}
 	name := filepath.Base(absPath)
 	if "" == name {
 		return true
@@ -384,4 +408,14 @@ func isInvalidWorkspacePath(absPath string) bool {
 	}
 	toLower := strings.ToLower(name)
 	return gulu.Str.Contains(toLower, []string{"conf", "home", "data", "temp"})
+}
+
+func rejectMobileWorkspaceBaseDir(ret *gulu.Result, path string) bool {
+	if !util.IsMobileWorkspaceBaseDir(path) {
+		return false
+	}
+	ret.Code = -1
+	ret.Msg = model.Conf.Language(274)
+	ret.Data = map[string]any{"closeTimeout": 7000}
+	return true
 }

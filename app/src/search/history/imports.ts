@@ -13,3 +13,8 @@ export {getSiyuanConfig};
 export {getSiyuanStorage};
 /** 导出本地存储持久化能力。 */
 export {setStorageVal};
+
+/** 用途：识别加密笔记本；使用范围：敏感搜索历史写入豁免；解耦评估：直达加密子域唯一判定实现。 */
+import {isEncryptedBox} from "../../util/file/notebook/store";
+/** 导出加密笔记本判定。 */
+export {isEncryptedBox};

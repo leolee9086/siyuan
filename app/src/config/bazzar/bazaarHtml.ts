@@ -222,7 +222,24 @@ const genTabBarHTML = () => {
 </div>`;
 };
 
-const genDownloadedPanelHTML = (keywordsHTML: string, loadingHTML: string, petalDisabled: boolean) => {
+/** 生成「已下载」面板的排序下拉框 */
+const genDownloadedSortHTML = (downloadedSortValue: string): string => {
+    return `<div class="fn__flex config-bazaar__sort">
+                <svg class="svg ft__on-surface fn__flex-center"><use xlink:href="#iconSort"></use></svg>
+                <select class="b3-select" data-type="downloaded-sort">
+                    <option ${downloadedSortValue === "0" ? "selected" : ""} value="0">${siyuanI18n.sortDefault}</option>
+                    <option ${downloadedSortValue === "1" ? "selected" : ""} value="1">${siyuanI18n.sortByInstallTimeDesc}</option>
+                    <option ${downloadedSortValue === "2" ? "selected" : ""} value="2">${siyuanI18n.sortByInstallTimeAsc}</option>
+                    <option ${downloadedSortValue === "3" ? "selected" : ""} value="3">${siyuanI18n.sortByUpdateTimeDesc}</option>
+                    <option ${downloadedSortValue === "4" ? "selected" : ""} value="4">${siyuanI18n.sortByUpdateTimeAsc}</option>
+                    <option ${downloadedSortValue === "5" ? "selected" : ""} data-plugin-only="true" value="5">${siyuanI18n.sortByEnabledFirst}</option>
+                    <option ${downloadedSortValue === "6" ? "selected" : ""} data-plugin-only="true" value="6">${siyuanI18n.sortByDisabledFirst}</option>
+                </select>
+            </div>`;
+};
+
+const genDownloadedPanelHTML = (keywordsHTML: string, loadingHTML: string, petalDisabled: boolean, downloadedSortValue = "0") => {
+    const downloadedSortHTML = genDownloadedSortHTML(downloadedSortValue);
     return `<div class="config-bazaar__panel" data-type="downloaded" data-init="true">
         <div data-type="downloaded-update"></div>
         <div class="fn__flex config-bazaar__title">
@@ -254,6 +271,8 @@ const genDownloadedPanelHTML = (keywordsHTML: string, loadingHTML: string, petal
                 <input class="b3-text-field b3-form__icon-input fn__block" placeholder="${siyuanI18n.enterKey} ${siyuanI18n.search}">
             </div>
             <div class="fn__space"></div>
+            ${downloadedSortHTML}
+            <div class="fn__space"></div>
             ${keywordsHTML}
             <div class="fn__space"></div>
             <div class="fn__flex-1"></div>
@@ -279,14 +298,19 @@ export const genBazaarHTML = (clientHeight: number) => {
         template: "0",
         plugin: "0",
         icon: "0",
-        widget: "0"
+        widget: "0",
+        downloadedPlugin: "0",
+        downloadedTheme: "0",
+        downloadedIcon: "0",
+        downloadedTemplate: "0",
+        downloadedWidget: "0"
     };
     const loadingHTML = `<div style="height: ${clientHeight - 80}px;display: flex;align-items: center;justify-content: center;"><img src="/stage/loading-pure.svg"></div>`;
 
     return `<div class="fn__flex-column" style="height: 100%">
 ${genTabBarHTML()}
 <div class="fn__flex-1">
-    ${genDownloadedPanelHTML(getKeywordsHTML("themes"), loadingHTML, getSiyuanConfig().bazaar.petalDisabled)}
+    ${genDownloadedPanelHTML(getKeywordsHTML("themes"), loadingHTML, getSiyuanConfig().bazaar.petalDisabled, localSort.downloadedPlugin || "0")}
     ${genPanel("theme", localSort.theme, getKeywordsHTML("plugins"), loadingHTML, `
             <select id="bazaarSelect" class="b3-select">
                 <option selected value="2">${siyuanI18n.all}</option>

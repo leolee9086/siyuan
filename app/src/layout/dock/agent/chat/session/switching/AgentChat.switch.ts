@@ -38,6 +38,7 @@ function applyAgentChatSession(runtime: AgentChatRuntime, session: AgentSession)
     runtime.promptSourceController.reset();
     runtime.sessionPorts.presentation.applyConversationCapabilities(runtime);
     runtime.currentTurnID = "";
+    runtime.currentRoundID = "";
     if (session.recoveryTurnID) {
         runtime.recoveryCommitTurnIDs.set(session.id, session.recoveryTurnID);
     }
@@ -59,6 +60,8 @@ function applyAgentChatSession(runtime: AgentChatRuntime, session: AgentSession)
     runtime.contextTokenBreakdown = session.contextTokenBreakdown ?? {};
     runtime.contextCachedTokens = session.contextCachedTokens ?? 0;
     runtime.contextLimit = session.contextLimit ?? 0;
+    runtime.permissionMode = session.permissionMode ?? "confirm";
+    runtime.permissionSelect.value = runtime.permissionMode;
     if (session.model) {
         runtime.sessionPorts.presentation.applySessionModel(runtime, session.model);
     }
@@ -101,6 +104,7 @@ export function handleCurrentSessionDeleted(runtime: AgentChatRuntime) {
     runtime.sessionId = runtime.sessionPorts.repository.newSessionId();
     runtime.promptSourceController.reset();
     runtime.currentTurnID = "";
+    runtime.currentRoundID = "";
     runtime.sessionCreatedAt = Date.now();
     runtime.sessionTitle = runtime.defaultTitle;
     runtime.pendingSessionTitle = null;
@@ -110,6 +114,8 @@ export function handleCurrentSessionDeleted(runtime: AgentChatRuntime) {
     runtime.currentAIElement = null;
     runtime.currentContent = "";
     runtime.fullContent = "";
+    runtime.permissionMode = "confirm";
+    runtime.permissionSelect.value = runtime.permissionMode;
     runtime.currentToolCalls = [];
     runtime.sessionPorts.projection.resetWebReferences(runtime);
     runtime.pendingConfirms = [];

@@ -5,14 +5,18 @@ import type {AgentSession} from "./imports";
 import {deserializeSessionEntry} from "./AgentChat.sessionRender.helpers";
 import {renderLoadedSessionEntry} from "./AgentChat.sessionRender.helpers";
 import {resetWebReferenceIndex} from "./AgentChat.persisted.methods";
+import {buildAgentPresentationEntries} from "../history/AgentHistory.presentation";
 
 /** 将持久化条目重新渲染到当前消息容器。 */
 export function renderLoadedSession(runtime: AgentChatRuntime, session: AgentSession) {
     runtime.editingUserEntryID = "";
     resetWebReferenceIndex(runtime);
-    const entries = session.entries || [];
+    const entries = buildAgentPresentationEntries(session.entries || []);
     for (const entry of entries) {
-        renderLoadedSessionEntry(runtime, entry);
+        renderLoadedSessionEntry(
+            runtime,
+            entry as Parameters<typeof renderLoadedSessionEntry>[1],
+        );
     }
 }
 
@@ -42,7 +46,11 @@ export function buildEntriesFromSession(newSessionId: () => string, session: Age
         return entries;
     }
     if (session.entries && session.entries.length > 0) {
-        return session.entries.map(deserializeSessionEntry).filter((entry) => entry !== null);
+        return buildAgentPresentationEntries(session.entries)
+            .map((entry) => deserializeSessionEntry(
+                entry as Parameters<typeof deserializeSessionEntry>[0],
+            ))
+            .filter((entry): entry is SessionEntry => entry !== null);
     }
     return [];
 }

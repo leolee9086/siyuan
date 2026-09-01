@@ -141,6 +141,7 @@ const 创建聚焦补偿回调 = (options: ZoomOutOptions) => {
                 rootId: options.id,
                 focusId: options.focusId,
             } : undefined,
+            dataDocType: options.dataDocType,
         });
     };
 };

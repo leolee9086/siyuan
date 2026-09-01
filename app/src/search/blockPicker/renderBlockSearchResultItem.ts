@@ -1,6 +1,7 @@
 import {getIconByType} from "../../editor/getIcon";
 import {unicode2Emoji} from "../../emoji/emoji.render";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {escapeSearchHighlight} from "../../util/DOM/escape";
 
 /**
  * 渲染块搜索的标准双行结果项。Protyle 块引用和其它选择器共享视觉层；各宿主仍负责
@@ -23,13 +24,13 @@ export function renderBlockSearchResultItem(item: IBlock) {
     }
     let attrHTML = "";
     if (item.name) {
-        attrHTML += `<span class="fn__flex"><svg class="b3-list-item__hinticon"><use xlink:href="#iconN"></use></svg><span>${item.name}</span></span><span class="fn__space"></span>`;
+        attrHTML += `<span class="fn__flex"><svg class="b3-list-item__hinticon"><use xlink:href="#iconN"></use></svg><span>${escapeSearchHighlight(item.name)}</span></span><span class="fn__space"></span>`;
     }
     if (item.alias) {
-        attrHTML += `<span class="fn__flex"><svg class="b3-list-item__hinticon"><use xlink:href="#iconA"></use></svg><span>${item.alias}</span></span><span class="fn__space"></span>`;
+        attrHTML += `<span class="fn__flex"><svg class="b3-list-item__hinticon"><use xlink:href="#iconA"></use></svg><span>${escapeSearchHighlight(item.alias)}</span></span><span class="fn__space"></span>`;
     }
     if (item.memo) {
-        attrHTML += `<span class="fn__flex"><svg class="b3-list-item__hinticon"><use xlink:href="#iconM"></use></svg><span>${item.memo}</span></span>`;
+        attrHTML += `<span class="fn__flex"><svg class="b3-list-item__hinticon"><use xlink:href="#iconM"></use></svg><span>${escapeSearchHighlight(item.memo)}</span></span>`;
     }
     if (attrHTML) {
         attrHTML = `<div class="fn__flex b3-list-item__meta b3-list-item__showall">${attrHTML}</div>`;

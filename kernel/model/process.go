@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -88,6 +88,8 @@ func getAttachedUIProcCount() (ret int) {
 	util.UIProcessIDs.Range(func(uiProcIDArg, _ any) bool {
 		uiProcID, err := strconv.Atoi(uiProcIDArg.(string))
 		if err != nil {
+			// 清理无效的 UI 进程 ID，防止注册表被污染
+			util.UIProcessIDs.Delete(uiProcIDArg)
 			logging.LogErrorf("invalid UI proc ID [%s]: %s", uiProcIDArg, err)
 			return true
 		}
@@ -99,6 +101,8 @@ func getAttachedUIProcCount() (ret int) {
 		}
 
 		if nil == proc {
+			// 清理已经不存在的 UI 进程 ID
+			util.UIProcessIDs.Delete(uiProcIDArg)
 			return true
 		}
 

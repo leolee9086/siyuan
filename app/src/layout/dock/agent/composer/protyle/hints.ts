@@ -4,8 +4,19 @@ import {escapeHtml} from "./imports";
 import {fetchPost} from "./imports";
 /** 用途：复用 Protyle 块引用菜单；使用范围：四种引用前缀；解耦评估：Hint 属于 Protyle 宿主原生菜单生命周期。 */
 import {hintRef} from "./imports";
+/** 用途：判断迟到的技能响应是否仍对应可见输入状态；使用范围：异步响应竞态防护。 */
+import {isSkillHintRequestActive} from "./imports";
+/** 用途：判断 Slash 查询是否仍在拼接引用前缀；使用范围：技能与引用菜单让位协议。 */
+import {shouldYieldSkillHint} from "./imports";
 /** 用途：约束可观察建议请求状态；使用范围：异步响应版本校验。 */
 import type {AgentProtyleComposerRuntime} from "./types";
+
+/** Hint 面板处于隐藏态时提升层级，避免浮动 Dock 内的菜单被宿主变换坐标系裁剪或压盖。 */
+const prepareAgentHint = (protyle: IProtyle) => {
+    if (protyle.hint.element.classList.contains("fn__none")) {
+        protyle.hint.element.style.zIndex = (++window.siyuan.zIndex).toString();
+    }
+};
 
 /** 把接口技能记录规范化为 Protyle Hint 条目，缺少名称的记录不进入菜单。 */
 const toSkillHint = (skill: Record<string, unknown>) => {
@@ -46,6 +57,18 @@ const applySkillHintResponse = (
     if (!hint || state.destroyed || request.revision !== state.requestRevision) {
         return;
     }
+    // 上游竞态协议：Esc、其它提示触发或面板已脱离文档时，迟到的技能响应必须丢弃。
+    if (!isSkillHintRequestActive({
+        requestID: request.revision,
+        currentRequestID: state.requestRevision,
+        enableExtend: hint.enableExtend,
+        enableSlash: hint.enableSlash,
+        splitChar: hint.splitChar,
+        hidden: hint.element.classList.contains("fn__none"),
+        connected: hint.element.isConnected,
+    })) {
+        return;
+    }
     const rawSkills: unknown[] = Array.isArray(request.response.data) ? request.response.data : [];
     const dataList: IHintData[] = [];
     for (const rawSkill of rawSkills) {
@@ -80,6 +103,14 @@ const requestSkillHints = (
     if (!hint || state.destroyed) {
         return [];
     }
+    // 上游让位协议：输入仍在拼接多字符引用前缀时交给引用菜单，避免 "/" 与 "((" 竞争。
+    if (shouldYieldSkillHint(key, protyle.options.hint.extend.map((item) => item.key))) {
+        hint.enableExtend = false;
+        hint.genHTML([], protyle, true, "hint");
+        return [];
+    }
+    // 隐藏面板首次弹出前修正层级，技能与引用菜单共享同一协议。
+    prepareAgentHint(protyle);
     hint.genLoading(protyle);
     const revision = ++state.requestRevision;
     const query = key.toLowerCase();
@@ -89,8 +120,15 @@ const requestSkillHints = (
     return [];
 };
 
-/** 把一个引用前缀映射为 Protyle 原生块引用 Hint。 */
-const toReferenceHint = (key: string) => ({key, hint: hintRef});
+/** 把一个引用前缀映射为 Protyle 原生块引用 Hint，并在面板弹出前按需修正层级。 */
+const toReferenceHint = (key: string) => ({
+    key,
+    /** 引用菜单与技能菜单共享同一层级修正协议（上游浮动 Dock 修复）。 */
+    hint: (...args: Parameters<typeof hintRef>) => {
+        prepareAgentHint(args[1]);
+        return hintRef(...args);
+    },
+});
 
 /** 创建固定的四种块引用前缀配置；每次编辑器初始化获得独立数组。 */
 const createReferenceHints = () => {

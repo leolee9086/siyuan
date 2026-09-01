@@ -272,3 +272,57 @@ export function 添加全宽模式菜单项(
         }]
     }).element);
 }
+
+/**
+ * 作用：向面包屑菜单追加"标题自动编号"子菜单，包含"启用""禁用""默认"三个选项
+ * 意图：复用上游 86953fbcfb 语义（per-document headingNumber），以本地 headingNumberCore/headingNumber 的 resolve 规则为显示依据，允许用户在面包屑菜单中快速切换当前文档的标题编号属性
+ * 调用时机：构建面包屑"更多"菜单时，由 showBreadcrumbMenu.ts 在桌面端 wysiwyg 存在时调用（与上游保持一致：置于全宽之后、插件菜单之前）
+ * @同步豁免: UI构建 - 菜单项构建需要同步追加到 Menu DOM
+ */
+export function 添加标题序号菜单项(
+    protyle: IProtyle,
+    menu: Menu
+): void {
+    const isCustomHeadingNumber = protyle.wysiwyg?.element.getAttribute(Constants.CUSTOM_SY_HEADING_NUMBER);
+
+    menu.append(new MenuItem({
+        id: "headingNumber",
+        label: window.siyuan.languages["headingNumber"] || "Heading number",
+        icon: "iconHeadings",
+        type: "submenu",
+        submenu: [{
+            id: "enable",
+            iconHTML: "",
+            current: isCustomHeadingNumber === "true",
+            label: siyuanI18n.enable,
+            click() {
+                fetchPost("/api/attr/setBlockAttrs", {
+                    id: protyle.block.rootID,
+                    attrs: { [Constants.CUSTOM_SY_HEADING_NUMBER]: "true" }
+                });
+            }
+        }, {
+            id: "disable",
+            iconHTML: "",
+            current: isCustomHeadingNumber === "false",
+            label: siyuanI18n.disable,
+            click() {
+                fetchPost("/api/attr/setBlockAttrs", {
+                    id: protyle.block.rootID,
+                    attrs: { [Constants.CUSTOM_SY_HEADING_NUMBER]: "false" }
+                });
+            }
+        }, {
+            id: "default",
+            iconHTML: "",
+            current: !isCustomHeadingNumber,
+            label: siyuanI18n.default,
+            click() {
+                fetchPost("/api/attr/setBlockAttrs", {
+                    id: protyle.block.rootID,
+                    attrs: { [Constants.CUSTOM_SY_HEADING_NUMBER]: "" }
+                });
+            }
+        }]
+    }).element);
+}

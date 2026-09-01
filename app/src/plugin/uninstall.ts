@@ -6,17 +6,19 @@ import {resizeTopBar} from "../layout/util";
 import {setTabPosition} from "../window/setHeader";
 import {Constants} from "../constants";
 import {setStorageVal} from "../protyle/util/compatibility";
-// S-forge: 上游 ed77bd609 将 frontendActions 迁入 dock/agent/，import 路径同步更新
-// 本地保留 isMobile/isElectron/ipcSend 平台封装
+// S-forge: 平台差异经本地封装处理（isMobile/isElectron/ipcSend），上游新增的能力注销与上传、面包屑清理经对应模块接入
 import {isMobile} from "../util/platform/functions";
 import {getAllEditor} from "../layout/getAll";
-import {unregisterAction} from "../layout/dock/agent/frontendActions";
+import {unregisterCapability} from "../layout/dock/agent/frontendCapabilities";
+import {cancelAssetUploadsByPlugin} from "../protyle/upload/pluginEvent";
+import {removeBreadcrumbButtons} from "./breadcrumbButton";
 import {isElectron} from "../platform";
 import {ipcSend} from "../platform/electron/ipcRenderer";
 
 export const uninstall = (app: AppFacade, name: string, isReload: boolean) => {
     app.plugins.find((plugin: Siyuan.Plugin, index) => {
         if (plugin.name === name) {
+            cancelAssetUploadsByPlugin(plugin);
             try {
                 plugin.onunload();
             } catch (e) {
@@ -58,8 +60,9 @@ export const uninstall = (app: AppFacade, name: string, isReload: boolean) => {
                 plugin.topBarIcons.splice(i, 1);
                 i--;
             }
-            // rm agent actions
-            plugin.agentActions.forEach(name => unregisterAction(name));
+            removeBreadcrumbButtons(plugin.name);
+            // 移除插件注册的 Agent 能力
+            plugin.agentCapabilities.forEach((capability) => unregisterCapability(capability.id, capability.generation));
             // 桌面端需要清理状态栏图标、调整顶栏尺寸、移除dock面板
             if (!isMobile()) {
                 // rm statusBar
@@ -89,9 +92,22 @@ export const uninstall = (app: AppFacade, name: string, isReload: boolean) => {
             });
             // rm plugin
             app.plugins.splice(index, 1);
-            // S-forge: 上游 #18003 移动端卸载插件后，若无任何插件 dock 则隐藏插件入口图标（本地以运行时 isMobile() 替代条件编译）
+            // S-forge: 移动端卸载插件后，若无任何插件 dock 则隐藏插件入口图标；若图标处于激活态则回退到可用页签或复位侧面板
             if (isMobile() && app.plugins.every(p => Object.keys(p.docks).length === 0)) {
-                document.querySelector('#sidebar [data-type="sidebar-plugin-tab"]')?.classList.add("fn__none");
+                const pluginTabElement = document.querySelector("[data-type='sidebar-plugin-tab']");
+                pluginTabElement?.classList.add("fn__none");
+                if (pluginTabElement?.classList.contains("toolbar__icon--active")) {
+                    const fallbackTabElement = pluginTabElement.parentElement.querySelector<HTMLElement>(
+                        "[data-type$='-tab']:not(.fn__none)"
+                    );
+                    if (fallbackTabElement) {
+                        fallbackTabElement.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+                    } else {
+                        pluginTabElement.classList.remove("toolbar__icon--active");
+                        document.querySelector("[data-type='sidebar-plugin']")?.classList.add("fn__none");
+                        (pluginTabElement.closest(".side-panel") as HTMLElement).style.transform = "";
+                    }
+                }
             }
             // rm icons
             document.querySelector(`svg[data-name="${plugin.name}"]`)?.remove();

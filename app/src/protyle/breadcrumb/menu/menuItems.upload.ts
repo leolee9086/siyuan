@@ -14,7 +14,8 @@ import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.enviro
 import { getSiyuanConfig, getSiyuanMenus } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { 录音器上下文 } from "../breadcrumb.types";
 import { isHTMLInputElement } from "../imports";
-import { isInAndroid } from "../../util/compatibility";
+import { isInAndroid, isInHarmony } from "../../util/compatibility";
+import { RecordMediaInputEndedError } from "../../util/RecordMedia";
 
 // ==================== 上传菜单项 ====================
 
@@ -129,8 +130,8 @@ async function 检查macOS麦克风权限(os: string | undefined): Promise<boole
 /**
  * 请求麦克风权限并创建新的录音器实例
  *
- * 作用：通过 getUserMedia 获取音频流，创建 RecordMedia 实例并注册音频处理回调，
- *   然后通过 setMediaRecorder 保存实例并调用 startRecord 开始录音
+ * 作用：通过 getUserMedia 获取音频流，创建 RecordMedia 实例，经 setMediaRecorder 保存实例后
+ *   交由 startRecord 开始录音（startRecord 内部调用新的 AudioWorklet startRecording）
  * 意图：将录音器初始化逻辑从菜单点击回调中抽离，保持 添加录音菜单项 的 click 回调简洁
  * 调用时机：在 添加录音菜单项 的 click 回调中，当 mediaRecorder 不存在（首次录音）时调用
  */
@@ -140,19 +141,24 @@ function 初始化新录音器(
     startRecord: 录音器上下文["startRecord"]
 ): void {
     // @内联回调
-    navigator.mediaDevices.getUserMedia({ audio: true }).then((mediaStream: MediaStream) => {
+    const audioConstraints = (isInAndroid() || isInHarmony()) ? {
+        autoGainControl: false,
+        echoCancellation: false,
+        noiseSuppression: false,
+    } : true;
+    navigator.mediaDevices.getUserMedia({ audio: audioConstraints }).then((mediaStream: MediaStream) => {
         const newRecorder = new RecordMedia(mediaStream);
-        newRecorder.recorder.onaudioprocess = (e: AudioProcessingEvent) => {
-            if (!newRecorder.isRecording) {
-                return;
-            }
-            const left = e.inputBuffer.getChannelData(0);
-            const right = e.inputBuffer.getChannelData(1);
-            newRecorder.cloneChannelData(left, right);
-        };
         setMediaRecorder(newRecorder);
         startRecord(protyle);
-    }).catch(() => {
+    }).catch((error: unknown) => {
+        if (error instanceof RecordMediaInputEndedError) {
+            showMessage(siyuanI18n.recordInterrupted);
+            return;
+        }
+        const isSilentNotAllowed = (isInAndroid() || isInHarmony()) && error instanceof DOMException && error.name === "NotAllowedError";
+        if (isSilentNotAllowed) {
+            return;
+        }
         showMessage(siyuanI18n["record-tip"]);
     });
 }
@@ -160,19 +166,19 @@ function 初始化新录音器(
 /**
  * 停止当前录音并将录音文件上传到文档
  *
- * 作用：停止 RecordMedia 录音，隐藏录音提示消息，将录音数据构建为 WAV 文件并通过 uploadFiles 上传
+ * 作用：停止 RecordMedia 录音，隐藏录音提示消息，将录音数据构建为 MP3 文件并通过 uploadFiles 上传
  * 意图：封装"停止录音 → 构建文件 → 上传"的完整流程，避免在菜单点击回调中堆积逻辑
  * 调用时机：在 添加录音菜单项 的 click 回调中，当 mediaRecorder 正在录音时调用
  */
-function 停止录音并上传(protyle: IProtyle, mediaRecorder: RecordMedia, messageId: string): void {
-    mediaRecorder.stopRecording();
+async function 停止录音并上传(protyle: IProtyle, mediaRecorder: RecordMedia, messageId: string): Promise<void> {
     hideMessage(messageId);
-    const file = new File(
-        [mediaRecorder.buildWavFileBlob()],
-        `record${Date.now()}.wav`,
-        { type: "video/webm" }
-    );
-    uploadFiles(protyle, [file]);
+    try {
+        const blob = await mediaRecorder.stopRecording();
+        const file = new File([blob], `record${Date.now()}.mp3`, { type: "audio/mpeg" });
+        uploadFiles(protyle, [file]);
+    } catch (error) {
+        showMessage(error instanceof RecordMediaInputEndedError ? siyuanI18n.recordInterrupted : siyuanI18n["record-tip"]);
+    }
 }
 
 /**
@@ -214,7 +220,7 @@ export function 添加录音菜单项(
             }
 
             if (mediaRecorder.isRecording) {
-                停止录音并上传(protyle, mediaRecorder, messageId);
+                void 停止录音并上传(protyle, mediaRecorder, messageId);
                 return;
             }
 

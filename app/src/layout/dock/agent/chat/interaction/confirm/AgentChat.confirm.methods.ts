@@ -32,6 +32,8 @@ import type {ConfirmRequest} from "./AgentChat.confirm.types";
 import type {ConfirmResolution} from "./AgentChat.confirm.types";
 /** 用途：约束前端工具结果；使用范围：结果回传。 */
 import type {FrontendToolResultInput} from "./AgentChat.confirm.types";
+/** 用途：解析并校验当前浏览器能力；使用范围：browser_capability_call 执行。 */
+import {isCapabilityEnabled, lookupCapability} from "../../../frontendCapabilities";
 /** 创建待确认条目并绑定其用户决定。 */
 export async function appendConfirm(runtime: AgentChatRuntime, input: AppendConfirmInput) {
     finishActiveThinking(runtime);
@@ -91,9 +93,14 @@ export function resolveConfirm(runtime: AgentChatRuntime, resolution: ConfirmRes
         runtime.pendingConfirms.find((candidate) =>
             candidate.type === "confirm" && candidate.confirmID === resolution.confirmID);
     // 命中当前内存条目时先写入协议终态，再异步保存同一会话快照。
+    const isAlwaysConfirm = entry?.type === "confirm" && resolution.status === "always";
     if (entry?.type === "confirm") {
         entry.status = resolution.status;
         void saveSession(runtime).catch((error) => console.error("save agent confirmation state failed:", error));
+    }
+    if (isAlwaysConfirm) {
+        runtime.permissionMode = "allowSession";
+        runtime.permissionSelect.value = "allowSession";
     }
     const element = Array.from(runtime.messagesContainer.querySelectorAll<HTMLElement>("[data-confirm-id]"))
         .find((candidate) => candidate.getAttribute("data-confirm-id") === resolution.confirmID);
@@ -139,6 +146,69 @@ export async function handleFrontendToolCall(runtime: AgentChatRuntime, callID: 
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         await postFrontendResult(runtime, {sessionID, callID, result: `Frontend action threw: ${message}`, isError: true});
+    }
+}
+
+export async function handleBrowserCapabilityCall(
+    runtime: AgentChatRuntime,
+    callID: string,
+    capabilityID: string,
+    generation: number,
+    args: Record<string, unknown>,
+) {
+    const sessionID = runtime.sessionId;
+    const capability = lookupCapability(capabilityID, generation);
+    if (!capability || !isCapabilityEnabled(capabilityID) || !runtime.app) {
+        await postBrowserCapabilityResult(runtime, {
+            sessionID, callID, result: `Browser capability is unavailable: ${capabilityID}`,
+            structuredContent: undefined, structuredContentSet: false, isError: true,
+        });
+        return;
+    }
+    try {
+        const outcome = await capability.handler(args, runtime.app);
+        const result = outcome.error || outcome.result || "";
+        await postBrowserCapabilityResult(runtime, {
+            sessionID, callID, result, structuredContent: outcome.structuredContent,
+            structuredContentSet: Object.prototype.hasOwnProperty.call(outcome, "structuredContent"),
+            isError: !!outcome.error,
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await postBrowserCapabilityResult(runtime, {
+            sessionID, callID, result: `Browser capability threw: ${message}`,
+            structuredContent: undefined, structuredContentSet: false, isError: true,
+        });
+    }
+}
+
+async function postBrowserCapabilityResult(runtime: AgentChatRuntime, input: {
+    sessionID: string;
+    callID: string;
+    result: string;
+    structuredContent: unknown;
+    structuredContentSet: boolean;
+    isError: boolean;
+}) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+        const outcome = await requestAgentInteraction({
+            path: "/api/ai/agent/browserCapabilityResult",
+            body: {
+                sessionID: input.sessionID,
+                callID: input.callID,
+                result: input.result,
+                structuredContent: input.structuredContent,
+                structuredContentSet: input.structuredContentSet,
+                isError: input.isError,
+            },
+            requestHeaders: runtime.sessionPorts.requestHeaders,
+        });
+        if (outcome.state !== "retryable") {
+            return;
+        }
+        if (attempt === 2) {
+            console.error("agent browser capability result request error:", outcome.message);
+        }
     }
 }
 

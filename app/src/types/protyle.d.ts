@@ -123,7 +123,8 @@ interface IBreadcrumb {
     name: string,
     type: string,
     subType: string,
-    children: []
+    children: IBreadcrumb[],
+    hasChildren?: boolean
 }
 
 interface ILuteOptions extends IMarkdownConfig {
@@ -240,6 +241,8 @@ declare class Lute {
 
     public SetGFMStrikethrough1(enable: boolean): void;
 
+    public SetFullWidthStrikethrough(enable: boolean): void;
+
     public SetMark(enable: boolean): void;
 
     public SetSub(enable: boolean): void;
@@ -291,6 +294,12 @@ declare class Lute {
     public BlockDOM2InlineBlockDOM(html: string): string;
 
     public BlockDOM2HTML(html: string): string;
+
+    public BlockDOM2RichHTML(html: string): string;
+
+    public CancelListRecursively(html: string): string;
+
+    public ConvertListType(html: string, targetType: "u" | "o" | "t"): string;
 
     public HTML2Md(html: string): string;
 
@@ -348,8 +357,8 @@ interface IUpload {
     /** 校验，成功时返回 true 否则返回错误信息 */
     validate?(files: File[]): string | boolean;
 
-    /** 自定义上传，当发生错误时返回错误信息 */
-    handler?(files: File[]): string | null;
+    /** 自定义上传，返回 Promise 时将在其完成后报告上传结果，发生错误时返回错误信息，默认 120 秒超时 */
+    handler?(files: File[], options?: { signal: AbortSignal }): string | null | PromiseLike<string | null>;
 
     /** 对服务端返回的数据进行转换，以满足内置的数据结构 */
     format?(files: File[], responseText: string): string;
@@ -466,6 +475,8 @@ interface IProtyleOptions {
         snapshot?: string
     },
     backlinkData?: {
+        id?: string,
+        revision?: string,
         blockPaths: IBreadcrumb[],
         dom: string
         expand: boolean
@@ -549,6 +560,8 @@ interface IProtyle {
         mode?: number
         blockCount?: number
         action?: TProtyleAction[]
+        headingNumbers?: Record<string, string>
+        headingNumberLevels?: Record<string, string>
     },
     disabled: boolean,
     lite?: boolean,

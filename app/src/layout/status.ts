@@ -8,6 +8,8 @@ import { MenuItem } from "../menus/Menu.Item";
 import { Constants } from "../constants";
 import { toggleDockBar } from "./dock/util";
 import { updateHotkeyTip } from "../protyle/util/compatibility";
+import {escapeAriaLabel} from "../util/DOM/escape";
+import {openLink} from "../editor/openLink";
 import { 渲染所有状态栏按钮 } from "../registry/StatusBarRegistry";
 import {resolveStatusElement} from "./statusPort";
 import type {StatusElementTarget} from "./statusPort";
@@ -39,8 +41,8 @@ export const initStatus = (isWindow = false, status: StatusElementTarget = "stat
     <svg><use xlink:href="#iconHelp"></use></svg>
 </div>`;
     statusElement.addEventListener("click", (event) => {
-        let target = event.target as HTMLElement;
-        while (target.id !== "status") {
+        let target = event.target as HTMLElement | null;
+        while (target && target.id !== "status") {
             if (target.id === "barDock") {
                 toggleDockBar(target.firstElementChild.firstElementChild);
                 event.stopPropagation();
@@ -84,10 +86,10 @@ export const initStatus = (isWindow = false, status: StatusElementTarget = "stat
                     label: window.siyuan.languages.feedback,
                     icon: "iconFeedback",
                     click: () => {
-                        if ("zh-CN" === window.siyuan.config.lang || "zh-TW" === window.siyuan.config.lang) {
-                            window.open("https://ld246.com/article/1649901726096");
+                        if ("zh-CN" === window.siyuan.config.lang) {
+                            openLink(window.siyuan.ws.app, "https://ld246.com/article/1649901726096");
                         } else {
-                            window.open("https://liuyun.io/article/1686530886208");
+                            openLink(window.siyuan.ws.app, "https://liuyun.io/article/1686530886208");
                         }
                     }
                 }).element);
@@ -96,7 +98,7 @@ export const initStatus = (isWindow = false, status: StatusElementTarget = "stat
                         label: window.siyuan.languages.debug,
                         icon: "iconBug",
                         click: () => {
-                            ipcSend(Constants.SIYUAN_CMD, "openDevTools");
+                            ipcSend(Constants.SIYUAN_CMD, "toggleDevTools");
                         }
                     }).element);
                 }
@@ -104,14 +106,14 @@ export const initStatus = (isWindow = false, status: StatusElementTarget = "stat
                     label: window.siyuan.languages["_trayMenu"].officialWebsite,
                     icon: "iconSiYuan",
                     click: () => {
-                        window.open("https://b3log.org/siyuan");
+                        openLink(window.siyuan.ws.app, "https://b3log.org/siyuan");
                     }
                 }).element);
                 window.siyuan.menus.menu.append(new MenuItem({
                     label: window.siyuan.languages["_trayMenu"].openSource,
                     icon: "iconGithub",
                     click: () => {
-                        window.open("https://github.com/siyuan-note/siyuan");
+                        openLink(window.siyuan.ws.app, "https://github.com/siyuan-note/siyuan");
                     }
                 }).element);
                 const rect = target.getBoundingClientRect();
@@ -148,23 +150,26 @@ let lastRootId: string;
 
 const scheduleStatusStat = (rootID: string, content?: string, ids?: string[], statusElement?: HTMLElement) => {
     clearTimeout(countTimeout);
+    if (countAbortController) {
+        countAbortController.abort();
+        countAbortController = null;
+    }
     countTimeout = window.setTimeout(() => {
-        if (countAbortController) {
-            countAbortController.abort();
-            countAbortController = null;
-        }
         countAbortController = new AbortController();
         const signal = countAbortController.signal;
         const capturedController = countAbortController;
 
+        const finishRequest = () => {
+            if (countAbortController === capturedController) {
+                countAbortController = null;
+            }
+        };
         const onFetched = (response: IWebSocketData) => {
             if (signal.aborted) {
                 return;
             }
-            renderStatusbarCounter(response.data.stat, statusElement);
-            if (countAbortController === capturedController) {
-                countAbortController = null;
-            }
+            renderStatusbarCounter(response.data.stat, undefined, undefined, statusElement);
+            finishRequest();
         };
 
         if (content) {
@@ -175,9 +180,31 @@ const scheduleStatusStat = (rootID: string, content?: string, ids?: string[], st
             lastRootId = null;
         } else if (rootID && lastRootId !== rootID) {
             lastRootId = rootID;
-            fetchPost("/api/block/getTreeStat", {id: rootID}, onFetched, undefined, undefined, signal);
+            fetchPost("/api/block/getTreeStat", {id: rootID}, (response) => {
+                if (signal.aborted) {
+                    return;
+                }
+                renderStatusbarCounter(response.data.stat, undefined, undefined, statusElement);
+                if (!response.data.containsEmbed) {
+                    finishRequest();
+                    return;
+                }
+                fetchPost("/api/block/getTreeStat", {id: rootID, includeEmbed: true}, (embedResponse) => {
+                    if (signal.aborted) {
+                        return;
+                    }
+                    renderStatusbarCounter(
+                        embedResponse.data.stat,
+                        embedResponse.data.statWithEmbed,
+                        embedResponse.data.embedStat,
+                        statusElement
+                    );
+                    finishRequest();
+                }, undefined, undefined, signal);
+            }, undefined, undefined, signal);
         } else {
             lastRootId = null;
+            finishRequest();
         }
     }, Constants.TIMEOUT_COUNT);
 };
@@ -226,20 +253,42 @@ export const clearCounter = (status?: StatusElementTarget) => {
     resolveStatusElement(status)?.querySelector(".status__counter")?.replaceChildren();
 };
 
-export const renderStatusbarCounter = (stat: {
-    runeCount: number,
-    wordCount: number,
-    linkCount: number,
-    imageCount: number,
-    refCount: number,
-    blockCount: number,
-}, status?: StatusElementTarget) => {
+export interface IBlockStat {
+    runeCount: number;
+    wordCount: number;
+    linkCount: number;
+    imageCount: number;
+    refCount: number;
+    blockCount: number;
+}
+
+export interface IEmbedStat {
+    complete: boolean;
+    queryEmbedCount: number;
+    jsEmbedCount: number;
+    resultCount: number;
+    failedQueryCount: number;
+    failedResultCount: number;
+    truncatedQueryCount: number;
+    cycleCount: number;
+    depthLimitCount: number;
+}
+
+export const genEmbedStatTip = (label: string, value: number, embedStat?: IEmbedStat) => {
+    const prefix = embedStat && !embedStat.complete ? "≈" : "";
+    const incompleteTip = embedStat && !embedStat.complete ? ` ${window.siyuan.languages.embedStatIncomplete}` : "";
+    return `${prefix}${label} ${value}${incompleteTip}`;
+};
+
+export const renderStatusbarCounter = (stat: IBlockStat, statWithEmbed?: IBlockStat, embedStat?: IEmbedStat, status?: StatusElementTarget) => {
     const statusElement = resolveStatusElement(status);
     if (!stat || !statusElement) {
         return;
     }
-    let html = `<span class="ft__on-surface">${window.siyuan.languages.runeCount}</span>&nbsp;${stat.runeCount}<span class="fn__space"></span>
-<span class="ft__on-surface">${window.siyuan.languages.wordCount}</span>&nbsp;${stat.wordCount}<span class="fn__space"></span>`;
+    const runeEmbedAttrs = statWithEmbed ? ` class="ft__on-surface ariaLabel" data-position="north" aria-label="${escapeAriaLabel(genEmbedStatTip(window.siyuan.languages.runeCountWithEmbed, statWithEmbed.runeCount, embedStat))}"` : " class=\"ft__on-surface\"";
+    const wordEmbedAttrs = statWithEmbed ? ` class="ft__on-surface ariaLabel" data-position="north" aria-label="${escapeAriaLabel(genEmbedStatTip(window.siyuan.languages.wordCountWithEmbed, statWithEmbed.wordCount, embedStat))}"` : " class=\"ft__on-surface\"";
+    let html = `<span${runeEmbedAttrs}>${window.siyuan.languages.runeCount}</span>&nbsp;${stat.runeCount}<span class="fn__space"></span>
+<span${wordEmbedAttrs}>${window.siyuan.languages.wordCount}</span>&nbsp;${stat.wordCount}<span class="fn__space"></span>`;
     if (0 < stat.linkCount) {
         html += `<span class="ft__on-surface">${window.siyuan.languages.linkCount}</span>&nbsp;${stat.linkCount}<span class="fn__space"></span>`;
     }

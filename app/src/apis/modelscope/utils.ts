@@ -10,7 +10,9 @@ import { 检查思源代理响应 } from "./client.guard";
 /**
  * 将 HeadersInit 转换为 Record<string, string> 格式
  */
-export async function 转换请求头(headersInit?: HeadersInit) {
+/** @同步豁免: 性能考虑 */
+/** 当前请求构造阶段需要立即展开请求头，不包含 I/O。 */
+export function 转换请求头(headersInit?: HeadersInit) {
     const headers: Record<string, string> = {};
     if (!headersInit) {
         return headers;
@@ -40,7 +42,9 @@ export async function 转换请求头(headersInit?: HeadersInit) {
 /**
  * Base64 解码
  */
-export async function 解码Base64(str: string) {
+/** @同步豁免: 性能考虑 */
+/** 错误消息构造需要立即取得可读预览文本。 */
+export function 解码Base64(str: string) {
     try {
         return atob(str);
     } catch {
@@ -86,7 +90,8 @@ export async function 处理思源代理响应<T>(innerData: unknown) {
     const bodyContent = isTextEncoding ? innerData.body : 解码Base64(innerData.body);
 
     try {
-        return JSON.parse(bodyContent);
+        const parsed: T = JSON.parse(bodyContent);
+        return parsed;
     } catch {
         const preview = bodyContent.substring(0, 200);
         throw new Error(`Failed to parse response body. Preview: ${preview}`);

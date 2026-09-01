@@ -325,16 +325,15 @@ export class Outline extends Model<AppFacade, LayoutTab> {
                 return;
             }
             this.update(response);
-            // https://github.com/siyuan-note/siyuan/issues/8372
             const selection = getSelection();
-            // 检查选区是否存在且有效
-            if (selection && selection.rangeCount > 0) {
-                const result = this.getProtyleAndBlockElement(selection.getRangeAt(0).startContainer);
-                // 如果当前选中的是标题块，则设置为当前项
-                if (result?.blockElement?.getAttribute("data-type") === "NodeHeading") {
-                    this.setCurrent(result.blockElement);
-                }
+            if (!selection || selection.rangeCount === 0) {
+                return;
             }
+            const result = this.getProtyleAndBlockElement(selection.getRangeAt(0).startContainer);
+            if (result?.blockElement?.getAttribute("data-type") !== "NodeHeading") {
+                return;
+            }
+            this.setCurrent(result.blockElement);
         });
     }
 }

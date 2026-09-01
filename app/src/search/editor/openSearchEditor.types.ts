@@ -8,4 +8,10 @@ export interface OpenSearchEditorOptions {
     id: string;
     rootId: string;
     cb?: (() => void) | undefined;
+    /** 命中块的节点类型；属性视图块走数据库直达打开流程。 */
+    nodeType?: string | undefined;
+    /** 当前搜索方法；决定属性视图目标解析是否生效。 */
+    method?: number | undefined;
+    /** 列表项关键词；供属性视图目标解析定位匹配行。 */
+    keywords?: string[] | undefined;
 }

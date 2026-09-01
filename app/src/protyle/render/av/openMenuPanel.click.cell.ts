@@ -133,7 +133,8 @@ const handleRemoveCellOption = (ctx: IMenuPanelContext, target: HTMLElement, eve
 
 /** 添加资源链接 @同步豁免: UI构建 */
 const handleAddAssetLink = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent): void => {
-    addAssetLink(ctx.options.protyle, getCellElements(ctx), target, ctx.options.blockElement);
+    addAssetLink(ctx.options.protyle, getCellElements(ctx), target, ctx.options.blockElement,
+        asAssetType(target.dataset.assetType));
     event.preventDefault();
     event.stopPropagation();
 };

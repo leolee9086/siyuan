@@ -3,6 +3,11 @@ import { Constants } from "../../constants";
 import { writeText } from "../../protyle/util/compatibility";
 import { rectElement } from "./state/selection";
 import { getRectImgData } from "./anno.getRectImgData";
+import { hasClosestByClassName } from "./imports";
+import { getConfig } from "./config";
+import { getRectImageName } from "../rectAnnotationResize";
+import { PDF_RECT_CAPTURE_PROFILE } from "../pdfRectCapture";
+import md5 from "blueimp-md5";
 import type { IPdfInstance, 复制注释参数 } from "./anno.types";
 
 /**
@@ -12,26 +17,37 @@ import type { IPdfInstance, 复制注释参数 } from "./anno.types";
 const 执行复制注释 = async (参数: 复制注释参数) => {
     const { idPath, fileName, pdf, mode, content } = 参数;
 
-    if (!rectElement || !content) {
+    const annotationElement = rectElement;
+    if (!annotationElement || !content) {
         return;
     }
 
     const isRect = mode === "rect" ||
-        (mode === "" && rectElement.childElementCount === 1 && content.startsWith(fileName)); // 兼容历史，以前没有 mode
+        (mode === "" && annotationElement.childElementCount === 1 && content.startsWith(fileName)); // 兼容历史，以前没有 mode
 
     if (!isRect) {
         writeText(`<<${idPath} "${content}">>`);
         return;
     }
 
-    const imageDataURL = await getRectImgData(pdf);
+    // 计算位置哈希用于图片名去重（对应上游 110df4e761）
+    const pageElement = hasClosestByClassName(annotationElement, "page");
+    const pageIndex = pageElement ? parseInt(pageElement.getAttribute("data-page-number") || "0") - 1 : -1;
+    const cfg = getConfig(pdf);
+    const annotationId = annotationElement.getAttribute("data-node-id") || "";
+    const annotation = annotationId ? cfg[annotationId] : undefined;
+    const positions = annotation?.pages.find(item => item.index === pageIndex)?.positions;
+    const positionHash = positions ? md5(JSON.stringify(positions)).substring(0, 7) : "";
+
+    const imageDataURL = await getRectImgData(pdf, annotationElement);
     if (!imageDataURL) {
         return;
     }
     const response = await fetch(imageDataURL);
     const blob = await response.blob();
     const formData = new FormData();
-    const imageName = content + ".png";
+    // 使用本地扩展的 getRectImageName（含 captureProfile）保持本地行为，同时兼容上游位置哈希逻辑
+    const imageName = getRectImageName(content, 0, positionHash, PDF_RECT_CAPTURE_PROFILE);
     formData.append("file[]", blob, imageName);
     formData.append("skipIfDuplicated", "true");
     fetchPost(Constants.UPLOAD_ADDRESS, formData, (uploadResponse) => {

@@ -101,6 +101,20 @@ export const confirmDialog = (
         confirm();
         return;
     }
+    const previousActiveElement = document.activeElement as HTMLElement;
+    let handled = false;
+    const handleCancel = () => {
+        if (handled) {
+            return;
+        }
+        handled = true;
+        cancel?.(dialog);
+    };
+    // 确认路径同样纳入一次性守卫：确认发生后立即标记 handled，使随后的销毁流程不再把本次交互误报为取消。
+    const handleConfirm = () => {
+        handled = true;
+        confirm?.(dialog);
+    };
     const dialog = new Dialog({
         title,
         content: /*html */`<div class="b3-dialog__content">
@@ -111,8 +125,20 @@ export const confirmDialog = (
     <button class="b3-button ${isDelete ? "b3-button--remove" : "b3-button--text"}" id="confirmDialogConfirmBtn">${siyuanI18n[isDelete ? "delete" : "confirm"]}</button>
 </div>`,
         width: isMobile() ? "92vw" : "520px",
+        destroyCallback: () => {
+            handleCancel();
+            if (!previousActiveElement?.isConnected) {
+                return;
+            }
+            const activeElement = document.activeElement as HTMLElement;
+            if (!activeElement || activeElement === document.body) {
+                previousActiveElement.focus({preventScroll: true});
+            }
+        },
     });
 
-    dialog.element.addEventListener("click", createDialogClickHandler(dialog, confirm, cancel));
+    // 点击与快捷键事件统一交给 createDialogClickHandler 生成的处理器；确认走 handleConfirm、取消走 handleCancel，共用 handled 一次性守卫。
+    dialog.element.addEventListener("click", createDialogClickHandler(dialog, handleConfirm, handleCancel));
     dialog.element.setAttribute("data-key", Constants.DIALOG_CONFIRM);
+    (dialog.element.querySelector("#confirmDialogConfirmBtn") as HTMLButtonElement).focus({preventScroll: true});
 };

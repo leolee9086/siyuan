@@ -337,7 +337,14 @@ export const renderCell = async (cellValue: IAVCellValue, rowIndex = 0, showIcon
     
     // rollup类型：汇总
     if (cellValue.type === "rollup") {
-        text = renderRollupCell(cellValue, rowIndex, showIcon, type, renderCell, renderRollup);
+        text = await renderRollupCell({
+            cellValue,
+            rowIndex,
+            showIcon,
+            type,
+            renderCell,
+            renderRollup,
+        });
     }
     
     // relation类型：关联

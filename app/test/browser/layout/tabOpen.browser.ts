@@ -29,13 +29,22 @@ describe("Layout normal Tab open capability", () => {
         unsubscribe();
     });
 
-    it("forwards the source Tab and menu source to the host", () => {
+    it("forwards the source Tab, menu source, and copy mode to the host", () => {
         const tab = makeTab();
         const open = vi.fn(() => true);
         setLayoutTabOpenPort({open});
 
         expect(requestOpenTabAsTab(tab, "dock-menu")).toBe(true);
-        expect(open).toHaveBeenCalledWith(tab, "dock-menu");
+        expect(open).toHaveBeenCalledWith(tab, "dock-menu", "copy");
+    });
+
+    it("forwards an explicit new-session mode to the host", () => {
+        const tab = makeTab();
+        const open = vi.fn(() => true);
+        setLayoutTabOpenPort({open});
+
+        expect(requestOpenTabAsTab(tab, "dock-menu", "new")).toBe(true);
+        expect(open).toHaveBeenCalledWith(tab, "dock-menu", "new");
     });
 
     it("falls back to the typed event when the host declines", () => {

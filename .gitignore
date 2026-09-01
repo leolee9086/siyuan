@@ -12,6 +12,7 @@
 app/node_modules
 app/stage/build
 .tmp-gocache/
+.verify/
 app/build
 app/src/types/dist
 app/kernel*
@@ -81,3 +82,8 @@ packages/chatseqtrie/testdata/real_requests*.json
 
 # test results
 packages/websearch/test_results/
+
+# Go build cache (local only, not tracked)
+.gocache/
+.gocache2/
+

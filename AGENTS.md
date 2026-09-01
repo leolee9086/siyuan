@@ -58,9 +58,9 @@ SiYuan 横跨多个仓库。本仓库（分叉）继承上游的架构与依赖�
 | `siyuan` | **上游原版** —— 内核 + Electron/web/平板 UI；本仓库是其分叉 |
 | `siyuan-android` / `siyuan-ios` / `siyuan-harmony` | 封装 gomobile 内核的原生应用；各平台构建步骤不同 —— 参见各项目 README |
 | `siyuan-chrome` | 浏览器扩展（网页剪藏）；仅通过 HTTP 与运行中的内核通信 |
-| `siyuan-testing` | Playwright 端到端测试；测试数据属于 `SiYuan Testing` 笔记本 |
+| `siyuan-testing` | Playwright 端到端测试；测试数据属于 `SiYuan Testing` 笔记本 —— 参见该仓库的 `AGENTS.md` |
 | `petal` | SiYuan 插件 API 声明（插件系统名为 "petal"）；供插件使用，不是内核的 Go 依赖 |
-| `lute` | Markdown/Kramdown AST 引擎 —— 编辑器 + `.sy` 格式的来源。**本分叉改用 `leolee9086/lute` fork**（见下） |
+| `lute` | Markdown/Kramdown AST 引擎 —— 编辑器 + `.sy` 格式的来源，也是内置 `lute.min.js`（GopherJS 构建、供前端使用）的来源。上游检出位于 `$GOPATH/src/github.com/88250/lute`，并非同级仓库；**本分叉改用 `leolee9086/lute` fork**（见下） |
 | `dejavu` | 数据仓库 / 同步引擎（加密快照） |
 | `riff` | 间隔重复（SRS）记忆卡片调度器 |
 | `gulu` | 通用 Go 工具库（`gulu.Ret`、`gulu.JSON`、……） |
@@ -70,6 +70,8 @@ SiYuan 横跨多个仓库。本仓库（分叉）继承上游的架构与依赖�
 | `logging` | 内核各处使用的分级日志 |
 | `go-sqlite3` / `pdfcpu` | 维护者的 fork，通过 `kernel/go.mod` 中的永久 `replace` 引入（请保留） |
 | `epub` / `clipboard` / `go-humanize` / `vitess-sqlparser` / `dataparser` / `encryption` | 较小的 Go 库（导出 / 剪贴板 / 格式化 / SQL 解析 / 数据解析 / 加密） |
+
+以上 Go 库均为 `kernel/go.mod` 中的依赖。GitHub 组织：各 `siyuan-` 应用与大部分库位于 `siyuan-note/*`；lute、gulu 及维护者 fork（go-sqlite3 / pdfcpu）位于 `88250/*`。
 
 ### 分叉特有的依赖
 
@@ -82,7 +84,8 @@ SiYuan 横跨多个仓库。本仓库（分叉）继承上游的架构与依赖�
 
 - **修改任何 Go 依赖（Lute / dejavu / gulu / eventbus / riff / filelock / httpclient / logging / go-sqlite3 / pdfcpu / epub / ……）：** 这些依赖由内核以 Go 模块方式引入（`kernel/go.mod`）。要测试本地修改，可在 `kernel/go.mod` 中添加临时 `replace` 指向你的本地检出 —— 但**切勿提交该 `replace`**，它会破坏其他人的构建。
 - **重新构建 `lute.min.js`：** 它是 Go 项目 `lute` 的 JS 构建产物 —— 在上游生成并检入 `app/stage/protyle/js/lute/`。不要在这里编辑它；修改 `lute`（本分叉为 `leolee9086/lute`）、重新构建后把产物复制进来。
-- **移动端应用（`siyuan-android` / `siyuan-ios` / `siyuan-harmony`）：** 每个都是独立的原生应用，封装本仓库构建的内核。构建步骤见各项目自己的 README。
+- **类型声明：** 修改 `app/src/types/` 下或其他暴露给插件的 TypeScript 声明与常量时，须在同一任务中同步 `petal` 仓库中对应的声明与常量。
+- **移动端应用（`siyuan-android` / `siyuan-ios` / `siyuan-harmony`）：** 每个都是独立的原生应用，封装本仓库构建的内核。如何构建、植入内核绑定并接线，参见各项目自己的 README —— 各平台的工具链与步骤不同，此处不展开。
 - **`siyuan-chrome`：** 独立的 TypeScript 项目；仅通过 `docs/API.md` 中记录的公开 HTTP API 与运行中的 SiYuan 实例交互。
 
 ---
@@ -148,6 +151,8 @@ SiYuan 横跨多个仓库。本仓库（分叉）继承上游的架构与依赖�
 | `layout/Model.ts` | 所有 UI 绑定的 WebSocket 客户端 |
 | `constants.ts` | 全局常量（版本、ID、存储键） |
 
+**webpack 产物（上游）：** 四个 webpack 配置各自向 `app/stage/build/{app,desktop,mobile,export}/` 输出独立 bundle，内核的 `serveAppearance` 依据 User-Agent 选择所服务的 bundle。`export` bundle 与其余三者不同：它不是应用 UI，而是客户端库（全局 `Protyle`，入口 `src/protyle/method.ts`），暴露代码高亮、数学公式（KaTeX）与图表（Mermaid/flowchart/graphviz/…）的渲染器，由导出流程组装的 HTML 页面加载（桌面 PDF 预览窗口与独立导出的 HTML 文件），使富内容在编辑器之外渲染。
+
 **分叉前端扩展：** `app/src/agent/`（agent 聊天界面，本地独有）、`app/src/magi/`（多 AI 面板，本地独有）、`app/test/`（测试套件，见第 5 章）。
 
 ---
@@ -199,24 +204,63 @@ SiYuan 横跨多个仓库。本仓库（分叉）继承上游的架构与依赖�
 
 1. **i18n：**
    - 新键放在每个 `langs/*.json` 对象的**顶部**；添加到所有语言文件（以 `en.json` 为参考）
+   - `langs/*.json` 使用制表符缩进，每层嵌套一个制表符；不要用空格缩进
    - 例外：在 `_kernel` 对象内部，使用下一个递增的数字键将新条目追加到**末尾**
    - 每种语言都必须妥善翻译 —— 不要在所有语言文件中复制相同文本
    - 所有本地化字符串中的省略号使用三个 ASCII 句点（`...`）；不要使用 Unicode 省略号字符（`…` 或 `……`）
+   - 设置描述提示字符串不得以句号或等价句末标点结尾（例如 `.`、`。` 或 `।`）
    - 域名：`ld246.com` 仅出现在 `zh-CN.json` 中；其他所有语言使用 `liuyun.io`
+   - 在 `zh-TW` 本地化与繁体中文用户指南中，思源内容模型术语 Block 译为 `區塊`；不得缩写为 `塊`
+   - 复合词中统一使用 `區塊`，例如 `內容區塊`、`子區塊`、`父區塊`、`嵌入區塊`、`程式碼區塊`、`區塊 ID`、`區塊標`、`區塊級`
+   - Block Reference 译为 `區塊引用`，Blockquote 译为 `引述區塊`；不要混淆或颠倒词序
+   - 统计内容块数量时用 `個區塊`，不要把 `塊` 用作量词或缩写
+   - 不要把普通词语中的 `塊` 机械替换为 `區塊`；保留非内容块术语，如数据分块的 `分塊`、Checkbox 的 `覈取方塊`
+   - 保持繁体中文界面与用户指南之间的区块术语一致
    - 修改 i18n 文件后，运行 `python scripts/check-lang-keys.py` 验证所有语言文件的键完整性
-2. **Windows 脚本：** 优先使用 Node.js / Python；除非必要，避免使用 PowerShell
+2. **跨平台脚本：**
+   - 不要假设当前 shell 是 Bash、zsh 或 PowerShell。使用 shell 特有语法前先确认 shell；否则避免 `&&`、heredoc、`/dev/null` 等构造
+   - 简单序列使用独立的命令调用并设置命令工作目录，而不是用 `cd` 与另一条命令串联
+   - 多步逻辑编写并运行临时 Node.js 或 Python 脚本；在 Windows 上除非必要避免 PowerShell
+   - 不要通过 shell 管道、PowerShell here-string、`python -c` 或 `node -e` 传递非 ASCII 文本；改为用文件编辑工具将文本写入 UTF-8 文件再消费该文件
 3. **前端验证：** 不要使用 `npx webpack` 或 `pnpm dev` 验证改动；改动后运行 `cd app && pnpm run lint` 检查代码风格
 4. **前端构建：** 不要运行 `pnpm build` —— 开发者会手动运行 `pnpm dev`，`pnpm build` 会与之冲突，产生损坏的构建产物
 5. **内核开发：** 修改 Go 代码后，不要编译内核二进制或重启运行中的内核；两者都由开发者手动处理（本分叉由 Forge Supervisor 热替换，见第 5 章）
 6. **图标：** 不要手写 SVG；尽可能使用 `app/appearance/icons/litheness/icon.js` 中已有的图标
+   - 若无合适图标，从官方 [Lucide 图标库](https://lucide.dev/icons/) 选取，仅调整描边宽度等属性以匹配既有图标风格；保留上游路径数据
+   - 向 `app/appearance/icons/litheness/icon.js` 添加图标时，同一次变更在 `app/appearance/icons/index.html` 中添加预览条目并保持顺序一致
 7. **用户指南：** 编辑用户指南时，遵循 `docs/SY-FORMAT.md`
+   - 功能新增或更改快捷键时，同一次变更更新用户指南中的快捷键文档；若不确定应放置的小节，询问用户
+   - 应用内 UI 导航路径用分段 `kbd` 文本标记表示：每个导航层级使用一个 `TextMarkType: "kbd"` 的 `NodeTextMark`，相邻层级之间放置一个包含 ` - ` 的纯 `NodeText`
+   - `kbd` 路径嵌入正文时，两侧紧邻普通文本时路径外侧恰好各留一个 ASCII 空格；块的开头或结尾不加外层空格
+   - 第一个 `kbd` 紧跟全角标点（例如 `，` 或 `、`）时省略左侧外层空格；此规则适用于包括中文和日文在内的所有语言，但不适用于半角标点
+   - `kbd` 后紧跟标点（无论全角或半角）时省略右侧外层空格；分段 UI 路径内部的 ` - ` 分隔符保持不变
 8. **Git：**
    - **绝不**运行 `git commit` / `git push`，除非被明确要求 —— 没有例外
-   - 提交时，遵循最近提交的风格
+   - 被明确要求提交时，遵循最近提交的风格（gitmoji 前缀 + 英文主题）
    - 仅当存在相关 issue 时，在提交标题末尾追加完整 issue/PR URL（可点击的完整 URL，不要用 `#NNN` 短形式）；绝不要把 URL 放在提交正文中，也不要编造 URL
-9. **GitHub：** 所有 GitHub 操作优先使用 GitHub CLI（`gh`）。如果 `gh` 不可用或不支持该操作，则回退到 GitHub API 或网页界面
-10. **Issue 标题：** 无论用户以何种语言提出，凡是要求生成 issue 标题，一律提供英文；不要以 `Fix` 开头，直接描述观察到的行为
+9. **GitHub：** 所有 GitHub 操作优先使用 GitHub CLI（`gh`），包括读取 issue、评论、PR、提交、状态与元数据。如果 `gh` 不可用或不支持该操作，则回退到 GitHub API 或网页界面
+   - 创建 issue 时使用英文标题和中文正文，正文首段为对应的中文标题；不要使用仓库的 issue 模板或复刻其表单字段，直接撰写简洁、针对任务的正文
+   - 当所选端点支持标签时，可在同一创建或更新载荷中包含标签。之后只需验证 issue 或 PR 本身成功（编号、标题与正文）；无需检查标签是否生效，也不要仅为打标签再发一次请求 —— 操作者缺少推送权限时 GitHub 会静默丢弃标签变更
+   - 对于包含非 ASCII 文本的 GitHub 写操作，或在 Windows 上/shell 编码不确定时，使用以下基于文件的流程；纯 ASCII 请求不适用：
+     1. 用文件编辑工具（而非内联 shell 命令）将请求载荷创建为 UTF-8 JSON
+     2. 以唯一名称（如 `siyuan-gh-<operation>-<timestamp>.json`）存放在操作系统临时目录；不得把临时载荷留在仓库内
+     3. 用 `gh api --method <method> "<endpoint>" --input "<absolute-json-path>"` 调用相应端点
+     4. 检查返回资源并用 `gh api` 读回，逐字核对已发布文本（含换行与非 ASCII 字符）
+     5. 删除临时 JSON 文件并确认其不存在
+   - issue 评论示例：将 `{"body":"<评论内容>"}` 写入 UTF-8 JSON 文件，运行 `gh api --method POST "repos/{owner}/{repo}/issues/<number>/comments" --input "<absolute-json-path>"`，按 `id` 读回返回的评论后再删除文件
+10. **Issue 标题：** 无论用户以何种语言提出，凡是要求生成 issue 标题，一律提供英文；不要以 `Fix` 开头。这些规则根据 issue 性质选择标题措辞，不是要求打 GitHub 标签
+    - Bug：客观描述问题或症状，而不是以修复视角撰写
+    - 对现有功能的改进：从改进视角撰写，优先 `Improve ...`
+    - 此前不存在的能力：从支持视角撰写，优先 `Support ...`
+    - 性质不明时，从 issue 内容推断视角
 11. **LD246：** 访问 `ld246.com` 时，将 HTTP `User-Agent` 头设置为 `SiYuan-Coding-Agent`
+12. **可配置项：**
+    - 将可配置桌面菜单项的 `data-id` 与可配置停靠栏条目的 `data-type` 视为持久化配置标识。除非同一变更为既有可见性与顺序配置做迁移，否则不得重命名或复用
+    - 新增、删除、重命名、移动可配置桌面菜单项或停靠栏条目，或更改其 `data-id` / `data-type` 时，同一变更中更新 `app/src/config/entryVisibility/catalog.ts`（含类型、层级、标签、Simple 配置默认值与默认位置）并更新相关测试
+    - 为每个可配置桌面菜单分隔线提供稳定 `data-id`，并在目录中以 `separator` 注册。目录顺序须与实际菜单声明顺序一致，因为它定义了内置顺序以及新条目并入既有自定义配置的位置
+    - 保持父子路径与实际菜单层级一致。停靠栏条目仅支持可见性配置，不参与排序
+    - 相关测试须覆盖目录一致性、分隔线位置、顺序迁移与插件槽位保留。配置后的菜单不得出现开头、结尾或连续分隔线
+    - 菜单的 `ignore` 选项控制条件渲染，不得用于让条目退出可见性或顺序配置
 
 ### 分叉特有规则
 
@@ -235,9 +279,11 @@ SiYuan 横跨多个仓库。本仓库（分叉）继承上游的架构与依赖�
 2. **注释：** 描述代码做什么，而不是它替换了什么 —— 不要在注释中引用旧实现
 3. **注释：** 用中文写注释
 4. **标点：** 使用与语言相配的标点（例如中文用中文标点 ，。：；！？「」，不要用 ASCII）；不要在代码中硬编码标点 —— 放入 i18n 语言文件，让每种语言环境渲染自己的标点。适用于注释、用户指南、`.md` 文档等
-5. **Markdown：** 不要手动换行；每一行（段落、表格行、列表项等）保持单行
-6. **TypeScript/JavaScript：** 必须使用分号，使用双引号，用空格缩进
-7. **Go：** 编辑后用 `gofmt` 格式化
+5. **UI 路径：** 在所有语境（代码注释、UI 文本、i18n、用户指南、文档、issue/PR 内容及回复）中，导航层级之间用前后带空格的连字符分隔（例如 `设置 - 快捷键 - 通用`）；不要使用 `→` 等箭头符号
+6. **Markdown：** 不要手动换行；每一行（段落、表格行、列表项等）保持单行
+7. **TypeScript/JavaScript：** 必须使用分号，使用双引号，用空格缩进
+8. **CSS：** 因性能影响，不要使用 `:has()` 选择器
+9. **Go：** 编辑后用 `gofmt` 格式化
 
 ### 分叉补充
 

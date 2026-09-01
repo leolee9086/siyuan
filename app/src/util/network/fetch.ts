@@ -101,13 +101,14 @@ function handleKernelError() {
  *
  * 这些 API 是高频触发的搜索/图谱请求，需要通过 reqId 机制
  * 确保后发先至的响应不会覆盖最新请求的结果。
+ *
+ * 上游 15449 起将「最近更新块」与「全文搜索」改由独立的并发搜索治理层承接，
+ * 不再依赖 reqId 丢弃过期响应；本分叉的语义搜索入口 semanticSearchBlock 继续保留在该机制内。
  */
 const 需要竞态控制 = (url: string) => {
     return url === "/api/search/searchRefBlock" ||
         url === "/api/graph/getGraph" ||
         url === "/api/graph/getLocalGraph" ||
-        url === "/api/block/getRecentUpdatedBlocks" ||
-        url === "/api/search/fullTextSearchBlock" ||
         url === "/api/search/semanticSearchBlock";
 };
 
@@ -397,6 +398,9 @@ export async function fetchPost(
  *
  * @param url - API 路径
  * @param data - 请求数据
+ * @param headers - 可选的自定义请求头
+ * @param options - 是否处理消息的控制项：上游 v3.8.0 新增第四个位置布尔参数（`false` 表示跳过 processMessage），
+ * 本分叉拆分实现同时保留对象形式 `{processMessage?: boolean}`，两种形态在此统一解释。
  * @returns Promise，resolve 为 IWebSocketData 格式的响应
  * @throws 当响应格式不符合 IWebSocketData 时抛出异常
  *
@@ -406,13 +410,18 @@ export async function fetchPost(
  * if (response.data) {
  *     // 块存在
  * }
+ *
+ * // 跳过通用消息处理（与上游位置布尔参数等价）
+ * const raw = await fetchSyncPost("/api/system/oidc/validate", {pollToken}, undefined, false);
  */
 export const fetchSyncPost = async (
     url: string,
     data?: TFetchRequestData,
     headers?: HeadersInit | IObject | null,
-    options: {processMessage?: boolean} = {},
+    options: boolean | {processMessage?: boolean} = {},
 ) => {
+    // 位置布尔参数与对象选项统一解释为「是否执行 processMessage」，默认执行。
+    const shouldProcessMessage = typeof options === "boolean" ? options : options.processMessage !== false;
     await acquire();
     let released = false;
     try {
@@ -422,7 +431,7 @@ export const fetchSyncPost = async (
         }
         release(); 
         released = true;
-        if (options.processMessage !== false) {
+        if (shouldProcessMessage) {
             await processMessage(responseData, {fetchPost});
         }
         return responseData;

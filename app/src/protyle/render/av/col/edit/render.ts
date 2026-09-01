@@ -6,6 +6,8 @@ import {bindRollupData} from "./imports";
 import {escapeAriaLabel} from "./imports";
 /** 用途：转义 textarea 属性；使用范围：身份区；解耦评估：经本域网关直达 DOM 转义实现。 */
 import {escapeAttr} from "./imports";
+/** 用途：转义描述文本节点；使用范围：身份区 textarea 内容；解耦评估：经本域网关直达 DOM 转义实现，避免描述中的标签被解析。 */
+import {escapeHtml} from "./imports";
 /** 用途：获取当前视图字段；使用范围：目标列解析与事件绑定；解耦评估：经本域网关直达元数据实现。 */
 import {getFieldsByData} from "./imports";
 /** 用途：读取编辑文案；使用范围：所有编辑模板；解耦评估：经本域网关直达 i18n 环境。 */
@@ -56,7 +58,7 @@ const buildColumnIdentityHTML = (colData: IAVColumn, colId: string, isCustomAttr
 <button class="b3-menu__item" data-type="nobg">
     <div class="fn__block">
         <div class="fn__flex">
-            <span class="b3-menu__avemoji" data-col-type="${colData.type}" data-icon="${colData.icon}" data-type="update-icon">${colData.icon ? unicode2Emoji(colData.icon) : `<svg style="width: 14px;height: 14px"><use xlink:href="#${getColIconByType(colData.type)}"></use></svg>`}</span>
+            <span class="b3-menu__avemoji" data-col-type="${colData.type}" data-icon="${escapeAttr(colData.icon)}" data-type="update-icon">${colData.icon ? unicode2Emoji(colData.icon) : `<svg style="width: 14px;height: 14px"><use xlink:href="#${getColIconByType(colData.type)}"></use></svg>`}</span>
             <div class="b3-form__icona fn__block">
                 <input data-type="name" class="b3-text-field b3-form__icona-input" type="text">
                 <svg data-position="north" class="b3-form__icona-icon ariaLabel" aria-label="${colData.desc ? escapeAriaLabel(colData.desc) : siyuanI18n.addDesc}"><use xlink:href="#iconInfo"></use></svg>
@@ -64,7 +66,7 @@ const buildColumnIdentityHTML = (colData: IAVColumn, colId: string, isCustomAttr
         </div>
         <div class="fn__none">
             <div class="fn__hr"></div>
-            <textarea placeholder="${siyuanI18n.addDesc}" rows="1" data-type="desc" class="b3-text-field fn__block" type="text" data-value="${escapeAttr(colData.desc)}">${colData.desc}</textarea>
+            <textarea placeholder="${siyuanI18n.addDesc}" rows="1" data-type="desc" class="b3-text-field fn__block" type="text" data-value="${escapeAttr(colData.desc)}">${escapeHtml(colData.desc)}</textarea>
         </div>
         <div class="fn__hr--small"></div>
     </div>

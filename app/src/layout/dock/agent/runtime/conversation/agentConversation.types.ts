@@ -8,6 +8,8 @@ import type {AgentPanelConversationKind} from "../agentPanel.ports.types";
 import type {AgentPanelPluginAction} from "../agentPanel.ports.types";
 /** 用途：约束动态请求头；使用范围：全部控制请求。 */
 import type {AgentRequestHeaders} from "../../request/AgentRequest.types";
+/** 用途：约束随请求冻结的浏览器能力声明；使用范围：原生 Agent admission。 */
+import type {IAgentCapabilityManifest} from "../../frontendCapabilities";
 
 /** Agent 输入在当前轮次或后续轮次中的投递方式。 */
 export type AgentConversationDelivery = "turn" | "steer" | "queue";
@@ -38,6 +40,7 @@ export interface AgentConversationSubmitInput {
     references: Array<{id: string; title: string}>;
     editorContext?: IEditorContext;
     pluginActions?: AgentPanelPluginAction[];
+    frontendCapabilities?: IAgentCapabilityManifest[];
     model?: string;
     reasoningEffort?: string;
     regenerate?: boolean;

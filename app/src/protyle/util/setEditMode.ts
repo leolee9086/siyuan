@@ -1,6 +1,23 @@
 import {hideElements} from "../ui/hideElements";
 import {resize} from "./resize";
 import {updateProtyleOutline} from "../runtime/layout.port";
+import {isMobile} from "../../util/platform/functions";
+
+export const updateMobileTitleReadonly = (protyle: IProtyle) => {
+    const inputElement = document.getElementById("toolbarName") as HTMLInputElement;
+    const readonlyElement = document.getElementById("toolbarNameReadonly");
+    if (!inputElement || !readonlyElement) {
+        return;
+    }
+    const readonly = protyle.disabled || !protyle.preview.element.classList.contains("fn__none");
+    if (readonly && !inputElement.readOnly && document.activeElement === inputElement) {
+        inputElement.blur();
+    }
+    inputElement.readOnly = readonly;
+    readonlyElement.textContent = inputElement.value;
+    inputElement.classList.toggle("fn__none", readonly);
+    readonlyElement.classList.toggle("fn__none", !readonly);
+};
 
 // @内联数组 setEditMode 切换时需要隐藏的 UI 元素类型
 const HIDE_ELEMENT_TYPES: Parameters<typeof hideElements>[0] = ["gutterOnly", "toolbar", "select", "hint", "util"];
@@ -17,10 +34,8 @@ export const setEditMode = (protyle: IProtyle, _type: TEditorMode) => {
         return;
     }
     protyle.contentElement.classList.remove("fn__none");
-    // 启用了滚动条渲染时，同步显示滚动条组件
-    if (protyle.options.render?.scroll) {
-        protyle.scroll?.element.classList.remove("fn__none");
-    }
+    // 同步滚动条组件的可见性与位置状态（组件内部依据滚动渲染开关与内容可见性自行判定）
+    protyle.scroll?.update(protyle);
     // 启用了面包屑渲染时，同步显示面包屑并更新退出按钮状态
     if (protyle.options.render?.breadcrumb) {
         protyle.breadcrumb?.element.classList.remove("fn__none");
@@ -28,6 +43,10 @@ export const setEditMode = (protyle: IProtyle, _type: TEditorMode) => {
     }
     updateProtyleOutline(protyle, true);
     resize(protyle);
+    if (isMobile()) {
+        // 移动端同步顶部标题栏的只读显示状态
+        updateMobileTitleReadonly(protyle);
+    }
     hideElements(HIDE_ELEMENT_TYPES, protyle);
     // @breaking-change: preview模式已剥离为独立的export-preview页签，
     // 此事件现在仅在wysiwyg初始化时触发，不再有preview模式切换语义。

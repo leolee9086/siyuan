@@ -8,6 +8,8 @@ import {resetComposerHistoryCursor} from "./imports";
 import {restoreComposerHistory} from "./imports";
 /** 用途：约束公共 Composer 句柄；使用范围：Protyle 适配器返回值。 */
 import type {ComposerHandle} from "./imports";
+/** 用途：把光标聚焦到最后一个块；使用范围：toEnd 聚焦协议；解耦评估：选择工具经目录网关复用。 */
+import {focusBlock} from "./imports";
 /** 用途：插入 Protyle 块引用；使用范围：单个和批量 Mention 动作；解耦评估：DOM 规则集中在内容模块并显式接收当前运行时。 */
 import {insertProtyleComposerMentions} from "./content";
 /** 用途：插入 Protyle 纯文本；使用范围：附件和外部草稿追加；解耦评估：DOM 规则集中在内容模块并显式接收当前运行时。 */
@@ -28,8 +30,13 @@ import type {AgentProtyleComposerRuntime} from "./types";
 /** @同步豁免: UI构建 挂载入口必须同步返回可立即使用的 ComposerHandle。 */
 /** 将显式 Protyle 资源状态投影为两种 Composer 共用的稳定公共句柄。 @显式返回类型原因: 适配器必须在编译期覆盖完整 ComposerHandle 契约。 */
 export const createAgentProtyleComposerHandle = (runtime: AgentProtyleComposerRuntime): ComposerHandle => ({
-    /** 聚焦当前 Protyle Composer；面板打开和插入动作会调用。 */
-    focus: () => runtime.editor.focus(),
+    /** 聚焦当前 Protyle Composer；toEnd 时先把光标移到最后一个块（上游移动端协议）。 */
+    focus: (toEnd = false) => {
+        // 末尾块聚焦失败（如空内容）时回退整体聚焦，保证句柄总有可用焦点出口。
+        if (!toEnd || !focusBlock(runtime.wysiwyg.element.lastElementChild, runtime.wysiwyg.element, false)) {
+            runtime.editor.focus();
+        }
+    },
     /** 终止异步 Hint、DOM 观察和事件监听，再由 Protyle 释放自身菜单与编辑器资源。 */
     destroy: () => {
         // 重复销毁不再次触发第三方编辑器生命周期。
@@ -51,6 +58,8 @@ export const createAgentProtyleComposerHandle = (runtime: AgentProtyleComposerRu
         runtime.keydownHandler = null;
         runtime.blurHandler = null;
         runtime.editor.destroy();
+        // Hint 元素在创建时被挂到 document.body（上游浮动 Dock 协议），销毁时必须随之移除。
+        runtime.hint.element.remove();
     },
     /** 在发送前读取当前文本、HTML 和引用快照。 */
     getSendData: () => readProtyleComposerSendData(runtime),

@@ -24,6 +24,8 @@ import {hintMoveBlock} from "../../../protyle/hint/extend";
 import {fetchSyncPost} from "../../../util/network/fetch";
 import {focusByRange} from "../../../protyle/util/selection";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {matchHotKey} from "../../../protyle/util/hotKey";
+
 export const commandPanel = (app: AppFacade) => {
     const range = getSelection().rangeCount > 0 ? getSelection().getRangeAt(0) : undefined;
     const dialog = new Dialog({
@@ -136,6 +138,11 @@ export const commandPanel = (app: AppFacade) => {
         if (event.isComposing) {
             return;
         }
+        if (!event.repeat && matchHotKey(window.siyuan.config.keymap.general.commandPanel.custom, event)) {
+            dialog.destroy();
+            event.preventDefault();
+            return;
+        }
         upDownHint(listElement, event);
         if (event.key === "Enter") {
             const currentElement = listElement.querySelector(".b3-list-item--focus");
@@ -200,8 +207,8 @@ export const execByCommand = async (options: {
     let protyle = options.protyle;
     // 移动端：未传入 protyle 时从全局当前编辑器获取
     if (isMobile() && !protyle) {
-        protyle = getCurrentEditor().protyle;
-        options.previousRange = protyle.toolbar.range;
+        protyle = getCurrentEditor()?.protyle;
+        options.previousRange = protyle?.toolbar.range;
     }
     const range: Range = options.previousRange || (getSelection().rangeCount > 0 ? getSelection().getRangeAt(0) : document.createRange());
     let fileLiElements = options.fileLiElements;
@@ -241,7 +248,8 @@ export const execByCommand = async (options: {
                     });
                 }
             }
-        } else if (!protyle) {
+        }
+        if (!protyle) {
             if (!protyle && range) {
                 window.siyuan.blockPanels.find(item => {
                     item.editors.find(editorItem => {
@@ -345,6 +353,9 @@ export const execByCommand = async (options: {
                         notebook: protyle.notebookId,
                         path: protyle.path.endsWith(".sy") ? protyle.path : protyle.path + ".sy"
                     });
+                    if (response.code !== 0 || typeof response.data !== "string") {
+                        return;
+                    }
                     popSearch(options.app, {
                         page: 1,
                         hasReplace: true,
@@ -396,6 +407,9 @@ export const execByCommand = async (options: {
                         notebook: protyle.notebookId,
                         path: protyle.path.endsWith(".sy") ? protyle.path : protyle.path + ".sy"
                     });
+                    if (response.code !== 0 || typeof response.data !== "string") {
+                        return;
+                    }
                     popSearch(options.app, {
                         page: 1,
                         hasReplace: false,
@@ -457,7 +471,8 @@ export const execByCommand = async (options: {
                         paths: [protyle.path],
                         range,
                         flashcard: false,
-                        rootIDs: [protyle.block.rootID]
+                        rootIDs: [protyle.block.rootID],
+                        sourceNotebookIds: [protyle.notebookId]
                     });
                 } else if (nodeElement && range && protyle.element.contains(range.startContainer)) {
                     let selectElements = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
@@ -469,11 +484,14 @@ export const execByCommand = async (options: {
                             hintMoveBlock(toPath[0], selectElements, protyle);
                         },
                         flashcard: false,
-                        rootIDs: [protyle.block.rootID]
+                        rootIDs: [protyle.block.rootID],
+                        sourceNotebookIds: [protyle.notebookId]
                     });
                 }
             } else {
                 const paths = getTopPaths(fileLiElements);
+                const sourceNotebookIds = fileLiElements.map((item) =>
+                    item.getAttribute("data-notebook-id") || item.closest("ul[data-url]")?.getAttribute("data-url") || "");
                 const rootIDs: string[] = [];
                 fileLiElements.forEach(item => {
                     rootIDs.push(item.getAttribute("data-node-id"));
@@ -484,7 +502,8 @@ export const execByCommand = async (options: {
                     },
                     paths,
                     rootIDs,
-                    flashcard: false
+                    flashcard: false,
+                    sourceNotebookIds
                 });
             }
             break;

@@ -47,7 +47,7 @@ describe("AV attribute value rendering", () => {
             ],
         } as IAVCellValue;
 
-        expect(genAVValueHTML(value)).toBe('<span class="b3-chip b3-chip--middle" style="background-color:var(--b3-font-background1);color:var(--b3-font-color1)">html:First</span>');
+        expect(genAVValueHTML(value)).toBe('<span class="b3-chip b3-chip--middle" style="background-color:var(--b3-font-backgroundattr:1);color:var(--b3-font-colorattr:1)">html:First</span>');
     });
 
     it("preserves URL input and open-action markup", () => {

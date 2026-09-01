@@ -7,6 +7,7 @@ import {Constants} from "../../../constants";
 import {Dialog} from "../../runtime/dialog.port";
 import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {escapeAttr} from "../../../util/DOM/escape";
+import {getAVTemplateHTML} from "./attributeValue";
 
 const calcItem = (options: {
     menu: Menu,
@@ -304,7 +305,7 @@ export const openCalcMenu = async (protyle: IProtyle, calcElement: HTMLElement, 
         let rowCalcOperator: string;
         let avData = panelData?.data;
         if (!avData) {
-            const avResponse = await fetchSyncPost("/api/av/renderAttributeView", {id: avId});
+            const avResponse = await fetchSyncPost("/api/av/renderAttributeView", {id: avId, blockID});
             avData = avResponse.data;
         }
 
@@ -447,7 +448,7 @@ export const openCalcMenu = async (protyle: IProtyle, calcElement: HTMLElement, 
         const colData = getFieldsByData(panelData.data).find((item) => item.id === colId);
         currentTemplate = colData?.calc?.template || "";
     } else {
-        const avResponse = await fetchSyncPost("/api/av/renderAttributeView", {id: avId});
+        const avResponse = await fetchSyncPost("/api/av/renderAttributeView", {id: avId, blockID});
         const colData = getFieldsByData(avResponse.data).find((item) => item.id === colId);
         currentTemplate = colData?.calc?.template || "";
     }
@@ -583,7 +584,7 @@ export const getCalcValue = (column: IAVColumn) => {
             value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.percentUnchecked}</small>`;
             break;
         case  "Template":
-            value = `<span>${resultCalc.formattedContent ?? resultCalc.content}</span><small>${siyuanI18n.calcResultTemplate}</small>`;
+            value = `<span>${getAVTemplateHTML(resultCalc.formattedContent ?? resultCalc.content)}</span><small>${siyuanI18n.calcResultTemplate}</small>`;
             break;
     }
     return value;

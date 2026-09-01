@@ -12,7 +12,7 @@ import {renderNewThinkingTools} from "./AgentChat.thinking.helpers";
 import {settleInterveningThinkingCard} from "./AgentChat.thinking.helpers";
 
 /** 开始新的思考阶段并重绘当前思考卡片。 @同步豁免: UI构建 */
-export function appendThinking(runtime: AgentChatRuntime, reasoning: string) {
+export function appendThinking(runtime: AgentChatRuntime, reasoning: string, roundID: string) {
     commitPreviousThinkingStep(runtime);
     runtime.currentThinkingText = "";
     runtime.currentThinkingReasoning = reasoning;
@@ -22,6 +22,7 @@ export function appendThinking(runtime: AgentChatRuntime, reasoning: string) {
     const detailLines = renderNewThinkingTools(runtime, reasoning);
     detachStreamingResponse(runtime, reasoning);
     settleInterveningThinkingCard(runtime, reasoning);
+    runtime.currentRoundID = roundID;
     renderActiveThinkingCard(runtime, text, detailLines);
 }
 

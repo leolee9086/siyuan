@@ -44,7 +44,6 @@ function initProtyle<TApplication extends AppFacade, TEditor extends ProtyleDoma
         element: HTMLElement,
         options: EditorEngineOptions<TEditor>,
     ) => TEditor;
-    enterFullscreen: (element: Element) => void;
 }): TEditor {
     const engineOptions: EditorEngineOptions<TEditor> = {
         databaseAttr: true,
@@ -59,10 +58,9 @@ function initProtyle<TApplication extends AppFacade, TEditor extends ProtyleDoma
         typewriterMode: true,
         /** 编辑器初始化后的 UI 同步回调。 */
         after: (editor) => {
-            // 页面已处于编辑器全屏状态时，同步新实例的全屏 DOM 与内边距。
+            // 页面已处于编辑器全屏状态时，由引擎接管新实例的全屏状态与布局。
             if (getWindow().siyuan.editorIsFullscreen) {
-                options.enterFullscreen(editor.protyle.element);
-                setPadding(editor.protyle);
+                editor.setFullscreen(true);
             }
             countBlockWord([], editor.protyle.block.rootID, false, editor.protyle.options.status);
             if (isElectron) {
@@ -124,6 +122,7 @@ export class Editor<
     private backlinkElement: HTMLElement | undefined;
     private backlinkIntersectionObserver: IntersectionObserver | undefined;
     private backlinkMutationObserver: MutationObserver | undefined;
+    private backlinkEmpty = false;
 
     public get windowHashIdentity() {
         return {kind: "document-root", value: this.editor.protyle.block.rootID} as const;
@@ -136,7 +135,6 @@ export class Editor<
             element: HTMLElement,
             engineOptions: EditorEngineOptions<TEditor>,
         ) => TEditor;
-        enterFullscreen: (element: Element) => void;
     }) {
         this.app = options.app;
         this.parent = options.tab;
@@ -151,7 +149,6 @@ export class Editor<
             rootId: options.rootId,
             syncWindowModelHash: options.syncWindowModelHash,
             createEditorEngine: options.createEditorEngine,
-            enterFullscreen: options.enterFullscreen,
             ...(options.action === undefined ? {} : {action: options.action}),
             ...(options.notebookId === undefined ? {} : {notebookId: options.notebookId}),
             ...(options.mode === undefined ? {} : {mode: options.mode}),
@@ -162,7 +159,10 @@ export class Editor<
     }
 
     /** Creates the bottom panel only after a document reaches EOF and scrolls near it. */
-    public updateBacklinkPanel() {
+    public updateBacklinkPanel(reset = false) {
+        if (reset) {
+            this.destroyBacklinkPanel();
+        }
         if (!getSiyuanConfig().editor.backlinkShowBottom) {
             this.destroyBacklinkPanel();
             return;
@@ -173,7 +173,7 @@ export class Editor<
         }
 
         const backlinkElement = document.createElement("div");
-        backlinkElement.className = "fn__none sy__backlink--bottom";
+        backlinkElement.className = "fn__none sy__backlink--bottom sy__backlink--pending";
         this.backlinkElement = backlinkElement;
         this.editor.protyle.wysiwyg.element.after(backlinkElement);
         setPadding(this.editor.protyle);
@@ -188,9 +188,28 @@ export class Editor<
                     app: this.app,
                     blockId: this.getBacklinkBlockId(),
                     rootId: this.editor.protyle.block.rootID || "",
+                    notebookId: this.editor.protyle.notebookId,
                     type: "bottom",
                     element: backlinkElement,
                     ownerProtyle: this.editor.protyle,
+                    emptyChange: (empty) => {
+                        if (this.backlinkElement !== backlinkElement) {
+                            return;
+                        }
+                        const pending = backlinkElement.classList.contains("sy__backlink--pending");
+                        if (!pending && this.backlinkEmpty === empty) {
+                            return;
+                        }
+                        const contentElement = this.editor.protyle.contentElement;
+                        contentElement.classList.add("protyle-content--backlink-reveal");
+                        backlinkElement.classList.remove("sy__backlink--pending");
+                        this.backlinkEmpty = empty;
+                        this.updateBacklinkVisibility(pending);
+                        contentElement.getBoundingClientRect();
+                        requestAnimationFrame(() => {
+                            contentElement.classList.remove("protyle-content--backlink-reveal");
+                        });
+                    },
                 });
                 return;
             }
@@ -204,11 +223,19 @@ export class Editor<
         this.backlinkMutationObserver = new MutationObserver(() => this.updateBacklinkVisibility());
         this.backlinkMutationObserver.observe(this.editor.protyle.wysiwyg.element, {
             attributes: true,
-            attributeFilter: ["data-eof"],
-            childList: true,
-            subtree: true,
+            attributeFilter: ["data-bottom-eof"],
         });
         this.updateBacklinkVisibility();
+    }
+
+    /** Switches the existing bottom panel to the current block without recreating it. */
+    public refreshBottomBacklinkPanel() {
+        if (!this.backlink) {
+            return;
+        }
+        const blockId = this.getBacklinkBlockId();
+        const rootId = this.editor.protyle.block.rootID || "";
+        this.backlink.switchBlock(blockId, rootId, this.editor.protyle.notebookId || "");
     }
 
     /** Destroys the optional bottom surface before the editor engine releases its DOM. */
@@ -234,19 +261,17 @@ export class Editor<
             (protyle.block.parentID || protyle.block.rootID || "");
     }
 
-    private updateBacklinkVisibility() {
+    private updateBacklinkVisibility(forcePadding = false) {
         if (!this.backlinkElement) {
             return;
         }
-        const lastElement = this.editor.protyle.wysiwyg.element.lastElementChild;
-        // 仅当非"显示全部"且滚动模式下才按 EOF 状态隐藏底部反链；showAll 或非滚动模式保持可见。
-        const hidden = !this.editor.protyle.block.showAll && this.editor.protyle.block.scroll &&
-            lastElement?.getAttribute("data-eof") !== "2";
-        if (this.backlinkElement.classList.contains("fn__none") === hidden) {
-            return;
+        // 空反链直接隐藏；否则仅当非"显示全部"且滚动模式下按底部 EOF 标记隐藏，showAll 或非滚动模式保持可见。
+        const hidden = this.backlinkEmpty || (!this.editor.protyle.block.showAll && this.editor.protyle.block.scroll &&
+            !this.editor.protyle.wysiwyg.element.hasAttribute("data-bottom-eof"));
+        if (this.backlinkElement.classList.contains("fn__none") !== hidden || forcePadding) {
+            this.backlinkElement.classList.toggle("fn__none", hidden);
+            setPadding(this.editor.protyle);
         }
-        this.backlinkElement.classList.toggle("fn__none", hidden);
-        setPadding(this.editor.protyle);
     }
 
     private destroyBacklinkPanel() {
@@ -259,6 +284,7 @@ export class Editor<
         this.backlinkElement = undefined;
         this.backlinkIntersectionObserver = undefined;
         this.backlinkMutationObserver = undefined;
+        this.backlinkEmpty = false;
         if (hadBacklinkElement) {
             setPadding(this.editor.protyle);
         }

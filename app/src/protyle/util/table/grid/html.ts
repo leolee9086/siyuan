@@ -153,8 +153,26 @@ const renderOutputRow = (outputGrid: OutputTableGrid, row: number, section: "the
     return `${html}</tr>`;
 };
 
+/** 以源表格列组重建独立表格的 colgroup，保持粘贴后列宽与菜单宽度判断一致。 */
+const buildColgroupHTML = (tableElement: HTMLElement, bounds: TableRangeBounds) => {
+    const sourceColGroup = Array.from(tableElement.children).find(item => item.tagName === "COLGROUP");
+    const sourceColElements = sourceColGroup?.children;
+    let html = "<colgroup>";
+    for (let c = bounds.colStart; c <= bounds.colEnd; c++) {
+        const colElement = sourceColElements?.item(c);
+        // 仅当源表格存在且该索引对应真实 col 元素时复用其 outerHTML，否则回退到默认宽度，保证粘贴后列宽正确且菜单不崩溃
+        if (colElement instanceof Element) {
+            html += colElement.outerHTML;
+            continue;
+        }
+        html += "<col style='min-width: 60px;'>";
+    }
+    html += "</colgroup>";
+    return html;
+};
+
 /** 以单一 thead 和可选 tbody 序列化完整独立表格。 */
-const renderOutputTable = (outputGrid: OutputTableGrid, headRows: number) => {
+const renderOutputTable = (outputGrid: OutputTableGrid, headRows: number, colgroupHTML: string) => {
     let headHTML = "";
     let bodyHTML = "";
     for (let row = 0; row <= outputGrid.maxRow; row++) {
@@ -166,7 +184,7 @@ const renderOutputTable = (outputGrid: OutputTableGrid, headRows: number) => {
         bodyHTML += renderOutputRow(outputGrid, row, "tbody");
     }
     const bodySection = bodyHTML ? `<tbody>${bodyHTML}</tbody>` : "";
-    return `<table><thead>${headHTML}</thead>${bodySection}</table>`;
+    return `<table>${colgroupHTML}<thead>${headHTML}</thead>${bodySection}</table>`;
 };
 
 /**
@@ -185,5 +203,6 @@ export const getTableRangeHTML = (tableElement: HTMLElement, startCell: HTMLElem
     }
     const outputGrid = buildOutputGrid(outputCells);
     const headRows = getHeadRowCount(outputCells, tableGrid.sectionOfRow, bounds.rowStart);
-    return renderOutputTable(outputGrid, headRows);
+    const colgroupHTML = buildColgroupHTML(tableElement, bounds);
+    return renderOutputTable(outputGrid, headRows, colgroupHTML);
 };

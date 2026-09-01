@@ -7,11 +7,13 @@ import {bindRollupData} from "../../rollup";
 /** 导出 Rollup 绑定。 */
 export {bindRollupData};
 /** 用途：转义属性；使用范围：编辑模板；解耦评估：直达 DOM 转义实现。 */
-import {escapeAriaLabel, escapeAttr} from "../../../../../util/DOM/escape";
+import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../../../util/DOM/escape";
 /** 导出 aria 属性转义。 */
 export {escapeAriaLabel};
 /** 导出普通属性转义。 */
 export {escapeAttr};
+/** 导出 HTML 文本转义。 */
+export {escapeHtml};
 /** 用途：获取字段集合；使用范围：目标列解析；解耦评估：直达元数据实现。 */
 import {getFieldsByData} from "../../view/metadata";
 /** 导出字段集合查询。 */

@@ -2,13 +2,12 @@
 
 // Bump when the static bundle/cache contract changes so development builds do
 // not mix resources from an older service-worker cache.
-const CACHE_NAME = `siyuan-${new URL(location.href).searchParams.get("v")}-2`;
+const CACHE_NAME = `siyuan-${new URL(location.href).searchParams.get("v")}-3`;
 const INITIAL_CACHED_RESOURCES = [
     "/favicon.ico",
     "/stage/icon-large.png",
     "/stage/icon.png",
     "/stage/loading-pure.svg",
-    "/stage/build/fonts/JetBrainsMono-Regular.woff2",
     "/stage/protyle/js/lute/lute.min.js",
     "/stage/protyle/js/protyle-html.js"
 ];
@@ -17,7 +16,7 @@ self.addEventListener("install", event => {
     self.skipWaiting();
     event.waitUntil((async () => {
         const cache = await caches.open(CACHE_NAME);
-        cache.addAll(INITIAL_CACHED_RESOURCES);
+        await cache.addAll(INITIAL_CACHED_RESOURCES);
     })());
 });
 

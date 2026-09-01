@@ -48,17 +48,28 @@ export interface UserEditBindingContext {
 export type ThinkingStep = {
     reasoning: string;
     reasoningContent: string;
+    roundID?: string;
     toolNames?: string[];
+    toolCallIDs?: string[];
     content?: string;
+    text?: string;
+    toolCalls?: Array<{name: string; result?: string}>;
 };
 
 /** Agent 调用一个工具时保存的参数、状态和可选结果。 */
 export type AgentToolCall = {
     id?: string;
     name: string;
+    roundID?: string;
     arguments: Record<string, unknown>;
+    argumentsJSON?: string;
     result?: string;
     state?: string;
+    providerData?: {
+        google?: {
+            thoughtSignature?: string;
+        };
+    };
 };
 
 /** 会话中所有可持久化消息与交互记录的判别联合。 */
@@ -67,13 +78,18 @@ export type SessionEntry =
     | (EntryBase & {
     type: "thinking";
     steps: ThinkingStep[];
-    duration?: number
+    duration?: number;
+    roundID?: string;
 })
     | (EntryBase & {
     type: "assistant";
     content?: string;
+    reasoningContent?: string;
+    responseOutput?: Array<Record<string, unknown>>;
+    responseOutputTokens?: number;
+    roundID?: string;
     toolCalls?: AgentToolCall[];
-    timestamp?: number
+    timestamp?: number;
 })
     | (EntryBase & {
     type: "confirm";
@@ -81,14 +97,17 @@ export type SessionEntry =
     args: Record<string, unknown>;
     confirmID: string;
     effects?: IToolEffects;
-    status?: string
+    status?: string;
+    roundID?: string;
 })
     | (EntryBase & {
     type: "question";
     questionID: string;
     questions: Array<Record<string, unknown>>;
     status?: string;
-    answers?: string[]
+    answers?: string[];
+    roundID?: string;
 })
-    | (EntryBase & { type: "snapshot"; snapshotID: string })
-    | (EntryBase & { type: "rollback"; snapshotID: string });
+    | (EntryBase & { type: "todo"; result: string; callID?: string; roundID?: string })
+    | (EntryBase & { type: "snapshot"; snapshotID: string; roundID?: string })
+    | (EntryBase & { type: "rollback"; snapshotID: string; roundID?: string });

@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -26,6 +26,7 @@ import (
 var TodoWriteTool = &Tool{
 	Name:        "todo_write",
 	Description: "Maintain a session task list (each call replaces the list). todos[]: each {content, status: pending|in_progress|completed|cancelled}.",
+	AgentOnly:   true,
 	InputSchema: ToolSchema{
 		Type: "object",
 		Properties: map[string]Property{
@@ -84,8 +85,14 @@ func todoWriteHandler(args map[string]any) (CallToolResult, error) {
 		todos = append(todos, model.AgentTodoItem{Content: content, Status: status})
 	}
 
-	// Save todos for this session
-	if err := model.SaveAgentTodos(args["_sessionID"].(string), todos); err != nil {
+	sessionID, ok := args["_sessionID"].(string)
+	if !ok || sessionID == "" {
+		return CallToolResult{
+			Content: []ContentItem{{Type: "text", Text: "todo_write error: missing Agent session context"}},
+			IsError: true,
+		}, nil
+	}
+	if err := model.SaveAgentTodos(sessionID, todos); err != nil {
 		return CallToolResult{
 			Content: []ContentItem{{Type: "text", Text: "todo_write error: " + err.Error()}},
 			IsError: true,

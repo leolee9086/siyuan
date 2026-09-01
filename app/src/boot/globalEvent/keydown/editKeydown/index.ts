@@ -255,6 +255,12 @@ export const editKeydown = (app: AppFacade, event: KeyboardEvent) => {
         zoomOut({ protyle, id: protyle.block.rootID, focusId: protyle.block.id });
         return true;
     }
+    if (matchHotKey(config.keymap.editor.general.focusBreadcrumb.custom, event)) {
+        if (protyle.breadcrumb?.focus(range)) {
+            event.preventDefault();
+            return true;
+        }
+    }
     if (matchHotKey(config.keymap.editor.general.switchReadonly.custom, event)) {
         event.preventDefault();
         onlyProtyleCommand({

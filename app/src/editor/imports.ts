@@ -21,13 +21,19 @@ export type {LayoutTab};
 
 /** 用途：布局容器与窗口完整领域根。使用范围：editor 打开文件时遍历布局树。解耦评估：不依赖具体 class。 */
 import type {LayoutDomain, LayoutWindow} from "../layout/layout.types";
-/** 导出完整布局容器与窗口领域根。 */
-export type {LayoutDomain, LayoutWindow};
+/** 导出完整布局容器领域根。 */
+export type {LayoutDomain};
+/** 导出完整布局窗口领域根。 */
+export type {LayoutWindow};
 
 /** 用途：布局页签结构守卫。使用范围：editor 从布局实例表收窄页签。解耦评估：守卫只依赖完整领域根。 */
 import {isLayoutDomain, isLayoutTab, isLayoutWindow} from "../layout/layout.types.guard";
 /** 导出布局领域结构守卫。 */
-export {isLayoutDomain, isLayoutTab, isLayoutWindow};
+export {isLayoutDomain};
+/** 导出布局页签结构守卫。 */
+export {isLayoutTab};
+/** 导出布局窗口结构守卫。 */
+export {isLayoutWindow};
 
 /** 用途：应用实例类型。使用范围：editor 模块类型约束。解耦评估：通过 imports.ts 转发。 */
 import type { AppFacade } from "../app/AppFacade.types";
@@ -305,3 +311,41 @@ export { focusByRange };
 import { focusBlock } from "../protyle/util/selection.focus";
 /** 导出 focusBlock，供 editor 模块使用 */
 export { focusBlock };
+
+/** 用途：处理文档获取响应。使用范围：editor 动态加载块后的 DOM 反馈。解耦评估：通过 imports.ts 转发，避免 switch owner 跨层加载 Protyle 响应 owner。 */
+import {onGet} from "../protyle/util/onGet";
+/** 导出文档获取响应处理器。 */
+export {onGet};
+/** 用途：记录编辑器导航历史。使用范围：直接定位块后恢复返回栈。解耦评估：通过 imports.ts 转发，避免 switch owner 直接耦合 navigation 实现。 */
+import {pushBack} from "../navigation/history/pushBack";
+/** 导出编辑器导航历史记录器。 */
+export {pushBack};
+/** 用途：高亮指定块。使用范围：editor 高亮 action 的定位反馈。解耦评估：通过 imports.ts 转发，DOM 定位实现不泄漏到切换 owner。 */
+import {highlightById} from "../util/DOM/highlightById";
+/** 导出块高亮函数。 */
+export {highlightById};
+/** 用途：将块滚动至可视中心。使用范围：定位后的 observer 修正与焦点恢复。解耦评估：通过 imports.ts 转发，DOM 滚动实现不泄漏到切换 owner。 */
+import {scrollCenter} from "../util/DOM/highlightById";
+/** 导出块居中滚动函数。 */
+export {scrollCenter};
+
+/** 用途：注册数据库条目打开导航。使用范围：editor 连接 AV 条目与文档打开流程。解耦评估：通过 AV port 转发，避免 editor 加载渲染实现。 */
+import {setDatabaseItemNavigator} from "../protyle/render/av/openDatabaseItem.port";
+/** 导出数据库条目 navigator 注册入口。 */
+export {setDatabaseItemNavigator};
+/** 用途：获取 AV 条目定位渲染入口。使用范围：目标文档打开后消费排队定位。解耦评估：renderer port 维持 editor 和 AV rendering 的边界。 */
+import {getAVLocateRenderer} from "../protyle/render/av/locate/renderer.port";
+/** 导出 AV 条目定位 renderer port。 */
+export {getAVLocateRenderer};
+/** 用途：激活已排队的 AV 条目定位。使用范围：数据库条目打开完成后的回调。解耦评估：activation owner 管理队列，editor 仅传入开放上下文。 */
+import {activateQueuedAVLocate} from "../protyle/render/av/locate/activation/activation";
+/** 导出 AV 条目定位 activation 入口。 */
+export {activateQueuedAVLocate};
+/** 用途：描述数据库条目打开数据。使用范围：editor 注册 navigator 的类型约束。解耦评估：纯类型边界，不建立运行时 AV 依赖。 */
+import type {IDatabaseItemOpenData} from "../protyle/render/av/openDatabaseItem.types";
+/** 导出数据库条目打开数据类型。 */
+export type {IDatabaseItemOpenData};
+/** 用途：描述数据库条目打开选项。使用范围：editor 注册 navigator 的可选位置参数。解耦评估：纯类型边界，不建立运行时 AV 依赖。 */
+import type {IDatabaseItemOpenOptions} from "../protyle/render/av/openDatabaseItem.types";
+/** 导出数据库条目打开选项类型。 */
+export type {IDatabaseItemOpenOptions};

@@ -1,7 +1,8 @@
 import { matchHotKey } from "../util/hotKey";
 import { getContenteditableElement } from "./getBlock";
 import { listIndent, listOutdent } from "./list";
-import {turnsIntoOneTransaction, turnsOneInto} from "./transaction.turns";
+import {turnsIntoOneTransaction} from "./transaction/turns/container";
+import {turnsOneInto} from "./transaction/turns/single";
 import {updateTransaction} from "./transaction/update";
 import * as dayjs from "dayjs";
 import { hasClosestByAttribute } from "../util/hasClosest";

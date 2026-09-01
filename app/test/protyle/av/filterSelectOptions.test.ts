@@ -1,9 +1,9 @@
 import {beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
 
-const submitAVFilterTransaction = vi.fn();
+const transaction = vi.fn();
 
-vi.mock("../../../src/protyle/wysiwyg/transaction/prepared/av/view/avFilter", () => ({
-    submitAVFilterTransaction,
+vi.mock("../../../src/protyle/wysiwyg/transaction/submit", () => ({
+    transaction,
 }));
 vi.mock("../../../src/util/siyuanEnvironments/i18n.getI18n.environment", () => ({
     siyuanI18n: new Proxy({}, {
@@ -35,7 +35,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
     document.body.innerHTML = "";
-    submitAVFilterTransaction.mockClear();
+    transaction.mockClear();
 });
 
 describe("AV inline select filter options", () => {
@@ -112,8 +112,8 @@ describe("AV inline select filter options", () => {
         expect(optionElements[1].querySelector("use")?.getAttribute("xlink:href")).toBe("#iconCheck");
         expect(panelElement.querySelector<HTMLElement>('[data-type="selectTrigger"]')?.textContent).toBe("Todo");
         expect(data.view.filters[0].value.mSelect).toEqual([{content: "Todo", color: "2"}]);
-        expect(submitAVFilterTransaction).toHaveBeenCalledOnce();
-        const submittedOperation = submitAVFilterTransaction.mock.calls[0][1][0];
+        expect(transaction).toHaveBeenCalledOnce();
+        const submittedOperation = transaction.mock.calls[0][1][0];
         expect(submittedOperation).toMatchObject({
             action: "setAttrViewFilters",
             avID: "av-id",

@@ -3,7 +3,7 @@ import { bindDropEvent, bindUploadEvent } from "./background/upload";
 import { bindImgMoveEvent } from "./background/image";
 import { initBackgroundElement } from "./background/init";
 import { renderBackground } from "./background/render";
-import {bindTagSortEvent} from "./background/tags";
+import {bindDocTagContextMenu, bindTagSortEvent} from "./background/tags";
 import {backgroundBrand} from "./background/background.types";
 
 export class Background {
@@ -27,6 +27,7 @@ export class Background {
         bindUploadEvent(this, protyle);
         bindClickEvent(this, protyle);
         bindTagSortEvent(this, protyle);
+        bindDocTagContextMenu(this, protyle);
     }
     /**
      * 作用：渲染题头图。

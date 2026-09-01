@@ -64,8 +64,7 @@ const handleNotebookResponse = (
 
 /** 从内核刷新笔记本集合；闪卡模式只把结果交给调用者。 @同步豁免: 遗留代码 */
 // @柯里化 固定笔记本列表端点与普通/闪卡响应策略，调用者只提供结果回调和模式。
-export const setNoteBook = (callback?: (notebooks: INotebook[]) => void, flashcard = false) => {
+export const setNoteBook = (callback?: (notebooks: INotebook[]) => void, flashcard = false) =>
     fetchPost("/api/notebook/lsNotebooks", {flashcard}, (response) => {
         handleNotebookResponse(response, callback, flashcard);
     });
-};

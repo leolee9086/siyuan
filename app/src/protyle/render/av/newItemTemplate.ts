@@ -13,11 +13,15 @@ import {openEmojiPanel, unicode2Emoji} from "../../../emoji";
 import {upDownHint} from "../../../util/DOM/upDownHint";
 import {hasClosestByClassName} from "../../util/hasClosest";
 import * as dayjs from "dayjs";
+import {getAVBlockRefSubtype} from "./cellValue";
 
 interface ICreatePosition {
     previousID?: string;
     groupID?: string;
 }
+
+const SAVE_LOCATION_DEFAULT = "__default__";
+const SAVE_LOCATION_SUB_DOC = "__subdoc__";
 
 const cloneTemplates = (templates?: IAVNewItemTemplate[]) => JSON.parse(JSON.stringify(templates || [])) as IAVNewItemTemplate[];
 
@@ -294,6 +298,7 @@ interface IRelationOption {
     content: string;
     icon: string;
     isDetached: boolean;
+    refSubtype: "s" | "d";
 }
 
 const getRelationOptions = (column: IAVColumn, callback: (options: IRelationOption[]) => void) => {
@@ -312,6 +317,7 @@ const getRelationOptions = (column: IAVColumn, callback: (options: IRelationOpti
             content: value.block?.content || window.siyuan.languages.untitled,
             icon: value.block?.icon || "",
             isDetached: !!value.isDetached,
+            refSubtype: getAVBlockRefSubtype(value),
         })).filter(option => option.id));
     });
 };
@@ -323,7 +329,7 @@ const renderRelationFieldValue = (target: HTMLElement, options: IRelationOption[
             return `<span class="av__cell--relation" data-row-id="${escapeAttr(option.id)}"><span><svg><use xlink:href="#iconLine"></use></svg><span class="fn__space--5"></span></span><span class="av__celltext">${escapeHtml(option.content)}</span></span>`;
         }
         const icon = unicode2Emoji(option.icon || window.siyuan.storage[Constants.LOCAL_IMAGES].file);
-        return `<span class="av__cell--relation" data-row-id="${escapeAttr(option.id)}" data-block-id="${escapeAttr(option.blockID)}"><span class="b3-menu__avemoji" data-unicode="${escapeAttr(option.icon)}">${icon}</span><span data-type="block-ref" data-id="${escapeAttr(option.blockID)}" data-subtype="s" class="av__celltext av__celltext--ref">${escapeHtml(option.content)}</span></span>`;
+        return `<span class="av__cell--relation" data-row-id="${escapeAttr(option.id)}" data-block-id="${escapeAttr(option.blockID)}"><span class="b3-menu__avemoji" data-unicode="${escapeAttr(option.icon)}">${icon}</span><span data-type="block-ref" data-id="${escapeAttr(option.blockID)}" data-subtype="${option.refSubtype}" class="av__celltext av__celltext--ref">${escapeHtml(option.content)}</span></span>`;
     }).join("");
     target.innerHTML = html;
 };
@@ -374,7 +380,7 @@ const getContentTemplateRelativePath = (item: IContentTemplateSearchResult) => {
     if (item.relativePath) {
         return item.relativePath;
     }
-    const normalizedPath = (item.path || "").replaceAll("\\", "/");
+    const normalizedPath = (item.path || "").replace(/\\/g, "/");
     const templatesIndex = normalizedPath.lastIndexOf("/templates/");
     return templatesIndex > -1 ? normalizedPath.substring(templatesIndex + "/templates/".length) : "";
 };
@@ -397,7 +403,7 @@ const openContentTemplateMenu = (target: HTMLElement) => {
     menu.addItem({
         type: "empty",
         label: `<div data-menu="true" style="padding:4px;width:360px">
-    <input class="b3-text-field fn__block" placeholder="${window.siyuan.languages.search}">
+    <input class="b3-text-field fn__block" placeholder="${window.siyuan.languages.searchPlaceholder}">
     <div class="b3-list b3-list--background" style="margin-top:4px;max-height:240px;overflow:auto"></div>
 </div>`,
         bind: menuElement => {
@@ -473,10 +479,18 @@ const collectTemplate = (root: HTMLElement, itemTemplate: IAVNewItemTemplate, fi
     itemTemplate.primaryKeyTemplate = (root.querySelector('[data-role="primary-key"]') as HTMLInputElement).value;
     itemTemplate.contentTemplatePath = (root.querySelector('[data-role="content-template"]') as HTMLElement).dataset.value || "";
     const boxID = (root.querySelector('[data-role="box-id"]') as HTMLSelectElement).value;
-    itemTemplate.saveLocation = boxID === "__default__" ? undefined : {
-        boxID,
-        pathTemplate: (root.querySelector('[data-role="path-template"]') as HTMLInputElement).value,
-    };
+    if (boxID === SAVE_LOCATION_DEFAULT) {
+        itemTemplate.saveLocation = undefined;
+    } else if (boxID === SAVE_LOCATION_SUB_DOC) {
+        itemTemplate.saveLocation = {pathTemplate: ""};
+    } else {
+        itemTemplate.saveLocation = {
+            boxID,
+            pathTemplate: (root.querySelector('[data-role="path-template"]') as HTMLInputElement).value,
+        };
+    }
+    itemTemplate.hideInFileTree = itemTemplate.targetType === "document" &&
+        (root.querySelector('[data-role="hide-in-file-tree"]') as HTMLInputElement).checked;
     const fieldValues: Record<string, IAVNewItemFieldValue> = {};
     root.querySelectorAll<HTMLElement>("[data-field-id]").forEach(element => {
         const column = fields.find(item => item.id === element.dataset.fieldId);
@@ -502,10 +516,14 @@ const getEditorHTML = (itemTemplate: IAVNewItemTemplate, primaryKey: IAVColumn |
         (!savedNotebook || savedNotebook.closed) ? itemTemplate.saveLocation.boxID : "";
     const unavailableNotebookOption = unavailableNotebookID ?
         `<option value="${escapeAttr(unavailableNotebookID)}" data-unavailable="true" selected disabled>${escapeHtml(savedNotebook?.name || unavailableNotebookID)}</option>` : "";
-    const currentNotebookSelected = forceCurrentNotebook || !!itemTemplate.saveLocation &&
-        (!itemTemplate.saveLocation.boxID || itemTemplate.saveLocation.boxID === currentNotebookID);
+    const isDefault = !forceCurrentNotebook && !itemTemplate.saveLocation;
+    const isSubDoc = !!itemTemplate.saveLocation && !itemTemplate.saveLocation.boxID && !itemTemplate.saveLocation.pathTemplate;
+    const currentNotebookSelected = !isSubDoc && (forceCurrentNotebook || !!itemTemplate.saveLocation &&
+        (!itemTemplate.saveLocation.boxID || itemTemplate.saveLocation.boxID === currentNotebookID));
+    const showPath = !isSubDoc && (forceCurrentNotebook || !!itemTemplate.saveLocation);
     const notebookOptions = (forceCurrentNotebook ? "" :
-        `<option value="__default__"${itemTemplate.saveLocation ? "" : " selected"}>${window.siyuan.languages.default}</option>`) +
+        `<option value="${SAVE_LOCATION_DEFAULT}"${itemTemplate.saveLocation ? "" : " selected"}>${window.siyuan.languages.default}</option>`) +
+        `<option value="${SAVE_LOCATION_SUB_DOC}"${isSubDoc ? " selected" : ""}>${window.siyuan.languages.newItemTemplateSubDoc}</option>` +
         `<option value=""${currentNotebookSelected ? " selected" : ""}>${window.siyuan.languages.currentNotebook}</option>` +
         unavailableNotebookOption +
         (forceCurrentNotebook ? "" : (window.siyuan.notebooks || []).filter(item => !item.closed && item.id !== currentNotebookID)
@@ -530,7 +548,11 @@ const getEditorHTML = (itemTemplate: IAVNewItemTemplate, primaryKey: IAVColumn |
             </div>
             <div class="block__icons av__row">
                 <div class="block__logo block__logo--icon ariaLabel" data-position="parentE" aria-label="${escapeAttr(`${window.siyuan.languages.fileTree14}<br>${window.siyuan.languages.fileTree13}`)}"><svg class="block__logoicon"><use xlink:href="#iconFolder"></use></svg><span>${window.siyuan.languages.savePath}</span></div>
-                <div class="fn__flex-1 fn__flex custom-attr__avvalue" style="align-items:center"><select class="b3-select" data-role="box-id" style="width:160px">${notebookOptions}</select><span class="fn__space${itemTemplate.saveLocation || forceCurrentNotebook ? "" : " fn__none"}" data-role="path-space"></span><input class="b3-text-field fn__flex-1${itemTemplate.saveLocation || forceCurrentNotebook ? "" : " fn__none"}" data-role="path-template" value="${escapeAttr(itemTemplate.saveLocation?.pathTemplate || "")}"${itemTemplate.saveLocation || forceCurrentNotebook ? "" : " disabled"}></div>
+                <div class="fn__flex-1 custom-attr__avvalue"><div class="fn__flex" style="align-items:center"><select class="b3-select" data-role="box-id" style="width:${showPath ? "160px" : "100%"}">${notebookOptions}</select><span class="fn__space${showPath ? "" : " fn__none"}" data-role="path-space"></span><input class="b3-text-field fn__flex-1${showPath ? "" : " fn__none"}" data-role="path-template" value="${escapeAttr(itemTemplate.saveLocation?.pathTemplate || "")}"${showPath ? "" : " disabled"}></div><div class="b3-label__text${isDefault ? "" : " fn__none"}" data-role="default-tip" style="margin-top:4px">${window.siyuan.languages.newItemTemplateDefaultTip}</div><div class="b3-label__text${isSubDoc ? "" : " fn__none"}" data-role="subdoc-tip" style="margin-top:4px">${window.siyuan.languages.newItemTemplateSubDocTip}</div></div>
+            </div>
+            <div class="block__icons av__row">
+                <div class="block__logo block__logo--icon"><svg class="block__logoicon"><use xlink:href="#iconEyeoff"></use></svg><span>${window.siyuan.languages.hideInFileTree}</span></div>
+                <div class="fn__flex custom-attr__avvalue av__template-switch" style="align-items:center;justify-content:flex-end"><input class="b3-switch" data-role="hide-in-file-tree" type="checkbox"${itemTemplate.hideInFileTree ? " checked" : ""}></div>
             </div>
             <div class="block__icons av__row">
                 <div class="block__logo block__logo--icon"><svg class="block__logoicon"><use xlink:href="#iconFile"></use></svg><span>${window.siyuan.languages.contentTemplate}</span></div>
@@ -614,10 +636,13 @@ export const openNewItemTemplateDialog = (options: {
         }
         boxIDElement?.addEventListener("change", () => {
             const pathElement = hostElement.querySelector('[data-role="path-template"]') as HTMLInputElement;
-            const useDefaultPath = boxIDElement.value === "__default__";
-            pathElement.disabled = useDefaultPath;
-            pathElement.classList.toggle("fn__none", useDefaultPath);
-            hostElement.querySelector('[data-role="path-space"]')?.classList.toggle("fn__none", useDefaultPath);
+            const showPath = boxIDElement.value !== SAVE_LOCATION_DEFAULT && boxIDElement.value !== SAVE_LOCATION_SUB_DOC;
+            pathElement.disabled = !showPath;
+            pathElement.classList.toggle("fn__none", !showPath);
+            boxIDElement.style.width = showPath ? "160px" : "100%";
+            hostElement.querySelector('[data-role="path-space"]')?.classList.toggle("fn__none", !showPath);
+            hostElement.querySelector('[data-role="default-tip"]')?.classList.toggle("fn__none", boxIDElement.value !== SAVE_LOCATION_DEFAULT);
+            hostElement.querySelector('[data-role="subdoc-tip"]')?.classList.toggle("fn__none", boxIDElement.value !== SAVE_LOCATION_SUB_DOC);
         });
         hostElement.querySelector<HTMLElement>('[data-role="content-template"]')?.addEventListener("click", event => {
             event.preventDefault();
@@ -636,7 +661,10 @@ export const openNewItemTemplateDialog = (options: {
             }, unicode => {
                 iconElement.dataset.value = unicode;
                 emojiElement.innerHTML = unicode2Emoji(unicode || window.siyuan.storage[Constants.LOCAL_IMAGES].file);
-            }, emojiElement.querySelector("img"));
+            }, emojiElement.querySelector("img"), {
+                ownerElement: options.protyle.element,
+                targetID: options.protyle.block.rootID,
+            });
             event.preventDefault();
             event.stopPropagation();
         });
@@ -861,7 +889,6 @@ export const createAttributeViewItem = (options: {
     fetchPost("/api/av/createAttributeViewItem", {
         avID: options.blockElement.dataset.avId,
         blockID: options.blockElement.dataset.nodeId,
-        viewID: options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) || "",
         templateID: options.templateID || "",
         previousID: options.position?.previousID || "",
         groupID: options.position?.groupID || "",
@@ -874,10 +901,43 @@ export const createAttributeViewItem = (options: {
         }
         const warnings = (response.data?.warnings || []) as string[];
         if (warnings.length) {
-            showMessage(warnings.join("<br>"));
+            showMessage(warnings.map(item => escapeHtml(item)).join("<br>"));
         }
         options.blockElement.removeAttribute("data-render");
         avRender(options.blockElement, options.protyle);
+    });
+};
+
+export const createAttributeViewItemDocs = (options: {
+    protyle: IProtyle;
+    blockElement: HTMLElement;
+    itemIDs: string[];
+    saveMode: "subDoc" | "template";
+}) => {
+    if (options.blockElement.dataset.createDocAndBind === "true") {
+        return;
+    }
+    options.blockElement.dataset.createDocAndBind = "true";
+    fetchPost("/api/av/createAttributeViewItemDocs", {
+        avID: options.blockElement.dataset.avId,
+        blockID: options.blockElement.dataset.nodeId,
+        itemIDs: options.itemIDs,
+        saveMode: options.saveMode,
+        app: options.protyle.app.appId,
+        session: options.protyle.id,
+    }, response => {
+        if (response.code === 1 && response.data?.unavailableNotebook) {
+            showMessage(window.siyuan.languages.newItemTemplateUnavailableNotebookTip, 6000, "error");
+            return;
+        }
+        const warnings = (response.data?.warnings || []) as string[];
+        if (warnings.length) {
+            showMessage(warnings.map(item => escapeHtml(item)).join("<br>"));
+        }
+        options.blockElement.removeAttribute("data-render");
+        avRender(options.blockElement, options.protyle);
+    }).finally(() => {
+        delete options.blockElement.dataset.createDocAndBind;
     });
 };
 
@@ -1015,7 +1075,7 @@ const openBlankTemplateActionMenu = (options: {
 export const openNewItemTemplateMenu = (options: {protyle: IProtyle, blockElement: HTMLElement, target: HTMLElement}) => {
     fetchPost("/api/av/renderAttributeView", {
         id: options.blockElement.dataset.avId,
-        viewID: options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) || "",
+        blockID: options.blockElement.dataset.nodeId,
         ignoreRows: true,
     }, response => {
         const data = response.data as IAV;

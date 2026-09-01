@@ -5,6 +5,10 @@ import {pathPosix} from "../util/file/path/operations";
 import * as dayjs from "dayjs";
 import {resolveAssetURL} from "./assetUrl";
 import {getAssetFormat} from "./assetFormat";
+import {escapeAttr} from "../util/DOM/escape";
+import {getHTMLAssetIFrameSrc, isHTMLFilePath} from "./html";
+import {isBrowserRenderableImagePath} from "../util/imageURL";
+import {getAssetsPreviewPath} from "./previewPath";
 
 /**
  * 作用：为旧资源菜单生成和主 Asset/文件浏览器相同的缩略图地址。
@@ -49,18 +53,23 @@ function ensurePreviewImageErrorHandler() {
  * 调用时机：当用户悬停或选择资源列表项时
  * 
  * @param pathString - 资源的相对路径（如 "assets/image.png"）
+ * @param dataPath - 可选数据路径；提供时追加到媒体地址，供内核在历史快照等场景定位资源
  * @returns 预览的 HTML 字符串，如果路径为空则返回空字符串
  */
-export const renderAssetsPreview = (pathString: string) => {
+export const renderAssetsPreview = (pathString: string, dataPath?: string) => {
     if (!pathString) {
         return "";
     }
     ensurePreviewImageErrorHandler();
     const format = getAssetFormat(pathString);
+    // 媒体地址统一经安全转义；携带 dataPath 时由 getAssetsPreviewPath 追加查询参数，供历史快照等场景透传给内核。
+    const previewPath = escapeAttr(getAssetsPreviewPath(pathString, dataPath));
 
     // 图片：使用缩略图 API + 元信息面板
     if (format.previewKind === "image") {
-        const thumbnailUrl = getPreviewThumbnailURL(pathString, 360);
+        // 本地缩略图接口按原始路径检索文件；dataPath 作为附加查询参数透传，由内核侧自行取舍。
+        const thumbnailUrl = getPreviewThumbnailURL(pathString, 360)
+            + (dataPath ? `&dataPath=${encodeURIComponent(dataPath)}` : "");
         // 生成唯一 ID 用于后续填充元信息
         const metaId = `asset-meta-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -75,12 +84,12 @@ export const renderAssetsPreview = (pathString: string) => {
 
     // 音频：使用原生播放器
     if (format.previewKind === "audio") {
-        return `<audio style="max-width: 100%" controls="controls" src="${pathString}"></audio>`;
+        return `<audio style="max-width: 100%" controls="controls" src="${previewPath}"></audio>`;
     }
 
     // 视频：使用原生播放器
     if (format.previewKind === "video") {
-        return `<video style="max-width: 100%" controls="controls" src="${pathString}"></video>`;
+        return `<video style="max-width: 100%" controls="controls" src="${previewPath}"></video>`;
     }
 
     // 文本文件：显示异步加载占位符，然后加载内容
@@ -97,7 +106,8 @@ export const renderAssetsPreview = (pathString: string) => {
     }
 
     // 其他文件：只请求格式 Provider 生成的缩略图，不把文件图标伪装成资源缩略图
-    const thumbnailUrl = getPreviewThumbnailURL(pathString, 256);
+    const thumbnailUrl = getPreviewThumbnailURL(pathString, 256)
+        + (dataPath ? `&dataPath=${encodeURIComponent(dataPath)}` : "");
     return `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
         <img style="max-width: 128px; max-height: 128px;" src="${thumbnailUrl}" data-sforge-preview-image="thumbnail" alt="${escapeHtml(pathPosix().basename(pathString))}">
         <div style="margin-top: 8px; color: var(--b3-theme-on-surface); font-size: 12px; word-break: break-all; text-align: center; max-width: 100%;">
@@ -371,9 +381,16 @@ export const pdfResize = () => {
  * @param pathString - 资源路径
  * @param imgName - 图片的 alt 属性值
  * @param linkName - 链接的显示文本
+ * @param htmlAsIframe - 为 true 且链接指向 HTML 文件时，插入沙箱 iframe 节点
  * @returns 对应类型的 HTML 字符串
  */
-export const genAssetHTML = (type: string, pathString: string, imgName: string, linkName: string) => {
+export const genAssetHTML = (type: string, pathString: string, imgName: string, linkName: string, htmlAsIframe = false) => {
+    // HTML 资源在明确要求以 iframe 插入且链接指向 HTML 文件时，生成沙箱隔离的 NodeIFrame 节点。
+    if (htmlAsIframe && isHTMLFilePath(linkName)) {
+        const iframeSrc = escapeAttr(getHTMLAssetIFrameSrc(pathString));
+        return `<div data-node-id="${Lute.NewNodeID()}" data-type="NodeIFrame" class="iframe" updated="${dayjs().format("YYYYMMDDHHmmss")}"><div class="iframe-content">${Constants.ZWSP}<iframe sandbox="allow-scripts" src="${iframeSrc}" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe><span class="protyle-action__drag" contenteditable="false"></span></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
+    }
+
     const format = getAssetFormat(type);
     if (format.previewKind === "audio") {
         return /*html*/`
@@ -384,7 +401,8 @@ export const genAssetHTML = (type: string, pathString: string, imgName: string, 
         </div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
     }
 
-    if (format.previewKind === "image") {
+    // 浏览器无法直接渲染的图片地址按上游约定回退为普通链接，避免生成无法显示的图片节点。
+    if (format.previewKind === "image" && isBrowserRenderableImagePath(pathString)) {
         const netHTML = pathString.startsWith("assets/") ? "" : /*html*/`
             <span class="img__net">
                 <svg>

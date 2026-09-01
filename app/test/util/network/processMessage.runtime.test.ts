@@ -138,6 +138,28 @@ describe("processMessage asynchronous contracts", () => {
         }, {fetchPost: vi.fn()})).rejects.toBe(error);
     });
 
+    it("reloads only an active publish page for reloadpublishpage", async () => {
+        window.siyuan.isPublish = true;
+
+        await expect(processMessage({
+            cmd: "reloadpublishpage",
+            code: 0,
+            msg: "",
+            data: {},
+        }, {fetchPost: vi.fn()})).resolves.toBe(false);
+        expect(runtime.reloadLocation).toHaveBeenCalledOnce();
+
+        runtime.reloadLocation.mockReset();
+        window.siyuan.isPublish = false;
+        await expect(processMessage({
+            cmd: "reloadpublishpage",
+            code: 0,
+            msg: "",
+            data: {},
+        }, {fetchPost: vi.fn()})).resolves.toBe(false);
+        expect(runtime.reloadLocation).not.toHaveBeenCalled();
+    });
+
     it("rejects explicitly when a CronJob authorization response has no WebSocket", async () => {
         const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 

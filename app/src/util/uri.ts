@@ -7,6 +7,7 @@ import {fetchPost} from "./network/fetch";
 /** 用途：检查折叠状态。使用范围：URI 块处理前检查折叠。解耦评估：平台工具模块。 */
 import {checkFold} from "../block/fold/checkFold";
 import {isValidBazaarPackageName} from "./bazaarPackage";
+import {isBazaarAvailable} from "./bazaarAvailability";
 import {openBazaarReadme} from "../config/bazzar/readme/openReadme";
 /** 用途：应用常量。使用范围：导航指令与 IPC 命令标识。 */
 import {Constants} from "../constants";
@@ -45,12 +46,17 @@ const getSiYuanUriAction = (zoomIn: boolean, focus: boolean, locateAV: boolean):
 
 const openSiYuanUriBlock = (app: AppFacade, blockInfo: NonNullable<ReturnType<typeof parseSiYuanUriInfo>>, zoomIn: boolean) => {
     const {id, focus, avItemID} = blockInfo;
-    const locateAV = Boolean(avItemID);
-    const action = getSiYuanUriAction(zoomIn, focus, locateAV);
-    if (!locateAV) {
+    const action = getSiYuanUriAction(zoomIn, focus, Boolean(avItemID));
+    if (!avItemID) {
         app.openBlock({id, action, zoomIn: zoomIn || focus});
         return;
     }
+    // 确认块存在并解析折叠状态后才登记数据库定位请求，不存在的块不占用导航状态。
+    queueAVLocateRequest(id, {
+        itemID: avItemID,
+        ...(blockInfo.avViewID ? {viewID: blockInfo.avViewID} : {}),
+        ...(blockInfo.avGroupID ? {groupID: blockInfo.avGroupID} : {}),
+    });
     app.openBlock({
         id,
         action,
@@ -70,13 +76,6 @@ const processSiYuanUriBlocks = (app: AppFacade, uriObj: URL): boolean => {
         return false;
     }
     const {id, focus} = blockInfo;
-    if (blockInfo.avItemID) {
-        queueAVLocateRequest(id, {
-            itemID: blockInfo.avItemID,
-            ...(blockInfo.avViewID ? {viewID: blockInfo.avViewID} : {}),
-            ...(blockInfo.avGroupID ? {groupID: blockInfo.avGroupID} : {}),
-        });
-    }
     window.siyuan.editorIsFullscreen = blockInfo.fullscreen;
     // @内联回调
     fetchPost("/api/block/checkBlockExist", {id}, (existResponse) => {
@@ -157,7 +156,8 @@ const processSiYuanUriPlugins = (app: AppFacade, uriObj: URL): boolean => {
 };
 
 const processSiYuanUriBazaar = (app: AppFacade, uriObj: URL): boolean => {
-    if (isMobile) {
+    // 上游改进：集市入口除移动端外还受 disabledFeatures 开关控制
+    if (!isBazaarAvailable()) {
         return false;
     }
     const [, _type, _name, target] = uriObj.pathname.split("/");

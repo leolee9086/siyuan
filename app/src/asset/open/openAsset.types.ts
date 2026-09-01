@@ -3,4 +3,5 @@ export interface AssetOpenOptions {
     assetPath: string;
     page?: number | string;
     position?: string | null;
+    keepCursor?: boolean;
 }

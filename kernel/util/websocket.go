@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -17,6 +17,7 @@
 package util
 
 import (
+	"net/http"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -49,6 +50,9 @@ func BroadcastByTypeAndExcludeApp(excludeApp, typ, cmd string, code int, msg str
 
 		appSessions.Range(func(key, value any) bool {
 			session := value.(*melody.Session)
+			if isPublishSession(session) {
+				return true
+			}
 			if t, ok := session.Get("type"); ok && typ == t {
 				event := NewResult()
 				event.Cmd = cmd
@@ -71,6 +75,9 @@ func BroadcastByTypeAndApp(typ, app, cmd string, code int, msg string, data any)
 
 	appSessions.(*sync.Map).Range(func(key, value any) bool {
 		session := value.(*melody.Session)
+		if isPublishSession(session) {
+			return true
+		}
 		if t, ok := session.Get("type"); ok && typ == t {
 			event := NewResult()
 			event.Cmd = cmd
@@ -97,12 +104,23 @@ func BroadcastByType(typ, cmd string, code int, msg string, data any) {
 }
 
 func SessionsByType(typ string) (ret []*melody.Session) {
+	return sessionsByType(typ, false)
+}
+
+func publishSessionsByType(typ string) (ret []*melody.Session) {
+	return sessionsByType(typ, true)
+}
+
+func sessionsByType(typ string, publish bool) (ret []*melody.Session) {
 	ret = []*melody.Session{}
 
 	sessions.Range(func(key, value any) bool {
 		appSessions := value.(*sync.Map)
 		appSessions.Range(func(key, value any) bool {
 			session := value.(*melody.Session)
+			if isPublishSession(session) != publish {
+				return true
+			}
 			if t, ok := session.Get("type"); ok && typ == t {
 				ret = append(ret, session)
 			}
@@ -111,6 +129,11 @@ func SessionsByType(typ string) (ret []*melody.Session) {
 		return true
 	})
 	return
+}
+
+func isPublishSession(session *melody.Session) bool {
+	isPublish, ok := session.Get("isPublish")
+	return ok && isPublish == true
 }
 
 func AddPushChan(session *melody.Session) {
@@ -154,13 +177,36 @@ func AddPushChan(session *melody.Session) {
 	}
 }
 
-func IsAuthSession(session *melody.Session) bool {
-	id, _ := session.Get("id")
-	if "auth" == id {
-		return true
+// IsAuthPageKeepaliveRequest 判断是否为授权页保持连接请求，避免非常驻内存内核自动退出。
+// 该请求无需认证，但连接必须被隔离在广播池之外。
+// https://github.com/siyuan-note/insider/issues/1099
+func IsAuthPageKeepaliveRequest(r *http.Request) bool {
+	if "/ws" != r.URL.Path {
+		return false
 	}
 
-	id = session.Request.URL.Query().Get("id")
+	query := r.URL.Query()
+	return strings.HasPrefix(query.Get("app"), "siyuan") && "auth" == query.Get("id") && "auth" == query.Get("type")
+}
+
+// HasDuplicateQueryValues 判断请求查询参数中是否存在重复键。
+func HasDuplicateQueryValues(r *http.Request) bool {
+	query := r.URL.Query()
+	for _, values := range query {
+		if 1 < len(values) {
+			return true
+		}
+	}
+	return false
+}
+
+func IsAuthSession(session *melody.Session) bool {
+	// 授权页保持连接会话在接入时打上标记，禁止重解析请求查询参数判定会话身份
+	if isAuth, ok := session.Get("authSession"); ok {
+		return isAuth.(bool)
+	}
+
+	id, _ := session.Get("id")
 	return "auth" == id
 }
 
@@ -224,6 +270,15 @@ func ReloadUI() {
 	BroadcastByType("main", "reloadui", 0, "", nil)
 }
 
+// ReloadPublishServiceSessions 通知所有已打开的发布服务页面刷新，使发布插件设置立即生效。
+func ReloadPublishServiceSessions() {
+	for _, session := range publishSessionsByType("main") {
+		event := NewResult()
+		event.Cmd = "reloadpublishpage"
+		session.Write(event.Bytes())
+	}
+}
+
 func PushTxErr(msg string, code int, data any) {
 	BroadcastByType("main", "txerr", code, msg, data)
 }
@@ -267,6 +322,10 @@ func PushReloadFiletree() {
 	BroadcastByType("filetree", "reloadFiletree", 0, "", nil)
 }
 
+func PushBoxDocFeatureChanged() {
+	BroadcastByType("filetree", "boxDocFeatureChanged", 0, "", nil)
+}
+
 func PushReloadTag() {
 	BroadcastByType("main", "reloadTag", 0, "", nil)
 }
@@ -281,7 +340,11 @@ type BlockStatResult struct {
 }
 
 func ContextPushMsg(context map[string]any, msg string) {
-	switch context[eventbus.CtxPushMsg].(int) {
+	pushTarget, ok := context[eventbus.CtxPushMsg].(int)
+	if !ok {
+		return
+	}
+	switch pushTarget {
 	case eventbus.CtxPushMsgToNone:
 		break
 	case eventbus.CtxPushMsgToProgress:
@@ -441,6 +504,9 @@ func Broadcast(msg []byte) {
 		appSessions := value.(*sync.Map)
 		appSessions.Range(func(key, value any) bool {
 			session := value.(*melody.Session)
+			if isPublishSession(session) {
+				return true
+			}
 			session.Write(msg)
 			return true
 		})
@@ -453,6 +519,9 @@ func broadcastOtherApps(msg []byte, excludeApp string) {
 		appSessions := value.(*sync.Map)
 		appSessions.Range(func(key, value any) bool {
 			session := value.(*melody.Session)
+			if isPublishSession(session) {
+				return true
+			}
 			if app, _ := session.Get("app"); app == excludeApp {
 				return true
 			}
@@ -468,6 +537,9 @@ func broadcastOtherAppMains(msg []byte, excludeApp string) {
 		appSessions := value.(*sync.Map)
 		appSessions.Range(func(key, value any) bool {
 			session := value.(*melody.Session)
+			if isPublishSession(session) {
+				return true
+			}
 			if app, _ := session.Get("app"); app == excludeApp {
 				return true
 			}
@@ -488,6 +560,9 @@ func broadcastApp(msg []byte, app string) {
 		appSessions := value.(*sync.Map)
 		appSessions.Range(func(key, value any) bool {
 			session := value.(*melody.Session)
+			if isPublishSession(session) {
+				return true
+			}
 			if sessionApp, _ := session.Get("app"); sessionApp != app {
 				return true
 			}
@@ -503,6 +578,9 @@ func broadcastOthers(msg []byte, excludeSID string) {
 		appSessions := value.(*sync.Map)
 		appSessions.Range(func(key, value any) bool {
 			session := value.(*melody.Session)
+			if isPublishSession(session) {
+				return true
+			}
 			if id, _ := session.Get("id"); id == excludeSID {
 				return true
 			}
@@ -537,7 +615,7 @@ func ClosePublishServiceSessions() {
 		appSessions := value.(*sync.Map)
 		appSessions.Range(func(key, value any) bool {
 			session := value.(*melody.Session)
-			if isPublish, ok := session.Get("isPublish"); ok && isPublish == true {
+			if isPublishSession(session) {
 				publishSessions = append(publishSessions, session)
 			}
 			return true
@@ -564,6 +642,26 @@ func ClosePublishServiceSessions() {
 	for _, session := range publishSessions {
 		// 使用 "close websocket" 作为关闭消息，客户端检测到后会停止重连
 		session.CloseWithMsg([]byte("  close websocket: publish service closed"))
+		RemovePushChan(session)
+	}
+}
+
+// CloseOIDCSessions 关闭仅通过 OIDC 认证的 WebSocket 连接。
+func CloseOIDCSessions() {
+	var oidcSessions []*melody.Session
+	sessions.Range(func(key, value any) bool {
+		appSessions := value.(*sync.Map)
+		appSessions.Range(func(key, value any) bool {
+			session := value.(*melody.Session)
+			if _, ok := session.Get("oidcSessionVersion"); ok {
+				oidcSessions = append(oidcSessions, session)
+			}
+			return true
+		})
+		return true
+	})
+	for _, session := range oidcSessions {
+		session.CloseWithMsg([]byte("  OIDC session expired"))
 		RemovePushChan(session)
 	}
 }

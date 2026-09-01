@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -384,6 +384,13 @@ func getEmbeddingIgnoreMatcher() *ignore.GitIgnore {
 	return embeddingIgnoreMatcher
 }
 
+func resetEmbeddingIgnoreMatcher() {
+	embeddingIgnoreLock.Lock()
+	defer embeddingIgnoreLock.Unlock()
+	embeddingIgnoreLoaded = false
+	embeddingIgnoreMatcher = nil
+}
+
 func cosineSimilarity(a, b []float32) float32 {
 	if len(a) != len(b) || len(a) == 0 {
 		return 0
@@ -595,7 +602,13 @@ func rerankSqlBlocks(query string, sqlBlocks []*sql.Block) []*sql.Block {
 	}
 
 	// topN=0 表示不传 top_n，要求服务端返回全部文档评分，避免被服务端 top_n 上限截断
-	indices, _, err := util.Rerank(query, documents, rerankKey(), rerankEndpoint(), rerankModel(), 0, rerankTimeout())
+	indices, _, err := util.Rerank(query, documents, util.RerankOptions{
+		APIKey:        rerankKey(),
+		Endpoint:      rerankEndpoint(),
+		Model:         rerankModel(),
+		RequestFormat: rerankRequestFormat(),
+		Timeout:       rerankTimeout(),
+	})
 	if nil != err {
 		logging.LogErrorf("rerank failed, fallback to vector similarity order: %s", err)
 		return sqlBlocks
@@ -640,6 +653,7 @@ func fullReindexEmbedding() {
 		logging.LogWarnf("block_embeddings table not available, skip reindex")
 		return
 	}
+	resetEmbeddingIgnoreMatcher()
 	if err := sql.Exec("DELETE FROM block_embeddings"); err != nil {
 		logging.LogErrorf("clear block_embeddings failed: %s", err)
 		return

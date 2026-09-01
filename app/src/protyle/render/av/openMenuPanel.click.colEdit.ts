@@ -6,6 +6,7 @@ import { hasClosestByClassName } from "../../util/hasClosest";
 import { bindEditEvent, getEditHTML } from "./col/edit/render";
 import { getColIconByType, getColNameByType } from "./col/col.typeUtils";
 import { formatNumber } from "./number";
+import { formatDate } from "./dateFormatMenu";
 import { openEmojiPanel, unicode2Emoji } from "../../../emoji";
 import {updateAttrViewCellAnimation} from "./action/animation";
 import { isHTMLElement } from "../../../util/DOM/element.guard";
@@ -29,6 +30,23 @@ const handleNumberFormat = (ctx: IMenuPanelContext, target: HTMLElement, event: 
         oldFormat: target.dataset.format ?? "",
         colId: getMenuColId(ctx.menuElement),
         avID: ctx.avID
+    });
+    event.preventDefault();
+    event.stopPropagation();
+};
+
+/** 日期格式化选项点击 @同步豁免: UI构建 */
+const handleDateFormat = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent): void => {
+    const colId = getMenuColId(ctx.menuElement);
+    const colData = ctx.fields.find((item) => item.id === colId);
+    formatDate({
+        avPanelElement: ctx.avPanelElement,
+        element: target,
+        protyle: ctx.options.protyle,
+        oldFormat: target.dataset.format as TAVDateFormat,
+        colId,
+        avID: ctx.avID,
+        type: (colData?.type ?? "date") as "date" | "created" | "updated",
     });
     event.preventDefault();
     event.stopPropagation();
@@ -212,6 +230,11 @@ export const handleColEditClick = (
     // 数字格式化选项
     if (type === "numberFormat") {
         handleNumberFormat(ctx, target, event);
+        return true;
+    }
+    // 日期格式化选项
+    if (type === "dateFormat") {
+        handleDateFormat(ctx, target, event);
         return true;
     }
     // 列图标更新

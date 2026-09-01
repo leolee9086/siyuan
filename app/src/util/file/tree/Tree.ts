@@ -66,6 +66,7 @@ export class Tree {
     declare private data: TreeNodeData[] | null;
     private blockExtHTML: string | undefined;
     private topExtHTML: string | undefined;
+    private titleTooltipPosition: string | undefined;
     private blockDraggable: boolean | undefined;
 
     private clickHandler: TreeOptions["click"];
@@ -77,6 +78,7 @@ export class Tree {
         this.element = options.element;
         this.blockExtHTML = options.blockExtHTML;
         this.topExtHTML = options.topExtHTML;
+        this.titleTooltipPosition = options.titleTooltipPosition || "parentE";
         this.blockDraggable = options.blockDraggable;
         this.updateData(options.data);
         bindTreeEvents(this, options);
@@ -102,8 +104,23 @@ export class Tree {
             blockDraggable: this.blockDraggable,
             blockExtHTML: this.blockExtHTML,
             topExtHTML: this.topExtHTML,
+            titleTooltipPosition: this.titleTooltipPosition,
         });
         mathRender(this.element);
+    }
+
+    /** 从单条数据生成顶层列表项元素，供外部快捷插入与公式渲染。 */
+    public createTopLevelItem(data: TreeNodeData) {
+        const template = document.createElement("template");
+        template.innerHTML = renderTreeHTML([data], {
+            blockDraggable: this.blockDraggable,
+            blockExtHTML: this.blockExtHTML,
+            topExtHTML: this.topExtHTML,
+            titleTooltipPosition: this.titleTooltipPosition,
+        });
+        const element = template.content.querySelector(".b3-list > .b3-list-item") as HTMLLIElement;
+        mathRender(element);
+        return element;
     }
 
     /** 响应树节点箭头操作；宿主提供回调时把折叠语义交给宿主处理。 */

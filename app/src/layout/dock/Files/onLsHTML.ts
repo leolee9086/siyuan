@@ -142,7 +142,7 @@ export function onLsHTMLHandler(
     containerElement: HTMLElement,
     data: { files: IFile[], box: string, path: string },
     scrollTop?: number,
-    afterRender?: () => void
+    afterRender?: (listElement: Element) => void
 ): void {
     // 没有文件时直接返回
     if (data.files.length === 0) {
@@ -161,9 +161,12 @@ export function onLsHTMLHandler(
     // 如果下一个兄弟元素是 UL，说明文件夹已展开，需要刷新内容
     if (nextElement && nextElement.tagName === "UL") {
         refreshExpandedFileList(nextElement, fileHTML, containerElement, scrollTop);
-        afterRender?.();
+        afterRender?.(nextElement);
         return;
     }
     expandFileList(liElement, fileHTML, containerElement, scrollTop);
-    afterRender?.();
+    const expandedListElement = liElement.nextElementSibling;
+    if (expandedListElement) {
+        afterRender?.(expandedListElement);
+    }
 }

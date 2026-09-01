@@ -14,6 +14,7 @@ vi.mock("../../src/protyle/render/av/sorting/imports", () => ({
         addItem = mocks.addItem;
         open = mocks.menuOpen;
     },
+    escapeHtml: vi.fn((value: string) => value.replaceAll("<", "&lt;")),
     getColIconByType: vi.fn(() => "iconText"),
     getFieldsByData: mocks.getFieldsByData,
     setPosition: mocks.setPosition,
@@ -21,8 +22,10 @@ vi.mock("../../src/protyle/render/av/sorting/imports", () => ({
         addSort: "Add sort",
         asc: "Ascending",
         desc: "Descending",
+        endDate: "End date",
         removeSorts: "Remove sorts",
         sort: "Sort",
+        startDate: "Start date",
     },
     submitAVSortTransaction: mocks.submitAVSortTransaction,
     unicode2Emoji: vi.fn((value: string) => value),
@@ -33,6 +36,7 @@ import {addSort, bindSortsEvent, getSortsHTML} from "../../src/protyle/render/av
 const fields = [
     {id: "name", name: "Name", type: "text"},
     {id: "created", name: "Created", type: "created"},
+    {id: "period", name: "Period <unsafe>", type: "date"},
 ] as IAVColumn[];
 
 const createData = (sorts: IAVSort[]) => ({
@@ -62,7 +66,7 @@ describe("AV sorting lifecycle", () => {
             tabRect: {bottom: 80, height: 24, right: 300} as DOMRect,
         });
 
-        expect(mocks.addItem).toHaveBeenCalledTimes(2);
+        expect(mocks.addItem).toHaveBeenCalledTimes(3);
         const createdItem = mocks.addItem.mock.calls[0][0] as {click: () => void};
         createdItem.click();
 
@@ -118,7 +122,7 @@ describe("AV sorting lifecycle", () => {
         menuElement.innerHTML = getSortsHTML(fields, data.view.sorts);
 
         bindSortsEvent({protyle: {} as IProtyle, menuElement, data, blockID: "block-id"});
-        const directionSelect = menuElement.querySelectorAll("select")[1] as HTMLSelectElement;
+        const directionSelect = menuElement.querySelector('[data-type="sortOrder"]') as HTMLSelectElement;
         directionSelect.value = "DESC";
         directionSelect.dispatchEvent(new Event("change"));
 
@@ -126,5 +130,23 @@ describe("AV sorting lifecycle", () => {
         expect(data.view.sorts).toEqual([{column: "name", order: "DESC"}]);
         expect(mocks.submitAVSortTransaction.mock.calls[0][2][0].data)
             .toEqual([{column: "name", order: "ASC"}]);
+    });
+
+    it("renders and updates date endpoints while escaping field names", () => {
+        const originalSorts: IAVSort[] = [{column: "period", order: "ASC"}];
+        const data = createData(originalSorts);
+        const menuElement = document.createElement("div");
+        menuElement.innerHTML = getSortsHTML(fields, data.view.sorts);
+
+        expect(menuElement.innerHTML).toContain("Period &lt;unsafe&gt;");
+        const endpointSelect = menuElement.querySelector('[data-type="sortDateEndpoint"]') as HTMLSelectElement;
+        expect(endpointSelect.value).toBe("start");
+        bindSortsEvent({protyle: {} as IProtyle, menuElement, data, blockID: "block-id"});
+        endpointSelect.value = "end";
+        endpointSelect.dispatchEvent(new Event("change"));
+
+        expect(data.view.sorts).toEqual([{column: "period", order: "ASC", dateEndpoint: "end"}]);
+        expect(mocks.submitAVSortTransaction.mock.calls[0][2][0].data)
+            .toEqual([{column: "period", order: "ASC"}]);
     });
 });

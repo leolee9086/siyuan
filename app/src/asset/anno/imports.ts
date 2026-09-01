@@ -137,3 +137,29 @@ export { siyuanI18n };
 import { setPosition } from "../../util/DOM/positioning/setPosition";
 // 导出元素定位工具
 export { setPosition };
+
+/**
+ * 用途：转义用户控制的 HTML 属性值。
+ * 使用范围：PDF 标注关联 ID 写入 data-id 属性。
+ * 解耦评估：统一 DOM 转义工具可确保所有注释渲染路径使用相同编码规则。
+ */
+import {escapeAttr} from "../../util/DOM/escape";
+// 导出属性转义工具
+export {escapeAttr};
+/**
+ * 用途：转义用户控制的 HTML 文本内容。
+ * 使用范围：PDF 标注关联 ID 显示在列表文本节点前。
+ * 解耦评估：统一 DOM 转义工具可确保所有注释渲染路径使用相同编码规则。
+ */
+import { escapeHtml } from "../../util/DOM/escape";
+// 导出 HTML 文本转义工具
+export { escapeHtml };
+
+/**
+ * 用途：按属性查找 PDF 查看器滚动容器。
+ * 使用范围：标注高亮后将目标矩形滚动到可见区域。
+ * 解耦评估：通过 anno imports 转发，避免高亮 owner 直接跨目录耦合 Protyle DOM helper。
+ */
+import {hasClosestByAttribute} from "../../protyle/util/hasClosest";
+// 导出属性祖先查找工具
+export {hasClosestByAttribute};

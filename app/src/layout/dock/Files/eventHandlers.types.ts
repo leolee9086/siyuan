@@ -60,6 +60,8 @@ export interface FilesDomain<
     updateDocActions(): void;
     onFiletreeSortChanged(data: {notebook: string; parentPath: string}): void;
     onNotebookSortChanged(): void;
+    recordMovedExpandedDocIDs(ids: Iterable<string>): void;
+    restoreMovedExpandedItems(listElement: Element, notebookId: string): void;
 }
 
 /**

@@ -6,6 +6,11 @@ export type {AgentChatRuntime};
 import type {UserEntry} from "../../AgentChat.runtime.types";
 /** 导出用户条目类型。 */
 export type {UserEntry};
+/** 用途：读取当前浏览器能力清单；使用范围：原生 Agent 重新生成请求。 */
+import {listCapabilityManifests} from "../../../frontendCapabilities";
+/** 导出浏览器能力清单读取函数。 */
+export {listCapabilityManifests};
+
 /** 用途：发起旧链路重新生成 SSE；使用范围：未注册执行 adapter 的原生 Agent；解耦评估：网关只转出既有请求入口，调用方不依赖请求目录结构。 */
 import {fetchAgentSSE} from "../../../agentSSE";
 /** 导出 SSE 请求函数。 */

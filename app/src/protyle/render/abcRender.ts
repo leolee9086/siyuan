@@ -161,7 +161,8 @@ export const abcRender = async (element: Element, cdn = Constants.PROTYLE_CDN) =
     if (abcElements.length === 0) {
         return;
     }
-    await addScript(`${cdn}/js/abcjs/abcjs-basic-min.js?v=6.5.0`, "protyleAbcjsScript");
+    // 上游将 abcjs 升级至 6.7.0，合并时采纳该版本号；渲染流程沿用本地重构后的 await 版本
+    await addScript(`${cdn}/js/abcjs/abcjs-basic-min.js?v=6.7.0`, "protyleAbcjsScript");
     await addStyle(`${cdn}/js/abcjs/abcjs-audio.css`, "protyleAbcjsStyle");
 
     const wysiwygElement = hasClosestByClassName(element, "protyle-wysiwyg", true);

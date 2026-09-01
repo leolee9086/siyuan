@@ -12,7 +12,8 @@ import { addBaseURL, setNoteBook } from "../util/file/pathName";
 import {parseSiYuanUriInfo} from "../util/uri/protocol";
 import {exportLayout} from "../layout/export/exportLayout";
 // S-forge: 补 handleTouchUp——上游 commit 8e2f01032 新增的触摸事件处理函数，用于物理按键消除长按定时器
-import { handleTouchEnd, handleTouchMove, handleTouchStart, handleTouchUp } from "./util/touch";
+// 上游合并：并入上游新增的 handleTouchSelectionChange（selectionchange 时同步选区状态）
+import { handleTouchEnd, handleTouchMove, handleTouchSelectionChange, handleTouchStart, handleTouchUp } from "./util/touch";
 import { fetchPost } from "../util/network/fetch";
 import { initFramework } from "./util/initFramework";
 import { initAssets } from "../util/assets/assets";
@@ -25,7 +26,6 @@ import { goBack } from "./util/MobileBackFoward";
 import {showKeyboardToolbar} from "./util/keyboardToolbar";
 import {activeBlur} from "./keyboard/activeBlur";
 import {hideKeyboardToolbar} from "./keyboard/hideKeyboardToolbar";
-// S-forge: 新增 isInMobileApp 导入（来自远程）
 import {
     getLocalStorage,
     isChromeBrowser,
@@ -34,10 +34,14 @@ import {
     writeText
 } from "../protyle/util/compatibility";
 import { getCurrentEditor } from "./util/getCurrentEditor";
-import { openMobileFileById } from "./editor";
+import { openMobileFileById, openMobileFileByIdInNewTab } from "./editor";
 import { commandPanel } from "../boot/globalEvent/command/panel";
 import { checkPublishServiceClosed, createProcessMessage, setProcessMessageUIDependencies } from "../util/network/processMessage";
-import { initRightMenu } from "./menu";
+import { initRightMenu, openMobileSetting } from "./menu";
+/** 用途：打开移动搜索面板。使用范围：移动 Agent 原生搜索 capability。解耦评估：由移动组合根显式交给 capability factory。 */
+import {popSearch} from "./menu/search";
+/** 用途：切换移动 Agent 面板可见性。使用范围：移动 capability 在页面切换前隐藏并在设置返回后恢复面板。解耦评估：由移动组合根显式交给 capability factory。 */
+import {hideMobileAgent, reopenMobileAgent} from "./agent/MobileAgentChat";
 import { openChangelog } from "../boot/openChangelog";
 import {getProtyleDialogPort} from "../dialog/protyleDialogPort.factory";
 import { registerServiceWorker } from "../util/network/serviceWorker";
@@ -68,6 +72,8 @@ import { appearanceConfigApi } from "../config/tabs/appearanceRuntime";
 // S-forge: 上游 8422a9b49 新增的移动端原生键盘控制函数，用于调用原生键盘、判断输入能力、设置 WebView 可聚焦
 import {armKeyboardLock, callMobileAppShowKeyboard, canInput, setWebViewFocusable} from "./keyboard/mobileAppUtil";
 import {loadSiyuanLanguages} from "../util/siyuanEnvironments/languages/environment";
+// 上游合并：鸿蒙长按文本选择菜单初始化（构造函数中调用）
+import {initHarmonyTextSelectionMenu} from "../util/harmonyTextSelectionMenu";
 
 import {activateQueuedAVLocate, queueAVLocateRequest} from "../protyle/render/av/locate/activation/activation";
 import {avRender} from "../protyle/render/av/render";
@@ -85,9 +91,22 @@ import type {InNotePluginManagerDomain} from "../inNotePlugin/manager/inNotePlug
 import {openMobileGlobalSearch} from "./search/global/openMobileGlobalSearch";
 import {getAllEditor, getAllModels} from "../layout/getAll";
 import {openSetting} from "../config";
+/** 用途：注册移动原生 Agent capability 的实际 UI owner。使用范围：移动 App 组合根初始化。解耦评估：Agent registry 不反向导入移动应用模块。 */
+import {registerMobileNativeCapabilityEffects} from "../layout/dock/agent/runtime/host/frontendCapabilities.mobile.factory";
 import {globalCommand} from "../boot/globalEvent/command/global";
 import type {SettingTabId} from "../config/setting/setting.types";
 import type {IDialog} from "../dialog/dialog.types";
+
+// 移动组合根持有这些 UI owner；通过 HMR 稳定槽交给 Agent capability factory，不让 registry 反向形成依赖。
+registerMobileNativeCapabilityEffects({
+    constants: Constants,
+    getCurrentEditor,
+    hideMobileAgent,
+    openMobileFileById,
+    openMobileSetting,
+    popSearch,
+    reopenMobileAgent,
+});
 
 export class App {
     public readonly [appFacadeBrand] = "AppFacade" as const;
@@ -166,6 +185,7 @@ export class App {
         }
         registerServiceWorker(`${Constants.SERVICE_WORKER_PATH}?v=${Constants.SIYUAN_VERSION}`);
         addBaseURL();
+        initHarmonyTextSelectionMenu();
         this.appId = Constants.SIYUAN_APPID;
         setProcessMessageUIDependencies({ exportLayout, showMessage, hideMessage, confirmDialog });
         const processMessage = createProcessMessage({ fetchPost });
@@ -175,7 +195,10 @@ export class App {
             reloadSync: (data) => reloadSync(this, data),
         });
         setSForgeState(SForgeSymbols.OPEN_MOBILE_FILE_BY_ID, {
-            open: (id, action, scrollPosition) => openMobileFileById(this, id, action, scrollPosition),
+            open: (id, action, scrollPosition, notebookId) =>
+                openMobileFileById(this, id, action, scrollPosition, notebookId),
+            openInNewTab: (id, action, scrollPosition, notebookId) =>
+                openMobileFileByIdInNewTab(this, id, action, scrollPosition, notebookId),
         });
 
         const mainWs = new Model({app: this});
@@ -193,6 +216,7 @@ export class App {
         window.siyuan = {
             zIndex: 10,
             transactions: [],
+            isReady: false,
             notebooks: [],
             reqIds: {},
             languages: {},
@@ -214,8 +238,9 @@ export class App {
         };
         // 不能使用 touchstart，否则会被 event.stopImmediatePropagation() 阻塞
         window.addEventListener("click", (event: MouseEvent & { target: HTMLElement }) => {
-            if (!window.siyuan.menus.menu.element.contains(event.target) && !hasClosestByAttribute(event.target, "data-menu", "true")) {
-                window.siyuan.menus.menu.remove();
+            const menu = window.siyuan.menus?.menu;
+            if (menu && !menu.element.contains(event.target) && !hasClosestByAttribute(event.target, "data-menu", "true")) {
+                menu.remove();
             }
             const copyElement = hasTopClosestByClassName(event.target, "protyle-action__copy");
             if (copyElement) {
@@ -225,14 +250,15 @@ export class App {
                 showMessage(window.siyuan.languages.copied, 2000);
                 event.preventDefault();
             }
-            if (["INPUT", "TEXTAREA"].includes(event.target.tagName)) {
+            const editableElement = canInput(event.target);
+            if (editableElement && ["INPUT", "TEXTAREA"].includes(editableElement.tagName)) {
                 setTimeout(() => {
-                    event.target.scrollIntoView({
+                    editableElement.scrollIntoView({
                         block: "center",
                     });
                 }, Constants.TIMEOUT_TRANSITION);
             }
-            if (canInput(event.target)) {
+            if (editableElement) {
                 // 原生 App 通过桥接主动唤起键盘；移动端浏览器没有桥接，但点击可编辑区域后也会立刻触发 resize，
                 // 进而调用 activeBlur 关闭键盘（比如三星键盘 https://github.com/siyuan-note/siyuan/issues/18078），所以此处也需要上锁
                 if (window.JSAndroid && window.JSAndroid.showKeyboard || window.JSHarmony && window.JSHarmony.showKeyboard) {
@@ -266,10 +292,10 @@ export class App {
             };
         }
         window.addEventListener("beforeunload", () => {
-            saveScroll(window.siyuan.mobile.editor.protyle);
+            window.siyuan.mobile.tabs?.save();
         }, false);
         window.addEventListener("pagehide", () => {
-            saveScroll(window.siyuan.mobile.editor.protyle);
+            window.siyuan.mobile.tabs?.save();
         }, false);
         // 判断手机横竖屏状态
         window.matchMedia("(orientation:portrait)").addEventListener("change", () => {
@@ -315,12 +341,20 @@ export class App {
                     fetchPost("/api/setting/getCloudUser", {}, async userResponse => {
                         window.siyuan.user = userResponse.data;
                         await ensureOnboarding();
-                        fetchPost("/api/system/getEmojiConf", {}, emojiResponse => {
+                        fetchPost("/api/system/getEmojiConf", {}, async emojiResponse => {
                             window.siyuan.emojis = emojiResponse.data as IEmoji[];
                             setNoteBook(() => {
-                                initFramework(this, confResponse.data.start);
-                                initRightMenu(this, commandPanel, afterLayoutReady, openTopBarMenu);
-                                openChangelog(getProtyleDialogPort());
+                                initFramework(this, confResponse.data.start).then(() => {
+                                    initRightMenu(this, commandPanel, afterLayoutReady, openTopBarMenu);
+                                    openChangelog(getProtyleDialogPort());
+                                    // 上游合并：启动序列完成后置为就绪并冲刷排队的主通道消息
+                                    window.siyuan.isReady = true;
+                                    mainWs.flushMainMessages();
+                                }).catch((error: unknown) => {
+                                    console.error("Failed to initialize mobile framework:", error);
+                                    window.siyuan.isReady = true;
+                                    mainWs.flushMainMessages();
+                                });
                             });
                         });
                     });
@@ -328,6 +362,7 @@ export class App {
             document.addEventListener("touchmove", handleTouchMove, false);
             document.addEventListener("touchend", handleTouchEnd, false);
             document.addEventListener("touchcancel", handleTouchEnd, false);
+            document.addEventListener("selectionchange", handleTouchSelectionChange, true);
             window.addEventListener("nativePhysicalTouchUp", handleTouchUp, false);
             window.addEventListener("keyup", () => {
                 window.siyuan.ctrlIsPressed = false;
@@ -385,7 +420,7 @@ window.reconnectWebSocket = () => {
     tryPing(window.siyuan.mobile.popEditor?.protyle.ws);
 };
 window.lockscreenByMode = () => {
-    if (window.siyuan.config.system.lockScreenMode === 1) {
+    if (window.siyuan.config?.system.lockScreenMode === 1) {
         lockScreen(siyuanApp);
     }
 };

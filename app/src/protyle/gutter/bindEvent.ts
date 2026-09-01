@@ -6,7 +6,7 @@ import {
     isInAVBlock,
     isInEmbedBlock
 } from "../util/hasClosest";
-import { setFold } from "../util/blockFold";
+import { foldHeadingGroup, setFold } from "../util/blockFold";
 import {openAttr} from "../../menus/commonMenuItem/fileAttr/openAttr";
 import {openFileAttr} from "../../menus/commonMenuItem/fileAttr/openFileAttr";
 import { isOnlyMeta } from "../util/compatibility";
@@ -21,10 +21,10 @@ import { Constants } from "../../constants";
 import { hideTooltip } from "../runtime/dialog.port";
 import {insertAttrViewBlockAnimation} from "../render/av/row";
 import {updateHeader} from "../render/av/selection/header";
-import { avContextmenu } from "../render/av/action";
+import { avContextmenu } from "../render/av/action/contextmenu";
 import {transaction} from "../wysiwyg/transaction/submit";
-import { processClonePHElement } from "../render/util";
-import { transparentImgSrc } from "../util/dragTip";
+import {getAVFilteredTipContext, getAVViewID} from "../render/av/filteredTip";
+import { setDragTipGhost } from "../util/dragTip";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { openFileById } from "../../editor/utils.openFileById";
@@ -133,28 +133,20 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
                 getContenteditableElement(embedElement).innerHTML = `<svg class="svg"><use xlink:href="${buttonElement.querySelector("use").getAttribute("xlink:href")}"></use></svg> ${getLangByType(type)}`;
                 ghostElement.append(embedElement);
             } else {
-                ghostElement.append(processClonePHElement(item.cloneNode(true) as Element));
+                ghostElement.append(item.cloneNode(true));
             }
         });
         ghostElement.setAttribute("style", `position:fixed;opacity:.1;width:${selectElements[0].clientWidth}px;padding:0;`);
         document.body.append(ghostElement);
         const isBlockDrag = !buttonElement.dataset.rowId;
-        if (isBlockDrag && !window.siyuan.touchDragActive) {
-            const transparentImg = new Image();
-            transparentImg.src = transparentImgSrc;
-            event.dataTransfer.setDragImage(transparentImg, 0, 0);
+        setDragTipGhost(ghostElement, 0, 0);
+        event.dataTransfer.setDragImage(ghostElement, 0, 0);
+        if (window.siyuan.touchDragActive) {
+            window.siyuan.touchDragGhost = ghostElement;
+        } else {
             setTimeout(() => {
                 ghostElement.remove();
             });
-        } else {
-            event.dataTransfer.setDragImage(ghostElement, 0, 0);
-            if (window.siyuan.touchDragActive) {
-                window.siyuan.touchDragGhost = ghostElement;
-            } else {
-                setTimeout(() => {
-                    ghostElement.remove();
-                });
-            }
         }
         if (isBlockDrag) {
             const text = getContenteditableElement(selectElements[0] as HTMLElement)?.textContent?.trim() || "";
@@ -215,9 +207,14 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
                 return;
             }
             if (event.altKey) {
-                // 折叠所有子集
-                let hasFold = true;
-                Array.from(foldElement.children).find((ulElement) => {
+                if (foldElement.getAttribute("data-type") === "NodeHeading") {
+                    foldHeadingGroup(protyle, foldElement, "children").finally(() => {
+                        buttonElement.removeAttribute("disabled");
+                    });
+                } else {
+                    // 折叠所有子集
+                    let hasFold = true;
+                    Array.from(foldElement.children).find((ulElement) => {
                     if (ulElement.classList.contains("list")) {
                         const foldElement = Array.from(ulElement.children).find((listItemElement) => {
                             if (listItemElement.classList.contains("li")) {
@@ -260,6 +257,7 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
                 });
                 transaction(protyle, doOperations, undoOperations);
                 buttonElement.removeAttribute("disabled");
+                }
             } else {
                 const foldStatus = setFold(protyle, foldElement).fold;
                 if (foldStatus === 1) {
@@ -314,6 +312,8 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
                     }],
                     blockID: id,
                     groupID,
+                    viewID: getAVViewID(blockElement as HTMLElement),
+                    context: getAVFilteredTipContext("target", protyle),
                 }, {
                     action: "doUpdateUpdated",
                     id,
@@ -372,7 +372,9 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
             if (!foldElement) {
                 return;
             }
-            if (buttonElement.getAttribute("data-type") === "NodeListItem" && foldElement.parentElement.getAttribute("data-node-id")) {
+            if (buttonElement.getAttribute("data-type") === "NodeHeading") {
+                foldHeadingGroup(protyle, foldElement, "siblings");
+            } else if (buttonElement.getAttribute("data-type") === "NodeListItem" && foldElement.parentElement.getAttribute("data-node-id")) {
                 // 折叠同级
                 let hasFold = true;
                 Array.from(foldElement.parentElement.children).find((listItemElement) => {

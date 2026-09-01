@@ -14,6 +14,10 @@ import {unicode2Emoji} from "../../../emoji/emoji.render";
 import {Constants} from "../../../constants";
 /** 用途：Tree aria-label 转义；使用范围：Tree 渲染模块；解耦评估：安全转义边界必须保持唯一实现，由宿主注入会允许产生不一致或未转义输出。 */
 import {escapeAriaLabel} from "../../DOM/escape";
+/** 用途：Tree 标题 HTML 转义；使用范围：大纲序号渲染；解耦评估：共享转义边界应保持唯一实现。 */
+import {escapeHtml} from "../../DOM/escape";
+/** 用途：判断大纲序号后是否需要间距；使用范围：Tree 大纲序号渲染；解耦评估：标题编号判定属于共享表现协议。 */
+import {headingNumberNeedsSpacing} from "../../../protyle/util/headingNumberCore";
 /** 用途：Tree 保留移动端与桌面端布局差异；使用范围：Tree 渲染模块；解耦评估：这是现有统一平台状态读取，额外参数会造成检测结果和传入值分叉。 */
 import {isMobile} from "../../platform/functions";
 /** 用途：Tree 完整公共领域根；使用范围：tree 子域实现模块。 */
@@ -43,6 +47,10 @@ export {unicode2Emoji};
 export {Constants};
 /** Tree 子域可访问文本转义依赖。 */
 export {escapeAriaLabel};
+/** Tree 子域标题 HTML 转义依赖。 */
+export {escapeHtml};
+/** Tree 子域大纲序号间距判定依赖。 */
+export {headingNumberNeedsSpacing};
 /** Tree 子域平台检测依赖。 */
 export {isMobile};
 /** Tree 子域完整公共抽象。 */

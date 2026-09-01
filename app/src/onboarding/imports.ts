@@ -3,7 +3,7 @@ import {Constants} from "../constants";
 /** 用途：桌面引导文档导航；使用范围：桌面宿主；解耦评估：直达桌面导航唯一实现。 */
 import {openFileById} from "../editor/utils.openFileById";
 /** 用途：移动引导文档导航；使用范围：移动宿主；解耦评估：直达移动导航唯一实现。 */
-import {openMobileFileById} from "../mobile/editor";
+import {openMobileFileByIdViaPort as openMobileFileById} from "../plugin/api/openMobileFile.port";
 /** 用途：笔记本准备；使用范围：两类宿主激活流程；解耦评估：直达唯一生命周期实现。 */
 import {setNoteBook} from "../util/file/pathName";
 /** 用途：桌面数据迁移入口；使用范围：桌面引导；解耦评估：直达桌面宿主实现。 */
@@ -12,6 +12,10 @@ import {openDesktopDataMigration} from "../menus/dataMigration/desktop";
 import {openMobileDataMigration} from "../menus/dataMigration/mobile";
 /** 用途：已初始化配置访问；使用范围：两类宿主；解耦评估：直达环境守卫。 */
 import {getSiyuanConfig} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+/** 用途：读取当前编辑器页签；使用范围：桌面引导防重复打开；解耦评估：直达布局查询唯一实现。 */
+import {getAllTabs} from "../layout/getAll";
+/** 用途：读取启动 URI 中的块标识；使用范围：桌面引导防重复打开；解耦评估：直达 URI 协议解析实现。 */
+import {parseUriInfo} from "../util/uri/protocol";
 /** 用途：完整应用外观；使用范围：两类宿主类型边界；解耦评估：纯类型不加载具体实现。 */
 import type {AppFacade} from "../app/AppFacade.types";
 /** 用途：持久化与确认引导状态；使用范围：共享引导业务；解耦评估：直达统一网络实现。 */
@@ -43,6 +47,10 @@ export {openDesktopDataMigration};
 export {openMobileDataMigration};
 /** 已初始化思源配置的显式环境访问器。 */
 export {getSiyuanConfig};
+/** 当前编辑器页签查询。 */
+export {getAllTabs};
+/** 启动 URI 协议解析。 */
+export {parseUriInfo};
 /** 完整应用外观类型，不加载具体 App。 */
 export type {AppFacade};
 /** 引导状态持久化请求。 */

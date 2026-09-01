@@ -138,7 +138,7 @@ export const initBar = (app: AppFacade) => {
                     if (!itemId) {
                         return;
                     }
-                    const hideElement = toolbarElement.querySelector("#" + itemId);
+                    const hideElement = document.getElementById(itemId);
                     const useElement = hideElement.querySelector("use");
                     const menuOptions: IMenu = {
                         label: itemId === "toolbarVIP" ? siyuanI18n.account : hideElement.getAttribute("aria-label"),

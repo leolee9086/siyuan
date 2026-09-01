@@ -28,7 +28,8 @@ vi.mock("../../src/protyle/render/av/gallery/settings/imports", () => ({
 }));
 
 import {setGalleryCover} from "../../src/protyle/render/av/gallery/settings/cover";
-import {getCardAspectRatio, setGalleryRatio} from "../../src/protyle/render/av/gallery/settings/ratio";
+import {setGalleryRatio} from "../../src/protyle/render/av/gallery/settings/ratio";
+import {getCardAspectRatio} from "../../src/protyle/render/av/gallery/style";
 import {setGallerySize} from "../../src/protyle/render/av/gallery/settings/size";
 
 const createElements = () => {
@@ -97,7 +98,7 @@ describe("AV gallery settings", () => {
         expect(mocks.menuOpen).toHaveBeenCalledWith({x: 30, y: 80});
     });
 
-    it("updates card size after submitting the exact previous value", () => {
+    it("updates card width after submitting the exact previous value", () => {
         const {nodeElement, target} = createElements();
         const view = createView();
         view.cardSize = 2;
@@ -108,20 +109,20 @@ describe("AV gallery settings", () => {
         mediumItem.click();
 
         expect(mocks.submitAVGallerySettingTransaction).toHaveBeenCalledWith(protyle, [{
-            action: "setAttrViewCardSize",
+            action: "setAttrViewCardWidth",
             avID: "av-id",
             blockID: "block-id",
-            data: 1,
+            data: 260,
             viewID: "view-id",
         }], [{
-            action: "setAttrViewCardSize",
+            action: "setAttrViewCardWidth",
             avID: "av-id",
             blockID: "block-id",
-            data: 2,
+            data: 320,
             viewID: "view-id",
         }]);
-        expect(view.cardSize).toBe(1);
-        expect(target.querySelector(".b3-menu__accelerator")?.textContent).toBe("Medium");
+        expect(view.cardWidth).toBe(260);
+        expect(target.querySelector(".b3-menu__accelerator")?.textContent).toBe("260px");
     });
 
     it("preserves all ratio labels and updates the selected ratio", () => {
@@ -137,20 +138,20 @@ describe("AV gallery settings", () => {
         ratioItem.click();
 
         expect(mocks.submitAVGallerySettingTransaction).toHaveBeenCalledWith(protyle, [{
-            action: "setAttrViewCardAspectRatio",
+            action: "setAttrViewCardAspectRatioValue",
             avID: "av-id",
             blockID: "block-id",
-            data: 4,
+            data: 1.5,
             viewID: "view-id",
         }], [{
-            action: "setAttrViewCardAspectRatio",
+            action: "setAttrViewCardAspectRatioValue",
             avID: "av-id",
             blockID: "block-id",
-            data: 6,
+            data: 1,
             viewID: "view-id",
         }]);
-        expect(view.cardAspectRatio).toBe(4);
-        expect(target.querySelector(".b3-menu__accelerator")?.textContent).toBe("3:2");
+        expect(view.cardAspectRatioValue).toBe(1.5);
+        expect(target.querySelector(".b3-menu__accelerator")?.textContent).toBe("1.50");
     });
 
     it("fails before menu creation when a view-scoped setting has no view identity", () => {

@@ -125,6 +125,126 @@ const 创建隐藏Popover回调 = (event: MouseEventWithPath) => () => {
     hidePopover(event);
 };
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Android 平板支持（移植自上游 v3.8.0）
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/** pointermove 日志节流间隔（毫秒），避免高频指针移动刷爆原生日志 */
+const POINTER_MOVE_LOG_INTERVAL = 250;
+let lastPointerMoveLogTime = 0;
+
+/** 记录 Android 输入事件详情，交由原生端（window.JSAndroid.logInputEvent）诊断悬浮窗交互问题 */
+const 记录Android输入事件 = (event: MouseEvent | PointerEvent) => {
+    if (!window.JSAndroid?.logInputEvent) {
+        return;
+    }
+    const target = event.target instanceof Element ? event.target : undefined;
+    const pointerEvent = event as PointerEvent;
+    const targetClasses = target?.getAttribute("class")?.trim().split(/\s+/).slice(0, 4).join(".") || "";
+    const targetDetails = target ? [
+        target.tagName.toLowerCase(),
+        target.getAttribute("data-type") ? `data-type=${target.getAttribute("data-type")}` : "",
+        targetClasses ? `class=${targetClasses}` : "",
+    ].filter(Boolean).join(" ") : "unknown";
+    window.JSAndroid.logInputEvent([
+        `type=${event.type}`,
+        `pointerType=${pointerEvent.pointerType || "unavailable"}`,
+        `buttons=${event.buttons}`,
+        `button=${event.button}`,
+        `pressure=${typeof pointerEvent.pressure === "number" ? pointerEvent.pressure : "unavailable"}`,
+        `primary=${typeof pointerEvent.isPrimary === "boolean" ? pointerEvent.isPrimary : "unavailable"}`,
+        `client=(${Math.round(event.clientX)},${Math.round(event.clientY)})`,
+        `target=${targetDetails}`,
+        `touchDevice=${isTouchDevice()}`,
+        // 配置可能在启动早期尚未注入，此处仅为诊断输出，不允许抛错
+        `floatWindowMode=${hasSiyuanConfig() ? getSiyuanConfig().editor.floatWindowMode : "unavailable"}`,
+    ].join(", "));
+};
+
+/**
+ * 注册 Android 平板悬停笔的浮窗处理
+ * 上游 v3.8.0：Android 平板通过 Pointer Events 单独处理悬停笔浮窗，
+ * 触发逻辑与鼠标延迟模式(模式0)一致，但使用独立的定时器组。
+ */
+const 注册Android悬停笔处理 = (app: AppFacade, timeoutManager: TimeoutManager) => {
+    let penTimeout = 0;
+    let penTimeoutHide = 0;
+
+    /** 悬停笔移出、按下或取消时清理悬停定时器 */
+    const 取消悬停笔悬停 = (event: PointerEvent) => {
+        记录Android输入事件(event);
+        if (event.pointerType === "pen") {
+            clearTimeout(penTimeout);
+            clearTimeout(penTimeoutHide);
+        }
+    };
+
+    document.addEventListener("pointerover", (event: PointerEvent) => {
+        记录Android输入事件(event);
+        if (event.pointerType !== "pen") {
+            return;
+        }
+        clearTimeout(penTimeout);
+        clearTimeout(penTimeoutHide);
+        if (event.buttons !== 0 ||
+            !hasSiyuanConfig() || !getSiyuanMenus() ||
+            getSiyuanDragElement() || document.onmousemove ||
+            getSiyuanConfig().editor.floatWindowMode !== 0 || getSiyuanKeyboardState().shiftIsPressed) {
+            return;
+        }
+        const target = event.target;
+        if (!isHTMLElement(target)) {
+            return;
+        }
+        const aElement = 查找Tooltip元素(target);
+        // @setTimeout豁免: 用户感知延迟 - 需要等待用户输入稳定后再隐藏浮窗，防止快速移动时闪烁
+        penTimeoutHide = setTimeout(() => {
+            if (!hidePopover(asMouseEventWithPath(event))) {
+                return;
+            }
+            if (!getPopoverTargetElement() && !aElement) {
+                clearTimeout(penTimeout);
+            }
+        }, Constants.TIMEOUT_INPUT);
+        // @setTimeout豁免: 用户感知延迟 - 悬停延迟显示，避免误触发浮窗
+        penTimeout = setTimeout(() => {
+            const eventWithTarget = asEventWithHTMLTarget(event);
+            if (!eventWithTarget || !getTarget(eventWithTarget, aElement)) {
+                return;
+            }
+            clearTimeout(penTimeoutHide);
+            // 同步清理鼠标链路的隐藏定时器，避免刚弹出的悬停笔浮窗被其关闭
+            timeoutManager.clearHide();
+            showPopover(app);
+        }, getSiyuanConfig().editor.floatWindowDelay);
+    }, {capture: true, passive: true});
+
+    document.addEventListener("pointermove", (event: PointerEvent) => {
+        const now = performance.now();
+        if (now - lastPointerMoveLogTime < POINTER_MOVE_LOG_INTERVAL) {
+            return;
+        }
+        lastPointerMoveLogTime = now;
+        记录Android输入事件(event);
+    }, {capture: true, passive: true});
+
+    /** 悬停笔按下时立即关闭已打开的浮窗 */
+    const 处理悬停笔按下 = (event: PointerEvent) => {
+        记录Android输入事件(event);
+        if (event.pointerType !== "pen") {
+            return;
+        }
+        取消悬停笔悬停(event);
+        if (getSiyuanMenus()) {
+            hidePopover(asMouseEventWithPath(event));
+        }
+    };
+
+    document.addEventListener("pointerout", 取消悬停笔悬停, {capture: true, passive: true});
+    document.addEventListener("pointerdown", 处理悬停笔按下, {capture: true, passive: true});
+    document.addEventListener("pointercancel", 取消悬停笔悬停, {capture: true, passive: true});
+};
+
 /** 表示一次 Popover 触发模式计算所需的应用、事件、链接目标和计时器状态。 */
 interface IPopoverModeContext {
     app: AppFacade;
@@ -297,8 +417,15 @@ export const initBlockPopover = (app: AppFacade) => {
     const timeoutManager = new TimeoutManager();
 
     document.addEventListener("mouseover", (event: MouseEvent) => {
+        // 上游 v3.8.0：进入新元素时先记录 Android 输入事件，供平板端诊断悬浮窗交互
+        记录Android输入事件(event);
         处理Mouseover事件({app, event, timeoutManager});
     });
+
+    if (window.JSAndroid) {
+        // Android 平板通过 Pointer Events 单独处理悬停笔浮窗。
+        注册Android悬停笔处理(app, timeoutManager);
+    }
 };
 
 /**

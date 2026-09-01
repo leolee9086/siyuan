@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../../../src/protyle/render/av/col/add/imports", () => ({
     bindEditEvent: mocks.bindEditEvent,
+    escapeAttr: (value: string) => value,
+    escapeHtml: (value: string) => value,
     genColDataByType: (type: string, id: string, name: string) => ({type, id, name}),
     getColIconByType: (type: string) => `icon-${type}`,
     getColNameByType: (type: string) => `name-${type}`,

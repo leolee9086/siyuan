@@ -14,7 +14,12 @@ import {appendRollbackInfo} from "./imports";
 import {renderMergedThinkingCard} from "./imports";
 
 /** 表示后端会话中单条宽松兼容记录，转换后再进入前端判别联合。 */
-type PersistedEntry = NonNullable<AgentSession["entries"]>[number];
+type StoredEntry = NonNullable<AgentSession["entries"]>[number];
+type PersistedEntry = Omit<StoredEntry, "type"> & {
+    type: StoredEntry["type"] | "todo";
+    result?: string;
+    callID?: string;
+};
 
 /** 兼容旧思考步骤字段，并恢复合并后的思考卡片。 */
 function renderLoadedThinkingEntry(runtime: AgentChatRuntime, entry: PersistedEntry) {
@@ -28,6 +33,8 @@ function renderLoadedThinkingEntry(runtime: AgentChatRuntime, entry: PersistedEn
     const steps = entry.steps.map((step): ThinkingStep => ({
         reasoning: step.reasoning || "",
         reasoningContent: step.reasoningContent || "",
+        ...(step.roundID ? {roundID: step.roundID} : {}),
+        ...(step.toolCallIDs?.length ? {toolCallIDs: step.toolCallIDs} : {}),
         ...(step.toolNames?.length ? {toolNames: step.toolNames} :
             (step.toolCalls ? {toolNames: step.toolCalls.map((tool) => tool.name)} : {})),
         ...(step.content !== undefined ? {content: step.content} : {}),
@@ -56,8 +63,10 @@ function normalizeToolCalls(toolCalls: PersistedEntry["toolCalls"]): AgentToolCa
         name: toolCall.name,
         arguments: toolCall.arguments || {},
         ...(toolCall.id ? {id: toolCall.id} : {}),
+        ...(toolCall.argumentsJSON !== undefined ? {argumentsJSON: toolCall.argumentsJSON} : {}),
         ...(toolCall.result !== undefined ? {result: toolCall.result} : {}),
         ...(toolCall.state !== undefined ? {state: toolCall.state} : {}),
+        ...(toolCall.providerData !== undefined ? {providerData: toolCall.providerData} : {}),
     }));
 }
 
@@ -142,6 +151,20 @@ export function renderLoadedSessionEntry(runtime: AgentChatRuntime, entry: Persi
         renderLoadedQuestionEntry(runtime, entry);
         return;
     }
+    if (entry.type === "todo" && entry.result) {
+        appendPersistedToolCalls(runtime, {
+            content: "",
+            toolCalls: [{
+                ...(entry.callID ? {id: entry.callID} : {}),
+                name: "todo_write",
+                arguments: {},
+                result: entry.result,
+                state: "completed",
+            }],
+            ...(entry.id ? {entryId: entry.id} : {}),
+        });
+        return;
+    }
     // 条件 entry.type === "snapshot" && entry.snapshotID 成立时才执行此分支，避免影响其它会话或响应阶段。
     if (entry.type === "snapshot" && entry.snapshotID) {
         appendSnapshotInfo(runtime, entry.snapshotID, entry.id);
@@ -175,10 +198,15 @@ function deserializeThinkingEntry(entry: PersistedEntry): SessionEntry {
     return {type: "thinking", steps: (entry.steps || []).map((step) => ({
         reasoning: step.reasoning,
         reasoningContent: step.reasoningContent,
+        ...(step.roundID ? {roundID: step.roundID} : {}),
         ...(step.toolNames ? {toolNames: step.toolNames} : {}),
+        ...(step.toolCallIDs ? {toolCallIDs: step.toolCallIDs} : {}),
+        ...(step.text !== undefined ? {text: step.text} : {}),
+        ...(step.toolCalls !== undefined ? {toolCalls: step.toolCalls} : {}),
         ...(step.content !== undefined ? {content: step.content} : {}),
     })), ...(entry.id ? {id: entry.id} : {}),
-    ...(entry.duration !== undefined ? {duration: entry.duration} : {})};
+    ...(entry.duration !== undefined ? {duration: entry.duration} : {}),
+    ...(entry.roundID ? {roundID: entry.roundID} : {})};
 }
 
 /** 转换持久化助手条目，并补齐工具调用的 arguments。 */
@@ -189,6 +217,10 @@ function deserializeThinkingEntry(entry: PersistedEntry): SessionEntry {
 function deserializeAssistantEntry(entry: PersistedEntry): SessionEntry {
     return {type: "assistant", ...(entry.id ? {id: entry.id} : {}),
         ...(entry.content !== undefined ? {content: entry.content} : {}),
+        ...(entry.reasoningContent !== undefined ? {reasoningContent: entry.reasoningContent} : {}),
+        ...(entry.responseOutput !== undefined ? {responseOutput: entry.responseOutput} : {}),
+        ...(entry.responseOutputTokens !== undefined ? {responseOutputTokens: entry.responseOutputTokens} : {}),
+        ...(entry.roundID ? {roundID: entry.roundID} : {}),
         ...(entry.toolCalls ? {toolCalls: normalizeToolCalls(entry.toolCalls)} : {}),
         ...(entry.timestamp !== undefined ? {timestamp: entry.timestamp} : {})};
 }
@@ -204,7 +236,7 @@ function deserializeConfirmEntry(entry: PersistedEntry): SessionEntry | null {
     }
     return {type: "confirm", name: entry.name, args: entry.args, confirmID: entry.confirmID,
         ...(entry.id ? {id: entry.id} : {}), ...(entry.effects ? {effects: entry.effects} : {}),
-        ...(entry.status ? {status: entry.status} : {})};
+        ...(entry.status ? {status: entry.status} : {}), ...(entry.roundID ? {roundID: entry.roundID} : {})};
 }
 
 /** 转换字段完整的提问条目；损坏记录不进入运行时。 */
@@ -218,6 +250,7 @@ function deserializeQuestionEntry(entry: PersistedEntry): SessionEntry | null {
     }
     return {type: "question", questionID: entry.questionID, questions: entry.questions,
         ...(entry.id ? {id: entry.id} : {}), ...(entry.status ? {status: entry.status} : {}),
+        ...(entry.roundID ? {roundID: entry.roundID} : {}),
         ...(entry.answers ? {answers: entry.answers} : {})};
 }
 
@@ -242,10 +275,16 @@ return deserializeConfirmEntry(entry);
     if (entry.type === "question") {
 return deserializeQuestionEntry(entry);
 }
+    if (entry.type === "todo" && entry.result) {
+        return {type: "todo", result: entry.result, ...(entry.id ? {id: entry.id} : {}),
+            ...(entry.callID ? {callID: entry.callID} : {}), ...(entry.roundID ? {roundID: entry.roundID} : {})};
+    }
     if (entry.type === "snapshot" && entry.snapshotID) {
-        return {type: "snapshot", snapshotID: entry.snapshotID, ...(entry.id ? {id: entry.id} : {})};
+        return {type: "snapshot", snapshotID: entry.snapshotID, ...(entry.id ? {id: entry.id} : {}),
+            ...(entry.roundID ? {roundID: entry.roundID} : {})};
     }
     return entry.type === "rollback" && entry.snapshotID
-        ? {type: "rollback", snapshotID: entry.snapshotID, ...(entry.id ? {id: entry.id} : {})}
+        ? {type: "rollback", snapshotID: entry.snapshotID, ...(entry.id ? {id: entry.id} : {}),
+            ...(entry.roundID ? {roundID: entry.roundID} : {})}
         : null;
 }

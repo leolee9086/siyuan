@@ -29,7 +29,10 @@ declare const __SFORGE_PLATFORM__: Platform | undefined;
  *
  * 注意：webpack.export.js 的导出构建在浏览器环境中运行，归入 browser-desktop。
  */
-function detectPlatform() {
+function detectPlatform(): Platform | undefined {
+    if (typeof navigator === "undefined" || typeof document === "undefined") {
+        return undefined;
+    }
     if (navigator.userAgent.startsWith("SiYuan/")) {
         return "electron";
     }
@@ -40,10 +43,10 @@ function detectPlatform() {
     return "browser-desktop";
 }
 
-/** 当前运行平台；生产构建优先使用目标常量，源码或未配置宿主时回退到运行时检测。 */
-export const platform: Platform = typeof __SFORGE_PLATFORM__ === "undefined"
-    ? detectPlatform()
-    : __SFORGE_PLATFORM__;
+/** 当前运行平台；浏览器宿主优先于 Electron-target bundle 的编译期默认值。 */
+export const platform: Platform = detectPlatform() ?? (typeof __SFORGE_PLATFORM__ === "undefined"
+    ? "browser-desktop"
+    : __SFORGE_PLATFORM__);
 
 /** 是否运行在浏览器环境（非 Electron），等价于原 BROWSER 分支 */
 export const isBrowser: boolean = platform !== "electron";

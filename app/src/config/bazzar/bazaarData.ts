@@ -8,6 +8,7 @@ export const bazaarData: IBazaarData = {
     widgets: [] as IBazaarItem[],
     plugins: [] as IBazaarItem[],
     downloaded: [] as IBazaarItem[],
+    downloadedDefault: [] as IBazaarItem[],
     update: {
         themes: [] as IBazaarItem[],
         templates: [] as IBazaarItem[],

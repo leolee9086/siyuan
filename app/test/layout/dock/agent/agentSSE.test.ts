@@ -67,6 +67,31 @@ describe("Agent SSE protocol parsing", () => {
         }))).toMatchObject({status: "error"});
     });
 
+    it("preserves browser capability, permission and round metadata", () => {
+        expect(parseAgentSSEEvent("browser_capability_call", JSON.stringify({
+            callID: "call-browser",
+            name: "open_document",
+            capabilityID: "native/open_document",
+            generation: 3,
+            arguments: {id: "doc-1"},
+        }))).toEqual({
+            type: "browser_capability_call",
+            callID: "call-browser",
+            name: "open_document",
+            capabilityID: "native/open_document",
+            generation: 3,
+            arguments: {id: "doc-1"},
+        });
+        expect(parseAgentSSEEvent("thinking", JSON.stringify({
+            reasoning: "processing", roundID: "round-1",
+        }))).toEqual({type: "thinking", reasoning: "processing", roundID: "round-1"});
+        expect(parseAgentSSEEvent("snapshot", JSON.stringify({
+            snapshotID: "snapshot-1", roundID: "round-1",
+        }))).toEqual({type: "snapshot", snapshotID: "snapshot-1", roundID: "round-1"});
+        expect(parseAgentSSEEvent("permission", JSON.stringify({permissionMode: "allowSession"})))
+            .toEqual({type: "permission", permissionMode: "allowSession"});
+    });
+
     it("rejects malformed payloads instead of dropping the frame", () => {
         let thrown: unknown;
         try {

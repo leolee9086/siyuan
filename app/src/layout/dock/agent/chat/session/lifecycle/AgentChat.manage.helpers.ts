@@ -31,6 +31,7 @@ const resetAgentChatSessionState = (chat: AgentChatRuntime, sessionID: string) =
     chat.sessionId = sessionID;
     chat.promptSourceController.reset();
     chat.currentTurnID = "";
+    chat.currentRoundID = "";
     chat.sessionCreatedAt = Date.now();
     chat.sessionTitle = chat.defaultTitle;
     chat.pendingSessionTitle = null;
@@ -43,6 +44,8 @@ const resetAgentChatSessionState = (chat: AgentChatRuntime, sessionID: string) =
     chat.contextTokenBreakdown = {};
     chat.contextCachedTokens = 0;
     chat.contextLimit = 0;
+    chat.permissionMode = "confirm";
+    chat.permissionSelect.value = chat.permissionMode;
     chat.currentToolCalls = [];
     chat.lastStepToolCount = 0;
     chat.renderedToolNames = {};

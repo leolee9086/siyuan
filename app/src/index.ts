@@ -24,6 +24,7 @@ import {
     progressBackgroundTask,
     progressLoading,
     progressStatus,
+    processBacklinkIndexCommit,
     setDefRefCount,
     transactionError
 } from "./dialog/processSystem";
@@ -61,6 +62,12 @@ import { appearanceConfigApi } from "./config/tabs/appearanceRuntime";
 import { renderSnippet } from "./config/util/snippets";
 import { registerModelHandlers } from "./layout/modelRegistry";
 import { setBodyHighlight } from "./util/assets/assets";
+// 上游新增导入：服务器地址推送、主题与内联样式刷新、布局兜底、入口可见性、块面板编辑器清理
+import {updateServerAddresses} from "./config/tabs/accessRuntime";
+import {refreshThemeStyle, reloadInlineStyles} from "./util/assets/assets";
+import {ensureUILayout} from "./util/ensureUILayout";
+import {applyEntryVisibility} from "./config/entryVisibility/runtime";
+import {removeBlockPanelEditors} from "./block/panelRemoval";
 import { registerProtyleDialogPort } from "./dialog/protyleDialogPort.factory";
 import { configureWndDragRestore } from "./layout/Wnd.drag.port";
 import { JSONToCenter } from "./layout/layout-deserialization";
@@ -88,6 +95,8 @@ import type {InNotePluginManagerDomain} from "./inNotePlugin/manager/inNotePlugi
 import {openGlobalSearch as openGlobalSearchInApp} from "./search/global/openGlobalSearch";
 import {openSearch} from "./search/spread";
 import {openSetting} from "./config";
+/** 用途：注册桌面原生 Agent capability 的实际 UI owner。使用范围：桌面 App 组合根初始化。解耦评估：Agent registry 不反向导入主应用模块。 */
+import {registerDesktopNativeCapabilityEffects} from "./layout/dock/agent/runtime/host/frontendCapabilities.desktop.factory";
 import {globalCommand} from "./boot/globalEvent/command/global";
 import type {SettingTabId} from "./config/setting/setting.types";
 import type {IDialog} from "./dialog/dialog.types";
@@ -105,6 +114,15 @@ import type {ForgeRuntimeElectronContinuityResult} from "./sforge/forgeRuntime/t
 import {installAppConfiguration} from "./boot/installAppConfiguration";
 
 const forgeRuntimeElectronContinuityMessageID = "forgeRuntimeElectronContinuity";
+
+// 桌面组合根持有这些 UI owner；通过 HMR 稳定槽交给 Agent capability factory，不让 registry 反向形成依赖。
+registerDesktopNativeCapabilityEffects({
+    constants: Constants,
+    getAllEditor,
+    openFileById,
+    openSearch,
+    openSetting,
+});
 
 /** 将 Electron 接续终态转换为主界面可观察的错误信息。 */
 const describeForgeRuntimeElectronContinuityResult = (result: ForgeRuntimeElectronContinuityResult): string => {
@@ -268,6 +286,12 @@ export class App {
                         case "setAppearance":
                             appearanceConfigApi.apply(data.data);
                             break;
+                        case "reloadInlineStyles":
+                            void reloadInlineStyles();
+                            break;
+                        case "setEntryVisibility":
+                            applyEntryVisibility(data.data);
+                            break;
                         case "setSnippet":
                             window.siyuan.config.snippet = data.data;
                             renderSnippet();
@@ -277,6 +301,9 @@ export class App {
                             break;
                         case "transactions":
                             scheduleBacklinkRefresh("transactions");
+                            break;
+                        case "databaseIndexCommit":
+                            processBacklinkIndexCommit(data.data);
                             break;
                         case "reloadTag":
                             if (getDockByType("tag")?.data.tag instanceof Tag) {
@@ -304,6 +331,9 @@ export class App {
                             break;
                         case "setConf":
                             window.siyuan.config = data.data;
+                            break;
+                        case "setServerAddrs":
+                            updateServerAddresses(data.data);
                             break;
                         case "setPublish":
                             window.siyuan.config.publish = data.data;
@@ -354,6 +384,7 @@ export class App {
                             break;
                         case "closeBox":
                         case "removeBox":
+                            removeBlockPanelEditors({notebookId: data.data.box});
                             getAllTabs().forEach((tab) => {
                                 if (tab.headElement) {
                                     const initTab = tab.headElement.getAttribute("data-initdata");
@@ -367,6 +398,7 @@ export class App {
                             });
                             break;
                         case "removeDoc":
+                            removeBlockPanelEditors({rootIDs: data.data.ids});
                             getAllTabs().forEach((tab) => {
                                 if (tab.headElement) {
                                     const initTab = tab.headElement.getAttribute("data-initdata");
@@ -402,11 +434,7 @@ export class App {
                             progressBackgroundTask(data.data.tasks);
                             break;
                         case "refreshtheme":
-                            if ((window.siyuan.config.appearance.mode === 1 && window.siyuan.config.appearance.themeDark !== "midnight") || (window.siyuan.config.appearance.mode === 0 && window.siyuan.config.appearance.themeLight !== "daylight")) {
-                                (document.getElementById("themeStyle") as HTMLLinkElement).href = data.data.theme;
-                            } else {
-                                (document.getElementById("themeDefaultStyle") as HTMLLinkElement).href = data.data.theme;
-                            }
+                            refreshThemeStyle(data.data.theme);
                             break;
                         case "openFileById":
                             openFileById({app: this, id: data.data.id, action: [Constants.CB_GET_FOCUS]});
@@ -415,6 +443,13 @@ export class App {
                             const fileDock = getDockByType("file");
                             if (fileDock) {
                                 (fileDock.data.file as Files).onFiletreeSortChanged(data.data);
+                            }
+                            break;
+                        }
+                        case "docSortModeChanged": {
+                            const fileDock = getDockByType("file");
+                            if (fileDock) {
+                                (fileDock.data.file as Files).onDocSortModeChanged(data.data);
                             }
                             break;
                         }
@@ -458,6 +493,8 @@ export class App {
         window.siyuan = {
             zIndex: 10,
             transactions: [],
+            isReady: false,
+            notebooks: [],
             reqIds: {},
             backStack: [],
             layout: {},
@@ -475,8 +512,13 @@ export class App {
         fetchPost("/api/system/getConf", {}, async (response) => {
             addScriptSync(`${Constants.PROTYLE_CDN}/js/lute/lute.min.js?v=${Constants.SIYUAN_VERSION}`, "protyleLuteScript");
             addScript(`${Constants.PROTYLE_CDN}/js/protyle-html.js?v=${Constants.SIYUAN_VERSION}`, "protyleWcHtmlScript");
-            const config = installAppConfiguration(response.data.conf, response.data.isPublish);
+            const config = installAppConfiguration(response.data.conf, response.data.isPublish, {startNotebookRefresh: false});
+            // 配置注入后提前请求笔记本列表，插件初始化前等待其完成。
+            const notebookPromise = setNoteBook();
+            // 上游：配置注入后确保布局骨架存在；config/isPublish 由 installAppConfiguration 统一写入
+            ensureUILayout();
             setBodyHighlight();
+            await notebookPromise;
             await loadPlugins(this);
             await this.inNotePluginManager.init(this);
             await getLocalStorage();
@@ -511,6 +553,9 @@ export class App {
                                 && window.siyuan.config.appearance.notifications?.browserCompatibility !== false) {
                                 showMessage(window.siyuan.languages.useChrome, 0, "error");
                             }
+                            // 上游：启动序列完成后置为就绪并冲刷排队的主通道消息
+                            window.siyuan.isReady = true;
+                            mainWs.flushMainMessages();
                         });
                     });
         });

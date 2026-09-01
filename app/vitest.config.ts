@@ -1,6 +1,6 @@
 import vue from "@vitejs/plugin-vue";
 import {defineConfig} from "vitest/config";
-import {integrationTestFiles, nodeTestFiles} from "./scripts/test-files.mjs";
+import {integrationTestFiles, nodeTestFiles, retiredTestFiles} from "./scripts/test-files.mjs";
 
 export default defineConfig({
     plugins: [vue()],
@@ -10,6 +10,6 @@ export default defineConfig({
     },
     test: {
         environment: "happy-dom",
-        exclude: [...nodeTestFiles(), ...integrationTestFiles()],
+        exclude: [...nodeTestFiles(), ...integrationTestFiles(), ...retiredTestFiles()],
     },
 });

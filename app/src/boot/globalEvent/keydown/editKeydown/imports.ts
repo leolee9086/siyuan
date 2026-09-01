@@ -11,7 +11,7 @@ import { getActiveTab } from "../../../../layout/tabUtil";
 import {saveLayout} from "../../../../layout/persistence/saveLayout";
 import { zoomOut } from "../../../../menus/protyleMenus/editorMenu/protyle.zoomOut";
 import {copyPNGByLink} from "../../../../asset/actions";
-import { duplicateCompletely } from "../../../../protyle/render/av/action";
+import { duplicateCompletely } from "../../../../protyle/render/av/action/duplicate";
 import { copyTextByType } from "../../../../protyle/toolbar/util";
 import { hideElements } from "../../../../protyle/ui/hideElements";
 import { copyPlainText, isOnlyMeta, writeText } from "../../../../protyle/util/compatibility";

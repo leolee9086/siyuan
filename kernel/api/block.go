@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -69,6 +69,13 @@ func checkBlockRef(c *gin.Context) {
 				return
 			}
 		}
+		var deletedIDs []string
+		if _, exists := arg["deletedIDs"]; exists {
+			deletedIDs, parsed = parseBlockRefStringArray(arg, "deletedIDs", ret, false)
+			if !parsed {
+				return
+			}
+		}
 		for _, id := range ids {
 			if util.InvalidIDPattern(id, ret) {
 				return
@@ -88,6 +95,16 @@ func checkBlockRef(c *gin.Context) {
 				return
 			}
 		}
+		for _, id := range deletedIDs {
+			if util.InvalidIDPattern(id, ret) {
+				return
+			}
+			if _, exists := idSet[id]; !exists {
+				ret.Code = -1
+				ret.Msg = "Field [deletedIDs] should be a subset of field [ids]"
+				return
+			}
+		}
 		notebook, valid := util.ParseJsonArg[string]("notebook", arg, ret, false, false)
 		if !valid {
 			return
@@ -95,8 +112,14 @@ func checkBlockRef(c *gin.Context) {
 		if "" != notebook && util.InvalidIDPattern(notebook, ret) {
 			return
 		}
+		if "" != notebook && !holdBlockRequest(c, ret, notebook) {
+			return
+		}
+		ids = filterBlockIDsByPublishAccess(c, ids, notebook)
+		exactIDs = filterBlockIDsByPublishAccess(c, exactIDs, notebook)
+		deletedIDs = filterBlockIDsByPublishAccess(c, deletedIDs, notebook)
 		var err error
-		ret.Data, err = model.CheckBlockRefInBox(ids, exactIDs, notebook)
+		ret.Data, err = model.CheckBlockRefInBox(ids, exactIDs, deletedIDs, notebook)
 		if err != nil {
 			ret.Code = -1
 			ret.Msg = err.Error()
@@ -104,6 +127,20 @@ func checkBlockRef(c *gin.Context) {
 	case "documents":
 		paths, parsed := parseBlockRefStringArray(arg, "paths", ret, true)
 		if !parsed {
+			return
+		}
+		if model.IsReadOnlyRoleContext(c) {
+			publishAccess := model.GetPublishAccess()
+			var accessiblePaths []string
+			for _, p := range paths {
+				if model.CheckBlockIdAccessableByPublishAccess(c, publishAccess, util.GetTreeID(p)) {
+					accessiblePaths = append(accessiblePaths, p)
+				}
+			}
+			paths = accessiblePaths
+		}
+		if 0 == len(paths) {
+			ret.Data = false
 			return
 		}
 		var err error
@@ -119,6 +156,23 @@ func checkBlockRef(c *gin.Context) {
 		}
 		if util.InvalidIDPattern(notebook, ret) {
 			return
+		}
+		if !holdBlockRequest(c, ret, notebook) {
+			return
+		}
+		if model.IsReadOnlyRoleContext(c) {
+			publishAccess := model.GetPublishAccess()
+			accessible := false
+			for _, rootID := range treenode.GetRootBlockIDsByBoxID(notebook) {
+				if model.CheckBlockIdAccessableByPublishAccessInBox(c, publishAccess, rootID, notebook) {
+					accessible = true
+					break
+				}
+			}
+			if !accessible {
+				ret.Data = false
+				return
+			}
 		}
 		var err error
 		ret.Data, err = model.CheckNotebookRef(notebook)
@@ -165,7 +219,12 @@ func getBlockTreeInfos(c *gin.Context) {
 		ids = append(ids, id.(string))
 	}
 
-	ret.Data = model.GetBlockTreeInfosInBox(ids, encryptedNotebookFromArg(arg))
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	ids = filterBlockIDsByPublishAccess(c, ids, boxID)
+	ret.Data = model.GetBlockTreeInfosInBox(ids, boxID)
 }
 
 func getBlockSiblingID(c *gin.Context) {
@@ -178,7 +237,20 @@ func getBlockSiblingID(c *gin.Context) {
 	}
 
 	id := arg["id"].(string)
-	parent, previous, next := model.GetBlockSiblingIDInBox(id, encryptedNotebookFromArg(arg))
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	if !isBlockPublishAccessible(c, id, boxID) {
+		ret.Data = map[string]string{
+			"parent":   "",
+			"next":     "",
+			"previous": "",
+		}
+		return
+	}
+
+	parent, previous, next := model.GetBlockSiblingIDInBox(id, boxID)
 	ret.Data = map[string]string{
 		"parent":   parent,
 		"next":     next,
@@ -196,7 +268,20 @@ func getBlockRelevantIDs(c *gin.Context) {
 	}
 
 	id := arg["id"].(string)
-	parentID, previousID, nextID, err := model.GetBlockRelevantIDsInBox(id, encryptedNotebookFromArg(arg))
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	if !isBlockPublishAccessible(c, id, boxID) {
+		ret.Data = map[string]string{
+			"parentID":   "",
+			"previousID": "",
+			"nextID":     "",
+		}
+		return
+	}
+
+	parentID, previousID, nextID, err := model.GetBlockRelevantIDsInBox(id, boxID)
 	if nil != err {
 		ret.Code = -1
 		ret.Msg = err.Error()
@@ -382,10 +467,41 @@ func getHeadingLevelTransaction(c *gin.Context) {
 		return
 	}
 
-	id := arg["id"].(string)
 	level := int(arg["level"].(float64))
 
-	transaction, err := model.GetHeadingLevelTransaction(id, level)
+	var ids []string
+	if idsArg, ok := arg["ids"].([]any); ok {
+		for _, id := range idsArg {
+			ids = append(ids, id.(string))
+		}
+		ids = gulu.Str.RemoveDuplicatedElem(ids)
+	} else {
+		ids = []string{arg["id"].(string)}
+	}
+
+	transaction, err := model.GetHeadingLevelBatchTransaction(ids, level)
+	if err != nil {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		ret.Data = map[string]any{"closeTimeout": 7000}
+		return
+	}
+
+	ret.Data = transaction
+}
+
+func getHeadingFoldTransaction(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		return
+	}
+
+	id := arg["id"].(string)
+	scope := arg["scope"].(string)
+	transaction, err := model.GetHeadingFoldTransaction(id, scope)
 	if err != nil {
 		ret.Code = -1
 		ret.Msg = err.Error()
@@ -447,6 +563,16 @@ func getUnfoldedParentID(c *gin.Context) {
 	}
 
 	id := arg["id"].(string)
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	if !isBlockPublishAccessible(c, id, boxID) {
+		ret.Data = map[string]any{
+			"parentID": "",
+		}
+		return
+	}
 	parentID := model.GetUnfoldedParentID(id)
 	ret.Data = map[string]any{
 		"parentID": parentID,
@@ -463,6 +589,17 @@ func checkBlockFold(c *gin.Context) {
 	}
 
 	id := arg["id"].(string)
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	if !isBlockPublishAccessible(c, id, boxID) {
+		ret.Data = map[string]any{
+			"isFolded": false,
+			"isRoot":   false,
+		}
+		return
+	}
 	isFolded, isRoot := model.IsBlockFolded(id)
 	ret.Data = map[string]any{
 		"isFolded": isFolded,
@@ -480,6 +617,14 @@ func checkBlockExist(c *gin.Context) {
 	}
 
 	id := arg["id"].(string)
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	if !isBlockPublishAccessible(c, id, boxID) {
+		ret.Data = false
+		return
+	}
 	ret.Data = treenode.ExistBlockTree(id)
 }
 
@@ -499,7 +644,12 @@ func checkBlocksExist(c *gin.Context) {
 			ids = append(ids, id)
 		}
 	}
-	ret.Data = treenode.ExistBlockTrees(ids)
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	ids = filterBlockIDsByPublishAccess(c, ids, boxID)
+	ret.Data = treenode.ExistBlockTreesInBox(ids, boxID)
 }
 
 func getDocInfo(c *gin.Context) {
@@ -512,20 +662,26 @@ func getDocInfo(c *gin.Context) {
 	}
 
 	id := arg["id"].(string)
-	if !checkBlockPublishAccess(c, id, ret) {
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	if !checkBlockPublishAccessInBox(c, id, boxID, ret) {
 		return
 	}
 
 	var info *model.BlockInfo
 	var err error
-	if notebook, ok := arg["notebook"].(string); ok && notebook != "" && model.IsEncryptedBox(notebook) {
-		info, err = model.GetDocInfoInBox(id, notebook)
+	if boxID != "" {
+		info, err = model.GetDocInfoInBox(id, boxID)
 	} else {
 		info, err = model.GetDocInfo(id)
 	}
 	if nil == info {
 		ret.Code = -1
-		if err != nil && !errors.Is(err, model.ErrTreeNotFound) {
+		if errors.Is(err, model.ErrIndexing) {
+			ret.Msg = model.Conf.Language(56)
+		} else if err != nil && !errors.Is(err, model.ErrTreeNotFound) {
 			ret.Msg = err.Error()
 		} else {
 			ret.Msg = fmt.Sprintf(model.Conf.Language(15), id)
@@ -623,6 +779,11 @@ func getBlocksWordCount(c *gin.Context) {
 	for _, id := range idsArg {
 		ids = append(ids, id.(string))
 	}
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	ids = filterBlockIDsByPublishAccess(c, ids, boxID)
 	ret.Data = map[string]any{
 		"reqId": arg["reqId"],
 		"stat":  filesys.BlocksWordCount(ids),
@@ -638,11 +799,48 @@ func getTreeStat(c *gin.Context) {
 		return
 	}
 
-	id := arg["id"].(string)
-	ret.Data = map[string]any{
-		"reqId": arg["reqId"],
-		"stat":  filesys.StatTree(id),
+	var id string
+	var includeEmbed bool
+	if !util.ParseJsonArgs(arg, ret,
+		util.BindJsonArg("id", &id, true, true),
+		util.BindJsonArg("includeEmbed", &includeEmbed, false, false),
+	) || util.InvalidIDPattern(id, ret) {
+		return
 	}
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	if !isBlockPublishAccessible(c, id, boxID) {
+		ret.Data = map[string]any{
+			"reqId": arg["reqId"],
+			"stat":  nil,
+		}
+		return
+	}
+
+	var accessChecker model.EmbedBlockAccessChecker
+	if model.IsReadOnlyRoleContext(c) {
+		publishAccess := model.GetPublishAccess()
+		accessChecker = func(blockID string) bool {
+			return model.CheckBlockIdAccessableByPublishAccessInBox(c, publishAccess, blockID, boxID)
+		}
+	}
+	stat := model.GetDocumentStat(c.Request.Context(), id, boxID, includeEmbed, accessChecker)
+	data := map[string]any{
+		"reqId":         arg["reqId"],
+		"stat":          nil,
+		"containsEmbed": false,
+	}
+	if nil != stat {
+		data["stat"] = stat.Stat
+		data["containsEmbed"] = stat.ContainsEmbed
+		if includeEmbed {
+			data["statWithEmbed"] = stat.StatWithEmbed
+			data["embedStat"] = stat.EmbedStat
+		}
+	}
+	ret.Data = data
 }
 
 func getDOMText(c *gin.Context) {
@@ -672,10 +870,19 @@ func getRefText(c *gin.Context) {
 		return
 	}
 
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	if !isBlockPublishAccessible(c, id, boxID) {
+		ret.Data = model.ErrBlockNotFound.Error()
+		return
+	}
+
 	// 加密笔记本的块引解析走 InBox 版（查加密 blocktree + content db）
 	var refText string
-	if notebook, ok := arg["notebook"].(string); ok && notebook != "" && model.IsEncryptedBox(notebook) {
-		refText = model.GetBlockRefTextInBox(id, notebook)
+	if boxID != "" {
+		refText = model.GetBlockRefTextInBox(id, boxID)
 	} else {
 		refText = model.GetBlockRefText(id)
 	}
@@ -710,11 +917,22 @@ func getRefIDs(c *gin.Context) {
 	}
 
 	id := arg["id"].(string)
-	refDefs, originalRefBlockIDs := model.GetBlockRefsInBox(id, encryptedNotebookFromArg(arg))
+	requestedNotebook, _ := arg["notebook"].(string)
+	if isEncryptedNotebookDeniedForPublish(c, requestedNotebook) {
+		ret.Data = map[string]any{
+			"refDefs":             []model.RefDefs{},
+			"originalRefBlockIDs": map[string]string{},
+		}
+		return
+	}
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	refDefs, originalRefBlockIDs := model.GetBlockRefsInBox(id, boxID)
 	if model.IsReadOnlyRoleContext(c) {
 		publishAccess := model.GetPublishAccess()
-		publishIgnore := model.GetInvisiblePublishAccess(publishAccess)
-		refDefs, originalRefBlockIDs = model.FilterRefDefsByPublishIgnore(publishIgnore, refDefs)
+		refDefs, originalRefBlockIDs = model.FilterRefDefsByPublishAccess(c, publishAccess, refDefs)
 	}
 	ret.Data = map[string]any{
 		"refDefs":             refDefs,
@@ -732,7 +950,11 @@ func getRefIDsByFileAnnotationID(c *gin.Context) {
 	}
 
 	id := arg["id"].(string)
-	refIDs := model.GetBlockRefIDsByFileAnnotationID(id)
+	boxID, _ := arg["notebook"].(string)
+	refIDs := model.GetBlockRefIDsByFileAnnotationIDInBox(id, boxID)
+	if model.IsReadOnlyRoleContext(c) {
+		refIDs = model.FilterRefIDsByPublishAccess(c, model.GetPublishAccess(), refIDs)
+	}
 	var retRefDefs []model.RefDefs
 	for _, blockID := range refIDs {
 		retRefDefs = append(retRefDefs, model.RefDefs{RefID: blockID, DefIDs: []string{}})
@@ -756,7 +978,9 @@ func getBlockDefIDsByRefText(c *gin.Context) {
 	}
 
 	anchor := arg["anchor"].(string)
-	ids := model.GetBlockDefIDsByRefText(anchor)
+	boxID, _ := arg["notebook"].(string)
+	ids := model.GetBlockDefIDsByRefTextInBox(anchor, boxID)
+	ids = filterBlockIDsByPublishAccess(c, ids, "")
 	var retRefDefs []model.RefDefs
 	for _, id := range ids {
 		retRefDefs = append(retRefDefs, model.RefDefs{RefID: id, DefIDs: []string{}})
@@ -788,10 +1012,19 @@ func getBlockBreadcrumb(c *gin.Context) {
 		}
 	}
 
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	if !isBlockPublishAccessible(c, id, boxID) {
+		ret.Data = []*model.BlockPath{}
+		return
+	}
+
 	var blockPath []*model.BlockPath
 	var err error
-	if notebook, ok := arg["notebook"].(string); ok && notebook != "" && model.IsEncryptedBox(notebook) {
-		blockPath, err = model.BuildBlockBreadcrumbInBox(id, excludeTypes, notebook)
+	if boxID != "" {
+		blockPath, err = model.BuildBlockBreadcrumbInBox(id, excludeTypes, boxID)
 	} else {
 		blockPath, err = model.BuildBlockBreadcrumb(id, excludeTypes)
 	}
@@ -804,6 +1037,53 @@ func getBlockBreadcrumb(c *gin.Context) {
 	ret.Data = blockPath
 }
 
+func getBlockBreadcrumbChildren(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		return
+	}
+
+	id := arg["id"].(string)
+	if util.InvalidIDPattern(id, ret) {
+		return
+	}
+
+	var excludeTypes []string
+	if excludeTypesArg := arg["excludeTypes"]; nil != excludeTypesArg {
+		for _, excludeType := range excludeTypesArg.([]any) {
+			excludeTypes = append(excludeTypes, excludeType.(string))
+		}
+	}
+
+	offset := 0
+	if offsetArg := arg["offset"]; nil != offsetArg {
+		offset = int(offsetArg.(float64))
+	}
+	limit := 64
+	if limitArg := arg["limit"]; nil != limitArg {
+		limit = int(limitArg.(float64))
+	}
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	if !isBlockPublishAccessible(c, id, boxID) {
+		ret.Data = &model.BlockBreadcrumbChildren{Items: []*model.BlockPath{}}
+		return
+	}
+
+	children, err := model.GetBlockBreadcrumbChildrenInBox(id, excludeTypes, offset, limit, boxID)
+	if err != nil {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return
+	}
+	ret.Data = children
+}
+
 func getBlockIndex(c *gin.Context) {
 	ret := gulu.Ret.NewResult()
 	defer c.JSON(http.StatusOK, ret)
@@ -814,6 +1094,14 @@ func getBlockIndex(c *gin.Context) {
 	}
 
 	id := arg["id"].(string)
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	if !isBlockPublishAccessible(c, id, boxID) {
+		ret.Data = 0
+		return
+	}
 	index := model.GetBlockIndex(id)
 	ret.Data = index
 }
@@ -832,8 +1120,39 @@ func getBlocksIndexes(c *gin.Context) {
 	for _, id := range idsArg {
 		ids = append(ids, id.(string))
 	}
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	ids = filterBlockIDsByPublishAccess(c, ids, boxID)
 	index := model.GetBlocksIndexes(ids)
 	ret.Data = index
+}
+
+func getDocBlocksOrders(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		return
+	}
+
+	var id string
+	if !util.ParseJsonArgs(arg, ret, util.BindJsonArg("id", &id, true, true)) || util.InvalidIDPattern(id, ret) {
+		return
+	}
+	if !checkBlockPublishAccess(c, id, ret) {
+		return
+	}
+
+	orders, err := model.GetDocBlocksOrders(id)
+	if err != nil {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return
+	}
+	ret.Data = orders
 }
 
 func getBlockInfo(c *gin.Context) {
@@ -852,15 +1171,32 @@ func getBlockInfo(c *gin.Context) {
 	if util.InvalidIDPattern(id, ret) {
 		return
 	}
-	if !checkBlockPublishAccess(c, id, ret) {
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	blockTree, publishAccessRequired, publishMetadataVisible, publishAccessible := getBlockInfoPublishAccess(c, id, boxID)
+	if !publishAccessible {
+		ret.Code = -1
+		ret.Msg = fmt.Sprintf(model.Conf.Language(15), id)
+		return
+	}
+	if publishAccessRequired && !publishMetadataVisible {
+		ret.Data = map[string]any{
+			"rootID":                blockTree.RootID,
+			"rootTitle":             "",
+			"rootTitleEmpty":        true,
+			"rootIcon":              "",
+			"publishAccessRequired": true,
+		}
 		return
 	}
 
 	// 仅在此处使用带重建索引的加载函数，其他地方不要使用
 	var tree *parse.Tree
 	var err error
-	if notebook, ok := arg["notebook"].(string); ok && notebook != "" && model.IsEncryptedBox(notebook) {
-		tree, err = model.LoadTreeByBlockIDWithReindexInBox(id, notebook)
+	if boxID != "" {
+		tree, err = model.LoadTreeByBlockIDWithReindexInBox(id, boxID)
 	} else {
 		tree, err = model.LoadTreeByBlockIDWithReindex(id)
 	}
@@ -897,6 +1233,26 @@ func getBlockInfo(c *gin.Context) {
 		return
 	}
 
+	root, err := model.GetBlock(block.RootID, tree)
+	if errors.Is(err, model.ErrIndexing) {
+		ret.Code = 3
+		ret.Data = model.Conf.Language(56)
+		return
+	}
+	rootTitle := root.IAL["title"]
+	rootTitle = html.UnescapeString(rootTitle)
+	icon := html.UnescapeString(root.IAL["icon"])
+	if publishAccessRequired {
+		ret.Data = map[string]any{
+			"rootID":                block.RootID,
+			"rootTitle":             rootTitle,
+			"rootTitleEmpty":        root.IAL[model.NodeAttrTitleEmpty] == "true",
+			"rootIcon":              icon,
+			"publishAccessRequired": true,
+		}
+		return
+	}
+
 	var rootChildID string
 	b := block
 	for range 128 {
@@ -911,15 +1267,6 @@ func getBlockInfo(c *gin.Context) {
 		}
 	}
 
-	root, err := model.GetBlock(block.RootID, tree)
-	if errors.Is(err, model.ErrIndexing) {
-		ret.Code = 3
-		ret.Data = model.Conf.Language(56)
-		return
-	}
-	rootTitle := root.IAL["title"]
-	rootTitle = html.UnescapeString(rootTitle)
-	icon := root.IAL["icon"]
 	ret.Data = map[string]any{
 		"box":            block.Box,
 		"path":           block.Path,
@@ -931,19 +1278,60 @@ func getBlockInfo(c *gin.Context) {
 	}
 }
 
-func checkBlockPublishAccess(c *gin.Context, id string, ret *gulu.Result) bool {
+func getBlockInfoPublishAccess(c *gin.Context, id, boxID string) (blockTree *treenode.BlockTree, passwordRequired, metadataVisible, accessible bool) {
 	if !model.IsReadOnlyRoleContext(c) {
-		return true
+		return nil, false, true, true
 	}
 
+	blockTree = treenode.GetBlockTreeInBox(id, boxID)
 	publishAccess := model.GetPublishAccess()
-	if model.CheckBlockIdAccessableByPublishAccess(c, publishAccess, id) {
+	switch model.GetBlockTreePublishAccessStatus(c, publishAccess, blockTree) {
+	case model.PublishAccessAllowed:
+		return blockTree, false, true, true
+	case model.PublishAccessPasswordRequired:
+		metadataVisible = model.CheckBlockTreeDiscoverableByPublishAccess(publishAccess, blockTree)
+		if metadataVisible || blockTree.ID == blockTree.RootID {
+			return blockTree, true, metadataVisible, true
+		}
+	}
+	return blockTree, false, false, false
+}
+
+func checkBlockPublishAccess(c *gin.Context, id string, ret *gulu.Result) bool {
+	return checkBlockPublishAccessInBox(c, id, "", ret)
+}
+
+func checkBlockPublishAccessInBox(c *gin.Context, id, boxID string, ret *gulu.Result) bool {
+	if isBlockPublishAccessible(c, id, boxID) {
 		return true
 	}
 
 	ret.Code = -1
 	ret.Msg = fmt.Sprintf(model.Conf.Language(15), id)
 	return false
+}
+
+func isBlockPublishAccessible(c *gin.Context, id, boxID string) bool {
+	if !model.IsReadOnlyRoleContext(c) {
+		return true
+	}
+
+	return model.CheckBlockIdAccessableByPublishAccessInBox(c, model.GetPublishAccess(), id, boxID)
+}
+
+func filterBlockIDsByPublishAccess(c *gin.Context, ids []string, boxID string) []string {
+	if !model.IsReadOnlyRoleContext(c) {
+		return ids
+	}
+
+	publishAccess := model.GetPublishAccess()
+	ret := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if model.CheckBlockIdAccessableByPublishAccessInBox(c, publishAccess, id, boxID) {
+			ret = append(ret, id)
+		}
+	}
+	return ret
 }
 
 func getBlockDOM(c *gin.Context) {
@@ -956,7 +1344,15 @@ func getBlockDOM(c *gin.Context) {
 	}
 
 	id := arg["id"].(string)
+	requestedNotebook, _ := arg["notebook"].(string)
+	if isEncryptedNotebookDeniedForPublish(c, requestedNotebook) {
+		ret.Data = map[string]string{"id": id, "dom": ""}
+		return
+	}
 	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
 	dom := model.GetBlockDOMInBox(id, boxID)
 
 	if model.IsReadOnlyRoleContext(c) {
@@ -979,6 +1375,33 @@ func getBlockDOM(c *gin.Context) {
 	}
 }
 
+func getOrderedListContinueStart(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		return
+	}
+
+	var id string
+	if !util.ParseJsonArgs(arg, ret, util.BindJsonArg("id", &id, true, true)) {
+		return
+	}
+	if util.InvalidIDPattern(id, ret) {
+		return
+	}
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	start, found := model.GetOrderedListContinueStartInBox(id, boxID)
+	ret.Data = map[string]any{
+		"start": start,
+		"found": found,
+	}
+}
+
 func getBlockDOMs(c *gin.Context) {
 	ret := gulu.Ret.NewResult()
 	defer c.JSON(http.StatusOK, ret)
@@ -994,7 +1417,15 @@ func getBlockDOMs(c *gin.Context) {
 		ids = append(ids, id.(string))
 	}
 
+	requestedNotebook, _ := arg["notebook"].(string)
+	if isEncryptedNotebookDeniedForPublish(c, requestedNotebook) {
+		ret.Data = map[string]string{}
+		return
+	}
 	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
 	doms := model.GetBlockDOMsInBox(ids, boxID)
 
 	if model.IsReadOnlyRoleContext(c) {
@@ -1016,11 +1447,27 @@ func getBlockDOMWithEmbed(c *gin.Context) {
 	}
 
 	id := arg["id"].(string)
+	requestedNotebook, _ := arg["notebook"].(string)
+	if isEncryptedNotebookDeniedForPublish(c, requestedNotebook) {
+		ret.Data = map[string]string{"id": id, "dom": ""}
+		return
+	}
 	boxID := encryptedNotebookFromArg(arg)
-	dom := model.GetBlockDOMWithEmbedInBox(id, boxID)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	isReadOnlyRole := model.IsReadOnlyRoleContext(c)
+	var publishAccess model.PublishAccess
+	var accessChecker model.EmbedBlockAccessChecker
+	if isReadOnlyRole {
+		publishAccess = model.GetPublishAccess()
+		accessChecker = func(blockID string) bool {
+			return model.CheckBlockIdAccessableByPublishAccessInBox(c, publishAccess, blockID, boxID)
+		}
+	}
+	dom := model.GetBlockDOMWithEmbedInBoxWithAccessChecker(id, boxID, accessChecker)
 
-	if model.IsReadOnlyRoleContext(c) {
-		publishAccess := model.GetPublishAccess()
+	if isReadOnlyRole {
 		publishIgnore := model.GetDisablePublishAccess(publishAccess)
 		bt := treenode.GetBlockTreeInBox(id, boxID)
 		if nil == bt {
@@ -1054,11 +1501,27 @@ func getBlockDOMsWithEmbed(c *gin.Context) {
 		ids = append(ids, id.(string))
 	}
 
+	requestedNotebook, _ := arg["notebook"].(string)
+	if isEncryptedNotebookDeniedForPublish(c, requestedNotebook) {
+		ret.Data = map[string]string{}
+		return
+	}
 	boxID := encryptedNotebookFromArg(arg)
-	doms := model.GetBlockDOMsWithEmbedInBox(ids, boxID)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	isReadOnlyRole := model.IsReadOnlyRoleContext(c)
+	var publishAccess model.PublishAccess
+	var accessChecker model.EmbedBlockAccessChecker
+	if isReadOnlyRole {
+		publishAccess = model.GetPublishAccess()
+		accessChecker = func(blockID string) bool {
+			return model.CheckBlockIdAccessableByPublishAccessInBox(c, publishAccess, blockID, boxID)
+		}
+	}
+	doms := model.GetBlockDOMsWithEmbedInBoxWithAccessChecker(ids, boxID, accessChecker)
 
-	if model.IsReadOnlyRoleContext(c) {
-		publishAccess := model.GetPublishAccess()
+	if isReadOnlyRole {
 		publishIgnore := model.GetDisablePublishAccess(publishAccess)
 		filterBlockDOMsByPublishAccess(c, doms, ids, boxID, publishAccess, publishIgnore)
 	}
@@ -1072,6 +1535,19 @@ func encryptedNotebookFromArg(arg map[string]any) string {
 		return notebook
 	}
 	return ""
+}
+
+func holdBlockRequest(c *gin.Context, ret *gulu.Result, boxID string) bool {
+	if err := holdEncryptedBoxRequest(c, boxID); err != nil {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return false
+	}
+	return true
+}
+
+func isEncryptedNotebookDeniedForPublish(c *gin.Context, notebook string) bool {
+	return notebook != "" && model.IsReadOnlyRoleContext(c) && model.IsEncryptedBoxDeniedByPublishAccess(notebook)
 }
 
 func filterBlockDOMsByPublishAccess(c *gin.Context, doms map[string]string, ids []string, boxID string, publishAccess model.PublishAccess, publishIgnore model.PublishAccess) {
@@ -1118,7 +1594,15 @@ func getBlockKramdown(c *gin.Context) {
 		}
 	}
 
+	requestedNotebook, _ := arg["notebook"].(string)
+	if isEncryptedNotebookDeniedForPublish(c, requestedNotebook) {
+		ret.Data = map[string]string{"id": id, "kramdown": ""}
+		return
+	}
 	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
 	var kramdown string
 	if boxID != "" {
 		kramdown = model.GetBlockKramdownInBox(id, mode, boxID)
@@ -1178,7 +1662,15 @@ func getBlockKramdowns(c *gin.Context) {
 		}
 	}
 
+	requestedNotebook, _ := arg["notebook"].(string)
+	if isEncryptedNotebookDeniedForPublish(c, requestedNotebook) {
+		ret.Data = map[string]string{}
+		return
+	}
 	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
 	var kramdowns map[string]string
 	if boxID != "" {
 		kramdowns = model.GetBlockKramdownsInBox(ids, mode, boxID)
@@ -1226,7 +1718,11 @@ func getChildBlocks(c *gin.Context) {
 		return
 	}
 
-	ret.Data = model.GetChildBlocks(id)
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	ret.Data = model.GetChildBlocksInBox(id, boxID)
 }
 
 func getTailChildBlocks(c *gin.Context) {
@@ -1252,5 +1748,9 @@ func getTailChildBlocks(c *gin.Context) {
 		n = 7
 	}
 
-	ret.Data = model.GetTailChildBlocks(id, n)
+	boxID := encryptedNotebookFromArg(arg)
+	if !holdBlockRequest(c, ret, boxID) {
+		return
+	}
+	ret.Data = model.GetTailChildBlocksInBox(id, n, boxID)
 }

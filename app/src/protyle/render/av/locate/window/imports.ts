@@ -17,3 +17,8 @@ export {getAVLocateRequest};
 import {setRenderedAVData} from "../state/state";
 /** 导出渲染数据写入。 */
 export {setRenderedAVData};
+
+/** 用途：读取画廊卡片宽度；使用范围：定位窗口列数计算；解耦评估：经画廊样式所有者统一解析新旧字段。 */
+import {getCardWidth} from "../../gallery/style";
+/** 导出画廊卡片宽度解析。 */
+export {getCardWidth};

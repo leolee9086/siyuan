@@ -1,56 +1,20 @@
-import {fetchPost} from "./imports";
-import { newFileBySelect, getRefCreateSavePath } from "../../util/file/newFile";
+import { newFileBySelectRange } from "../../util/file/newFile";
 import { newFileContentBySelect } from "../../editor/rename";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { matchHotKey } from "../util/hotKey";
-import { selectAll } from "../util/selection";
-import { getContenteditableElement } from "./getBlock";
 
 export const createNamedNewFileMiddleware = (
     event: KeyboardEvent,
     protyle: IProtyle,
-    nodeElement: HTMLElement,
+    _nodeElement: HTMLElement,
     range: Range,
     controller: AbortController
 ) => {
 
-    const selectText = range.toString();
     const isNewNameFile = matchHotKey(getSiyuanConfig().keymap.editor.general.newNameFile.custom, event);
     if (isNewNameFile || matchHotKey(getSiyuanConfig().keymap.editor.general.newNameSettingFile.custom, event)) {
-        if (!selectText.trim() && (nodeElement.querySelector("tr") || nodeElement.querySelector("span"))) {
-            // 没选中时，都是纯文本就创建子文档 https://ld246.com/article/1663073488381/comment/1664804353295#comments
-        } else {
-            if (!selectText.trim() &&
-                getContenteditableElement(nodeElement)?.textContent  // https://github.com/siyuan-note/siyuan/issues/8099
-            ) {
-                selectAll(protyle, nodeElement, range);
-            }
-            // 同步 toolbar.range，避免 DOM 已被其他操作替换后变为 detached
-            // https://github.com/siyuan-note/siyuan/issues/17896
-            protyle.toolbar.range = range;
-            if (isNewNameFile) {
-                fetchPost("/api/filetree/getHPathByPath", {
-                    notebook: protyle.notebookId,
-                    path: protyle.path,
-                }, (response) => {
-                    if (!protyle.notebookId) {
-                        throw new Error("protyle缺少ID");
-                    }
-                    newFileBySelect(protyle, selectText, nodeElement, response.data, protyle.notebookId);
-                });
-            } else {
-                if (!protyle.path) {
-                    throw new Error("protyle缺少path");
-                }
-                if (!protyle.notebookId) {
-                    throw new Error("protyle缺少ID");
-                }
-                // S-forge: 移植上游 887e5d8ed — getSavePath → getRefCreateSavePath，参数顺序改变
-                getRefCreateSavePath(protyle.notebookId, protyle.path, (targetNotebookId, hPath) => {
-                    newFileBySelect(protyle, selectText, nodeElement, hPath, targetNotebookId);
-                });
-            }
-        }
+        // 使用快照上下文，避免异步过程中选区被移动或文档切换导致错误插入（issue 16972）
+        newFileBySelectRange(protyle, range, isNewNameFile ? "subDoc" : "configured");
         event.preventDefault();
         event.stopPropagation();
         controller.abort("创建命名新文件");

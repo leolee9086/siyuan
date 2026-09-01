@@ -4,8 +4,8 @@ import type {Menu} from "./imports";
 import type {Editor} from "./imports";
 /** 用途：描述 Composer 历史状态；使用范围：编辑器工厂与键盘分派上下文。 */
 import type {ComposerHistoryState} from "../AgentComposer.history.types";
-/** 用途：描述 Composer 内容变化回调；使用范围：编辑器工厂选项。 */
-import type {ComposerChangeCallback} from "../AgentComposer.types";
+/** 用途：描述 Composer 内容变化回调与上游编辑态选项；使用范围：编辑器工厂选项。 */
+import type {AgentComposerOptions, ComposerChangeCallback} from "../AgentComposer.types";
 
 /** 表示 @ 引用或 / 技能建议菜单中的单个条目，由提示源映射为统一结构。 */
 export interface BlockHit {
@@ -58,6 +58,8 @@ export interface CreateAgentTiptapEditorOptions {
     interaction: TiptapComposerInteractionState;
     onSend: () => void;
     onChange?: ComposerChangeCallback;
+    /** 上游编辑态选项：初始内容、占位覆盖、Escape 取消与历史开关。 */
+    composerOptions?: AgentComposerOptions;
 }
 
 /** 聚合一次键盘分派所需的编辑器、历史、交互状态和发送动作。 */
@@ -66,4 +68,8 @@ export interface TiptapComposerKeyDownContext {
     history: ComposerHistoryState;
     state: TiptapComposerInteractionState;
     onSend: () => void;
+    /** Escape 触发的取消回调（上游编辑态协议，如退出用户消息编辑）。 */
+    onCancel?: (() => void) | undefined;
+    /** 关闭 ↑↓ 历史翻阅；编辑态等场景为 false。 */
+    enableHistory: boolean;
 }

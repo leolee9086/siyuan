@@ -203,7 +203,7 @@ describe("list item actions", () => {
         expect(childList?.dataset.nodeId).toBe("node-1");
         expect(childList?.dataset.subtype).toBe("u");
         expect(childList?.querySelector<HTMLElement>(".li")?.dataset.nodeId).toBe("node-2");
-        expect(runtime.setFold).toHaveBeenCalledWith(protyle, parentItem, true);
+        expect(runtime.setFold).toHaveBeenCalledWith(protyle, parentItem, true, false, false, false, false);
         expect(runtime.transaction).toHaveBeenCalledWith(protyle, [{
             action: "insert",
             id: "node-1",
@@ -252,8 +252,8 @@ describe("list item actions", () => {
             "appended child-list item",
         );
         expect(appendedItem.previousElementSibling?.getAttribute("data-node-id")).toBe("existing-child");
-        expect(runtime.setFold).toHaveBeenNthCalledWith(1, protyle, childList, true);
-        expect(runtime.setFold).toHaveBeenNthCalledWith(2, protyle, parentItem, true);
+        expect(runtime.setFold).toHaveBeenNthCalledWith(1, protyle, childList, true, false, false, false, false);
+        expect(runtime.setFold).toHaveBeenNthCalledWith(2, protyle, parentItem, true, false, false, false, false);
         expect(runtime.transaction).toHaveBeenCalledWith(protyle, [{
             action: "insert",
             id: "node-1",
@@ -358,6 +358,7 @@ describe("list item actions", () => {
             throw new Error("indent fixture was not created");
         }
         const protyle = createProtyle(rootList);
+        document.body.append(rootList);
 
         listIndent(protyle, [currentItem], createRangeAtEnd(currentParagraph));
 
@@ -371,7 +372,7 @@ describe("list item actions", () => {
             expect.stringContaining("current<wbr>"),
         );
         expect(runtime.focusByWbr).toHaveBeenCalledWith(
-            rootList.querySelector("[data-node-id='previous-item']"),
+            rootList,
             expect.any(Range),
         );
     });
@@ -407,6 +408,7 @@ describe("list item actions", () => {
             "transaction indent editable fixture",
         );
         const protyle = createProtyle(wysiwyg);
+        document.body.append(wysiwyg);
 
         listIndent(protyle, [currentItem], createRangeAtEnd(currentEditable));
 
@@ -508,6 +510,7 @@ describe("list item actions", () => {
         const wysiwyg = document.createElement("div");
         wysiwyg.className = "protyle-wysiwyg";
         host.append(wysiwyg);
+        document.body.append(host);
         wysiwyg.innerHTML = `<div class="list" data-node-id="source-list" data-type="NodeList" data-subtype="u">
                 <div class="li" data-node-id="current-item" data-type="NodeListItem" data-subtype="u">
                     <div class="protyle-action"></div>
@@ -561,6 +564,7 @@ describe("list item actions", () => {
         const wysiwyg = document.createElement("div");
         wysiwyg.className = "protyle-wysiwyg";
         host.append(wysiwyg);
+        document.body.append(host);
         wysiwyg.innerHTML = `<div class="list" data-node-id="source-list" data-type="NodeList" data-subtype="u">
                 <div class="li" data-node-id="current-item" data-type="NodeListItem" data-subtype="u">
                     <div class="protyle-action"></div>

@@ -14,6 +14,8 @@ import type {AgentSession} from "./AgentSession.types";
 import type {AgentSessionRevisionState} from "./AgentSession.types";
 /** 用途：约束会话目标过滤；使用范围：会话列表。 */
 import type {AgentSessionTargetKind} from "./AgentSession.types";
+/** 用途：约束会话权限切换；使用范围：权限 API。 */
+import type {AgentPermissionMode} from "./AgentSession.types";
 /** 用途：约束会话列表响应；使用范围：会话列表。 */
 import type {SessionListResult} from "./AgentSession.types";
 
@@ -132,6 +134,24 @@ export async function removeAgentSession(
     requireAgentAPISuccess(response, "Remove agent session");
     revisionState.revisions.delete(id);
     revisionState.runtimeRevisions.delete(id);
+}
+
+/** 更新会话中后续能力调用的确认策略。 */
+export async function setAgentSessionPermission(
+    requestHeaders: AgentRequestHeaders,
+    id: string,
+    permissionMode: AgentPermissionMode,
+) {
+    const response = await fetchSyncPost(
+        "/api/ai/agent/setPermission",
+        {sessionID: id, permissionMode},
+        requestHeaders(),
+    );
+    const data = requireAgentAPIData<{permissionMode: AgentPermissionMode}>(
+        response,
+        "Set agent session permission",
+    );
+    return data.permissionMode;
 }
 
 /** 读取会话后通过同一修订队列更新标题。 */

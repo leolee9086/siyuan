@@ -5,6 +5,9 @@ import {editorConfigApi} from "./editorRuntime";
 import type {SettingTabBuilder} from "../setting/builder";
 import {isElectron} from "../../platform";
 import {ipcInvoke, ipcSend} from "../../platform/electron/ipcRenderer";
+import {controlSelect} from "../setting/control";
+import {genStackHtml} from "../render/render";
+import type {StackLine} from "../render/parts";
 
 /** 编辑器 Tab：各组注册实现（由 setting/tabs.ts 调用） */
 const registerEditorBehaviorGroup = (tab: SettingTabBuilder) => {
@@ -51,11 +54,70 @@ const registerEditorBehaviorGroup = (tab: SettingTabBuilder) => {
         title: window.siyuan.languages.pasteURLAutoConvert,
         desc: window.siyuan.languages.pasteURLAutoConvertTip,
     });
+    group.switch("editor.keepLoadedContent", {
+        title: window.siyuan.languages.keepLazyLoad,
+        desc: window.siyuan.languages.keepLazyLoadTip,
+    });
     group.number("editor.dynamicLoadBlocks", {
         title: window.siyuan.languages.dynamicLoadBlocks,
         desc: window.siyuan.languages.dynamicLoadBlocksTip,
         min: 48,
     });
+    if (isElectron) {
+        const assetOpenOptions = [
+            {value: "follow-tab", label: window.siyuan.languages.assetOpenFollowTab},
+            {value: "current", label: window.siyuan.languages.assetOpenCurrent},
+            {value: "right", label: window.siyuan.languages.insertRight},
+            {value: "bottom", label: window.siyuan.languages.insertBottom},
+            {value: "background", label: window.siyuan.languages.refTab},
+            {value: "new-window", label: window.siyuan.languages.openByNewWindow},
+            {value: "app", label: window.siyuan.languages.useDefault},
+            {value: "folder", label: window.siyuan.languages.showInFolder},
+        ];
+        const assetOpenControls = [
+            {
+                key: "click",
+                label: window.siyuan.languages.assetOpenClick,
+                control: controlSelect("editor.assetOpen.click", {options: assetOpenOptions}),
+            },
+            {
+                key: "ctrlClick",
+                label: window.siyuan.languages.assetOpenCtrlClick,
+                control: controlSelect("editor.assetOpen.ctrlClick", {options: assetOpenOptions}),
+            },
+            {
+                key: "altClick",
+                label: window.siyuan.languages.assetOpenAltClick,
+                control: controlSelect("editor.assetOpen.altClick", {options: assetOpenOptions}),
+            },
+            {
+                key: "shiftClick",
+                label: window.siyuan.languages.assetOpenShiftClick,
+                control: controlSelect("editor.assetOpen.shiftClick", {options: assetOpenOptions}),
+            },
+        ];
+        group.composite({
+            key: "assetOpen",
+            keywords: [
+                window.siyuan.languages.assetOpen,
+                window.siyuan.languages.assetOpenTip,
+                ...assetOpenControls.map((item) => item.label),
+                ...assetOpenOptions.map((item) => item.label),
+            ],
+            html: () => genStackHtml([
+                {left: {kind: "title", text: window.siyuan.languages.assetOpen}},
+                {left: {kind: "desc", text: window.siyuan.languages.assetOpenTip}},
+                ...assetOpenControls.map((item) => ({
+                    left: {kind: "desc" as const, text: item.label},
+                    right: item.control,
+                })),
+            ] as StackLine[]),
+            controls: assetOpenControls.map((item) => ({
+                control: item.control,
+                save: (value) => editorConfigApi.patch(`assetOpen.${item.key}`, value),
+            })),
+        });
+    }
 };
 
 const bindSpellcheckLanguagesVisibility = async (root: HTMLElement) => {
@@ -101,6 +163,25 @@ const bindSpellcheckLanguagesChips = async (root: HTMLElement) => {
     });
 };
 
+const bindDatabaseAttrSettingsVisibility = (root: HTMLElement) => {
+    const showSwitch = root.querySelector<HTMLInputElement>(`#${CSS.escape("editor.databaseAttrShow")}`);
+    if (!showSwitch) {
+        return;
+    }
+    const toggle = () => {
+        [
+            "editor.databaseAttrClickMode",
+            "editor.databaseAttrViewMode",
+            "editor.databaseAttrHideEmpty",
+            "editor.databaseAttrUseTabs",
+        ].forEach(id => {
+            root.querySelector(`#${CSS.escape(id)}`)?.closest(".config-item")?.classList.toggle("fn__none", !showSwitch.checked);
+        });
+    };
+    showSwitch.addEventListener("change", toggle);
+    toggle();
+};
+
 const registerEditorBlockFeaturesGroup = (tab: SettingTabBuilder) => {
     const group = tab.group("blockFeatures", window.siyuan.languages.configGroupBlockFeatures);
     group.switch("editor.displayNetImgMark", {
@@ -115,6 +196,37 @@ const registerEditorBlockFeaturesGroup = (tab: SettingTabBuilder) => {
         title: window.siyuan.languages.embedBlockBreadcrumb,
         desc: window.siyuan.languages.embedBlockBreadcrumbTip,
     });
+    group.switch("editor.headingNumber", {
+        title: window.siyuan.languages.headingNumber,
+        desc: window.siyuan.languages.headingNumberTip,
+    });
+    group.select("editor.headingNumberFormat", {
+        title: window.siyuan.languages.headingNumberFormat,
+        options: [
+            {value: "decimal-hierarchical", label: "1.2.3"},
+            {value: "upper-alpha-hierarchical", label: "A.B.C"},
+            {value: "lower-alpha-hierarchical", label: "a.b.c"},
+            {value: "upper-roman-hierarchical", label: "I.II.III"},
+            {value: "lower-roman-hierarchical", label: "i.ii.iii"},
+            {value: "upper-greek-hierarchical", label: "Α.Β.Γ"},
+            {value: "lower-greek-hierarchical", label: "α.β.γ"},
+            {value: "decimal-parenthesized", label: "1）"},
+            {value: "chinese-document", label: "一、（一）1."},
+        ],
+    });
+    group.switch("editor.databaseAttrShow", {
+        title: window.siyuan.languages.databaseAttrShow,
+        desc: window.siyuan.languages.databaseAttrShowTip,
+        afterMount: bindDatabaseAttrSettingsVisibility,
+    });
+    group.select("editor.databaseAttrClickMode", {
+        title: window.siyuan.languages.databaseAttrClickMode,
+        desc: window.siyuan.languages.databaseAttrClickModeTip,
+        options: [
+            {value: 0, label: window.siyuan.languages.focusBlockAndExpandDatabasePanel},
+            {value: 1, label: window.siyuan.languages.openBlockAttributePanel},
+        ],
+    });
     group.select("editor.databaseAttrViewMode", {
         title: window.siyuan.languages.databaseAttrViewMode,
         desc: window.siyuan.languages.databaseAttrViewModeTip,
@@ -125,9 +237,11 @@ const registerEditorBlockFeaturesGroup = (tab: SettingTabBuilder) => {
     });
     group.switch("editor.databaseAttrHideEmpty", {
         title: window.siyuan.languages.databaseAttrHideEmpty,
+        desc: window.siyuan.languages.databaseAttrHideEmptyTip,
     });
     group.switch("editor.databaseAttrUseTabs", {
         title: window.siyuan.languages.databaseAttrUseTabs,
+        desc: window.siyuan.languages.databaseAttrUseTabsTip,
     });
     group.select("editor.headingEmbedMode", {
         title: window.siyuan.languages.headingEmbedMode,
@@ -178,6 +292,11 @@ const registerEditorBidirectionalGroup = (tab: SettingTabBuilder) => {
         desc: window.siyuan.languages.md41,
         mode: "textarea",
     });
+    group.textBlock("editor.backlinkMentionExclude", {
+        title: window.siyuan.languages.backlinkMentionExclude,
+        desc: window.siyuan.languages.md41,
+        mode: "textarea",
+    });
     group.switch("editor.backlinkContainChildren", {
         title: window.siyuan.languages.backlinkContainChildren,
         desc: window.siyuan.languages.backlinkContainChildrenTip,
@@ -185,12 +304,13 @@ const registerEditorBidirectionalGroup = (tab: SettingTabBuilder) => {
     if (!isMobile()) {
         group.switch("editor.backlinkShowBottom", {
             title: window.siyuan.languages.backlinkShowBottom,
+            desc: window.siyuan.languages.backlinkShowBottomTip,
         });
     }
     group.number("editor.backlinkExpandCount", {
         title: window.siyuan.languages.backlinkExpand,
         desc: window.siyuan.languages.backlinkExpandTip,
-        min: 0,
+        min: -1,
         max: 512,
     });
     group.number("editor.backmentionExpandCount", {
@@ -198,6 +318,18 @@ const registerEditorBidirectionalGroup = (tab: SettingTabBuilder) => {
         desc: window.siyuan.languages.backmentionExpandTip,
         min: -1,
         max: 512,
+    });
+};
+
+const registerEditorMarkdownBlockGroup = (tab: SettingTabBuilder) => {
+    const group = tab.group("markdownBlock", window.siyuan.languages.configGroupMarkdownBlockSyntax);
+    group.switch("editor.markdown.codeBlockMiddleDot", {
+        title: window.siyuan.languages.codeBlockMiddleDot,
+        desc: window.siyuan.languages.codeBlockMiddleDotTip,
+    });
+    group.switch("editor.markdown.blockFullWidthTaskList", {
+        title: window.siyuan.languages.editorMarkdownBlockFullWidthTaskList,
+        desc: window.siyuan.languages.editorMarkdownBlockFullWidthTaskListTip,
     });
 };
 
@@ -231,6 +363,10 @@ const registerEditorMarkdownInlineGroup = (tab: SettingTabBuilder) => {
         title: window.siyuan.languages.editorMarkdownInlineStrikethrough,
         desc: window.siyuan.languages.editorMarkdownInlineStrikethroughTip,
     });
+    group.switch("editor.markdown.inlineFullWidthStrikethrough", {
+        title: window.siyuan.languages.editorMarkdownInlineFullWidthStrikethrough,
+        desc: window.siyuan.languages.editorMarkdownInlineFullWidthStrikethroughTip,
+    });
     group.switch("editor.markdown.inlineMark", {
         title: window.siyuan.languages.editorMarkdownInlineMark,
         desc: window.siyuan.languages.editorMarkdownInlineMarkTip,
@@ -248,6 +384,10 @@ const registerEditorAdvancedGroup = (tab: SettingTabBuilder) => {
         desc: window.siyuan.languages.katexMacrosTip,
         mode: "textarea",
     });
+    group.switch("editor.dragHTMLFileToIframe", {
+        title: window.siyuan.languages.dragHTMLFileToIframe,
+        desc: window.siyuan.languages.dragHTMLFileToIframeTip,
+    });
     group.switch("editor.allowSVGScript", {
         title: window.siyuan.languages.allowSVGScript,
         desc: window.siyuan.languages.allowSVGScriptTip,
@@ -262,6 +402,7 @@ export const registerEditorTab = (tab: SettingTabBuilder) => {
     registerEditorBehaviorGroup(tab);
     registerEditorBlockFeaturesGroup(tab);
     registerEditorBidirectionalGroup(tab);
+    registerEditorMarkdownBlockGroup(tab);
     registerEditorMarkdownInlineGroup(tab);
     registerEditorAdvancedGroup(tab);
 };

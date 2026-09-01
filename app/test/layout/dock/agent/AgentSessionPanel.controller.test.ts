@@ -6,6 +6,7 @@ const repository = vi.hoisted(() => ({
     save: vi.fn(),
     remove: vi.fn(),
     rename: vi.fn(),
+    setPermission: vi.fn(),
     getRevision: vi.fn(),
     newSessionId: vi.fn(),
 }));

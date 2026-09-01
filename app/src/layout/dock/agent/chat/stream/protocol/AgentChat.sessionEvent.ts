@@ -45,8 +45,9 @@ function projectTextEvent(event: AgentConversationSessionEvent) {
         return {type: event.type, token} satisfies ISSEResult;
     }
     const reasoning = readSessionEventString(event, "reasoning");
+    const roundID = readSessionEventString(event, "roundID");
     if (event.type === "thinking" && reasoning !== null) {
-        return {type: "thinking", reasoning} satisfies ISSEResult;
+        return {type: "thinking", reasoning, ...(roundID ? {roundID} : {})} satisfies ISSEResult;
     }
     if (event.type === "turn" && turnID) {
         return {type: "turn", turnID} satisfies ISSEResult;
@@ -66,12 +67,15 @@ function projectToolEvent(event: AgentConversationSessionEvent) {
     const name = readSessionEventString(event, "name");
     const callID = readSessionEventString(event, "callID");
     const args = readSessionEventRecord(event, "arguments");
+    const roundID = readSessionEventString(event, "roundID");
     if (event.type === "tool_call" && name !== null && callID !== null && args) {
-        return {type: "tool_call", name, callID, arguments: args} satisfies ISSEResult;
+        return {type: "tool_call", name, callID, arguments: args,
+            ...(roundID ? {roundID} : {})} satisfies ISSEResult;
     }
     const result = readSessionEventString(event, "result");
     if (event.type === "tool_result" && name !== null && callID !== null && result !== null) {
-        return {type: "tool_result", name, callID, result} satisfies ISSEResult;
+        return {type: "tool_result", name, callID, result,
+            ...(roundID ? {roundID} : {})} satisfies ISSEResult;
     }
     const progress = readSessionEventToolProgress(event);
     if (event.type === "tool_progress" && name !== null && callID !== null && progress) {
@@ -81,7 +85,8 @@ function projectToolEvent(event: AgentConversationSessionEvent) {
     // 完整确认事件必须同时具备工具名、参数和确认标识，可选 effects 在同一分支内附加。
     if (event.type === "confirm" && name !== null && args && confirmID !== null) {
         const effects = readSessionEventToolEffects(event);
-        return {type: "confirm", name, arguments: args, confirmID, ...(effects ? {effects} : {})} satisfies ISSEResult;
+        return {type: "confirm", name, arguments: args, confirmID,
+            ...(effects ? {effects} : {}), ...(roundID ? {roundID} : {})} satisfies ISSEResult;
     }
     const status = readSessionEventInteractionStatus(event);
     const message = readSessionEventString(event, "message") || "";
@@ -90,11 +95,19 @@ function projectToolEvent(event: AgentConversationSessionEvent) {
     }
     const questionID = readSessionEventString(event, "questionID");
     if (event.type === "question" && args && questionID !== null) {
-        return {type: "question", questionID, arguments: args} satisfies ISSEResult;
+        return {type: "question", questionID, arguments: args,
+            ...(roundID ? {roundID} : {})} satisfies ISSEResult;
     }
     if (event.type === "question_resolved" && questionID !== null && callID !== null && status !== null) {
         return {type: "question_resolved", questionID, callID, status, message,
             answers: readSessionEventStringArray(event.answers) || []} satisfies ISSEResult;
+    }
+    const capabilityID = readSessionEventString(event, "capabilityID");
+    const generation = readSessionEventNumber(event, "generation");
+    if (event.type === "browser_capability_call" && name !== null && callID !== null && args &&
+        capabilityID !== null && generation !== null) {
+        return {type: "browser_capability_call", name, callID, capabilityID, generation,
+            arguments: args} satisfies ISSEResult;
     }
     if (event.type === "frontend_tool_call" && name !== null && callID !== null && args) {
         return {type: "frontend_tool_call", name, callID, arguments: args} satisfies ISSEResult;
@@ -112,9 +125,14 @@ function projectStateEvent(event: AgentConversationSessionEvent) {
     if (event.type === "retry" && attempt !== null && maxRetries !== null) {
         return {type: "retry", attempt, maxRetries} satisfies ISSEResult;
     }
+    const permissionMode = readSessionEventString(event, "permissionMode");
+    if (event.type === "permission" && (permissionMode === "confirm" || permissionMode === "allowSession")) {
+        return {type: "permission", permissionMode} satisfies ISSEResult;
+    }
     const snapshotID = readSessionEventString(event, "snapshotID");
+    const roundID = readSessionEventString(event, "roundID");
     if (event.type === "snapshot" && snapshotID !== null) {
-        return {type: "snapshot", snapshotID} satisfies ISSEResult;
+        return {type: "snapshot", snapshotID, ...(roundID ? {roundID} : {})} satisfies ISSEResult;
     }
     const tokenBreakdown = readSessionEventTokenBreakdown(event);
     const promptTokens = readSessionEventNumber(event, "promptTokens");

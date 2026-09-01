@@ -2,6 +2,24 @@ import {Menu} from "../../../plugin/Menu";
 import {submitAVNumberFormatTransaction} from "../../wysiwyg/transaction/prepared/av/avNumberFormat";
 import {Constants} from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {getAllEditor, getAllModels} from "../../../layout/getAll";
+import {isMobile} from "../../../platform";
+
+const refreshDatabaseAttributePanels = (protyle: IProtyle, avID: string) => {
+    protyle.databaseAttributePanel?.refresh();
+    getAllEditor().forEach((editor) => {
+        if (editor.protyle !== protyle && editor.protyle.databaseAttributePanel?.hasDatabase(avID)) {
+            editor.protyle.databaseAttributePanel.refresh();
+        }
+    });
+    if (!isMobile) {
+        getAllModels().custom.forEach((model) => {
+            if (model.type === "siyuan-database-row" && model.data.avID === avID) {
+                model.update?.();
+            }
+        });
+    }
+};
 
 const addFormatItem = (options: {
     menu: Menu,
@@ -28,7 +46,9 @@ const addFormatItem = (options: {
                 avID: options.avID,
                 format: options.oldFormat,
                 type: "number",
-            }]);
+            }], {
+                callback: () => refreshDatabaseAttributePanels(options.protyle, options.avID),
+            });
             options.avPanelElement.remove();
         }
     });

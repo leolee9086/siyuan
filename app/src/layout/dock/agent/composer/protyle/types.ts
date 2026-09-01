@@ -11,6 +11,12 @@ export interface AgentProtyleComposerRuntime {
     hint: NonNullable<IProtyle["hint"]>;
     history: ComposerHistoryState;
     onSend: () => void;
+    /** 上游编辑态交互配置：占位覆盖、Escape 取消与历史翻阅开关。 */
+    interaction: {
+        placeholder: string | undefined;
+        onCancel: (() => void) | undefined;
+        enableHistory: boolean;
+    };
     suggestion: {
         destroyed: boolean;
         requestRevision: number;

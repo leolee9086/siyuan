@@ -22,7 +22,7 @@ import {removeLoading} from "../protyle/ui/loading";
 // S-forge: 统一 i18n 访问
 import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import {switchSettingPanelSubTab} from "./setting/mount";
-import {openMobileFileById} from "../mobile/editor";
+import {openMobileFileByIdViaPort} from "../plugin/api/openMobileFile.port";
 import {BlockPanel} from "../block/panel/Panel";
 
 /** 资源 Tab 侧栏 / 全局搜索索引文案 */
@@ -215,7 +215,7 @@ const assets = {
                     const blockIDs = JSON.parse(target.getAttribute("data-id")) as string[];
                     if (blockIDs.length > 0) {
                         if (isMobile()) {
-                            openMobileFileById(app, blockIDs[0], [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]);
+                            openMobileFileByIdViaPort(app, blockIDs[0], [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]);
                         } else {
                             window.siyuan.blockPanels.push(new BlockPanel({
                                 app,
@@ -312,7 +312,7 @@ const assets = {
             if (liElement && liElement.getAttribute("data-item") !== assetsListElement.nextElementSibling.getAttribute("data-item")) {
                 const item = liElement.getAttribute("data-item");
                 assetsListElement.nextElementSibling.setAttribute("data-item", item);
-                assetsListElement.nextElementSibling.innerHTML = renderAssetsPreview(item);
+                assetsListElement.nextElementSibling.innerHTML = renderAssetsPreview(liElement.getAttribute("data-path"), item);
             }
         });
         fetchPost("/api/asset/getUnusedAssets", {}, response => {
@@ -322,6 +322,7 @@ const assets = {
     _renderList: (data: {
         item: string,
         name: string,
+        path?: string,
         blockIDs?: string[]
     }[], element: Element, type: "unRefAV" | "unrefAssets" | "lostAssets") => {
         let html = "";
@@ -344,7 +345,7 @@ const assets = {
         <svg><use xlink:href="#iconPictureInPicture"></use></svg>
     </span>`
                 : "";
-            html += `<li data-tab-type="${type}" data-item="${item.item}"  class="b3-list-item${mobile ? "" : " b3-list-item--hide-action"}">
+            html += `<li data-tab-type="${type}" data-item="${escapeAttr(item.item)}" data-path="${escapeAttr(item.path || item.item)}" class="b3-list-item${mobile ? "" : " b3-list-item--hide-action"}">
     <span class="b3-list-item__text">${escapeHtml(item.name || item.item)}</span>
     ${blockPopoverHTML}
     <span data-type="copy" class="ariaLabel b3-list-item__action" aria-label="${type === "unRefAV" ? window.siyuan.languages.copyMirror : window.siyuan.languages.copy}">

@@ -1,4 +1,3 @@
-import * as path from "path";
 import {isElectron} from "../../platform";
 import {matchHotKey} from "../../protyle/util/hotKey";
 import {fetchPost} from "../../util/network/fetch";
@@ -13,13 +12,14 @@ import {openSearchEditor} from "../../search/editor/openSearchEditor";
 import {replace} from "../../search/replace/replace";
 import {getArticle} from "../../search/article/getArticle";
 import {inputEvent} from "../../search/inputEvent";
-import {useShell} from "../../util/file/pathName";
+import {originalPath, useShell} from "../../util/file/pathName";
 import {assetInputEvent, renderPreview} from "../../search/assets";
 import {initSearchMenu} from "../../menus/search";
 import {writeText} from "../../protyle/util/compatibility";
 import {getUnRefList} from "../../search/unRef";
 import {toggleAssetHistory, toggleReplaceHistory, toggleSearchHistory} from "../../search/toggleHistory";
 import type {ProtyleDomain} from "../../protyle/protyle.types";
+import {getKeysByLiElement} from "../../search/menu";
 
 export const searchKeydown = (app: AppFacade, event: KeyboardEvent) => {
     if (getSelection().rangeCount === 0) {
@@ -110,6 +110,9 @@ export const searchKeydown = (app: AppFacade, event: KeyboardEvent) => {
                     }
                 },
                 openPosition: "right",
+                nodeType: currentList.dataset.nodeType,
+                method: config.method,
+                keywords: getKeysByLiElement(currentList),
             });
             return true;
         }
@@ -229,12 +232,15 @@ export const searchKeydown = (app: AppFacade, event: KeyboardEvent) => {
                             dialog.destroy({focus: "false"});
                         }
                     },
+                    nodeType: currentList.dataset.nodeType,
+                    method: config.method,
+                    keywords: getKeysByLiElement(currentList),
                 });
             }
         } else {
             // Electron 桌面端：在文件管理器中显示资源文件
             if (isElectron) {
-                useShell("showItemInFolder", path.join(window.siyuan.config.system.dataDir, currentList.lastElementChild.getAttribute("aria-label")));
+                useShell("showItemInFolder", originalPath().join(window.siyuan.config.system.dataDir, currentList.lastElementChild.getAttribute("aria-label")));
             }
         }
         return true;

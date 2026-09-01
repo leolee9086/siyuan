@@ -8,7 +8,9 @@ import { escapeHtml } from "../util/DOM/escape";
 import {setStorageVal} from "../util/storage/setStorageVal";
 import { confirmDialog } from "../dialog/confirmDialog";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import {isEncryptedBox} from "../util/file/notebook/store";
 import {getDefaultSubType} from "./defaults/searchDefaults";
+
 export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => void) => {
     const filterDialog = new Dialog({
         title: siyuanI18n.searchType,
@@ -408,9 +410,23 @@ const saveCriterionData = (config: Config.IUILayoutTabSearchConfig,
     });
 };
 
+/** 判断搜索配置是否涉及加密笔记本内容，此类条件包含敏感信息，不应持久化保存。 */
+const isSensitiveSearchConfig = (config?: Config.IUILayoutTabSearchConfig) => {
+    if (!config) {
+        return false;
+    }
+    if (config.sensitive) {
+        return true;
+    }
+    return config.idPath?.some((item) => isEncryptedBox(item.split("/")[0])) || false;
+};
+
 export const saveCriterion = (config: Config.IUILayoutTabSearchConfig,
     criteriaData: Config.IUILayoutTabSearchConfig[],
     element: Element) => {
+    if (isSensitiveSearchConfig(config)) {
+        return;
+    }
     const saveDialog = new Dialog({
         title: siyuanI18n.saveCriterion,
         content: `<div class="b3-dialog__content">
@@ -737,7 +753,9 @@ const configIsSame = (config: Config.IUILayoutTabSearchConfig, config2: Config.I
     if (config2.group === config.group && config2.hPath === config.hPath && config2.hasReplace === config.hasReplace &&
         config2.k === config.k && config2.method === config.method && config2.r === config.r &&
         config2.sort === config.sort && objEquals(config2.types, config.types) &&
-        objEquals(config2.replaceTypes, config.replaceTypes) && objEquals(config2.idPath, config.idPath)) {
+        objEquals({...getDefaultSubType(), ...config2.subTypes},
+            {...getDefaultSubType(), ...config.subTypes}) && objEquals(config2.replaceTypes, config.replaceTypes) &&
+        objEquals(config2.idPath, config.idPath)) {
         return true;
     }
     return false;
@@ -772,4 +790,21 @@ export const initCriteriaMenu = (element: HTMLElement, data: Config.IUILayoutTab
 <span class="fn__space"></span>`;
         }
     });
+};
+
+export const getKeysByLiElement = (element: HTMLElement) => {
+    const keys: string[] = [];
+    element.querySelectorAll(".b3-list-item__text mark").forEach(item => {
+        keys.push(item.textContent);
+    });
+    if (keys.length === 0) {
+        element.querySelectorAll(".b3-list-item__meta mark").forEach(item => {
+            keys.push(item.textContent);
+        });
+    }
+    return [...new Set(keys)];
+};
+
+export const getKeyByLiElement = (element: HTMLElement) => {
+    return getKeysByLiElement(element).join(" ");
 };

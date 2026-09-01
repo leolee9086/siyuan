@@ -1,3 +1,6 @@
+/** 用途：约束请求时冻结的浏览器能力声明；使用范围：原生 Agent SSE 请求。 */
+import type {IAgentCapabilityManifest} from "../../frontendCapabilities";
+
 /** Agent 工具对本地数据、外部网络和计费资源的潜在影响。 */
 export interface IToolEffects {
     localRead?: boolean;
@@ -17,20 +20,26 @@ export type ISSEResult = {
 } | {
     type: "content";
     token: string;
+    roundID?: string;
 } | {
     type: "thinking";
     reasoning: string;
+    roundID?: string;
 } | {
     type: "tool_call";
     name: string;
     callID: string;
     arguments: Record<string, unknown>;
+    roundID?: string;
 } | {
     type: "confirm";
     name: string;
     arguments: Record<string, unknown>;
     confirmID: string;
     effects?: IToolEffects;
+    forcedConfirm?: boolean;
+    capabilityID?: string;
+    roundID?: string;
 } | {
     type: "confirm_resolved";
     confirmID: string;
@@ -42,6 +51,7 @@ export type ISSEResult = {
     name: string;
     callID: string;
     result: string;
+    roundID?: string;
 } | {
     type: "tool_progress";
     name: string;
@@ -58,6 +68,7 @@ export type ISSEResult = {
             engine: string;
         }>;
     };
+    roundID?: string;
 } | {
     type: "error";
     message: string;
@@ -83,6 +94,7 @@ export type ISSEResult = {
     type: "question";
     questionID: string;
     arguments: Record<string, unknown>;
+    roundID?: string;
 } | {
     type: "question_resolved";
     questionID: string;
@@ -93,9 +105,21 @@ export type ISSEResult = {
 } | {
     type: "reasoning";
     token: string;
+    roundID?: string;
 } | {
     type: "snapshot";
     snapshotID: string;
+    roundID?: string;
+} | {
+    type: "browser_capability_call";
+    callID: string;
+    name: string;
+    capabilityID: string;
+    generation: number;
+    arguments: Record<string, unknown>;
+} | {
+    type: "permission";
+    permissionMode: "confirm" | "allowSession";
 } | {
     type: "frontend_tool_call";
     callID: string;
@@ -121,6 +145,7 @@ export interface IEditorContext {
 /** 一次原生 Agent SSE 请求的完整输入、生命周期信号与回调出口。 */
 export interface AgentSSERequest {
     message: string;
+    blockHTML?: string;
     language: string;
     references: Array<{id: string; title: string}>;
     onEvent: (event: ISSEResult) => void | Promise<void>;
@@ -132,6 +157,7 @@ export interface AgentSSERequest {
     regenerate?: boolean;
     editorContext?: IEditorContext;
     pluginActions?: Array<{name: string; description: string}>;
+    frontendCapabilities?: IAgentCapabilityManifest[];
     userEntryID?: string;
     contentRevision?: number;
     requestHeaders?: Record<string, string>;

@@ -10,6 +10,8 @@ import {filesize} from "./imports";
 import {hideMessage} from "./imports";
 /** 用途：展示进度与错误；使用范围：完整传输生命周期；解耦评估：经专属网关使用唯一 Dialog 实现。 */
 import {showMessage} from "./imports";
+/** 用途：编码文件名；使用范围：验证、进度和确认 HTML；解耦评估：经专属网关使用共享文本编码器。 */
+import {escapeHtml} from "./imports";
 /** 用途：上传文案；使用范围：验证与确认；解耦评估：经专属网关直达 i18n 环境。 */
 import {siyuanI18n} from "./imports";
 /** 用途：XHR 请求完整上下文；使用范围：状态与进度回调；解耦评估：同域纯类型直达声明。 */
@@ -36,7 +38,7 @@ const checkFile = (file: File, protyle: IProtyle) => {
     if (file.size > protyle.options.upload.max) {
         return {
             validate: false,
-            errorTip: `<li>${file.name} ${siyuanI18n.over} ${protyle.options.upload.max / 1024 / 1024}M</li>`,
+            errorTip: `<li>${escapeHtml(file.name)} ${siyuanI18n.over} ${protyle.options.upload.max / 1024 / 1024}M</li>`,
         };
     }
     const lastIndex = file.name.lastIndexOf(".");
@@ -47,7 +49,7 @@ const checkFile = (file: File, protyle: IProtyle) => {
     const acceptsFile = !protyle.options.upload.accept ||
         protyle.options.upload.accept.split(",").some(item => matchesAcceptedType(file, fileExt, item));
     if (!acceptsFile) {
-        return {validate: false, errorTip: `<li>${file.name} ${siyuanI18n.fileTypeError}</li>`};
+        return {validate: false, errorTip: `<li>${escapeHtml(file.name)} ${siyuanI18n.fileTypeError}</li>`};
     }
     return {validate: true, filename, errorTip: ""};
 };
@@ -64,7 +66,7 @@ const validateFiles = (protyle: IProtyle, files: File[]) => {
             continue;
         }
         uploadFiles.push(file);
-        uploadingText += `<li>${result.filename} ${siyuanI18n.uploading}</li>`;
+        uploadingText += `<li>${escapeHtml(result.filename)} ${siyuanI18n.uploading}</li>`;
     }
     const hasMessage = errorTip !== "" || uploadingText !== "";
     const msgId = hasMessage ? showMessage(`<ul>${errorTip}${uploadingText}</ul>`, -1) : undefined;
@@ -250,7 +252,7 @@ const buildUploadForm = (protyle: IProtyle, files: File[]) => {
         // 超过提示阈值的文件进入发送前确认文案。
         if (Constants.SIZE_UPLOAD_TIP_SIZE <= file.size) {
             confirmation += siyuanI18n.uploadFileTooLarge
-                .replace("${x}", file.name)
+                .replace("${x}", escapeHtml(file.name))
                 .replace("${y}", filesize(file.size, {standard: "iec"})) + "<br>";
         }
     }

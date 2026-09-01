@@ -18,15 +18,18 @@ describe("Router HTTP方法测试", () => {
         url: "/users",
         params: {},
         query: {},
-        headers: {}
+        headers: {},
+        body: undefined
       },
       response: {
         status: 200,
         headers: {},
+        body: undefined,
         set: vi.fn(),
         redirect: vi.fn()
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [],
       set: vi.fn(),

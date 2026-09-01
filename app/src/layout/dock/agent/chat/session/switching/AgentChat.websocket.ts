@@ -51,6 +51,10 @@ export function onWsMessage(runtime: AgentChatRuntime, data: IWebSocketData) {
         runtime.sessionPorts.turnLifecycle.restorePendingEditDraft(runtime);
         return;
     }
+    if (payload.action === "permission") {
+        void reloadFromDisk(runtime);
+        return;
+    }
     // update：会话已落盘变更，重载权威视图；存在待恢复的中断轮次时继续恢复，非锁定态下恢复编辑草稿。
     if (payload.action === "update") {
         void reloadFromDisk(runtime).then(() => settleAfterUpdateReload(runtime, payload));

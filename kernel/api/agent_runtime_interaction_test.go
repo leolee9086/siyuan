@@ -420,7 +420,13 @@ func TestSessionEventExecutorConfirmResolvedRejected(t *testing.T) {
 
 func TestSessionEventExecutorQuestionAPIWakesRealWaiter(t *testing.T) {
 	runAgentSessionEventInteraction(t, "question", map[string]any{
-		"questions": []any{map[string]any{"question": "Continue?", "options": []string{"yes", "no"}}},
+		"questions": []any{map[string]any{
+			"header": "Continue", "question": "Continue?",
+			"options": []any{
+				map[string]any{"label": "yes", "description": "Continue the operation"},
+				map[string]any{"label": "no", "description": "Stop the operation"},
+			},
+		}},
 	}, sessionEventInteraction{
 		eventType: "question", resolvedType: "question_resolved", resolvedStatus: "submitted",
 		handler: func(t *testing.T, sessionID string, event agentSessionEvent) *httptest.ResponseRecorder {

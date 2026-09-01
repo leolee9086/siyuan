@@ -2,7 +2,7 @@
 import { matchHotKey } from "../util/hotKey";
 import { cancelSB } from "../../block/util.cancelSB";
 import {transaction} from "./transaction/submit";
-import {turnsIntoOneTransaction} from "./transaction.turns";
+import {turnsIntoOneTransaction} from "./transaction/turns/container";
 import {updateTransaction} from "./transaction/update";
 import { focusByWbr } from "../util/selection";
 import * as dayjs from "dayjs";

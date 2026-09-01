@@ -13,39 +13,35 @@ import { MenuItem } from "../../menus/Menu.Item";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { genTurnsInto, genTurnsIntoOne } from "./turnInto/items";
+import { genTurnsInto, genTurnsIntoGroups, genTurnsIntoOne } from "./turnInto/items";
+import { getNextBlockSibling } from "../wysiwyg/getBlock";
+import {buildEmptyParagraphTurnIntoMenu} from "./buildGutterTurnIntoMenu";
+import {buildMultipleHeadingTransformMenu} from "./multiHeadingTransform";
 
 /**
  * 检查选中的元素是否包含列表项，以及是否连续
  */
 export const 检查选中元素状态 = (selectsElement: Element[]): { isList: boolean; isContinue: boolean } => {
     let isList = false;
-    let isContinue = false;
-    const 元素数量 = selectsElement.length;
-
-    for (let index = 0; index < 元素数量; index++) {
-        const item = selectsElement[index];
-        if (!item) {
-continue;
-}
-        if (item.classList.contains("li")) {
+    for (const item of selectsElement) {
+        if (item?.classList.contains("li")) {
             isList = true;
             break;
         }
-        const 下一个选中元素 = selectsElement[index + 1];
-        const 下一个兄弟元素 = item.nextElementSibling;
-        const 是连续的 = 下一个兄弟元素 && 下一个选中元素 && 下一个兄弟元素 === 下一个选中元素;
-        if (是连续的) {
-            isContinue = true;
-            continue;
-        }
-        // 非最后一个元素但不连续
-        if (index !== 元素数量 - 1) {
-            isContinue = false;
-            break;
-        }
     }
-
+    // S-Forge: 与上游 18349 保持一致的分组成连续性判定（getNextBlockSibling）
+    const groups: Element[][] = [];
+    selectsElement.forEach((item) => {
+        const currentGroup = groups[groups.length - 1];
+        const previousElement = currentGroup?.[currentGroup.length - 1];
+        if (previousElement && previousElement.parentElement === item.parentElement &&
+            getNextBlockSibling(previousElement) === item) {
+            currentGroup.push(item);
+        } else {
+            groups.push([item]);
+        }
+    });
+    const isContinue = groups.length === 1;
     return { isList, isContinue };
 };
 
@@ -292,6 +288,32 @@ const 构建合并超级块子菜单 = (protyle: IProtyle, selectsElement: Eleme
  * 构建"转换为"菜单
  * 对应原始代码 531-768 行
  */
+const computeGroups = (elements: Element[]): Element[][] => {
+    const groups: Element[][] = [];
+    elements.forEach((item) => {
+        const currentGroup = groups[groups.length - 1];
+        const previousElement = currentGroup?.[currentGroup.length - 1];
+        if (previousElement && previousElement.parentElement === item.parentElement &&
+            getNextBlockSibling(previousElement) === item) {
+            currentGroup.push(item);
+        } else {
+            groups.push([item]);
+        }
+    });
+    return groups;
+};
+
+const 生成分组列表类菜单项 = (protyle: IProtyle, groups: Element[][]): IMenu[] => {
+    const insertKeymap = 获取插入快捷键();
+    return [
+        genTurnsIntoGroups({ menuId: "list", icon: "iconList", label: siyuanI18n.list, protyle, accelerator: insertKeymap.list.custom, selectsElementGroups: groups, type: "Blocks2ULs" }),
+        genTurnsIntoGroups({ menuId: "orderedList", icon: "iconOrderedList", label: siyuanI18n["ordered-list"], accelerator: insertKeymap["ordered-list"].custom, protyle, selectsElementGroups: groups, type: "Blocks2OLs" }),
+        genTurnsIntoGroups({ menuId: "check", icon: "iconCheck", label: siyuanI18n.check, accelerator: insertKeymap.check.custom, protyle, selectsElementGroups: groups, type: "Blocks2TLs" }),
+        genTurnsIntoGroups({ menuId: "quote", icon: "iconQuote", label: siyuanI18n.quote, accelerator: insertKeymap.quote.custom, protyle, selectsElementGroups: groups, type: "Blocks2Blockquote" }),
+        genTurnsIntoGroups({ menuId: "callout", icon: "iconCallout", label: (siyuanI18n as any).callout ?? "Callout", protyle, selectsElementGroups: groups, type: "Blocks2Callout" }),
+    ];
+};
+
 export const 构建转换菜单 = (
     protyle: IProtyle,
     selectsElement: Element[],
@@ -303,21 +325,20 @@ export const 构建转换菜单 = (
         return;
     }
 
-    // 1. 根据是否连续选中构建初始子菜单 (对应原始533-620行)
-    const turnIntoSubmenu: IMenu[] = isContinue
-        ? 生成连续选中初始菜单项(protyle, selectsElement, isContinue)
-        : 生成非连续选中初始菜单项(protyle, selectsElement, isContinue);
+    const groups = computeGroups(selectsElement);
+    const computedIsContinue = groups.length === 1;
+
+    // 1. 上游 18349 语义：非连续选中亦可转换列表/引用/提示块（通过分组事务）
+    const turnIntoSubmenu: IMenu[] = [];
+    turnIntoSubmenu.push(...生成分组列表类菜单项(protyle, groups));
+    turnIntoSubmenu.push(genTurnsInto({ menuId: "paragraph", icon: "iconParagraph", label: siyuanI18n.paragraph, accelerator: 获取标题快捷键().paragraph.custom, protyle, selectsElement, type: "Blocks2Ps", isContinue: computedIsContinue }));
 
     // 2. 添加标题转换菜单项 heading1-6 (对应原始622-687行)
-    turnIntoSubmenu.push(...生成标题菜单项组(protyle, selectsElement, isContinue));
+    turnIntoSubmenu.push(...生成标题菜单项组(protyle, selectsElement, computedIsContinue));
 
-    // 3. 非列表时添加列表转换菜单项 (对应原始688-715行)
-    if (!isList) {
-        turnIntoSubmenu.push(...生成列表转换菜单项组(protyle, selectsElement));
-    }
-
-    // 4. 添加尾部引用和提示块菜单项 (对应原始717-733行)
-    turnIntoSubmenu.push(...生成尾部引用提示块菜单项组(protyle, selectsElement));
+    // 3. 非列表时添加列表转换菜单项 已由分组项覆盖，保留对 isList 语义的兼容（不再单独追加）
+    // 4. 尾部引用提示块已由分组项覆盖
+    turnIntoSubmenu.push(...buildEmptyParagraphTurnIntoMenu(protyle, selectsElement));
 
     // 5. 添加主"转换为"菜单 (对应原始734-740行)
     getSiyuanGlobalMenus().menu.append(new MenuItem({
@@ -328,8 +349,19 @@ export const 构建转换菜单 = (
         submenu: turnIntoSubmenu
     }).element);
 
-    // 6. 添加合并超级块菜单 (对应原始741-768行)
-    添加合并超级块菜单(protyle, selectsElement, isContinue);
+    const multipleHeadingSubmenu = buildMultipleHeadingTransformMenu(protyle, selectsElement);
+    if (multipleHeadingSubmenu.length > 0) {
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
+            id: "tWithSubtitle",
+            icon: "iconRefresh",
+            label: siyuanI18n.tWithSubtitle,
+            type: "submenu",
+            submenu: multipleHeadingSubmenu,
+        }).element);
+    }
+
+    // 6. 添加合并超级块菜单 (对应原始741-768行) - 仍以分组连续性为准
+    添加合并超级块菜单(protyle, selectsElement, computedIsContinue);
 };
 
 /**

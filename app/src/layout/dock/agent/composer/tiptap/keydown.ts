@@ -1,5 +1,7 @@
 /** 用途：约束 Tiptap 编辑器；使用范围：Composer 键盘分派。 */
 import type {Editor} from "./imports";
+/** 用途：匹配可配置发送快捷键；使用范围：发送分派；解耦评估：键位协议经目录网关复用。 */
+import {matchHotKey} from "./imports";
 /** 用途：进入 Composer 历史浏览；使用范围：空输入 ArrowUp；解耦评估：纯状态转换通过目录网关复用。 */
 import {beginComposerHistoryBrowsing} from "./imports";
 /** 用途：判断 Composer 是否存在历史；使用范围：空输入 ArrowUp；解耦评估：纯状态读取通过目录网关复用。 */
@@ -67,7 +69,12 @@ const handleHistoryNavigation = (
     editor: Editor,
     history: ComposerHistoryState,
     event: KeyboardEvent,
+    enableHistory: boolean,
 ) => {
+    // 上游编辑态协议：enableHistory 显式关闭（如用户消息编辑）时不接管方向键。
+    if (!enableHistory) {
+        return false;
+    }
     // 空输入或已在浏览历史时，ArrowUp 才接管当前编辑内容。
     if (event.key === "ArrowUp" && (isBrowsingComposerHistory(history) || isEditorEmpty(editor)) && hasComposerHistory(history)) {
         event.preventDefault();

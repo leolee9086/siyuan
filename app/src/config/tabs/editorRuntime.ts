@@ -1,15 +1,44 @@
 import {Constants} from "../../constants";
 import {getAllEditor, getAllModels} from "../../layout/getAll";
 import {setInlineStyle} from "../../util/assets/setInlineStyle";
+import {invalidateHeadingNumberMeasurements} from "../../protyle/util/headingNumberCore";
+import {renderHeadingNumbers} from "../../protyle/util/headingNumber";
 import {reloadProtyle} from "../../protyle/util/reload";
 import {resize} from "../../protyle/util/resize";
 import {createConfigNamespaceApi} from "../util/namespaceApi";
+import {shouldResetBottomBacklinkPanel} from "./editorRuntimeState";
+import {objEquals} from "../../util/functions";
+import {isMobile} from "../../platform";
+
+/** 失效标题编号度量缓存并逐编辑器重绘，使编号宽度与最新字体设置保持一致 */
+const refreshHeadingNumberMeasurements = () => {
+    invalidateHeadingNumberMeasurements();
+    getAllEditor().forEach(item => renderHeadingNumbers(item.protyle));
+};
 
 const applyEditorConfig = (data: Config.IEditor) => {
+    const refreshKeepLoadedContent = window.siyuan.config.editor.keepLoadedContent !== data.keepLoadedContent;
+    const refreshDatabaseRowLayout = window.siyuan.config.editor.fullWidth !== data.fullWidth;
+    const resetBottomBacklinkPanel = shouldResetBottomBacklinkPanel(window.siyuan.config.editor, data);
+    const refreshHeadingNumbers = window.siyuan.config.editor.headingNumber !== data.headingNumber ||
+        window.siyuan.config.editor.headingNumberFormat !== data.headingNumberFormat;
+    const remeasureHeadingNumbers = window.siyuan.config.editor.fontSize !== data.fontSize ||
+        !objEquals(window.siyuan.config.editor.fontFamilies, data.fontFamilies);
     window.siyuan.config.editor = data;
-    getAllModels().editor.forEach(item => item.updateBacklinkPanel());
+    const models = getAllModels();
+    models.editor.forEach(item => item.updateBacklinkPanel(resetBottomBacklinkPanel));
+    if (refreshDatabaseRowLayout) {
+        models.custom.forEach(item => {
+            if (item.type === "siyuan-database-row") {
+                item.resize?.();
+            }
+        });
+    }
     getAllEditor().forEach((editorItem) => {
         const protyle = editorItem.protyle;
+        if (refreshKeepLoadedContent) {
+            protyle.scroll.keepLoadedContent = data.keepLoadedContent;
+        }
         protyle.databaseAttributePanel?.updateDisplayConfig();
         reloadProtyle(protyle, false);
         let isFullWidth = protyle.wysiwyg.element.getAttribute(Constants.CUSTOM_SY_FULLWIDTH);
@@ -26,8 +55,19 @@ const applyEditorConfig = (data: Config.IEditor) => {
             protyle.contentElement.removeAttribute("data-fullwidth");
         }
     });
+    if (refreshHeadingNumbers) {
+        if (isMobile()) {
+            window.siyuan.mobile.docks.outline?.reload();
+        } else {
+            models.outline.forEach(item => item.refresh());
+        }
+    }
 
-    void setInlineStyle();
+    void setInlineStyle().then(() => {
+        if (remeasureHeadingNumbers) {
+            refreshHeadingNumberMeasurements();
+        }
+    });
 };
 
 /** 编辑器命名空间：设置面板注册项 save、设置面板外入口共用 */

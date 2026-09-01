@@ -78,6 +78,11 @@ function getDragTipState(): DragTipState {
         actionElement: null,
         lastTitle: "",
         lastAction: "",
+        // 提示框当前渲染尺寸，定位计算依赖真实测量值而非估算值
+        width: 0,
+        height: 0,
+        // Alt 拖拽幽灵元素的几何信息，null 表示当前拖拽未启用幽灵跟随
+        ghost: null,
     };
     setSForgeState(SForgeSymbols.DRAG_TIP_STATE, state);
     return state;
@@ -90,6 +95,29 @@ function getDragTipState(): DragTipState {
 const queryHTMLElement = (parent: HTMLElement, selector: string) => {
     const el = parent.querySelector(selector);
     return el instanceof HTMLElement ? el : null;
+};
+
+/**
+ * 计算提示框的视口坐标
+ * 无幽灵时悬浮于光标上方并留出 pointerOffset 间距；
+ * 有幽灵时对齐幽灵元素左上角并留出 gap 间距，使提示框紧贴被拖拽元素
+ */
+const getDragTipPosition = (state: DragTipState) => {
+    const gap = 8;
+    const pointerOffset = 16;
+    if (!state.ghost) {
+        return {
+            left: state.position.x,
+            top: state.position.y - state.height - pointerOffset
+        };
+    }
+
+    const ghostLeft = state.position.x - state.ghost.offsetX;
+    const ghostTop = state.position.y - state.ghost.offsetY;
+    return {
+        left: ghostLeft,
+        top: ghostTop - state.height - gap
+    };
 };
 
 /** 初始化或复用 .drag-tip 元素，将其挂载到 document.body */
@@ -133,6 +161,7 @@ const initDragTipElement = () => {
 const renderDragTip = () => {
     const state = getDragTipState();
     state.rafId = 0;
+    let updateSize = false;
     let element = state.element;
     let titleElement = state.titleElement;
     let actionElement = state.actionElement;
@@ -144,6 +173,7 @@ const renderDragTip = () => {
         actionElement = state.actionElement;
         state.lastTitle = "";
         state.lastAction = "";
+        updateSize = true;
     }
     // 初始化失败时静默跳过（如 document 尚未就绪）
     if (!element || !titleElement || !actionElement) {
@@ -155,14 +185,42 @@ const renderDragTip = () => {
         state.lastTitle = state.title;
         // 名称为空时隐藏上半行
         titleElement.style.display = state.title ? "" : "none";
+        updateSize = true;
     }
     // 操作文案变化时才写入
     if (state.lastAction !== state.action) {
         actionElement.textContent = state.action;
         state.lastAction = state.action;
+        updateSize = true;
     }
-    // 固定偏移到光标右下方，不读取 offsetHeight 以免触发同步布局造成卡顿
-    element.style.transform = `translate(${state.position.x + 16}px, ${state.position.y + 16}px)`;
+    // 内容或元素发生变化时重新测量尺寸，保证上方偏移基于真实高度
+    if (updateSize) {
+        const rect = element.getBoundingClientRect();
+        state.width = rect.width;
+        state.height = rect.height;
+    }
+    const position = getDragTipPosition(state);
+    element.style.transform = `translate(${position.left}px, ${position.top}px)`;
+};
+
+/**
+ * 记录 Alt 拖拽幽灵元素的几何信息
+ * offsetX / offsetY 为光标相对幽灵元素左上角的偏移，用于让提示框跟随幽灵而非光标
+ */
+export const setDragTipGhost = (element: HTMLElement, offsetX: number, offsetY: number) => {
+    const state = getDragTipState();
+    const rect = element.getBoundingClientRect();
+    state.ghost = {
+        width: rect.width,
+        height: rect.height,
+        offsetX,
+        offsetY
+    };
+};
+
+/** 清除幽灵元素几何信息，恢复提示框默认的光标上方定位方式 */
+export const clearDragTipGhost = () => {
+    getDragTipState().ghost = null;
 };
 
 /**
@@ -171,15 +229,16 @@ const renderDragTip = () => {
  *             将数据写入 state 后通过 requestAnimationFrame 异步渲染，
  *             但函数本身仅做同步赋值，不包含异步操作，
  *             转为 async 会不必要地改变调用点签名
+ * position 支持两种形态：{ x, y } 坐标对象，或 x、y 两个数值参数
  */
-export const showDragTip = (title: string, action: string, position: { x: number; y: number }) => {
+export const showDragTip = (title: string, action: string, position: { x: number; y: number } | number, y?: number) => {
     if (isMobile) {
         return;
     }
     const state = getDragTipState();
     state.title = title;
     state.action = action;
-    state.position = position;
+    state.position = typeof position === "number" ? { x: position, y: y ?? 0 } : position;
     // 合并到下一帧渲染，避免高频 dragover 下逐次写 DOM 造成卡顿
     if (!state.rafId) {
         state.rafId = requestAnimationFrame(renderDragTip);
@@ -252,5 +311,8 @@ export const hideDragTip = () => {
     state.actionElement = null;
     state.lastTitle = "";
     state.lastAction = "";
+    state.width = 0;
+    state.height = 0;
+    state.ghost = null;
     hideCaretLine();
 };

@@ -29,7 +29,8 @@ export interface EditorDomain<
         readonly kind: "document-root";
         readonly value: string | undefined;
     };
-    updateBacklinkPanel(): void;
+    updateBacklinkPanel(reset?: boolean): void;
+    refreshBottomBacklinkPanel(): void;
     destroy(): void;
     getCurrentProtyle(range?: Range): IProtyle;
 }

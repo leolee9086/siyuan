@@ -10,6 +10,7 @@ export interface IBazaarData {
     widgets: IBazaarItem[];
     plugins: IBazaarItem[];
     downloaded: IBazaarItem[];
+    downloadedDefault: IBazaarItem[];
     update: {
         themes: IBazaarItem[];
         templates: IBazaarItem[];

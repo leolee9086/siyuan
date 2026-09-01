@@ -159,6 +159,7 @@ export interface AgentChatRuntime {
     currentAssistantEntryId: string;
     currentThinkingEntryId: string;
     currentTurnID: string;
+    currentRoundID: string;
     recoveryCommitTurnIDs: Map<string, string>;
     pendingRecoverySessionIDs: Set<string>;
     recoveryInFlightSessionIDs: Set<string>;
@@ -197,6 +198,8 @@ export interface AgentChatRuntime {
     modelOptionsSignature: string;
     reasoningEffortSelect: HTMLSelectElement;
     selectedReasoningEffort: string;
+    permissionSelect: HTMLSelectElement;
+    permissionMode: NonNullable<AgentSession["permissionMode"]>;
     userScrolledUp: boolean;
     programmaticScroll: boolean;
     stickResizeObserver: ResizeObserver | null;

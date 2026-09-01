@@ -1,7 +1,7 @@
-/** 用途：拼接 Electron 资源路径；使用范围：资源双击；解耦评估：直达标准 path 包。 */
-import * as path from "path";
-/** 导出路径工具。 */
-export {path};
+/** 用途：拼接 Electron 资源路径；使用范围：资源双击；解耦评估：经路径边界按需取得原生实现。 */
+import {originalPath} from "../../../../util/file/pathName";
+/** 导出原生路径入口。 */
+export {originalPath};
 
 /** 用途：双击阈值与搜索存储键；使用范围：列表交互；解耦评估：直达稳定协议常量。 */
 import {Constants} from "../../../../constants";
@@ -47,6 +47,11 @@ export {renderNextSearchMark};
 import {getArticle} from "../../../article/getArticle";
 /** 导出文章预览。 */
 export {getArticle};
+
+/** 用途：提取列表项搜索关键词；使用范围：数据库搜索结果直达打开；解耦评估：直达 Search Menu 唯一实现。 */
+import {getKeysByLiElement} from "../../../menu";
+/** 导出关键词提取。 */
+export {getKeysByLiElement};
 
 /** 用途：严格识别输入框；使用范围：资源查询；解耦评估：直达同一 Search 组合域守卫。 */
 import {isHTMLInputElement} from "../search.guard";

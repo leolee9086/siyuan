@@ -16,15 +16,18 @@ describe("Router中间件错误处理测试", () => {
         url: "/users/123",
         params: {},
         query: {},
-        headers: {}
+        headers: {},
+        body: undefined
       },
       response: {
         status: 200,
         headers: {},
+        body: undefined,
         set: vi.fn(),
         redirect: vi.fn()
       },
       status: 200,
+      body: undefined,
       params: {},
       captures: [],
       set: vi.fn(),

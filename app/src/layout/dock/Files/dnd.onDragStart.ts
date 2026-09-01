@@ -1,7 +1,7 @@
 import { Constants } from "../../../constants";
 import { hideTooltip } from "../../../dialog/tooltip";
 import { hasClosestByTag } from "../../../protyle/util/hasClosest";
-import { transparentImgSrc } from "../../../protyle/util/dragTip";
+import { setDragTipGhost } from "../../../protyle/util/dragTip";
 import { getSelection } from "../../../util/DOM/selection/range.global";
 import { setSiyuanDragElement } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isStylableElement } from "../../../util/DOM/element.guard";
@@ -49,15 +49,8 @@ export const onDragStart = (files: FilesDomain, event: DragEvent) => {
     }
     const { ghostElement, ids } = createDragPreview(selectElements);
     if (event.dataTransfer) {
-        if (window.siyuan.touchDragActive) {
-            // 触屏保留 DOM ghost 供 touchDragBridge 跟随手指。
-            event.dataTransfer.setDragImage(ghostElement, 16, 16);
-        } else {
-            // 桌面端隐藏原生 ghost，改用全局自定义拖拽提示。
-            const transparentImg = new Image();
-            transparentImg.src = transparentImgSrc;
-            event.dataTransfer.setDragImage(transparentImg, 0, 0);
-        }
+        setDragTipGhost(ghostElement, 16, 16);
+        event.dataTransfer.setDragImage(ghostElement, 16, 16);
         event.dataTransfer.setData(Constants.SIYUAN_DROP_FILE, ids);
         event.dataTransfer.dropEffect = "move";
     }

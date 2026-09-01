@@ -18,6 +18,14 @@ import {
 } from "../util/hasClosest";
 import { hideElements } from "./hideElements";
 import {highlightGutterButtonTarget} from "./gutterHover";
+import {callMobileAppShowKeyboard} from "../../mobile/keyboard/mobileAppUtil";
+
+const focusMobileAppEditor = (element: HTMLElement) => {
+    if (window.JSAndroid?.showKeyboard || window.JSHarmony?.showKeyboard) {
+        element.focus();
+        callMobileAppShowKeyboard();
+    }
+};
 
 /**
  * 处理字体大小增减
@@ -166,11 +174,12 @@ const 处理底部点击创建空块 = (protyle: IProtyle, event: MouseEvent & {
             action: "delete",
             id: emptyElement.getAttribute("data-node-id")
         }]);
-        const emptyEditElement = getContenteditableElement(emptyElement);
+        const emptyEditElement = getContenteditableElement(emptyElement) as HTMLElement;
         if (emptyEditElement) {
             range.selectNodeContents(emptyEditElement);
             range.collapse(true);
             focusByRange(range);
+            focusMobileAppEditor(emptyEditElement);
         }
         // 需等待 range 更新再次进行渲染
         if (protyle.options.render?.breadcrumb) {
@@ -183,9 +192,10 @@ const 处理底部点击创建空块 = (protyle: IProtyle, event: MouseEvent & {
     }
 
     if (lastEditElement) {
-        range.selectNodeContents(lastEditElement);
+        range.selectNodeContents(lastEditElement as HTMLElement);
         range.collapse(false);
         focusByRange(range);
+        focusMobileAppEditor(lastEditElement as HTMLElement);
         protyle.toolbar.range = range;
     }
 };

@@ -20,7 +20,7 @@ export const CSS_CLASSES = {
  * @param className CSS类名
  * @returns CSS选择器
  */
-export const createSelector = async (className: string) => {
+export const createSelector = (className: string) => {
     return `.${className}`;
 };
 

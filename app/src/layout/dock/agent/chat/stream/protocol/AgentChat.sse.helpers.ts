@@ -46,14 +46,20 @@ import {appendReasoning} from "./imports";
 import {appendRetry} from "./imports";
 /** 用途：执行前端工具；使用范围：前端工具事件。解耦评估：需访问浏览器能力，保持模块导入，边界清晰。 */
 import {handleFrontendToolCall} from "./imports";
+/** 用途：执行已声明的浏览器能力；使用范围：browser_capability_call 事件。 */
+import {handleBrowserCapabilityCall} from "./imports";
 /** 用途：切换流式状态；使用范围：事件处理器异常恢复。解耦评估：命令函数保持导入即可，无额外硬耦合。 */
 import {setStreaming} from "./imports";
 
 /** `handleToolCall` 负责流式响应流程中的对应步骤，由上层流程或事件回调调用并集中维护状态变化。 */
 function handleToolCall(runtime: AgentChatRuntime, event: Extract<ISSEResult, {type: "tool_call"}>) {
+    if (event.roundID) {
+        runtime.currentRoundID = event.roundID;
+    }
     runtime.currentToolCalls.push({
         id: event.callID,
         name: event.name,
+        ...(event.roundID ? {roundID: event.roundID} : {}),
         arguments: event.arguments,
         state: "executing",
     });
@@ -67,6 +73,9 @@ function handleToolResult(runtime: AgentChatRuntime, event: Extract<ISSEResult, 
     if (toolCall) {
         toolCall.result = event.result;
         toolCall.state = "completed";
+        if (event.roundID) {
+            toolCall.roundID = event.roundID;
+        }
     }
     finishToolCall(runtime, event.name);
     applyToolCardEvent(runtime, event);
@@ -85,9 +94,10 @@ async function handleErrorEvent(runtime: AgentChatRuntime, message: string) {
 }
 
 /** `handleSnapshot` 负责流式响应流程中的对应步骤，由上层流程或事件回调调用并集中维护状态变化。 */
-function handleSnapshot(runtime: AgentChatRuntime, snapshotID: string) {
+function handleSnapshot(runtime: AgentChatRuntime, snapshotID: string, roundID?: string) {
     const snapshotEntryId = runtime.sessionPorts.repository.newSessionId();
-    runtime.entries.push({id: snapshotEntryId, type: "snapshot", snapshotID});
+    runtime.entries.push({id: snapshotEntryId, type: "snapshot", snapshotID,
+        ...(roundID ? {roundID} : {})});
     appendSnapshotInfo(runtime, snapshotID, snapshotEntryId);
 }
 
@@ -105,7 +115,7 @@ function dispatchTextSSEEvent(runtime: AgentChatRuntime, event: ISSEResult) {
     }
     // 条件 event.type === "thinking" 成立时才执行此分支，避免影响其它会话或响应阶段。
     if (event.type === "thinking") {
-        appendThinking(runtime, event.reasoning);
+        appendThinking(runtime, event.reasoning, event.roundID || "");
         return true;
     }
     // 条件 event.type === "reasoning" 成立时才执行此分支，避免影响其它会话或响应阶段。
@@ -155,7 +165,7 @@ function dispatchToolSSEEvent(runtime: AgentChatRuntime, event: ISSEResult) {
     }
     // 条件 event.type === "question" 成立时才执行此分支，避免影响其它会话或响应阶段。
     if (event.type === "question") {
-        appendQuestion(runtime, event.questionID, event.arguments);
+        appendQuestion(runtime, event.questionID, event.arguments, event.roundID);
         return true;
     }
     // question_resolved 同时投影服务端状态与答案，确保持久化卡片可准确重建。
@@ -187,9 +197,14 @@ function dispatchStateSSEEvent(runtime: AgentChatRuntime, event: ISSEResult) {
         appendRetry(runtime, event.attempt, event.maxRetries);
         return true;
     }
+    if (event.type === "permission") {
+        runtime.permissionMode = event.permissionMode;
+        runtime.permissionSelect.value = event.permissionMode;
+        return true;
+    }
     // 条件 event.type === "snapshot" 成立时才执行此分支，避免影响其它会话或响应阶段。
     if (event.type === "snapshot") {
-        handleSnapshot(runtime, event.snapshotID);
+        handleSnapshot(runtime, event.snapshotID, event.roundID);
         return true;
     }
     return false;
@@ -216,6 +231,11 @@ export async function dispatchSSEEvent(runtime: AgentChatRuntime, event: ISSERes
     // 条件 event.type === "interrupted" 成立时才执行此分支，避免影响其它会话或响应阶段。
     if (event.type === "interrupted") {
         await handleError(runtime, new Error(event.message));
+        return;
+    }
+    // 浏览器能力必须立即执行并回传，内核会在该结果到达前暂停当前工具调用。
+    if (event.type === "browser_capability_call") {
+        await handleBrowserCapabilityCall(runtime, event.callID, event.capabilityID, event.generation, event.arguments);
         return;
     }
     // 前述分派器已消费其他同步事件，剩余的前端工具事件交给浏览器能力处理。

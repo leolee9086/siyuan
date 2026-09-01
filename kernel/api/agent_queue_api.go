@@ -20,19 +20,20 @@ import (
 )
 
 type agentQueuedInputReq struct {
-	InputID         string               `json:"inputID"`
-	SessionID       string               `json:"sessionID"`
-	UserEntryID     string               `json:"userEntryID"`
-	Message         string               `json:"message"`
-	BlockHTML       string               `json:"blockHTML,omitempty"`
-	Language        string               `json:"language"`
-	References      []agent.Reference    `json:"references"`
-	EditorContext   agent.EditorContext  `json:"editorContext"`
-	PluginActions   []agent.PluginAction `json:"pluginActions"`
-	Model           string               `json:"model,omitempty"`
-	ReasoningEffort string               `json:"reasoningEffort,omitempty"`
-	Regenerate      bool                 `json:"regenerate,omitempty"`
-	ContentRevision int64                `json:"contentRevision,omitempty"`
+	InputID              string                     `json:"inputID"`
+	SessionID            string                     `json:"sessionID"`
+	UserEntryID          string                     `json:"userEntryID"`
+	Message              string                     `json:"message"`
+	BlockHTML            string                     `json:"blockHTML,omitempty"`
+	Language             string                     `json:"language"`
+	References           []agent.Reference          `json:"references"`
+	EditorContext        agent.EditorContext        `json:"editorContext"`
+	PluginActions        []agent.PluginAction       `json:"pluginActions"`
+	FrontendCapabilities []agent.FrontendCapability `json:"frontendCapabilities"`
+	Model                string                     `json:"model,omitempty"`
+	ReasoningEffort      string                     `json:"reasoningEffort,omitempty"`
+	Regenerate           bool                       `json:"regenerate,omitempty"`
+	ContentRevision      int64                      `json:"contentRevision,omitempty"`
 }
 
 type agentSteerReq struct {
@@ -357,9 +358,10 @@ func buildAgentSessionEventInput(req agentQueuedInputReq, ownerAuth *agentOwnerA
 		contentRevision = req.ContentRevision
 	}
 	params, err := buildAgentTurnParams(agentTurnRequestOptions{
-		ModelID: req.Model, UserEntryID: req.UserEntryID, BlockHTML: req.BlockHTML, ContentRevision: contentRevision,
+		ModelID: req.Model, UserEntryID: req.UserEntryID, BlockHTML: &req.BlockHTML, ContentRevision: contentRevision,
 		Language: req.Language, References: req.References, EditorContext: req.EditorContext,
-		PluginActions: req.PluginActions, Regenerate: req.Regenerate, ReasoningEffort: req.ReasoningEffort,
+		PluginActions: req.PluginActions, FrontendCapabilities: req.FrontendCapabilities,
+		Regenerate: req.Regenerate, ReasoningEffort: req.ReasoningEffort,
 	}, ownerAuth)
 	if err != nil {
 		return nil, nil, err

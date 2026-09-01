@@ -132,6 +132,8 @@ const createRecentDocsDialog = (
 <div class="fn__flex-center">
     <select class="b3-select" id="recentDocsSort">
         <option value="viewedAt">${siyuanI18n.recentViewed}</option>
+        <!-- 上游合并：新增按创建时间排序选项 -->
+        <option value="created">${siyuanI18n.recentCreated}</option>
         <option value="updated">${siyuanI18n.recentModified}</option>
         <option value="openAt">${siyuanI18n.recentOpened}</option>
         <option value="closedAt">${siyuanI18n.recentClosed}</option>

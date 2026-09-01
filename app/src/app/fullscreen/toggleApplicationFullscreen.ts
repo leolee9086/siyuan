@@ -28,41 +28,40 @@ import {setSiyuanEditorIsFullscreen} from "./imports";
 import type {LayoutWindow} from "./imports";
 
 /** 更新独立窗口顶部可拖拽区域。 */
-function updateHeaderDragRegion(item: LayoutWindow, isFullscreen: boolean) {
+function updateHeaderDragRegion(item: LayoutWindow, enter: boolean) {
     const headerElement = item.headersElement.parentElement;
     if (!headerElement || headerElement.getBoundingClientRect().top > 0) {
         return false;
     }
     const readonlyElement = headerElement.querySelector(".item--readonly .fn__flex-1");
-    // 只有只读标题占位节点承担 Electron 拖拽区域，普通标题保持原交互。
+    // 全屏内容覆盖标题区域时取消拖拽，退出后恢复。
     if (readonlyElement instanceof HTMLElement) {
-        readonlyElement.style.WebkitAppRegion = isFullscreen ? "drag" : "";
+        readonlyElement.style.WebkitAppRegion = enter ? "" : "drag";
         return true;
     }
     return false;
 }
 
 /** 查找顶部窗口并同步拖拽区域。 */
-function updateLayoutDragRegion(isFullscreen: boolean) {
+function updateLayoutDragRegion(enter: boolean) {
     const windows: LayoutWindow[] = [];
     const layout = getSiyuanLayout()?.layout;
     if (layout) {
         getAllWnds(layout, windows);
     }
-    windows.find((item) => updateHeaderDragRegion(item, isFullscreen));
+    windows.find((item) => updateHeaderDragRegion(item, enter));
 }
 
 /** 同步桌面窗口控件层级。 */
-function updateWindowControlsZIndex(isFullscreen: boolean) {
+function updateWindowControlsZIndex(enter: boolean) {
     if ("darwin" === getSiyuanConfig()?.system.os || isWindow()) {
         return;
     }
     const controls = document.getElementById("windowControls");
-    // 进入全屏时清除控件自定义层级，让全屏内容按既有层叠顺序覆盖。
-    if (isFullscreen && controls) {
-        controls.style.zIndex = "";
-    }
-    if (isFullscreen) {
+    if (!enter) {
+        if (controls) {
+            controls.style.zIndex = "";
+        }
         return;
     }
     incrementSiyuanZIndex();
@@ -72,26 +71,26 @@ function updateWindowControlsZIndex(isFullscreen: boolean) {
 }
 
 /** 同步桌面窗口的全屏外观。 */
-function updateWindowUI(isFullscreen: boolean) {
+function updateWindowUI(enter: boolean) {
     if (isMobile) {
         return;
     }
     // 独立窗口存在自绘标题栏，需同步顶部可拖拽区域。
     if (isWindow()) {
-        updateLayoutDragRegion(isFullscreen);
+        updateLayoutDragRegion(enter);
     }
-    updateWindowControlsZIndex(isFullscreen);
+    updateWindowControlsZIndex(enter);
 }
 
 /** 同步触发按钮与浮动 Dock 变换。 */
-function updateButtonAndDock(element: Element, button: Element, isFullscreen: boolean) {
+function updateButtonAndDock(element: Element, button: Element, enter: boolean) {
     const useElement = button.querySelector("use");
-    useElement?.setAttribute("xlink:href", isFullscreen ? "#iconFullscreen" : "#iconFullscreenExit");
+    useElement?.setAttribute("xlink:href", enter ? "#iconFullscreenExit" : "#iconFullscreen");
     const dockLayout = hasClosestByClassName(element, "layout--float");
     if (!dockLayout) {
         return;
     }
-    if (isFullscreen) {
+    if (enter) {
         dockLayout.setAttribute("data-temp", dockLayout.style.transform);
         dockLayout.style.transform = "none";
         return;
@@ -101,13 +100,13 @@ function updateButtonAndDock(element: Element, button: Element, isFullscreen: bo
 }
 
 /** 同步普通编辑器全屏状态并关闭其它全屏编辑器。 */
-function syncEditors(element: Element, isFullscreen: boolean) {
+function syncEditors(element: Element, enter: boolean) {
     if (isMobile) {
         return;
     }
     // 仅普通 Protyle 全屏参与全局编辑器状态；Graph/Card 等按钮式全屏不修改该标记。
     if (element.classList.contains("protyle")) {
-        setSiyuanEditorIsFullscreen(!isFullscreen);
+        setSiyuanEditorIsFullscreen(enter);
     }
     for (const item of getAllModels().editor) {
         // 全局只允许当前目标编辑器保持全屏，其它实例恢复尺寸。
@@ -118,18 +117,25 @@ function syncEditors(element: Element, isFullscreen: boolean) {
     }
 }
 
-/** 切换应用工作区元素全屏并同步窗口、Dock、按钮与其它编辑器。 @同步豁免: UI构建 */
-export function toggleApplicationFullscreen(element: Element, button?: Element) {
+/** 显式设置应用工作区元素的全屏状态；状态未变化时返回 false。 @同步豁免: UI构建 */
+export function setApplicationFullscreen(element: Element, enter: boolean, button?: Element) {
+    if (element.classList.contains("fullscreen") === enter) {
+        return false;
+    }
     // CSS 全屏过渡由 TIMEOUT_TRANSITION 统一定义；结束后再清理 gutter，避免动画中闪烁。
     setTimeout(() => hideAllElements(["gutter"]), Constants.TIMEOUT_TRANSITION);
-    const isFullscreen = element.className.includes("fullscreen");
-    element.classList.toggle("fullscreen", !isFullscreen);
-    const dragElement = document.getElementById("drag");
-    dragElement?.classList.toggle("fn__hidden", !isFullscreen);
-    updateWindowUI(isFullscreen);
+    element.classList.toggle("fullscreen", enter);
+    document.getElementById("drag")?.classList.toggle("fn__hidden", enter);
+    updateWindowUI(enter);
     if (button) {
-        updateButtonAndDock(element, button, isFullscreen);
-        return;
+        updateButtonAndDock(element, button, enter);
+        return true;
     }
-    syncEditors(element, isFullscreen);
+    syncEditors(element, enter);
+    return true;
+}
+
+/** 切换应用工作区元素全屏并同步窗口、Dock、按钮与其它编辑器。 @同步豁免: UI构建 */
+export function toggleApplicationFullscreen(element: Element, button?: Element) {
+    return setApplicationFullscreen(element, !element.classList.contains("fullscreen"), button);
 }

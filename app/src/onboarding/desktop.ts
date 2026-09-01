@@ -2,6 +2,10 @@
 import {Constants} from "./imports";
 /** 用途：桌面文档导航；使用范围：桌面引导入口；解耦评估：宿主专属行为留在桌面模块。 */
 import {openFileById} from "./imports";
+/** 用途：读取当前编辑器页签；使用范围：避免会话恢复时重复打开引导文档。 */
+import {getAllTabs} from "./imports";
+/** 用途：读取启动 URI 文档标识；使用范围：避免 URI 导航与引导文档竞争。 */
+import {parseUriInfo} from "./imports";
 /** 用途：笔记本准备生命周期；使用范围：桌面引导激活；解耦评估：复用唯一实现。 */
 import {setNoteBook} from "./imports";
 /** 用途：桌面数据迁移入口；使用范围：引导导入动作；解耦评估：明确选择桌面宿主语义。 */
@@ -33,23 +37,36 @@ const renderDesktopOnboarding = (app: AppFacade) => {
     containerElement.append(element);
 };
 
-/** 打开桌面引导文档并挂载操作区；由动画帧回调调用以等待当前布局写入完成。 */
+let openingOnboardingDocument = false;
+
+/** 打开桌面引导文档并挂载操作区；延时回调会重新检查状态，避免与会话恢复竞争。 */
 const showDesktopOnboarding = (app: AppFacade) => {
-    openFileById({
+    if (!shouldShowOnboarding()) {
+        return;
+    }
+    renderDesktopOnboarding(app);
+    if (getAllTabs("Editor").length > 0 || parseUriInfo().id || openingOnboardingDocument) {
+        return;
+    }
+    openingOnboardingDocument = true;
+    void openFileById({
         app,
         id: getSiyuanConfig().onboarding.documentID,
         action: [Constants.CB_GET_FOCUSFIRST],
+    }).finally(() => {
+        openingOnboardingDocument = false;
+    }).catch((error: unknown) => {
+        console.warn("open onboarding document failed", error);
     });
-    renderDesktopOnboarding(app);
 };
 
-/** 在桌面宿主打开引导文档，并于下一动画帧挂载引导操作区。 */
-/** @同步豁免: UI构建 - 入口必须立即安排下一帧打开任务，调用方不等待异步结果且原行为为同步调度。 */
+/** 在桌面宿主延时检查并打开引导，给布局与会话恢复留出完成时间。 */
+/** @同步豁免: UI构建 - 入口立即安排异步打开任务，调用方不等待结果。 */
 export const openDesktopOnboarding = (app: AppFacade) => {
     if (!shouldShowOnboarding()) {
         return;
     }
-    window.requestAnimationFrame(() => showDesktopOnboarding(app));
+    window.setTimeout(() => showDesktopOnboarding(app));
 };
 
 /** 应用内核推送的桌面引导状态，完成笔记本准备后打开桌面引导。 */

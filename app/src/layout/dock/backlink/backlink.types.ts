@@ -64,6 +64,7 @@ export interface BacklinkDomain<
     markDirty(): void;
     refreshIfVisible(): void;
     refreshDirty(): void;
+    switchBlock(blockId: string, rootId: string, notebookId: string): void;
     executeKeyboardToolbarAction(action: "expand" | "collapse"): void;
     activateTreeItem(item: HTMLElement, trigger: BacklinkUserTrigger): void;
     toggleTreeItem(item: HTMLElement, trigger: BacklinkUserTrigger): void;

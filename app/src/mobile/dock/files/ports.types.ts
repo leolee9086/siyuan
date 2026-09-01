@@ -39,7 +39,7 @@ export interface MobileFilesSelectionPort {
         data?: MobileFilesListData,
         setStorage?: boolean,
         isSetCurrent?: boolean,
-    ): Promise<HTMLElement | undefined>;
+    ): Promise<HTMLElement | null | undefined>;
 }
 
 /** 提供展开路径持久化能力。 */
@@ -60,9 +60,14 @@ export interface MobileFilesEventPort extends MobileFilesElementPort, MobileFile
 /** 文件列表渲染所需的最小能力集合。 */
 export interface MobileFilesRenderPort extends MobileFilesElementPort, MobileFilesActionsElementPort,
     MobileFilesSelectionPort, MobileFilesPublishAccessPort {
+    restoreMovedExpandedItems(listElement: Element, notebookId: string): void;
 }
 
 /** WebSocket DOM 更新所需的最小能力集合。 */
 export interface MobileFilesWebSocketPort extends MobileFilesElementPort, MobileFilesClosedElementPort,
     MobileFilesLeafPort {
+    recordMovedExpandedDocIDs(ids: Iterable<string>): void;
+    restoreMovedExpandedItems(listElement: Element, notebookId: string): void;
+    updateDocActionElement(liElement: HTMLElement): void;
+    persistOpenPaths(): void;
 }

@@ -2,6 +2,7 @@ import { Constants } from "../../constants";
 import { replaceFileName } from "../../editor/rename";
 import { fetchPost } from "../../util/network/fetch";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {escapeHtml, escapeSearchHighlight, stripSearchMark} from "../../util/DOM/escape";
 import { hasClosestBlock } from "../util/hasClosest";
 import { getEditorRange } from "../util/selection";
 import {genHintItemHTML} from "./result/item";
@@ -25,14 +26,14 @@ const genNewFileItem = (k: string) => {
  * @returns 块引用的HTML字符串
  */
 const genBlockRefValue = (item: IBlock, key: string, source: THintSource, nodeElement?: Element): string => {
-    const refText = item.name || (item.refText ? item.refText.replace(new RegExp(Constants.ZWSP, "g"), "") : "*");
+    const refText = item.name ? stripSearchMark(escapeSearchHighlight(item.name)) : (item.refText ? item.refText.replace(new RegExp(Constants.ZWSP, "g"), "") : "*");
 
     if (source === "search") {
         return `<span data-type="block-ref" data-id="${item.id}" data-subtype="s">${key}${Constants.ZWSP}${refText}</span>`;
     } else if (source === "av") {
         let avRefText = refText;
         if (nodeElement) {
-            avRefText = item.ial["custom-sy-av-s-text-" + nodeElement.getAttribute("data-av-id")] || avRefText;
+            avRefText = escapeHtml(item.ial["custom-sy-av-s-text-" + nodeElement.getAttribute("data-av-id")] || "") || avRefText;
         }
         return `<span data-type="block-ref" data-id="${item.id}" data-subtype="s">${avRefText}</span>`;
     } else {

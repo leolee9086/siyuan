@@ -1,5 +1,5 @@
 import {submitAVColumnEditTransaction} from "../../../wysiwyg/transaction/prepared/av/avColumnEdit";
-import {updateAttrViewCellAnimation} from "../action/animation";
+import {updateAttrViewColAnimation} from "../action/animation";
 import {escapeHtml} from "../../../../util/DOM/escape";
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import type {IBindEditContext} from "./col.editPanel.bind.types";
@@ -22,11 +22,7 @@ export const bindNameEvents = (ctx: IBindEditContext): void => {
             id: colId, avID, name: colData.name, type: colData.type,
         }]);
         colData.name = newValue;
-        const headerCell = ctx.protyle.wysiwyg?.element.querySelector(`.av__row--header .av__cell[data-col-id="${colId}"]`);
-        // 表头单元格存在时同步名称动画
-        if (headerCell instanceof HTMLElement) {
-            updateAttrViewCellAnimation(headerCell, undefined, {name: newValue});
-        }
+        updateAttrViewColAnimation(ctx.protyle, avID, colId, {name: newValue});
     });
     // @内联回调
     nameElement.addEventListener("keydown", (event: KeyboardEvent) => {

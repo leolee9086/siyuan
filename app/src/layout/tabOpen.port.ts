@@ -12,7 +12,7 @@ import type {ILayoutTabOpenRequest} from "./tabOpen.types";
 /** 用途：共享普通 Tab Port 类型；使用范围：导出与宿主能力契约；解耦评估：纯类型依赖。 */
 import type {ILayoutTabOpenPort} from "./tabOpen.types";
 /** 用途：在 Port 边界把全局 Symbol 注册表的弱类型值恢复为强类型能力契约；使用范围：Port 读取；解耦评估：类型守卫集中在 guard 文件，避免业务文件直接断言。 */
-import {asLayoutTabOpenPort} from "./tabOpen.guard";
+import {asLayoutTabOpenPort, buildTabOpenRequest} from "./tabOpen.guard";
 
 /** 导出普通 Tab 打开能力和请求载荷的公共类型。 */
 export type {ILayoutTabOpenPort, ILayoutTabOpenRequest} from "./tabOpen.types";
@@ -39,10 +39,35 @@ export const resetLayoutTabOpenPort = () => {
     setSForgeState(SForgeSymbols.TAB_OPEN_PORT, undefined);
 };
 
+/** 普通 Tab 打开请求的订阅集合，供无宿主或宿主拒绝时的事件回退。 */
+const tabOpenRequestListeners = new Set<(request: ILayoutTabOpenRequest) => void>();
+
+/**
+ * 订阅普通 Tab 打开请求的验证后事件。
+ * 宿主未注册或返回 false 时，requestOpenTabAsTab 会构造 ILayoutTabOpenRequest 并同步分发给所有订阅者。
+ * 返回的函数用于取消订阅。
+ */
+/** @同步豁免: 事件订阅 - 订阅必须同步注册，确保同一 tick 内的请求不会丢失监听。 */
+export const subscribeTabOpenRequest = (
+    listener: (request: ILayoutTabOpenRequest) => void
+) => {
+    tabOpenRequestListeners.add(listener);
+    return () => {
+        tabOpenRequestListeners.delete(listener);
+    };
+};
+
+/** 向所有订阅者同步分发验证后的请求。 */
+const emitTabOpenRequest = (request: ILayoutTabOpenRequest): void => {
+    for (const listener of tabOpenRequestListeners) {
+        listener(request);
+    }
+};
+
 /**
  * 请求将页签作为独立普通 Tab 副本打开。
  * mode 为 "copy" 时复制当前会话，为 "new" 时创建空白会话副本。
- * 宿主未注册或拒绝处理时返回 false。
+ * 宿主未注册或拒绝处理时通过订阅事件回退，并返回 true 表示已处理。
  */
 /** @同步豁免: UI构建 - 菜单动作必须在菜单关闭前同步发起宿主能力请求，避免丢失当前 Tab 句柄。 */
 export const requestOpenTabAsTab = (
@@ -51,9 +76,30 @@ export const requestOpenTabAsTab = (
     mode: ILayoutTabOpenRequest["mode"] = "copy"
 ) => {
     const port = getLayoutTabOpenPort();
-    // 注册表状态可能未写入任何宿主能力，未注册时按未处理返回 false。
     if (port !== undefined) {
-        return port.open(tab, source, mode);
+        const result = port.open(tab, source, mode);
+        if (result instanceof Promise) {
+            // 宿主异步拒绝时回退到事件；同步返回 true 表示已接管，false 时立即回退。
+            // 保持与同步分支一致的返回值语义：已接管返回 true，未接管通过事件返回 true。
+            void result.then((resolved) => {
+                if (resolved === false) {
+                    const request = buildTabOpenRequest(tab, source, mode);
+                    if (request) {
+                        emitTabOpenRequest(request);
+                    }
+                }
+            });
+            // 同步路径已接管，返回 true 避免调用方重复处理
+            return true;
+        }
+        if (result !== false) {
+            return result === true ? true : true;
+        }
     }
-    return false;
+    const request = buildTabOpenRequest(tab, source, mode);
+    if (!request) {
+        return false;
+    }
+    emitTabOpenRequest(request);
+    return true;
 };

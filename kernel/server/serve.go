@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+// SiYuan - From thought to insight, with agents
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify
@@ -48,6 +48,7 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/av"
 	"github.com/siyuan-note/siyuan/kernel/cmd"
 	"github.com/siyuan-note/siyuan/kernel/cronjob"
+	"github.com/siyuan-note/siyuan/kernel/heif"
 	"github.com/siyuan-note/siyuan/kernel/mcp"
 	mcpclient "github.com/siyuan-note/siyuan/kernel/mcp/client"
 	"github.com/siyuan-note/siyuan/kernel/model"
@@ -140,6 +141,11 @@ var (
 func Serve(fastMode bool, cookieKey string) {
 	gin.SetMode(gin.ReleaseMode)
 	ginServer := gin.New()
+	if err := ginServer.SetTrustedProxies([]string{"127.0.0.1", "::1"}); err != nil {
+		logging.LogFatalf(logging.ExitCodeSecurityRisk, "set trusted proxies failed: %s", err)
+	}
+	ginServer.ForwardedByClientIP = true
+	ginServer.RemoteIPHeaders = []string{"X-Forwarded-For"}
 	ginServer.MaxMultipartMemory = 1024 * 1024 * 32 // 插入较大的资源文件时内存占用较大 https://github.com/siyuan-note/siyuan/issues/5023
 	ginServer.Use(
 		model.ControlConcurrency, // 请求串行化 Concurrency control when requesting the kernel API https://github.com/siyuan-note/siyuan/issues/9939
@@ -148,7 +154,9 @@ func Serve(fastMode bool, cookieKey string) {
 		model.Activity,   // 记录用户活动时间，用于 AutoFixIndex 的空闲判断
 		corsMiddleware(), // 后端服务支持 CORS 预检请求验证 https://github.com/siyuan-note/siyuan/pull/5593
 		jwtMiddleware,    // 解析 JWT https://github.com/siyuan-note/siyuan/issues/11364
-		gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedExtensions([]string{".pdf", ".mp3", ".wav", ".ogg", ".mov", ".weba", ".mkv", ".mp4", ".webm", ".flac"})),
+		gzip.Gzip(gzip.DefaultCompression,
+			gzip.WithExcludedExtensions([]string{".pdf", ".mp3", ".wav", ".ogg", ".mov", ".weba", ".mkv", ".mp4", ".webm", ".flac"}),
+			gzip.WithExcludedPathsRegexs([]string{`(?i)\.hei[cf]$`})),
 	)
 
 	sessionStore = cookie.NewStore([]byte(cookieKey))
@@ -157,11 +165,13 @@ func Serve(fastMode bool, cookieKey string) {
 		Secure: util.SSL,
 		//MaxAge:   60 * 60 * 24 * 7, // 默认是 Session
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode, // 防止跨站请求伪造 https://github.com/siyuan-note/siyuan/security/advisories/GHSA-hhm2-g993-p656
 	})
 	ginServer.Use(sessions.Sessions("siyuan", sessionStore))
 
 	serveDebug(ginServer)
 	serveAssets(ginServer)
+	serveCustomFonts(ginServer)
 	serveAppearance(ginServer)
 	serveWebSocket(ginServer)
 	serveMCP(ginServer)
@@ -302,9 +312,23 @@ func Serve(fastMode bool, cookieKey string) {
 
 	go func() {
 		time.Sleep(1 * time.Second)
-		go proxy.InitFixedPortService(host, certPath, keyPath)
-		go proxy.InitPublishService()
 		// 反代服务器启动失败不影响核心服务器启动
+		go func() {
+			defer func() {
+				if e := recover(); nil != e {
+					logging.LogWarnf("boot fixed port service failed: %v", e)
+				}
+			}()
+			proxy.InitFixedPortService(host, certPath, keyPath)
+		}()
+		go func() {
+			defer func() {
+				if e := recover(); nil != e {
+					logging.LogWarnf("boot publish service failed: %v", e)
+				}
+			}()
+			proxy.InitPublishService()
+		}()
 	}()
 
 	// S-forge: forge 模式下自动打开浏览器
@@ -393,7 +417,7 @@ func rewritePortJSON(pid, port string) {
 
 func serveExport(ginServer *gin.Engine) {
 	// Potential data export disclosure security vulnerability https://github.com/siyuan-note/siyuan/issues/12213
-	exportGroup := ginServer.Group("/export/", model.CheckAuth)
+	exportGroup := ginServer.Group("/export/", model.CheckAuth, model.CheckAdminRole)
 	exportBaseDir := filepath.Join(util.TempDir, "export")
 
 	exportGroup.GET("/*filepath", func(c *gin.Context) {
@@ -447,6 +471,11 @@ func serveExport(ginServer *gin.Engine) {
 				c.Status(http.StatusForbidden)
 				return
 			}
+			if acquireErr := model.AcquireEncryptedBoxOperation(boxID); acquireErr != nil {
+				c.Status(http.StatusForbidden)
+				return
+			}
+			defer model.ReleaseEncryptedBoxOperation(boxID)
 			model.HoldBoxReadLock(boxID)
 			defer model.ReleaseBoxReadLock(boxID)
 			if _, dekErr := model.GetDEKIfUnlocked(boxID); dekErr != nil {
@@ -483,22 +512,40 @@ func serveExport(ginServer *gin.Engine) {
 
 func serveWidgets(ginServer *gin.Engine) {
 	widgets := ginServer.Group("/widgets/", model.CheckAuth)
-	widgets.Static("", filepath.Join(util.DataDir, "widgets"))
+	registerStaticFileHandlers(widgets, filepath.Join(util.DataDir, "widgets"), true, func(c *gin.Context, relativePath string) bool {
+		c.Header("Cache-Control", "private, no-store")
+		if !model.IsReadOnlyRoleContext(c) {
+			return true
+		}
+		name, _, _ := strings.Cut(filepath.ToSlash(relativePath), "/")
+		return model.CheckWidgetAccessableByPublishAccess(c, name, model.GetPublishAccess())
+	})
 }
 
 func servePlugins(ginServer *gin.Engine) {
 	plugins := ginServer.Group("/plugins/", model.CheckAuth)
-	plugins.Static("", filepath.Join(util.DataDir, "plugins"))
+	registerStaticFileHandlers(plugins, filepath.Join(util.DataDir, "plugins"), true, func(c *gin.Context, relativePath string) bool {
+		if !model.IsReadOnlyRoleContext(c) {
+			return true
+		}
+		name, _, _ := strings.Cut(filepath.ToSlash(relativePath), "/")
+		return model.CheckPluginAccessableInPublish(name)
+	})
 }
 
 func serveEmojis(ginServer *gin.Engine) {
 	emojis := ginServer.Group("/emojis/", model.CheckAuth)
-	emojis.Static("", filepath.Join(util.DataDir, "emojis"))
+	registerStaticFileHandlers(emojis, filepath.Join(util.DataDir, "emojis"), false, func(c *gin.Context, relativePath string) bool {
+		if !model.IsReadOnlyRoleContext(c) {
+			return true
+		}
+		return model.CheckEmojiAccessableByPublishAccess(c, filepath.ToSlash(relativePath), model.GetPublishAccess())
+	})
 }
 
 func serveTemplates(ginServer *gin.Engine) {
-	templates := ginServer.Group("/templates/", model.CheckAuth)
-	templates.Static("", filepath.Join(util.DataDir, "templates"))
+	templates := ginServer.Group("/templates/", model.CheckAuth, model.CheckAdminRole)
+	registerStaticFileHandlers(templates, filepath.Join(util.DataDir, "templates"), true, nil)
 }
 
 func servePublic(ginServer *gin.Engine) {
@@ -508,7 +555,12 @@ func servePublic(ginServer *gin.Engine) {
 
 func serveSnippets(ginServer *gin.Engine) {
 	ginServer.Handle("GET", "/snippets/*filepath", model.CheckAuth, func(c *gin.Context) {
-		filePath := strings.TrimPrefix(c.Request.URL.Path, "/snippets/")
+		filePath, ok := cleanStaticRelativePath(c.Param("filepath"))
+		if !ok {
+			c.Status(http.StatusForbidden)
+			return
+		}
+		filePath = filepath.ToSlash(filePath)
 		if !model.IsAdminRoleContext(c) {
 			if "conf.json" == filePath {
 				c.Status(http.StatusUnauthorized)
@@ -518,6 +570,18 @@ func serveSnippets(ginServer *gin.Engine) {
 
 		ext := filepath.Ext(filePath)
 		name := strings.TrimSuffix(filePath, ext)
+		if model.IsReadOnlyRoleContext(c) {
+			found, accessable := model.CheckSnippetAccessableInPublish(name, strings.TrimPrefix(ext, "."))
+			if !found {
+				c.Status(http.StatusNotFound)
+				return
+			}
+			if !accessable {
+				c.Status(http.StatusForbidden)
+				return
+			}
+		}
+
 		confSnippets, err := model.LoadSnippets()
 		if err != nil {
 			logging.LogErrorf("load snippets failed: %s", err)
@@ -534,20 +598,119 @@ func serveSnippets(ginServer *gin.Engine) {
 		}
 
 		// 没有在配置文件中命中时在文件系统上查找
-		filePath = filepath.Join(util.SnippetsPath, filePath)
+		serveStaticFile(c, util.SnippetsPath, filePath, false)
+	})
+}
 
-		// 限制只能访问 snippets 目录内的文件，并拦截敏感路径，避免通过路径穿越读取工作空间内的敏感文件
-		if !gulu.File.IsSubPath(util.SnippetsPath, filePath) {
-			c.Status(http.StatusUnauthorized)
-			return
-		}
-		if util.IsSensitivePath(filePath) {
-			logging.LogErrorf("refuse to serve sensitive snippet file [%s]", c.Request.URL.Path)
+type staticFileAccessCheck func(c *gin.Context, relativePath string) bool
+
+func registerStaticFileHandlers(group *gin.RouterGroup, root string, packageScoped bool, accessCheck staticFileAccessCheck) {
+	handler := func(c *gin.Context) {
+		relativePath, ok := cleanStaticRelativePath(c.Param("filepath"))
+		if !ok {
 			c.Status(http.StatusForbidden)
 			return
 		}
+		if accessCheck != nil && !accessCheck(c, relativePath) {
+			c.Status(http.StatusForbidden)
+			return
+		}
+		serveStaticFile(c, root, relativePath, packageScoped)
+	}
+	group.GET("/*filepath", handler)
+	group.HEAD("/*filepath", handler)
+}
 
-		c.File(filePath)
+func cleanStaticRelativePath(requestPath string) (string, bool) {
+	requestPath = strings.TrimPrefix(requestPath, "/")
+	relativePath := filepath.Clean(filepath.FromSlash(requestPath))
+	if filepath.IsAbs(relativePath) || filepath.VolumeName(relativePath) != "" ||
+		relativePath == ".." || strings.HasPrefix(relativePath, ".."+string(os.PathSeparator)) {
+		return "", false
+	}
+	return relativePath, true
+}
+
+func serveStaticFile(c *gin.Context, root, relativePath string, packageScoped bool) {
+	rootAbsPath, err := filepath.Abs(root)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+	rootRealPath, err := filepath.EvalSymlinks(rootAbsPath)
+	if err != nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	targetPath := filepath.Join(rootAbsPath, relativePath)
+	targetInfo, err := os.Stat(targetPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			c.Status(http.StatusNotFound)
+		} else {
+			c.Status(http.StatusForbidden)
+		}
+		return
+	}
+	if targetInfo.IsDir() {
+		targetPath = filepath.Join(targetPath, "index.html")
+	}
+
+	targetRealPath, err := filepath.EvalSymlinks(targetPath)
+	if err != nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	allowedRoot := rootRealPath
+	if packageScoped && relativePath != "." {
+		// 插件、挂件等支持将一级包目录作为符号链接，包内符号链接仍不得越出该包的实际目录。
+		firstSegment, _, _ := strings.Cut(filepath.ToSlash(relativePath), "/")
+		if firstSegment != "" {
+			packageRoot := filepath.Join(rootAbsPath, filepath.FromSlash(firstSegment))
+			if resolvedPackageRoot, resolveErr := filepath.EvalSymlinks(packageRoot); resolveErr == nil {
+				allowedRoot = resolvedPackageRoot
+			}
+		}
+	}
+	if targetRealPath != allowedRoot && !gulu.File.IsSubPath(allowedRoot, targetRealPath) {
+		c.Status(http.StatusForbidden)
+		return
+	}
+	if util.IsSensitivePath(targetRealPath) {
+		logging.LogErrorf("refuse to serve sensitive static file [%s]", c.Request.URL.Path)
+		c.Status(http.StatusForbidden)
+		return
+	}
+
+	targetInfo, err = os.Stat(targetRealPath)
+	if err != nil || !targetInfo.Mode().IsRegular() {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	http.ServeFile(c.Writer, c.Request, targetRealPath)
+}
+
+func serveCustomFonts(ginServer *gin.Engine) {
+	ginServer.GET("/custom-fonts/:id", model.CheckAuth, func(c *gin.Context) {
+		fontPath, _, ok := util.GetCustomFontFile(c.Param("id"))
+		if !ok {
+			c.Status(http.StatusNotFound)
+			return
+		}
+
+		switch strings.ToLower(filepath.Ext(fontPath)) {
+		case ".ttf":
+			c.Header("Content-Type", "font/ttf")
+		case ".otf":
+			c.Header("Content-Type", "font/otf")
+		default:
+			c.Status(http.StatusNotFound)
+			return
+		}
+		c.Header("Cache-Control", "private, max-age=31536000, immutable")
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.File(fontPath)
 	})
 }
 
@@ -725,6 +888,10 @@ func serveAuthPage(c *gin.Context) {
 		"l9":                     model.Conf.Language(83),
 		"l10":                    model.Conf.Language(257),
 		"l11":                    model.Conf.Language(282),
+		"l12":                    model.Conf.Language(364),
+		"l13":                    model.Conf.Language(365),
+		"accessAuthCodeEnabled":  model.Conf.AccessAuthCode != "",
+		"oidcEnabled":            model.Conf.GetOIDC().Enabled,
 		"appearanceMode":         model.Conf.Appearance.Mode,
 		"appearanceModeOS":       model.Conf.Appearance.ModeOS,
 		"workspace":              util.WorkspaceName,
@@ -764,6 +931,54 @@ func setAssetsAttachmentDisposition(c *gin.Context, pathForBaseName string) {
 	c.Header("Content-Disposition", formatContentDispositionAttachment(filepath.Base(pathForBaseName)))
 }
 
+const htmlAssetIFrameCSP = "sandbox allow-scripts; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
+
+// isAssetInlineUnsafe 判断资产是否禁止浏览器内联渲染，采用媒体类型白名单策略：
+// 仅图片、音视频、PDF 和纯文本允许内联渲染；白名单之外的任何类型（包括所有 text/html、
+// text/xml 及 +xml 类型，以及无法识别 Content-Type 的扩展名）一律强制以附件形式下载。
+// 无法识别的类型可能被 http.ServeFile 内容嗅探识别为 text/html，因此同样视为不安全
+// https://github.com/siyuan-note/siyuan/security/advisories/GHSA-7h8j-qw37-w46g
+func isAssetInlineUnsafe(absPath string) bool {
+	ext := strings.ToLower(filepath.Ext(absPath))
+	mediaType := mime.TypeByExtension(ext)
+	if mediaType == "" {
+		return true
+	}
+	mediaType, _, _ = mime.ParseMediaType(mediaType)
+	switch {
+	case strings.HasPrefix(mediaType, "image/") && "image/svg+xml" != mediaType:
+		return false
+	case strings.HasPrefix(mediaType, "audio/"), strings.HasPrefix(mediaType, "video/"):
+		return false
+	case "application/pdf" == mediaType, "text/plain" == mediaType:
+		return false
+	}
+	return true
+}
+
+// secureAssetContentHeaders 统一为资产响应设置安全头：
+// 无条件加 X-Content-Type-Options: nosniff，可执行脚本的类型无条件强制附件下载；
+// absPath 用于判断内容类型，dispositionName 用于 Content-Disposition 文件名（加密笔记本场景为原始文件名）
+func secureAssetContentHeaders(context *gin.Context, absPath, dispositionName string) {
+	context.Header("X-Content-Type-Options", "nosniff")
+	if isHTMLAssetIFrameRequest(context, absPath) {
+		context.Header("Content-Type", "text/html; charset=utf-8")
+		context.Header("Content-Security-Policy", htmlAssetIFrameCSP)
+		return
+	}
+	setAssetsAttachmentDisposition(context, dispositionName)
+	if isAssetInlineUnsafe(absPath) {
+		context.Header("Content-Disposition", formatContentDispositionAttachment(filepath.Base(dispositionName)))
+	}
+}
+
+func isHTMLAssetIFrameRequest(context *gin.Context, absPath string) bool {
+	return strings.HasPrefix(context.Request.URL.Path, "/assets/") &&
+		!strings.EqualFold(context.Query("download"), "true") &&
+		model.IsHTMLAssetIFrameSrc(context.Request.URL.Path+"?"+context.Request.URL.RawQuery) &&
+		(strings.EqualFold(filepath.Ext(absPath), ".html") || strings.EqualFold(filepath.Ext(absPath), ".htm"))
+}
+
 func isValidAssetRequestPath(requestPath string) bool {
 	relativePath := strings.TrimPrefix(requestPath, "/")
 	if relativePath == "" || relativePath == "." {
@@ -771,6 +986,47 @@ func isValidAssetRequestPath(requestPath string) bool {
 	}
 	_, err := filepath.Localize(relativePath)
 	return err == nil
+}
+
+func isValidResolvedAssetPath(assetAbsPath, requestBoxID string) bool {
+	pathBoxID := model.ExtractBoxIDFromAssetsPath(assetAbsPath)
+	if requestBoxID != "" {
+		if requestBoxID != pathBoxID {
+			return false
+		}
+		return gulu.File.IsSubPath(filepath.Join(util.DataDir, requestBoxID, "assets"), assetAbsPath)
+	}
+
+	if model.IsEncryptedAssetPath(assetAbsPath) {
+		return false
+	}
+	dataRelativePath, err := filepath.Rel(util.DataDir, assetAbsPath)
+	if err != nil {
+		return false
+	}
+	_, validatedAbsPath, err := model.ResolveDataAssetPath(filepath.ToSlash(dataRelativePath))
+	return err == nil && filepath.Clean(validatedAbsPath) == filepath.Clean(assetAbsPath)
+}
+
+func resolveAssetRequestPath(cleanPath, boxID, dataPath string) (string, error) {
+	if dataPath != "" {
+		if boxID != "" {
+			return "", errors.New("box and dataPath cannot be used together")
+		}
+		dataRelativePath, assetAbsPath, err := model.ResolveDataAssetPath(dataPath)
+		if err != nil {
+			return "", err
+		}
+		assetPath, _, ok := model.AssetPathFromDataRelativePath(dataRelativePath)
+		if !ok || assetPath != cleanPath {
+			return "", fmt.Errorf("asset path [%s] does not match data path [%s]", cleanPath, dataPath)
+		}
+		return assetAbsPath, nil
+	}
+	if boxID != "" {
+		return model.GetAssetAbsPathInBox(cleanPath, boxID)
+	}
+	return model.GetAssetAbsPath(cleanPath)
 }
 
 func serveAssets(ginServer *gin.Engine) {
@@ -797,35 +1053,20 @@ func serveAssets(ginServer *gin.Engine) {
 			return
 		}
 
-		// 解析 box 查询参数，加密 box 资源按 box 内精确查找（不全局搜索）
+		// dataPath 用于精确预览普通笔记本或文档下的未引用资源，仅管理员可用
 		boxID := context.Query("box")
-		var p string
-		var err error
-		if boxID != "" {
-			p, err = model.GetAssetAbsPathInBox(cleanPath, boxID)
-		} else {
-			p, err = model.GetAssetAbsPath(cleanPath)
+		dataPath := context.Query("dataPath")
+		if dataPath != "" && !model.IsAdminRoleContext(context) {
+			context.Status(http.StatusForbidden)
+			return
 		}
+		p, err := resolveAssetRequestPath(cleanPath, boxID, dataPath)
 		if err != nil || p == "" {
 			context.Status(http.StatusNotFound)
 			return
 		}
 
-		// 验证最终绝对路径必须在 data/assets 或 <boxID>/assets 下
-		boxIDFromPath := model.ExtractBoxIDFromAssetsPath(p)
-		assetsRoot := filepath.Join(util.DataDir, "assets")
-		if boxIDFromPath != "" {
-			assetsRoot = filepath.Join(util.DataDir, boxIDFromPath, "assets")
-		}
-		if boxID != "" && boxID != boxIDFromPath {
-			context.Status(http.StatusForbidden)
-			return
-		}
-		if boxID == "" && model.IsEncryptedAssetPath(p) {
-			context.Status(http.StatusForbidden)
-			return
-		}
-		if !gulu.File.IsSubPath(assetsRoot, p) {
+		if !isValidResolvedAssetPath(p, boxID) {
 			context.Status(http.StatusForbidden)
 			return
 		}
@@ -844,8 +1085,20 @@ func serveAssets(ginServer *gin.Engine) {
 			return
 		}
 
-		if serveThumbnail(context, p, requestPath) || serveSVG(context, p) {
-			return
+		if heif.IsPath(p) {
+			addHEIFVaryAccept(context)
+			if shouldTranscodeHEIF(context) {
+				if !acquireHEIFPreviewSlot(context) {
+					return
+				}
+				defer releaseHEIFPreviewSlot()
+				serveHEIFPreview(context, p)
+				return
+			}
+		} else {
+			if serveThumbnail(context, p, requestPath) || serveSVG(context, p) {
+				return
+			}
 		}
 
 		// 加密笔记本的 assets 是密文，需先解密再输出
@@ -854,26 +1107,113 @@ func serveAssets(ginServer *gin.Engine) {
 		}
 
 		// 返回原始文件
-		setAssetsAttachmentDisposition(context, p)
+		secureAssetContentHeaders(context, p, p)
 		http.ServeFile(context.Writer, context.Request, p)
 	})
 
 	ginServer.GET("/history/*path", model.CheckAuth, model.CheckAdminRole, func(context *gin.Context) {
-		p := filepath.Join(util.HistoryDir, context.Param("path"))
+		requestPath, valid := cleanHistoryRequestPath(context.Param("path"))
+		if !valid {
+			context.Status(http.StatusUnauthorized)
+			return
+		}
+		p := filepath.Join(util.HistoryDir, filepath.FromSlash(strings.TrimPrefix(requestPath, "/")))
+		// 历史快照可能包含敏感文件副本（如 data/.siyuan/publishAccess.json、data/templates 下的文件），
+		// 去掉快照目录前缀后按数据相对路径拒绝访问（见 kernel/util/path_guard.go 的 IsForbiddenDataRelPath）
+		rel := strings.TrimPrefix(requestPath, "/")
+		if idx := strings.Index(rel, "/"); 0 <= idx {
+			rel = rel[idx+1:]
+		} else {
+			rel = ""
+		}
+		if util.IsForbiddenDataRelPath(rel) {
+			context.Status(http.StatusForbidden)
+			return
+		}
+		transcodeHEIF := heif.IsPath(p) && shouldTranscodeHEIF(context)
+		if heif.IsPath(p) {
+			addHEIFVaryAccept(context)
+		}
+		if transcodeHEIF {
+			if !acquireHEIFPreviewSlot(context) {
+				return
+			}
+			defer releaseHEIFPreviewSlot()
+		}
 		// 加密笔记本的历史是密文（.sy/assets/AV），需先解密再输出
 		if serveEncryptedHistory(context, p) {
 			return
 		}
+		if transcodeHEIF {
+			servePlainHEIFPreview(context, p, "", false)
+			return
+		}
+		secureAssetContentHeaders(context, p, p)
 		http.ServeFile(context.Writer, context.Request, p)
 	})
 }
 
+var heifPreviewSlots = make(chan struct{}, 1)
+
+func acquireHEIFPreviewSlot(c *gin.Context) bool {
+	timer := time.NewTimer(30 * time.Second)
+	defer timer.Stop()
+	select {
+	case heifPreviewSlots <- struct{}{}:
+		return true
+	case <-c.Request.Context().Done():
+		return false
+	case <-timer.C:
+		c.Status(http.StatusServiceUnavailable)
+		return false
+	}
+}
+
+func releaseHEIFPreviewSlot() {
+	<-heifPreviewSlots
+}
+
+func setEncryptedAssetCacheHeaders(c *gin.Context) {
+	c.Header("Cache-Control", "private, no-store")
+}
+
 func serveSVG(context *gin.Context, assetAbsPath string) bool {
 	if strings.HasSuffix(assetAbsPath, ".svg") {
-		data, err := readAssetBytes(assetAbsPath)
+		boxID := model.ExtractBoxIDFromAssetsPath(assetAbsPath)
+		var dek []byte
+		if boxID != "" && model.IsEncryptedBox(boxID) {
+			setEncryptedAssetCacheHeaders(context)
+			if err := model.AcquireEncryptedBoxOperation(boxID); err != nil {
+				context.Status(http.StatusForbidden)
+				return true
+			}
+			defer model.ReleaseEncryptedBoxOperation(boxID)
+			model.HoldBoxReadLock(boxID)
+			var err error
+			dek, err = model.GetDEKIfUnlocked(boxID)
+			if err != nil {
+				model.ReleaseBoxReadLock(boxID)
+				context.Status(http.StatusForbidden)
+				return true
+			}
+			defer clear(dek)
+			defer model.ReleaseBoxReadLock(boxID)
+		}
+		data, err := readAssetBytesLocked(assetAbsPath, boxID, dek)
 		if err != nil {
 			logging.LogErrorf("read svg file failed: %s", err)
+			if boxID != "" && model.IsEncryptedBox(boxID) {
+				context.Status(http.StatusInternalServerError)
+				return true
+			}
 			return false
+		}
+		if boxID != "" && model.IsEncryptedBox(boxID) {
+			decrypted := data
+			defer clear(decrypted)
+			defer func() {
+				clear(data)
+			}()
 		}
 
 		if !model.Conf.Editor.AllowSVGScript {
@@ -895,28 +1235,164 @@ func serveSVG(context *gin.Context, assetAbsPath string) bool {
 	return false
 }
 
-// readAssetBytes 读取 asset 文件字节。加密笔记本的 asset 是密文，自动解密后返回明文。
-func readAssetBytes(absPath string) ([]byte, error) {
-	data, err := os.ReadFile(absPath)
+// readAssetBytesLocked 读取 asset 文件字节；读取加密笔记本资源时调用方必须持有对应的 box 读锁。
+func readAssetBytesLocked(absPath, boxID string, dek []byte) ([]byte, error) {
+	var data []byte
+	var err error
+	if heif.IsPath(absPath) {
+		limit := int64(heif.MaxInputBytes)
+		if boxID != "" && model.IsEncryptedBox(boxID) {
+			limit += 2 * 1024 * 1024
+		}
+		data, err = heif.ReadFileLimited(absPath, limit)
+	} else {
+		data, err = os.ReadFile(absPath)
+	}
 	if err != nil {
 		return nil, err
 	}
-	if boxID := model.ExtractBoxIDFromAssetsPath(absPath); boxID != "" && model.IsEncryptedBox(boxID) {
-		model.HoldBoxReadLock(boxID)
-		dek, dekErr := model.GetDEKIfUnlocked(boxID)
-		if dekErr != nil {
-			model.ReleaseBoxReadLock(boxID)
-			return nil, dekErr
-		}
-		defer model.ReleaseBoxReadLock(boxID)
+	if boxID != "" && model.IsEncryptedBox(boxID) {
 		diskName := filepath.Base(absPath)
 		plain, decErr := model.DecryptAsset(boxID, diskName, dek, data)
 		if decErr != nil {
 			return nil, decErr
 		}
+		if len(plain) > heif.MaxInputBytes {
+			clear(plain)
+			return nil, heif.ErrInputTooLarge
+		}
 		return plain, nil
 	}
 	return data, nil
+}
+
+// serveHEIFPreview 将 HEIF/HEIC 资源按需转成 JPEG。加密笔记本只使用受限内存缓存，不把明文写入磁盘。
+func serveHEIFPreview(c *gin.Context, absPath string) {
+	boxID := model.ExtractBoxIDFromAssetsPath(absPath)
+	encrypted := boxID != "" && model.IsEncryptedBox(boxID)
+	var dek []byte
+	if encrypted {
+		if err := model.AcquireEncryptedBoxOperation(boxID); err != nil {
+			c.Status(http.StatusForbidden)
+			return
+		}
+		defer model.ReleaseEncryptedBoxOperation(boxID)
+		model.HoldBoxReadLock(boxID)
+		var err error
+		dek, err = model.GetDEKIfUnlocked(boxID)
+		if err != nil {
+			model.ReleaseBoxReadLock(boxID)
+			c.Status(http.StatusForbidden)
+			return
+		}
+		defer clear(dek)
+		defer model.ReleaseBoxReadLock(boxID)
+	}
+	if rejectOversizedHEIF(c, absPath, encrypted) {
+		return
+	}
+
+	source, err := readAssetBytesLocked(absPath, boxID, dek)
+	clear(dek)
+	dek = nil
+	if err != nil {
+		if errors.Is(err, heif.ErrInputTooLarge) {
+			c.Status(http.StatusRequestEntityTooLarge)
+		} else if os.IsNotExist(err) {
+			c.Status(http.StatusNotFound)
+		} else {
+			logging.LogErrorf("read HEIF asset [%s] failed: %s", absPath, err)
+			c.Status(http.StatusInternalServerError)
+		}
+		return
+	}
+	if encrypted {
+		defer clear(source)
+	}
+	writeHEIFPreview(c, absPath, source, boxID, encrypted)
+}
+
+func servePlainHEIFPreview(c *gin.Context, absPath string, boxID string, encrypted bool) {
+	if rejectOversizedHEIF(c, absPath, encrypted) {
+		return
+	}
+	source, err := heif.ReadFileLimited(absPath, int64(heif.MaxInputBytes))
+	if err != nil {
+		if errors.Is(err, heif.ErrInputTooLarge) {
+			c.Status(http.StatusRequestEntityTooLarge)
+		} else if os.IsNotExist(err) {
+			c.Status(http.StatusNotFound)
+		} else {
+			logging.LogErrorf("read HEIF asset [%s] failed: %s", absPath, err)
+			c.Status(http.StatusInternalServerError)
+		}
+		return
+	}
+	if encrypted {
+		defer clear(source)
+	}
+	writeHEIFPreview(c, absPath, source, boxID, encrypted)
+}
+
+func rejectOversizedHEIF(c *gin.Context, absPath string, encrypted bool) bool {
+	info, err := os.Stat(absPath)
+	if err != nil {
+		return false
+	}
+	limit := int64(heif.MaxInputBytes)
+	if encrypted {
+		// 加密资源容器还包含名称元数据、分块长度和认证标签。
+		limit += 2 * 1024 * 1024
+	}
+	if info.Size() <= limit {
+		return false
+	}
+	c.Status(http.StatusRequestEntityTooLarge)
+	return true
+}
+
+func writeHEIFPreview(c *gin.Context, absPath string, source []byte, boxID string, encrypted bool) {
+	mode := heif.ModePreview
+	if c.Query("style") == "thumb" {
+		mode = heif.ModeThumbnail
+	}
+	result, err := heif.GetOrCreate(c.Request.Context(), source, heif.Options{
+		Mode:      mode,
+		BoxID:     boxID,
+		Encrypted: encrypted,
+	})
+	if err != nil {
+		if errors.Is(err, c.Request.Context().Err()) {
+			return
+		}
+		status := http.StatusUnprocessableEntity
+		if errors.Is(err, heif.ErrInputTooLarge) || errors.Is(err, heif.ErrImageTooLarge) {
+			status = http.StatusRequestEntityTooLarge
+		} else if errors.Is(err, context.DeadlineExceeded) {
+			status = http.StatusGatewayTimeout
+		}
+		logging.LogWarnf("convert HEIF asset [%s] failed: %s", absPath, err)
+		c.Status(status)
+		return
+	}
+
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.Header("Content-Type", "image/jpeg")
+	if encrypted {
+		c.Header("Cache-Control", "private, no-store")
+		defer clear(result.Data)
+	} else {
+		c.Header("ETag", result.ETag)
+		if c.GetHeader("If-None-Match") == result.ETag {
+			c.Status(http.StatusNotModified)
+			return
+		}
+	}
+	if result.Path != "" {
+		http.ServeFile(c.Writer, c.Request, result.Path)
+		return
+	}
+	c.Data(http.StatusOK, "image/jpeg", result.Data)
 }
 
 // serveEncryptedAsset 处理加密笔记本 asset 的 HTTP 输出。
@@ -927,6 +1403,12 @@ func serveEncryptedAsset(context *gin.Context, absPath string) bool {
 	if boxID == "" || !model.IsEncryptedBox(boxID) {
 		return false // 非加密 box，走原路径
 	}
+	setEncryptedAssetCacheHeaders(context)
+	if err := model.AcquireEncryptedBoxOperation(boxID); err != nil {
+		context.Status(http.StatusForbidden)
+		return true
+	}
+	defer model.ReleaseEncryptedBoxOperation(boxID)
 	model.HoldBoxReadLock(boxID)
 	dek, err := model.GetDEKIfUnlocked(boxID)
 	if err != nil {
@@ -935,10 +1417,22 @@ func serveEncryptedAsset(context *gin.Context, absPath string) bool {
 		context.Status(http.StatusForbidden)
 		return true
 	}
+	defer clear(dek)
 	defer model.ReleaseBoxReadLock(boxID)
-	ciphertext, readErr := os.ReadFile(absPath)
+	var ciphertext []byte
+	var readErr error
+	heifRequest := heif.IsPath(absPath) && !strings.EqualFold(context.Query("download"), "true")
+	if heifRequest {
+		ciphertext, readErr = heif.ReadFileLimited(absPath, int64(heif.MaxInputBytes)+2*1024*1024)
+	} else {
+		ciphertext, readErr = os.ReadFile(absPath)
+	}
 	if readErr != nil {
-		context.Status(http.StatusNotFound)
+		if errors.Is(readErr, heif.ErrInputTooLarge) {
+			context.Status(http.StatusRequestEntityTooLarge)
+		} else {
+			context.Status(http.StatusNotFound)
+		}
 		return true
 	}
 	diskName := filepath.Base(absPath)
@@ -948,12 +1442,17 @@ func serveEncryptedAsset(context *gin.Context, absPath string) bool {
 		context.Status(http.StatusInternalServerError)
 		return true
 	}
-	// 下载时用原始文件名（查加密映射），查不到则退回磁盘名
-	if originalName := model.LookupAssetOriginalNameLocked(boxID, diskName); originalName != "" {
-		setAssetsAttachmentDisposition(context, originalName)
-	} else {
-		setAssetsAttachmentDisposition(context, absPath)
+	defer clear(plain)
+	if heifRequest && len(plain) > heif.MaxInputBytes {
+		context.Status(http.StatusRequestEntityTooLarge)
+		return true
 	}
+	// 下载时用原始文件名（查加密映射），查不到则退回磁盘名
+	dispositionName := absPath
+	if originalName := model.LookupAssetOriginalNameLocked(boxID, diskName); originalName != "" {
+		dispositionName = originalName
+	}
+	secureAssetContentHeaders(context, absPath, dispositionName)
 	contentType := mime.TypeByExtension(filepath.Ext(absPath))
 	if contentType == "" {
 		contentType = "application/octet-stream"
@@ -968,9 +1467,33 @@ func serveEncryptedAsset(context *gin.Context, absPath string) bool {
 // 否则返回 false，由调用方走原 http.ServeFile 路径。
 func serveEncryptedHistory(context *gin.Context, absPath string) bool {
 	boxID := model.ExtractBoxIDFromHistoryPath(absPath)
-	if boxID == "" || !model.IsEncryptedBox(boxID) {
+	if boxID == "" {
 		return false // 非加密 box，走原路径
 	}
+	if !model.IsEncryptedHistoryPath(absPath) {
+		source, err := os.Open(absPath)
+		if err != nil {
+			return false
+		}
+		header := make([]byte, 4)
+		n, _ := source.Read(header)
+		_ = source.Close()
+		if model.IsEncryptedNotebookData(header[:n]) {
+			context.Status(http.StatusForbidden)
+			return true
+		}
+		return false
+	}
+	if !model.IsEncryptedBox(boxID) {
+		context.Status(http.StatusForbidden)
+		return true
+	}
+	setEncryptedAssetCacheHeaders(context)
+	if err := model.AcquireEncryptedBoxOperation(boxID); err != nil {
+		context.Status(http.StatusForbidden)
+		return true
+	}
+	defer model.ReleaseEncryptedBoxOperation(boxID)
 	model.HoldBoxReadLock(boxID)
 	dek, err := model.GetDEKIfUnlocked(boxID)
 	if err != nil {
@@ -979,10 +1502,26 @@ func serveEncryptedHistory(context *gin.Context, absPath string) bool {
 		context.Status(http.StatusForbidden)
 		return true
 	}
+	defer clear(dek)
 	defer model.ReleaseBoxReadLock(boxID)
-	ciphertext, readErr := os.ReadFile(absPath)
+	heifRequest := heif.IsPath(absPath) && !strings.EqualFold(context.Query("download"), "true")
+	transcodeHEIF := heif.IsPath(absPath) && shouldTranscodeHEIF(context)
+	if heifRequest && rejectOversizedHEIF(context, absPath, true) {
+		return true
+	}
+	var ciphertext []byte
+	var readErr error
+	if heifRequest {
+		ciphertext, readErr = heif.ReadFileLimited(absPath, int64(heif.MaxInputBytes)+2*1024*1024)
+	} else {
+		ciphertext, readErr = os.ReadFile(absPath)
+	}
 	if readErr != nil {
-		context.Status(http.StatusNotFound)
+		if errors.Is(readErr, heif.ErrInputTooLarge) {
+			context.Status(http.StatusRequestEntityTooLarge)
+		} else {
+			context.Status(http.StatusNotFound)
+		}
 		return true
 	}
 	var plain []byte
@@ -1004,11 +1543,22 @@ func serveEncryptedHistory(context *gin.Context, absPath string) bool {
 		diskName := filepath.Base(absPath)
 		plain, decErr = model.DecryptAsset(boxID, diskName, dek, ciphertext)
 	}
+	clear(dek)
 	if decErr != nil {
 		logging.LogErrorf("decrypt history [%s] failed: %s", absPath, decErr)
 		context.Status(http.StatusInternalServerError)
 		return true
 	}
+	defer clear(plain)
+	if heifRequest && len(plain) > heif.MaxInputBytes {
+		context.Status(http.StatusRequestEntityTooLarge)
+		return true
+	}
+	if transcodeHEIF {
+		writeHEIFPreview(context, absPath, plain, boxID, true)
+		return true
+	}
+	secureAssetContentHeaders(context, absPath, absPath)
 	contentType := mime.TypeByExtension(filepath.Ext(absPath))
 	if contentType == "" {
 		contentType = "application/octet-stream"
@@ -1051,7 +1601,7 @@ func serveThumbnail(context *gin.Context, assetAbsPath, requestPath string) bool
 			}
 		}
 
-		setAssetsAttachmentDisposition(context, assetAbsPath)
+		secureAssetContentHeaders(context, assetAbsPath, assetAbsPath)
 		http.ServeFile(context.Writer, context.Request, thumbnailPath)
 		return true
 	}
@@ -1061,52 +1611,102 @@ func serveThumbnail(context *gin.Context, assetAbsPath, requestPath string) bool
 func serveRepoDiff(ginServer *gin.Engine) {
 	repoDiffBaseDir := filepath.Join(util.TempDir, "repo", "diff")
 	ginServer.GET("/repo/diff/*path", model.CheckAuth, model.CheckAdminRole, func(context *gin.Context) {
-		requestPath := filepath.Clean(context.Param("path"))
-		if strings.Contains(requestPath, "..") {
+		requestPath, valid := cleanRepoDiffRequestPath(context.Param("path"))
+		if !valid {
 			context.Status(http.StatusUnauthorized)
 			return
 		}
+		// 与 /history 一致，按数据相对路径拒绝敏感文件（纵深防御，正常仅存放资源文件）
+		if util.IsForbiddenDataRelPath(requestPath) {
+			context.Status(http.StatusForbidden)
+			return
+		}
+		transcodeHEIF := heif.IsPath(requestPath) && shouldTranscodeHEIF(context)
+		if heif.IsPath(requestPath) {
+			addHEIFVaryAccept(context)
+		}
+		if transcodeHEIF {
+			if !acquireHEIFPreviewSlot(context) {
+				return
+			}
+			defer releaseHEIFPreviewSlot()
+		}
 		// 从路径提取 boxID，加密笔记本已锁定时拒绝访问（锁定后 repo 预览解密文件仍存在磁盘上）
 		parts := strings.SplitN(strings.TrimPrefix(requestPath, "/"), "/", 2)
+		encryptedBoxID := ""
 		if len(parts) >= 1 && model.IsEncryptedBox(parts[0]) {
-			model.HoldBoxReadLock(parts[0])
-			defer model.ReleaseBoxReadLock(parts[0])
-			if _, dekErr := model.GetDEKIfUnlocked(parts[0]); dekErr != nil {
+			encryptedBoxID = parts[0]
+			setEncryptedAssetCacheHeaders(context)
+			if err := model.AcquireEncryptedBoxOperation(parts[0]); err != nil {
 				context.Status(http.StatusForbidden)
 				return
 			}
+			defer model.ReleaseEncryptedBoxOperation(parts[0])
+			model.HoldBoxReadLock(parts[0])
+			defer model.ReleaseBoxReadLock(parts[0])
+			dek, dekErr := model.GetDEKIfUnlocked(parts[0])
+			if dekErr != nil {
+				context.Status(http.StatusForbidden)
+				return
+			}
+			clear(dek)
 		}
-		p := filepath.Join(repoDiffBaseDir, requestPath)
+		p := filepath.Join(repoDiffBaseDir, filepath.FromSlash(strings.TrimPrefix(requestPath, "/")))
 		if !gulu.File.IsSubPath(repoDiffBaseDir, p) {
 			context.Status(http.StatusUnauthorized)
 			return
 		}
+		if transcodeHEIF {
+			servePlainHEIFPreview(context, p, encryptedBoxID, encryptedBoxID != "")
+			return
+		}
+		secureAssetContentHeaders(context, p, p)
 		http.ServeFile(context.Writer, context.Request, p)
 	})
 }
 
+func cleanRepoDiffRequestPath(requestPath string) (string, bool) {
+	return cleanURLFileRequestPath(requestPath)
+}
+
+func cleanHistoryRequestPath(requestPath string) (string, bool) {
+	return cleanURLFileRequestPath(requestPath)
+}
+
+func cleanURLFileRequestPath(requestPath string) (string, bool) {
+	// URL 路径只接受正斜杠，避免 Windows 在落盘阶段把反斜杠重新解释为目录分隔符。
+	if strings.Contains(requestPath, `\`) || strings.Contains(requestPath, "..") {
+		return "", false
+	}
+	return path.Clean("/" + strings.TrimPrefix(requestPath, "/")), true
+}
+
 func serveDebug(ginServer *gin.Engine) {
-	if "prod" == util.Mode {
-		// The production environment will no longer register `/debug/pprof/` https://github.com/siyuan-note/siyuan/issues/10152
+	// 调试端点默认不注册，仅 --enable-pprof 显式开启；即使开启也要求管理员鉴权 https://github.com/siyuan-note/siyuan/security/advisories/GHSA-9cqq-p2hw-mj3f
+	if !util.EnablePprof {
 		return
 	}
 
-	ginServer.GET("/debug/pprof/", gin.WrapF(pprof.Index))
-	ginServer.GET("/debug/pprof/allocs", gin.WrapF(pprof.Index))
-	ginServer.GET("/debug/pprof/block", gin.WrapF(pprof.Index))
-	ginServer.GET("/debug/pprof/goroutine", gin.WrapF(pprof.Index))
-	ginServer.GET("/debug/pprof/heap", gin.WrapF(pprof.Index))
-	ginServer.GET("/debug/pprof/mutex", gin.WrapF(pprof.Index))
-	ginServer.GET("/debug/pprof/threadcreate", gin.WrapF(pprof.Index))
-	ginServer.GET("/debug/pprof/cmdline", gin.WrapF(pprof.Cmdline))
-	ginServer.GET("/debug/pprof/profile", gin.WrapF(pprof.Profile))
-	ginServer.GET("/debug/pprof/symbol", gin.WrapF(pprof.Symbol))
-	ginServer.GET("/debug/pprof/trace", gin.WrapF(pprof.Trace))
+	ginServer.GET("/debug/pprof/", model.CheckAuth, model.CheckAdminRole, gin.WrapF(pprof.Index))
+	ginServer.GET("/debug/pprof/allocs", model.CheckAuth, model.CheckAdminRole, gin.WrapF(pprof.Index))
+	ginServer.GET("/debug/pprof/block", model.CheckAuth, model.CheckAdminRole, gin.WrapF(pprof.Index))
+	ginServer.GET("/debug/pprof/goroutine", model.CheckAuth, model.CheckAdminRole, gin.WrapF(pprof.Index))
+	ginServer.GET("/debug/pprof/heap", model.CheckAuth, model.CheckAdminRole, gin.WrapF(pprof.Index))
+	ginServer.GET("/debug/pprof/mutex", model.CheckAuth, model.CheckAdminRole, gin.WrapF(pprof.Index))
+	ginServer.GET("/debug/pprof/threadcreate", model.CheckAuth, model.CheckAdminRole, gin.WrapF(pprof.Index))
+	ginServer.GET("/debug/pprof/cmdline", model.CheckAuth, model.CheckAdminRole, gin.WrapF(pprof.Cmdline))
+	ginServer.GET("/debug/pprof/profile", model.CheckAuth, model.CheckAdminRole, gin.WrapF(pprof.Profile))
+	ginServer.GET("/debug/pprof/symbol", model.CheckAuth, model.CheckAdminRole, gin.WrapF(pprof.Symbol))
+	ginServer.GET("/debug/pprof/trace", model.CheckAuth, model.CheckAdminRole, gin.WrapF(pprof.Trace))
 }
 
 func serveWebSocket(ginServer *gin.Engine) {
 	const magiArmorExpiryTimerKey = "magiArmorExpiryTimer"
 	util.WebSocketServer = melody.New()
+	// 校验 Origin，防止跨站 WebSocket 劫持（CSWSH） https://github.com/siyuan-note/siyuan/security/advisories/GHSA-3cc2-h3v6-rqpq
+	util.WebSocketServer.Upgrader.CheckOrigin = func(r *http.Request) bool {
+		return util.IsSessionOriginAllowed(r.Header.Get("Origin"), r.Host)
+	}
 	util.WebSocketServer.Config.MaxMessageSize = 1024 * 1024 * 8
 
 	ginServer.GET("/ws", handleWebSocketRequest)
@@ -1117,10 +1717,20 @@ func serveWebSocket(ginServer *gin.Engine) {
 
 	util.WebSocketServer.HandleConnect(func(s *melody.Session) {
 		//logging.LogInfof("ws check auth for [%s]", s.Request.RequestURI)
-		authOk := true
+
 		magiArmorExpiresAt := time.Time{}
 
-		if "" != model.Conf.AccessAuthCode {
+		// 拒绝携带重复查询键的请求，避免同一 URI 表达多个会话身份
+		// https://github.com/siyuan-note/siyuan/security/advisories/GHSA-c8w8-3pqp-wr83
+		if util.HasDuplicateQueryValues(s.Request) {
+			s.CloseWithMsg([]byte("  invalid query"))
+			logging.LogWarnf("closed a session with duplicated query values [%s]", util.GetRemoteAddr(s.Request))
+			return
+		}
+
+		authOk := !model.IsAccessAuthRequired()
+
+		if model.IsAccessAuthRequired() {
 			session, err := sessionStore.Get(s.Request, "siyuan")
 			if err != nil {
 				authOk = false
@@ -1137,7 +1747,12 @@ func serveWebSocket(ginServer *gin.Engine) {
 						logging.LogErrorf("unmarshal cookie failed: %s", err)
 					} else {
 						workspaceSess := util.GetWorkspaceSession(sess)
-						authOk = workspaceSess.AccessAuthCode == model.Conf.AccessAuthCode
+						accessCodeAuth := model.IsAccessCodeSessionAuthenticated(workspaceSess)
+						oidcAuth := model.IsOIDCSessionAuthenticated(workspaceSess)
+						authOk = accessCodeAuth || oidcAuth
+						if oidcAuth && !accessCodeAuth {
+							s.Set("oidcSessionVersion", workspaceSess.OIDCSessionVersion)
+						}
 					}
 				}
 			}
@@ -1165,7 +1780,10 @@ func serveWebSocket(ginServer *gin.Engine) {
 
 		if !authOk {
 			// 用于授权页保持连接，避免非常驻内存内核自动退出 https://github.com/siyuan-note/insider/issues/1099
-			authOk = strings.Contains(s.Request.RequestURI, "/ws?app=siyuan") && strings.Contains(s.Request.RequestURI, "&id=auth&type=auth")
+			if util.IsAuthPageKeepaliveRequest(s.Request) {
+				authOk = true
+				s.Set("authSession", true)
+			}
 		}
 
 		if !authOk {
@@ -1220,6 +1838,13 @@ func serveWebSocket(ginServer *gin.Engine) {
 
 		if util.IsAuthSession(s) {
 			return
+		}
+		if value, ok := s.Get("oidcSessionVersion"); ok {
+			version, valid := value.(string)
+			if !valid || !model.IsOIDCSessionVersionCurrent(version) {
+				s.CloseWithMsg([]byte("  OIDC session expired"))
+				return
+			}
 		}
 
 		request := map[string]any{}

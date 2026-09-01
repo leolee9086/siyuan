@@ -1,6 +1,13 @@
-import { hlPDFRect } from "./anno.hlPDFRect";
-import { getOrCreateElement, isHTMLElement } from "./anno.guard";
-import type { IAnnoCoords, IPdfInstance, IPdfViewport } from "./anno.types";
+/** 用途：触发定位后的标注视觉高亮。使用范围：恢复/新建标注后。解耦评估：同目录 display helper 是完整的高亮生命周期 owner。 */
+import {hlPDFRect} from "./anno.hlPDFRect";
+/** 用途：获取静态矩形容器。使用范围：PDF 页面首次渲染标注时。解耦评估：guard 集中 HTMLElement 收窄与静态容器创建。 */
+import {getOrCreateElement} from "./anno.guard";
+/** 用途：约束高亮坐标载荷。使用范围：安全 DOM 建构的输入边界。解耦评估：纯类型不产生运行时依赖。 */
+import type {IAnnoCoords} from "./anno.types";
+/** 用途：约束 PDF 实例。使用范围：页面和 viewport 访问。解耦评估：纯类型不产生运行时依赖。 */
+import type {IPdfInstance} from "./anno.types";
+/** 用途：约束 PDF viewport。使用范围：安全矩形尺寸计算。解耦评估：纯类型不产生运行时依赖。 */
+import type {IPdfViewport} from "./anno.types";
 
 /**
  * 获取PDF页面的相关元素
@@ -35,75 +42,62 @@ const getOrCreateRectsElement = (textLayerElement: HTMLElement) => {
 };
 
 /**
- * 生成矩形样式字符串
- * @param selected - 注释坐标信息
- * @returns CSS 样式字符串
+ * 将标注色写入矩形子元素的 CSSOM 样式。
  */
-const generateRectStyle = (selected: IAnnoCoords) => {
-    if (selected.type === "border") {
-        return `border: 2px solid ${selected.color};`;
+const applyRectStyle = (rectElement: HTMLElement, selected: IAnnoCoords) => {
+    rectElement.style.border = `2px solid ${selected.color}`;
+    // 边框模式只保留轮廓，其余模式填充用户选择的标注颜色。
+    if (selected.type !== "border") {
+        rectElement.style.backgroundColor = selected.color;
     }
-    return `border: 2px solid ${selected.color};background-color: ${selected.color};`;
 };
 
 /**
- * 生成单个矩形的 HTML
- * @param selected - 注释坐标信息
- * @param viewport - PDF 视口对象
- * @param rect - 矩形坐标数组
- * @returns HTML 字符串
+ * 将一个 PDF 坐标矩形转为安全的子元素并插入标注容器。
  */
-const generateRectHtml = (selected: IAnnoCoords, viewport: IPdfViewport, rect: number[]) => {
-    const bounds = viewport.convertToViewportRectangle(rect);
+const appendHighlightRect = (options: {
+    rectsElement: HTMLElement,
+    selected: IAnnoCoords,
+    viewport: IPdfViewport,
+    rect: number[],
+}) => {
+    const bounds = options.viewport.convertToViewportRectangle(options.rect);
     const width = Math.abs(bounds[0] - bounds[2]);
     if (width <= 0) {
-        return "";
+        return;
     }
-    const style = generateRectStyle(selected);
-    return /*html*/`<div style="${style}
-left:${Math.min(bounds[0], bounds[2])}px;
-top:${Math.min(bounds[1], bounds[3])}px;
-width:${width}px;
-height: ${Math.abs(bounds[1] - bounds[3])}px"></div>`;
+    const rectChild = document.createElement("div");
+    applyRectStyle(rectChild, options.selected);
+    rectChild.style.left = `${Math.min(bounds[0], bounds[2])}px`;
+    rectChild.style.top = `${Math.min(bounds[1], bounds[3])}px`;
+    rectChild.style.width = `${width}px`;
+    rectChild.style.height = `${Math.abs(bounds[1] - bounds[3])}px`;
+    options.rectsElement.append(rectChild);
 };
 
 /**
- * 生成高亮 HTML 内容
- * @param selected - 注释坐标信息
- * @param viewport - PDF 视口对象
- * @returns 完整的高亮 HTML 字符串
+ * 使用 DOM API 创建标注根元素，不将 .sya 字段拼接进 HTML 字符串。
  */
-const generateHighlightHtml = (selected: IAnnoCoords, viewport: IPdfViewport) => {
-    let html = `<div class="pdf__rect popover__block" data-node-id="${selected.id}" data-relations="${selected.ids || ""}" data-mode="${selected.mode}">`;
-
+const createHighlightElement = (selected: IAnnoCoords, viewport: IPdfViewport) => {
+    const rectElement = document.createElement("div");
+    rectElement.className = "pdf__rect popover__block";
+    rectElement.setAttribute("data-node-id", selected.id);
+    rectElement.setAttribute("data-relations", selected.ids ? selected.ids.join(",") : "");
+    rectElement.setAttribute("data-mode", selected.mode);
+    rectElement.setAttribute("data-content", selected.content);
     for (const rect of selected.coords) {
         const rectArray = Array.isArray(rect) ? rect : [rect];
-        const rectHtml = generateRectHtml(selected, viewport, rectArray);
-        if (rectHtml) {
-            html += rectHtml;
-        }
+        appendHighlightRect({
+            rectsElement: rectElement,
+            selected,
+            viewport,
+            rect: rectArray,
+        });
     }
-
-    return html + "</div>";
+    return rectElement;
 };
 
-/**
- * 插入高亮元素到容器
- * @param rectsElement - 矩形容器元素
- * @param selected - 注释坐标信息
- * @param html - 高亮 HTML 字符串
- * @returns 插入的元素
- */
-const insertHighlightElement = (rectsElement: HTMLElement, selected: IAnnoCoords, html: string) => {
-    rectsElement.insertAdjacentHTML("beforeend", html);
-    const lastChild = rectsElement.lastElementChild;
-    if (!isHTMLElement(lastChild)) {
-        throw new Error("Failed to insert highlight element");
-    }
-    lastChild.setAttribute("data-content", selected.content);
-    return lastChild;
-};
-
+/** @同步豁免: UI构建 */
 /**
  * 显示PDF高亮标注
  * 
@@ -122,12 +116,12 @@ export const showHighlight = (selected: IAnnoCoords, pdf: IPdfInstance, hl?: boo
     // rotation: 处理旋转问题 https://github.com/siyuan-note/siyuan/issues/9831
     const viewport = page.viewport.clone({ rotation: 0 });
     const rectsElement = getOrCreateRectsElement(textLayerElement);
-    const html = generateHighlightHtml(selected, viewport);
-    const lastChild = insertHighlightElement(rectsElement, selected, html);
+    const rectElement = createHighlightElement(selected, viewport);
+    rectsElement.append(rectElement);
 
     if (hl) {
         hlPDFRect(rectsElement, selected.id);
     }
 
-    return lastChild;
+    return rectElement;
 };

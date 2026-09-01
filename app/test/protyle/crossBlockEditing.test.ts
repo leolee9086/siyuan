@@ -1,6 +1,7 @@
 import {afterEach, describe, expect, it, vi} from "vitest";
 
 vi.mock("../../src/util/checkBlockRef", () => ({
+    confirmBlockRef: vi.fn(),
     confirmBlockRefForBlocks: vi.fn(),
 }));
 
@@ -17,7 +18,7 @@ vi.mock("../../src/protyle/wysiwyg/index.copy.helpers", async (importOriginal) =
     writeClipboardData: vi.fn(),
 }));
 
-import {confirmBlockRefForBlocks} from "../../src/util/checkBlockRef";
+import {confirmBlockRef} from "../../src/util/checkBlockRef";
 import {highlightRender} from "../../src/protyle/render/highlightRender";
 import {transaction} from "../../src/protyle/wysiwyg/transaction/submit";
 
@@ -252,14 +253,14 @@ describe("cross-block removal transaction", () => {
         const range = document.createRange();
         range.setStart(first.firstChild!.firstChild!, 0);
         range.setEnd(second.firstChild!.firstChild!, 5);
-        vi.mocked(confirmBlockRefForBlocks).mockResolvedValue(false);
+        vi.mocked(confirmBlockRef).mockResolvedValue(false);
 
         await removeCrossBlockRange({
             block: {parentID: "document"},
             wysiwyg: {element: editor},
         } as IProtyle, range, first, second);
 
-        expect(confirmBlockRefForBlocks).toHaveBeenCalledOnce();
+        expect(confirmBlockRef).toHaveBeenCalledOnce();
         expect(editor.textContent).toBe("alphabravo");
         expect(editor.children).toHaveLength(2);
         editor.remove();
@@ -275,7 +276,6 @@ describe("cross-block removal transaction", () => {
         const range = document.createRange();
         range.setStart(first.firstChild!.firstChild!, 0);
         range.setEnd(second.firstChild!.firstChild!, 5);
-        vi.mocked(confirmBlockRefForBlocks).mockResolvedValue(true);
 
         await removeCrossBlockRange({
             block: {parentID: "document"},
@@ -283,7 +283,7 @@ describe("cross-block removal transaction", () => {
             lute: {SpinBlockDOM: (html: string) => html},
         } as IProtyle, range, first, second, true);
 
-        expect(confirmBlockRefForBlocks).not.toHaveBeenCalled();
+        expect(confirmBlockRef).not.toHaveBeenCalled();
         editor.remove();
     });
 

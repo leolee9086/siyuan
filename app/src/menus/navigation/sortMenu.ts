@@ -9,10 +9,10 @@ import {siyuanI18n} from "./imports";
 const createSortItem = (
     options: {
         id: string,
-        mode: number,
-        sortMode: number,
+        mode: number | null,
+        sortMode: number | null,
         label: string,
-        clickEvent: (sort: number) => void,
+        clickEvent: (sort: number | null) => void,
     },
 ) => {
     const selected = options.sortMode === options.mode;
@@ -33,7 +33,8 @@ const createSortItem = (
  * 调用时机：桌面/移动文件树显示排序菜单时同步调用。
  * @同步豁免: UI构建
  */
-export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, clickEvent: (sort: number) => void) => {
+export const sortMenu = (type: "notebooks" | "notebook" | "document", sortMode: number | null,
+                         clickEvent: (sort: number | null) => void) => {
     // @内联数组 完整排序菜单依赖固定顺序和分隔符位置，应在同一构建点审计。
     const menu: IMenu[] = [
         createSortItem({id: "fileNameASC", mode: 0, sortMode, label: siyuanI18n.fileNameASC, clickEvent}),
@@ -60,6 +61,9 @@ export const sortMenu = (type: "notebooks" | "notebook", sortMode: number, click
     // 单笔记本菜单额外支持继承全局文件树排序方式。
     if (type === "notebook") {
         menu.push(createSortItem({id: "sortByFiletree", mode: 15, sortMode, label: siyuanI18n.sortByFiletree, clickEvent}));
+    } else if (type === "document") {
+        // 文档菜单允许取消子文档排序继承（sortByParent 提交 null 模式）。
+        menu.push(createSortItem({id: "sortByParent", mode: null, sortMode, label: siyuanI18n.sortByParent, clickEvent}));
     }
     return menu;
 };

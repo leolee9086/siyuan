@@ -47,8 +47,8 @@ func TestSystemPromptSortsPluginActions(t *testing.T) {
 		{Name: "plugin__a__run", Description: "Run A"},
 	}
 
-	forward := buildSystemPrompt("English", actions, nil, defaultPromptSource())
-	reversed := buildSystemPrompt("English", []PluginAction{actions[1], actions[0]}, nil, defaultPromptSource())
+	forward := buildSystemPromptWithContext("English", actions, nil, defaultPromptSource())
+	reversed := buildSystemPromptWithContext("English", []PluginAction{actions[1], actions[0]}, nil, defaultPromptSource())
 	if forward != reversed {
 		t.Fatal("plugin action order changed the system prompt")
 	}
@@ -64,7 +64,7 @@ func TestCheckpointMessagesKeepHistoricalTurnContexts(t *testing.T) {
 		newAgentUserMessage("second question", "user-2", nil, EditorContext{ActiveDocID: "doc-b"}),
 	}
 
-	messages := checkpointMessagesToOpenAI(checkpoint, "English", nil, nil, defaultPromptSource())
+	messages := checkpointMessagesToOpenAIWithContext(checkpoint, "English", nil, nil, defaultPromptSource())
 	if len(messages) != 4 {
 		t.Fatalf("unexpected message count: %d", len(messages))
 	}

@@ -122,14 +122,18 @@ export async function 生成块内容图片(params: 生成块内容图片参数)
         }
 
         // 3. 提取图片 URL
-        const imageUrl = 提取图片URL(status);
+        const imageUrl = await 提取图片URL(status);
         if (!imageUrl) {
             console.error("[生成块内容图片] 未获取到图片 URL");
             return;
         }
 
         // 4. 获取图片 Base64
-        const base64Data = await 获取图片({ imageUrl });
+        const base64Data = await 获取图片({imageUrl});
+        if (!base64Data) {
+            console.error("[生成块内容图片] 未获取到图片数据");
+            return;
+        }
         reportProgress("图片生成成功");
 
         // 5. 通过回调将结果传递给调用方处理

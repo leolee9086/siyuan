@@ -155,6 +155,7 @@ const buildTableFieldSubmenu = (protyle: IProtyle, state: AttrViewContextmenuSta
             label: getTableFieldLabel(headerCellCandidate),
             /** 点击编辑单元格文本内容 */
             click: () => {
+                popTextCell(protyle, selectElements);
             },
         });
     }
@@ -191,6 +192,7 @@ const buildCardFieldSubmenu = (protyle: IProtyle, state: AttrViewContextmenuStat
             label: getCardFieldLabel(fieldCellCandidate),
             /** 点击编辑卡片字段 */
             click: () => {
+                handleCardFieldClick(protyle, state.rowElement, selectElements);
             },
         });
     }

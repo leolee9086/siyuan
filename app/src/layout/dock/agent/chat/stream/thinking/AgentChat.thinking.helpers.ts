@@ -29,11 +29,15 @@ export function commitPreviousThinkingStep(runtime: AgentChatRuntime) {
     if (!runtime.currentThinkingText) {
         return;
     }
-    const toolNames = runtime.currentToolCalls.slice(runtime.lastStepToolCount).map((toolCall) => toolCall.name);
+    const toolCalls = runtime.currentToolCalls.slice(runtime.lastStepToolCount);
+    const toolNames = toolCalls.map((toolCall) => toolCall.name);
+    const toolCallIDs = toolCalls.flatMap((toolCall) => toolCall.id ? [toolCall.id] : []);
     const step: ThinkingStep = {
         reasoning: runtime.currentThinkingReasoning,
         reasoningContent: runtime.currentThinkingReasoningContent,
+        ...(runtime.currentRoundID ? {roundID: runtime.currentRoundID} : {}),
         ...(toolNames.length > 0 ? {toolNames} : {}),
+        ...(toolCallIDs.length > 0 ? {toolCallIDs} : {}),
     };
     runtime.currentThinkingSteps.push(step);
     runtime.lastStepToolCount = runtime.currentToolCalls.length;
@@ -140,12 +144,14 @@ function persistThinkingSteps(runtime: AgentChatRuntime) {
 /** `flushInterveningEntries` 负责流式响应流程中的对应步骤，由上层流程或事件回调调用并集中维护状态变化。 */
 function flushInterveningEntries(runtime: AgentChatRuntime) {
     runtime.renderedToolNames = {};
+    const roundID = runtime.currentRoundID || runtime.currentToolCalls[0]?.roundID;
     // 条件 runtime.currentToolCalls.length > 0 成立时才执行此分支，避免影响其它会话或响应阶段。
     if (runtime.currentToolCalls.length > 0) {
         runtime.entries.push({
             id: runtime.sessionPorts.repository.newSessionId(),
             type: "assistant",
             toolCalls: slimToolCallsForPersistence(runtime.currentToolCalls),
+            ...(roundID ? {roundID} : {}),
         });
         runtime.currentToolCalls = [];
         runtime.lastStepToolCount = 0;

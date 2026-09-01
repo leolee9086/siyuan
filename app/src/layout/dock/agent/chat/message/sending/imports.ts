@@ -8,6 +8,11 @@ import type {AgentPanelConversation} from "../../../runtime/agentPanel.ports.typ
 /** 导出面板会话协议。 */
 export type {AgentPanelConversation};
 
+/** 用途：读取当前浏览器能力清单；使用范围：原生 Agent 请求快照。 */
+import {listCapabilityManifests} from "../../../frontendCapabilities";
+/** 导出浏览器能力清单读取函数。 */
+export {listCapabilityManifests};
+
 /** 用途：发起 Agent SSE 请求；使用范围：原生 Agent 消息分派。 */
 import {fetchAgentSSE} from "../../../agentSSE";
 /** 导出 SSE 请求函数。 */

@@ -1,5 +1,7 @@
 /** 用途：网络请求。使用范围：删除文件/笔记本。解耦评估：通过 ./imports 转发。 */
 import { fetchPost } from "./imports";
+/** 用途：同步网络请求。使用范围：删除前查询文档信息。解耦评估：通过 ./imports 转发。 */
+import { fetchSyncPost } from "./imports";
 /** 用途：获取文件显示名称。使用范围：删除确认时的路径显示。解耦评估：通过 ./imports 转发。 */
 import { getDisplayName } from "./imports";
 /** 用途：获取笔记本名称。使用范围：删除笔记本确认文案。解耦评估：通过 ./imports 转发。 */
@@ -18,7 +20,11 @@ import { getSiyuanConfig } from "./imports";
 import { getSiyuanLanguages } from "./imports";
 /** 用途：判断加密笔记本。使用范围：文档信息查询附带 notebook 上下文。解耦评估：通过 ./imports 转发唯一实现。 */
 import { isEncryptedBox } from "./imports";
+/** 用途：全局常量。使用范围：识别帮助笔记本路径。解耦评估：通过 ./imports 转发。 */
+import { Constants } from "./imports";
 import {checkBlockRef, getBlockRefWarningHTML} from "../util/checkBlockRef";
+/** 用途：收集文档树多选删除目标。使用范围：批量删除时区分文档与笔记本。解耦评估：imports 未覆盖，直接引用唯一实现。 */
+import {getDocTreeDeleteTargets} from "../menus/navigationSelection";
 
 /**
  * 处理文档信息响应，显示删除确认对话框
@@ -75,16 +81,15 @@ export const deleteFile = async (notebookId: string, pathString: string) => {
     if (isEncryptedBox(notebookId)) {
         docInfoParam.notebook = notebookId;
     }
-    fetchPost("/api/block/getDocInfo", docInfoParam, (response) => {
-        if (!response.data) {
-            return;
-        }
-        handleDocInfoResponse({data: response.data}, notebookId, pathString, hasRef);
-    });
+    const response = await fetchSyncPost("/api/block/getDocInfo", docInfoParam);
+    if (response.code !== 0 || !response.data) {
+        return;
+    }
+    handleDocInfoResponse({data: response.data}, notebookId, pathString, hasRef);
 };
 
 /**
- * 确认删除笔记本
+ * 确认删除单个笔记本
  */
 async function confirmDeleteNotebook(itemNotebookId: string) {
     const hasRef = await checkBlockRef({
@@ -108,9 +113,111 @@ async function confirmDeleteNotebook(itemNotebookId: string) {
 }
 
 /**
- * 确认批量删除文件
+ * 确认删除多个笔记本
  */
-async function confirmBatchDelete(paths: string[]) {
+export const deleteNotebooks = async (notebookIds: string[]) => {
+    const uniqueNotebookIds = Array.from(new Set(notebookIds));
+    const refResults = await Promise.all(uniqueNotebookIds.map((notebook) => checkBlockRef({
+        scope: "notebook",
+        notebook,
+    })));
+    if (refResults.some((result) => result === undefined)) {
+        return;
+    }
+    const lang = getSiyuanLanguages();
+    const days = getSiyuanConfig().editor.historyRetentionDays;
+    const notebookNames = uniqueNotebookIds.map((notebook) => escapeHtml(getNotebookName(notebook)))
+        .join(", ");
+    let tip = `${lang.confirmDeleteTip.replace("${x}", notebookNames)}
+<div class="fn__hr"></div>
+<div class="ft__smaller ft__on-surface">${lang.rollbackTip.replace("${x}", days)}</div>`;
+    if (refResults.some((result) => result)) {
+        tip += getBlockRefWarningHTML();
+    }
+    confirmDialog(lang.deleteOpConfirm, tip, async () => {
+        for (const notebook of uniqueNotebookIds) {
+            await fetchPost("/api/notebook/removeNotebook", { notebook, callback: "CB_MOUNT_REMOVE" });
+        }
+    }, undefined, true);
+};
+
+/**
+ * 删除文件入口，支持单个元素与多选元素两种模式
+ */
+export const deleteFiles = async (liElements: Element[]) => {
+    if (liElements.length === 1) {
+        const itemTopULElement = hasTopClosestByTag(liElements[0], "UL");
+        if (!itemTopULElement) {
+            return;
+        }
+        const itemNotebookId = itemTopULElement.getAttribute("data-url") || "";
+        if ((liElements[0].getAttribute("data-type") || "") === "navigation-file") {
+            await deleteFile(itemNotebookId, liElements[0].getAttribute("data-path") || "");
+            return;
+        }
+        // 帮助笔记本为内置内容，直接移除且不经确认流程
+        const isHelpNotebook = Object.values(Constants.HELP_PATH).includes(itemNotebookId);
+        if (isHelpNotebook) {
+            fetchPost("/api/notebook/removeNotebook", { notebook: itemNotebookId, callback: "CB_MOUNT_REMOVE" });
+            return;
+        }
+        await confirmDeleteNotebook(itemNotebookId);
+        return;
+    }
+
+    const {notebookIds, paths} = getDocTreeDeleteTargets(liElements);
+    if (notebookIds.length > 0 && paths.length === 0) {
+        await deleteNotebooks(notebookIds);
+        return;
+    }
+    if (paths.length === 0) {
+        // 无有效文档路径时给出提示，保留本地既有的用户反馈行为
+        showMessage(getSiyuanLanguages().notBatchRemove);
+        return;
+    }
+    const lang = getSiyuanLanguages();
+    const days = getSiyuanConfig().editor.historyRetentionDays;
+    if (notebookIds.length > 0) {
+        // 同时选中文档与笔记本时分别检查两者的引用情况
+        const refResults = await Promise.all([
+            checkBlockRef({
+                scope: "documents",
+                paths,
+            }),
+            ...notebookIds.map((notebook) => checkBlockRef({
+                scope: "notebook",
+                notebook,
+            })),
+        ]);
+        if (refResults.some((result) => result === undefined)) {
+            return;
+        }
+        const itemNames = liElements.map((item) => {
+            const name = item.querySelector(".b3-list-item__text")?.textContent?.trim();
+            if (name) {
+                return escapeHtml(name);
+            }
+            if (item.getAttribute("data-type") === "navigation-root") {
+                const notebook = item.closest("ul[data-url]")?.getAttribute("data-url");
+                return notebook ? escapeHtml(getNotebookName(notebook)) : "";
+            }
+            return escapeHtml(getDisplayName(item.getAttribute("data-path") || "", true, true));
+        }).filter(Boolean).join(", ");
+        let tip = `${lang.confirmDeleteTip.replace("${x}", itemNames)}
+<div class="fn__hr"></div>
+<div class="ft__smaller ft__on-surface">${lang.rollbackTip.replace("${x}", days)}</div>`;
+        if (refResults.some((result) => result)) {
+            tip += getBlockRefWarningHTML();
+        }
+        confirmDialog(lang.deleteOpConfirm, tip, async () => {
+            await fetchPost("/api/filetree/removeDocs", { paths });
+            for (const notebook of notebookIds) {
+                await fetchPost("/api/notebook/removeNotebook", { notebook, callback: "CB_MOUNT_REMOVE" });
+            }
+        }, undefined, true);
+        return;
+    }
+    // 仅选中多个文档时的批量删除确认
     const hasRef = await checkBlockRef({
         scope: "documents",
         paths,
@@ -118,8 +225,6 @@ async function confirmBatchDelete(paths: string[]) {
     if (hasRef === undefined) {
         return;
     }
-    const lang = getSiyuanLanguages();
-    const days = getSiyuanConfig().editor.historyRetentionDays;
     let tip = `${lang.confirmRemoveAll.replace("${count}", paths.length)}
 <div class="fn__hr"></div>
 <div class="ft__smaller ft__on-surface">${lang.rollbackTip.replace("${x}", days)}</div>`;
@@ -129,61 +234,4 @@ async function confirmBatchDelete(paths: string[]) {
     confirmDialog(lang.deleteOpConfirm, tip, () => {
         fetchPost("/api/filetree/removeDocs", { paths });
     }, undefined, true);
-}
-
-/**
- * 删除多个文件
- */
-export const deleteFiles = async (liElements: Element[]) => {
-    // 非单个元素时进入批量处理模式
-    if (liElements.length !== 1) {
-        const paths = collectBatchPaths(liElements);
-        await confirmBatchDeleteIfAny(paths);
-        return;
-    }
-
-    const firstElement = liElements[0];
-    if (!firstElement) {
-        return;
-    }
-    const itemTopULElement = hasTopClosestByTag(firstElement, "UL");
-    if (!itemTopULElement) {
-        return;
-    }
-
-    const itemNotebookId = itemTopULElement.getAttribute("data-url") || "";
-    const itemType = firstElement.getAttribute("data-type") || "";
-    // 普通文件调用 deleteFile，笔记本调用 confirmDeleteNotebook
-    if (itemType === "navigation-file") {
-        await deleteFile(itemNotebookId, firstElement.getAttribute("data-path") || "");
-        return;
-    }
-    await confirmDeleteNotebook(itemNotebookId);
 };
-
-/**
- * 有批量路径时执行确认删除，否则提示无有效文件
- */
-async function confirmBatchDeleteIfAny(paths: string[]) {
-    // 有有效路径时执行批量删除
-    if (paths.length > 0) {
-        await confirmBatchDelete(paths);
-        return;
-    }
-    showMessage(getSiyuanLanguages().notBatchRemove);
-}
-
-/**
- * 收集批量删除的文件路径
- */
-function collectBatchPaths(liElements: Element[]) {
-    const paths: string[] = [];
-    for (const item of liElements) {
-        const dataPath = item.getAttribute("data-path");
-        // 排除根目录和空值
-        if (dataPath && dataPath !== "/") {
-            paths.push(dataPath);
-        }
-    }
-    return paths;
-}

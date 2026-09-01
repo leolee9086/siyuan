@@ -14,8 +14,13 @@ const assertAVNameOperations = (operations: IOperation[]) => {
 };
 
 /** 提交已由标题同步流程应用到当前页 DOM 的名称事务。 @同步豁免: 生命周期 - action 校验、undo 登记和排队必须属于同一输入事件栈。 */
-export const submitAVNameTransaction = (protyle: IProtyle, doOperations: IOperation[], undoOperations: IOperation[]) => {
-    assertAVNameOperations(doOperations);
-    assertAVNameOperations(undoOperations);
-    submitPreparedTransaction({protyle, doOperations, undoOperations});
+export const submitAVNameTransaction = (options: {
+    protyle: IProtyle;
+    doOperations: IOperation[];
+    undoOperations: IOperation[];
+    callback?: () => void;
+}) => {
+    assertAVNameOperations(options.doOperations);
+    assertAVNameOperations(options.undoOperations);
+    submitPreparedTransaction(options);
 };

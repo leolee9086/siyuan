@@ -2,6 +2,7 @@ import {hasClosestByTag, hasTopClosestByTag} from "../../protyle/util/hasClosest
 import {Model} from "../../layout/Model";
 import {Constants} from "../../constants";
 import {pathPosix, setNoteBook} from "../../util/file/pathName";
+import {isMoveTargetAllowed} from "../../util/file/moveTarget";
 import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {genUUID} from "../../util/platform/genID";
 import {newFileInTree} from "../../util/file/newFile";
@@ -9,10 +10,15 @@ import type { AppFacade } from "../../app/AppFacade.types";
 import {setStorageVal} from "../../protyle/util/compatibility";
 import {dragOverScroll, stopScrollAnimation} from "../../boot/globalEvent/dragover";
 import {showMessage} from "../../dialog/message";
+import {unicode2Emoji} from "../../emoji/emoji.render";
+import {updateNotebookRootForBoxDoc} from "../../util/notebookRoot";
+import {normalizeFileTreeMoves, restoreMovedExpandedDocItems, getFileTreeChildList, updateMovedSubtree} from "../../util/fileTreeMove";
+import {isCustomFileTreeList} from "../../util/fileTreeSort";
 import {
     genNotebook,
     updateItemArrow,
     updateSubFileCount,
+    updateDocActionElement,
     onMove,
     onRemove,
     onRename,
@@ -37,24 +43,26 @@ export class MobileFiles extends Model<AppFacade> {
     public element: HTMLElement;
     public actionsElement: HTMLElement;
     public closeElement: HTMLElement;
-    private reloadNotebookInfoTimeout: number;
+    private reloadNotebookInfoTimeout: number | undefined;
+    private movedExpandedDocIDs = new Set<string>();
     private touchDragState: {
         selectedElement: HTMLElement;
         startX: number;
         startY: number;
         isDragging: boolean;
-        ghostElement: HTMLElement;
+        ghostElement: HTMLElement | null;
         startTime: number;
-    };
+    } | null = null;
 
-    constructor(app: AppFacade) {
+    constructor(app: AppFacade, dockElement?: HTMLElement) {
         super({app});
         this.connect({
             id: genUUID(),
             type: "filetree",
             msgCallback: this.handleMsgCallback.bind(this),
         });
-        const filesElement = document.querySelector('#sidebar [data-type="sidebar-file"]');
+        // 兼容两种调用约定：上游传入停靠栏元素，本地未传入时按侧边栏选择器自行查询
+        const filesElement = dockElement ?? (document.querySelector('#sidebar [data-type="sidebar-file"]') as HTMLElement);
         filesElement.innerHTML = `<div class="toolbar toolbar--border toolbar--dark">
     <div class="fn__space"></div>
     <div class="toolbar__text">${window.siyuan.languages.fileTree}</div>
@@ -91,12 +99,22 @@ export class MobileFiles extends Model<AppFacade> {
         }
         switch (data.cmd) {
             case "moveDoc":
-                onMove(this, data.data);
+            case "moveDocs":
+                onMove(this, normalizeFileTreeMoves(data.data), data.callback);
                 break;
             case "reloadFiletree":
                 setNoteBook(() => {
                     this.init(false);
                 });
+                break;
+            case "boxDocFeatureChanged":
+                // 盒子文档能力开关变化：重建笔记本根节点的可交互状态
+                setNoteBook(() => {
+                    this.updateBoxDocFeature();
+                });
+                break;
+            case "notebookIconChanged":
+                this.updateNotebookIcon(data.data);
                 break;
             case "reloadNotebookInfo":
                 window.clearTimeout(this.reloadNotebookInfoTimeout);
@@ -163,6 +181,54 @@ export class MobileFiles extends Model<AppFacade> {
         }
     }
 
+    // 笔记本图标变更推送：同步文件树中的图标显示；加密且关闭的笔记本保持锁定提示不被覆盖
+    private updateNotebookIcon(data: { boxID: string, icon: string }) {
+        if (!data || typeof data.boxID !== "string" || typeof data.icon !== "string") {
+            return;
+        }
+        const notebook = window.siyuan.notebooks.find((item) => item.id === data.boxID);
+        if (!notebook) {
+            return;
+        }
+        notebook.icon = data.icon;
+        if (notebook.encrypted && notebook.closed) {
+            return;
+        }
+        const liElement = notebook.closed ?
+            this.closeElement.querySelector<HTMLElement>(`li[data-url="${data.boxID}"]`) :
+            this.element.querySelector<HTMLElement>(
+                `ul[data-url="${data.boxID}"] > li[data-type="navigation-root"]`
+            );
+        const iconElement = liElement?.querySelector<HTMLElement>(".b3-list-item__icon");
+        if (iconElement) {
+            const iconHTML = unicode2Emoji(data.icon || window.siyuan.storage[Constants.LOCAL_IMAGES].note);
+            if (iconElement.innerHTML !== iconHTML) {
+                iconElement.innerHTML = iconHTML;
+            }
+        }
+    }
+
+    // 盒子文档能力开关变化：刷新各打开笔记本根节点的文档计数、图标提示与排列位置
+    private updateBoxDocFeature() {
+        const enabled = window.siyuan.config.fileTree.boxDocEnabled;
+        window.siyuan.notebooks.forEach((notebook) => {
+            if (notebook.closed) {
+                return;
+            }
+            const notebookElement = this.element.querySelector<HTMLElement>(`:scope > ul[data-url="${notebook.id}"]`);
+            const rootElement = notebookElement?.querySelector<HTMLElement>(":scope > li[data-type=\"navigation-root\"]");
+            if (!notebookElement || !rootElement) {
+                return;
+            }
+
+            const subFileCount = updateNotebookRootForBoxDoc(rootElement, notebook, enabled);
+            rootElement.querySelector<HTMLElement>(".b3-list-item__icon")?.setAttribute("aria-label", enabled ?
+                (subFileCount > 0 ? window.siyuan.languages.docIconClickExpand : window.siyuan.languages.openDocument) :
+                window.siyuan.languages.changeIcon);
+            this.element.append(notebookElement);
+        });
+    }
+
     public init(init = true) {
         let html = "";
         let closeHtml = "";
@@ -176,32 +242,40 @@ export class MobileFiles extends Model<AppFacade> {
             }
         });
         this.element.innerHTML = html;
-        this.closeElement.lastElementChild.innerHTML = closeHtml;
-        const counterElement = this.closeElement.querySelector(".counter");
-        counterElement.textContent = closeCounter.toString();
+        const closeListElement = this.closeElement.lastElementChild as HTMLElement | null;
+        if (closeListElement) {
+            closeListElement.innerHTML = closeHtml;
+        }
+        const counterElement = this.closeElement.querySelector(".counter") as HTMLElement | null;
+        if (counterElement) {
+            counterElement.textContent = closeCounter.toString();
+        }
         if (closeCounter) {
             this.closeElement.classList.remove("fn__none");
         } else {
             this.closeElement.classList.add("fn__none");
         }
-        window.siyuan.storage[Constants.LOCAL_FILESPATHS].forEach((item: IFilesPath) => {
+        window.siyuan?.storage?.[Constants.LOCAL_FILESPATHS]?.forEach((item: IFilesPath) => {
             item.openPaths.forEach((openPath) => {
-                this.selectItem(item.notebookId, openPath, undefined, false, false);
+                void this.selectItem(item.notebookId, openPath, undefined, false, false);
             });
         });
         this.refreshPublishAccessSwitch();
         if (!init) {
             return;
         }
-        const svgElement = this.closeElement.querySelector("svg");
+        const svgElement = this.closeElement.querySelector("svg") as Element | null;
+        if (!svgElement) {
+            return;
+        }
         if (html !== "") {
             this.closeElement.style.height = "42px";
             svgElement.classList.remove("b3-list-item__arrow--open");
-            this.closeElement.lastElementChild.classList.add("fn__none");
+            closeListElement?.classList.add("fn__none");
         } else {
             this.closeElement.style.height = "40%";
             svgElement.classList.add("b3-list-item__arrow--open");
-            this.closeElement.lastElementChild.classList.remove("fn__none");
+            closeListElement?.classList.remove("fn__none");
         }
     }
 
@@ -220,15 +294,34 @@ export class MobileFiles extends Model<AppFacade> {
         }
     }
 
+    public recordMovedExpandedDocIDs(ids: Iterable<string>) {
+        for (const id of ids) {
+            this.movedExpandedDocIDs.add(id);
+        }
+    }
+
+    public restoreMovedExpandedItems(listElement: Element, notebookId: string) {
+        restoreMovedExpandedDocItems(listElement, this.movedExpandedDocIDs, (item) => {
+            this.getLeaf(item, notebookId, true);
+        });
+    }
+
+    public updateDocActionElement(liElement: HTMLElement) {
+        updateDocActionElement(liElement);
+    }
+
     public getLeaf(liElement: Element, notebookId: string, focusUpdate = false) {
-        const toggleElement = liElement.querySelector(".b3-list-item__arrow");
+        const toggleElement = liElement.querySelector(".b3-list-item__arrow") as Element | null;
+        if (!toggleElement) {
+            return;
+        }
         if (cancelFileTreeCollapse(liElement)) {
             this.persistOpenPaths();
             if (!focusUpdate) {
                 return;
             }
         }
-        const leafElement = liElement.nextElementSibling as HTMLElement;
+        const leafElement = liElement.nextElementSibling as HTMLElement | null;
         if (toggleElement.classList.contains("b3-list-item__arrow--open") && !focusUpdate) {
             toggleElement.classList.remove("b3-list-item__arrow--open");
             leafElement?.remove();
@@ -268,17 +361,31 @@ export class MobileFiles extends Model<AppFacade> {
             return boxDocElement;
         }
         let currentPath = filePath;
-        let liElement: HTMLElement;
+        let liElement: HTMLElement | null = null;
+        const visitedPaths = new Set<string>();
         while (!liElement) {
-            liElement = treeElement.querySelector(`[data-path="${currentPath}"]`);
+            if (visitedPaths.has(currentPath)) {
+                break;
+            }
+            visitedPaths.add(currentPath);
+            liElement = treeElement.querySelector(`[data-path="${currentPath}"]`) as HTMLElement | null;
             if (!liElement) {
                 const dirname = pathPosix().dirname(currentPath);
                 if (dirname === "/") {
-                    currentPath = dirname;
+                    // 已到根且根不存在则停止，避免对 "/" 的无限查询
+                    const rootElement = treeElement.querySelector(`[data-path="/"]`) as HTMLElement | null;
+                    if (rootElement) {
+                        liElement = rootElement;
+                        currentPath = "/";
+                    }
+                    break;
                 } else {
                     currentPath = dirname + ".sy";
                 }
             }
+        }
+        if (!liElement) {
+            return;
         }
 
         if (liElement.getAttribute("data-path") === filePath) {
@@ -291,30 +398,41 @@ export class MobileFiles extends Model<AppFacade> {
             return liElement;
         }
 
+        let nextLiElement: HTMLElement | null | undefined;
         if (data && data.path === currentPath) {
-            liElement = await onLsSelect(this, data, filePath, setStorage, isSetCurrent);
+            nextLiElement = await onLsSelect(this, data, filePath, setStorage, isSetCurrent);
         } else {
             const response = await fetchSyncPost("/api/filetree/listDocsByPath", {
                 notebook: notebookId,
                 path: currentPath,
                 app: Constants.SIYUAN_APPID,
             });
-            liElement = await onLsSelect(this, response.data, filePath, setStorage, isSetCurrent);
+            nextLiElement = await onLsSelect(this, response.data, filePath, setStorage, isSetCurrent);
+        }
+        if (nextLiElement) {
+            liElement = nextLiElement;
         }
         return liElement;
     }
 
     public persistOpenPaths() {
         const filesPaths: IFilesPath[] = [];
-        this.element.querySelectorAll(".b3-list[data-url]").forEach((item: HTMLElement) => {
+        this.element.querySelectorAll(".b3-list[data-url]").forEach((item: Element) => {
+            const url = item.getAttribute("data-url");
+            if (!url) {
+                return;
+            }
             const notebookPaths: IFilesPath = {
-                notebookId: item.getAttribute("data-url"),
+                notebookId: url,
                 openPaths: []
             };
             item.querySelectorAll(".b3-list-item__arrow--open").forEach((openItem) => {
-                const liElement = hasClosestByTag(openItem, "LI");
+                const liElement = hasClosestByTag(openItem as HTMLElement, "LI");
                 if (liElement) {
-                    notebookPaths.openPaths.push(liElement.getAttribute("data-path"));
+                    const dataPath = liElement.getAttribute("data-path");
+                    if (dataPath) {
+                        notebookPaths.openPaths.push(dataPath);
+                    }
                 }
             });
             if (notebookPaths.openPaths.length > 0) {
@@ -360,16 +478,17 @@ export class MobileFiles extends Model<AppFacade> {
     }
 
     public onFiletreeSortChanged(data: {notebook: string, parentPath: string}) {
-        const notebookElement = this.element.querySelector(`ul[data-url="${data.notebook}"]`);
+        const notebookElement = this.element.querySelector(`ul[data-url="${data.notebook}"]`) as HTMLElement | null;
         if (!notebookElement) {
             return;
         }
-        const sortMode = notebookElement.getAttribute("data-sortmode");
-        if (sortMode !== "6" && !(sortMode === "15" && window.siyuan.config.fileTree.sort === 6)) {
+        // 使用共享工具判断是否为自定义排序（处理继承的 15 情况），保证与桌面一致
+        const listPath = data.parentPath === "/" ? "/" : `${data.parentPath}.sy`;
+        const liElement = notebookElement.querySelector(`li[data-path="${listPath}"]`) as HTMLElement | null;
+        const targetElement = liElement ?? notebookElement;
+        if (!isCustomFileTreeList(targetElement)) {
             return;
         }
-        const listPath = data.parentPath === "/" ? "/" : `${data.parentPath}.sy`;
-        const liElement = notebookElement.querySelector(`li[data-path="${listPath}"]`);
         if (!liElement?.nextElementSibling || liElement.nextElementSibling.tagName !== "UL") {
             return;
         }
@@ -381,10 +500,37 @@ export class MobileFiles extends Model<AppFacade> {
     }
 
     public onNotebookSortChanged() {
-        if (window.siyuan.config.fileTree.sort !== 6) {
-            return;
+        // 全局自定义排序变更时刷新所有已挂载的笔记本
+        if (!isCustomFileTreeList(this.element)) {
+            // 仅当全局为自定义排序或存在自定义排序的笔记本时才刷新
+            const hasCustom = Array.from(this.element.querySelectorAll("ul[data-url]")).some((el) => isCustomFileTreeList(el as Element));
+            if (!hasCustom && window.siyuan?.config?.fileTree?.sort !== 6) {
+                return;
+            }
         }
         setNoteBook(() => this.init(false));
+    }
+
+    private startTouchDrag(state: MobileFiles["touchDragState"], clientX: number, clientY: number, vibrate = false) {
+        if (state.isDragging) {
+            return;
+        }
+        state.isDragging = true;
+        const ghostElement = document.createElement("ul");
+        ghostElement.id = "dragGhost";
+        ghostElement.append(state.selectedElement.cloneNode(true));
+        ghostElement.setAttribute("style", `background-color: var(--b3-theme-surface);width: 100%;touch-action: none;margin-left: -50%;margin-top:20px;z-index:${window.siyuan.zIndex};position: fixed;top:${clientY}px;left:${clientX}px`);
+        ghostElement.setAttribute("class", "b3-list b3-list--background");
+        document.body.append(ghostElement);
+        state.ghostElement = ghostElement;
+        state.selectedElement.style.opacity = "0.38";
+        if (vibrate) {
+            if (window.webkit?.messageHandlers.vibrate) {
+                window.webkit.messageHandlers.vibrate.postMessage("");
+            } else if (navigator.vibrate) {
+                navigator.vibrate(Constants.TIMEOUT_VIBRATION_DURATION);
+            }
+        }
     }
 
     private clearDragIndicators = () => {
@@ -396,23 +542,21 @@ export class MobileFiles extends Model<AppFacade> {
 
     private bindTouchDrag(filesElement: Element) {
         filesElement.addEventListener("touchstart", (event: TouchEvent) => {
-            if (window.siyuan.config.readonly) return;
+            if (window.siyuan?.config?.readonly) return;
             if (event.touches.length !== 1) return;
 
             const touch = event.touches[0];
-            const target = touch.target as HTMLElement;
-            const liElement = target.closest(".b3-list-item") as HTMLElement;
+            if (!touch) return;
+            const target = touch.target as HTMLElement | null;
+            if (!target) return;
+            const liElement = target.closest(".b3-list-item") as HTMLElement | null;
             if (!liElement) return;
 
             const dataType = liElement.getAttribute("data-type");
             if (dataType !== "navigation-file" && dataType !== "navigation-root") return;
 
-            if (dataType === "navigation-root") {
-                if (window.siyuan.config.fileTree.sort !== 6) return;
-            } else {
-                const ulElement = liElement.closest("ul[data-sortmode]") as HTMLElement;
-                const sortMode = ulElement?.getAttribute("data-sortmode");
-                if (sortMode !== "6" && !(window.siyuan.config.fileTree.sort === 6 && sortMode === "15")) return;
+            if (dataType === "navigation-root" && !isCustomFileTreeList(liElement)) {
+                return;
             }
             this.touchDragState = {
                 isDragging: false,
@@ -422,12 +566,27 @@ export class MobileFiles extends Model<AppFacade> {
                 ghostElement: null,
                 startTime: Date.now() - (isMousePointerTouchEvent(event) ? Constants.TIMEOUT_LONGPRESS : 0),
             };
+            if (!isMousePointerTouchEvent(event)) {
+                const state = this.touchDragState;
+                window.setTimeout(() => {
+                    if (this.touchDragState !== state) {
+                        return;
+                    }
+                    this.startTouchDrag(state, state.startX, state.startY, true);
+                }, Constants.TIMEOUT_LONGPRESS);
+            }
         }, {passive: false});
+        this.element.addEventListener("scroll", () => {
+            if (this.touchDragState && !this.touchDragState.isDragging) {
+                this.touchDragState = null;
+            }
+        }, {passive: true});
 
         filesElement.addEventListener("touchmove", (event: TouchEvent) => {
             const state = this.touchDragState;
             if (!state) return;
             const touch = event.touches[0];
+            if (!touch) return;
             if (!state.isDragging) {
                 if (Date.now() - state.startTime < Constants.TIMEOUT_LONGPRESS &&
                     (Math.abs(touch.clientX - state.startX) > 5 || Math.abs(touch.clientY - state.startY) > 5)) {
@@ -436,17 +595,7 @@ export class MobileFiles extends Model<AppFacade> {
                 }
                 if (Math.abs(touch.clientX - state.startX) < Constants.SIZE_DRAG_THRESHOLD &&
                     Math.abs(touch.clientY - state.startY) < Constants.SIZE_DRAG_THRESHOLD) return;
-                state.isDragging = true;
-
-                const ghostElement = document.createElement("ul");
-                ghostElement.id = "dragGhost";
-                ghostElement.append(state.selectedElement.cloneNode(true));
-                ghostElement.setAttribute("style", `background-color: var(--b3-theme-surface);width: 100%;touch-action: none;margin-left: -50%;margin-top:20px;z-index:${window.siyuan.zIndex};position: fixed;top:${touch.clientX}px;left:${touch.clientY}px`);
-                ghostElement.setAttribute("class", "b3-list b3-list--background");
-                document.body.append(ghostElement);
-
-                state.ghostElement = ghostElement;
-                state.selectedElement.style.opacity = "0.38";
+                this.startTouchDrag(state, touch.clientX, touch.clientY, !isMousePointerTouchEvent(event));
                 event.preventDefault();
                 event.stopPropagation();
             }
@@ -454,6 +603,7 @@ export class MobileFiles extends Model<AppFacade> {
             if (state.isDragging) {
                 event.preventDefault();
                 event.stopPropagation();
+                if (!state.ghostElement) return;
                 state.ghostElement.style.left = `${touch.clientX}px`;
                 state.ghostElement.style.top = `${touch.clientY}px`;
 
@@ -483,11 +633,13 @@ export class MobileFiles extends Model<AppFacade> {
                     }
                     return;
                 }
-                const dragHeight = liRect.height * .2;
-                if (touch.clientY > liRect.bottom - dragHeight) {
-                    liElement.classList.add("dragover__bottom");
-                } else if (touch.clientY < liRect.top + dragHeight) {
-                    liElement.classList.add("dragover__top");
+                if (isCustomFileTreeList(liElement.parentElement as Element)) {
+                    const dragHeight = liRect.height * .2;
+                    if (touch.clientY > liRect.bottom - dragHeight) {
+                        liElement.classList.add("dragover__bottom");
+                    } else if (touch.clientY < liRect.top + dragHeight) {
+                        liElement.classList.add("dragover__top");
+                    }
                 }
 
                 if (!liElement.classList.contains("dragover__top") && !liElement.classList.contains("dragover__bottom") &&
@@ -503,15 +655,16 @@ export class MobileFiles extends Model<AppFacade> {
             stopScrollAnimation();
             state.selectedElement.style.opacity = "";
             if (state.isDragging) {
-                if (state.ghostElement) {
-                    state.ghostElement.remove();
-                }
+                state.ghostElement?.remove();
                 const newElement = this.element.querySelector(".dragover, .dragover__bottom, .dragover__top");
                 if (!newElement) {
+                    this.touchDragState = null;
                     return;
                 }
                 const newUlElement = hasTopClosestByTag(newElement, "UL");
                 if (!newUlElement) {
+                    this.clearDragIndicators();
+                    this.touchDragState = null;
                     return;
                 }
                 const oldScrollTop = this.element.scrollTop;
@@ -536,6 +689,16 @@ export class MobileFiles extends Model<AppFacade> {
                 }
 
                 if (newElement.classList.contains("dragover")) {
+                    const sourceNotebookId = state.selectedElement.getAttribute("data-notebook-id") ||
+                        state.selectedElement.closest("ul[data-url]")?.getAttribute("data-url") ||
+                        state.selectedElement.getAttribute("data-url") || "";
+                    // 校验移动目标合法性，例如禁止移入盒子文档笔记本
+                    if (!isMoveTargetAllowed([sourceNotebookId], toURL)) {
+                        showMessage(window.siyuan.languages._kernel[313]);
+                        this.clearDragIndicators();
+                        this.touchDragState = null;
+                        return;
+                    }
                     fetchPost("/api/filetree/moveDocs", {
                         toNotebook: toURL,
                         fromPaths,
@@ -569,6 +732,15 @@ export class MobileFiles extends Model<AppFacade> {
                         let hasMove = false;
                         const toDir = pathPosix().dirname(toPath);
                         if (fromPaths.length > 0) {
+                            const sourceNotebookId = state.selectedElement.getAttribute("data-notebook-id") ||
+                                state.selectedElement.closest("ul[data-url]")?.getAttribute("data-url") ||
+                                state.selectedElement.getAttribute("data-url") || "";
+                            if (!isMoveTargetAllowed([sourceNotebookId], toURL)) {
+                                showMessage(window.siyuan.languages._kernel[313]);
+                                this.clearDragIndicators();
+                                this.touchDragState = null;
+                                return;
+                            }
                             await fetchSyncPost("/api/filetree/moveDocs", {
                                 toNotebook: toURL,
                                 fromPaths,
@@ -576,7 +748,13 @@ export class MobileFiles extends Model<AppFacade> {
                                 callback: Constants.CB_MOVE_NOLIST,
                             });
                             selectFileElements.forEach(item => {
-                                item.setAttribute("data-path", pathPosix().join(toDir, item.getAttribute("data-node-id") + ".sy"));
+                                const fromPath = item.getAttribute("data-path");
+                                const nodeId = item.getAttribute("data-node-id");
+                                if (!fromPath || !nodeId) {
+                                    return;
+                                }
+                                const newPath = pathPosix().join(toDir, `${nodeId}.sy`);
+                                updateMovedSubtree(item, getFileTreeChildList(item), fromPath, newPath);
                             });
                             hasMove = true;
                         }
@@ -638,17 +816,19 @@ export class MobileFiles extends Model<AppFacade> {
             this.touchDragState = null;
         });
 
-        filesElement.addEventListener("touchcancel", () => {
+        // 触摸取消、指针取消或窗口失焦时中止拖拽并清理拖拽现场
+        const cancelTouchDrag = () => {
             stopScrollAnimation();
-            if (this.touchDragState?.ghostElement) {
-                this.touchDragState.ghostElement.remove();
-            }
+            this.touchDragState?.ghostElement?.remove();
             if (this.touchDragState?.selectedElement) {
                 this.touchDragState.selectedElement.style.opacity = "";
             }
             this.clearDragIndicators();
             this.touchDragState = null;
-        });
+        };
+        filesElement.addEventListener("touchcancel", cancelTouchDrag);
+        filesElement.addEventListener("pointercancel", cancelTouchDrag);
+        window.addEventListener("blur", cancelTouchDrag);
     }
 
 }

@@ -100,6 +100,12 @@ describe("Forge Runtime WebUI client", () => {
         );
     });
 
+    it("reports a direct Forge launch without Supervisor as unavailable", async () => {
+        network.fetchSyncPost.mockResolvedValue({code: -1, msg: "Forge Supervisor 控制面未连接", data: null});
+
+        await expect(new ForgeRuntimeClient().getStatus()).resolves.toEqual({available: false});
+    });
+
     it("surfaces Kernel API failures", async () => {
         network.fetchSyncPost.mockResolvedValue({code: -1, msg: "same-device WebUI required", data: null});
 

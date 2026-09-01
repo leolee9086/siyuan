@@ -6,9 +6,7 @@ import { Graph } from "./Graph";
 import { Backlink } from "./Backlink";
 import { Forwardlink } from "./forwardlink/Forwardlink";
 import { Inbox } from "./Inbox";
-import {Custom} from "./custom/Custom";
-import {clearObjectBlockGraphs} from "./obg/clearObjectBlockGraphs";
-import { CustomLists } from "./customBlockLists/CustomLists";
+import {CustomLists} from "./customBlockLists/CustomLists";
 import {showCustomListMenu} from "./customBlockLists/customLists.menu";
 import { EmbeddingDock } from "./embeddingDock/EmbeddingDock";
 import { Cronjob } from "./Cronjob";
@@ -30,8 +28,6 @@ import type { AppFacade } from "./imports";
 import type {ProtyleDomain} from "./imports";
 import {Tree} from "./imports";
 import type { ILayoutModel } from "./imports";
-import type {TabModelFactoryContext} from "./imports";
-import {setPanelFocus} from "./imports";
 import {getDockByType} from "./imports";
 import {setStorageVal} from "./imports";
 import { createErrorPlaceholder } from "./errorPlaceholder/ErrorPlaceholder";
@@ -43,29 +39,6 @@ import { isModelConstructor } from "./dock.guard";
 import { isICustomList } from "./dock.guard";
 import { ModelFactory } from "./dock.types";
 import { ModelConstructor } from "./dock.types";
-
-/** 由布局组合层创建注册表声明的 Custom，并保持插件页签原有聚焦行为。 */
-export const createCustomTabModel = <TData>(context: TabModelFactoryContext<AppFacade, Tab, TData>) => {
-    const custom = new Custom<TData>({
-        app: context.app,
-        tab: context.tab,
-        type: context.type,
-        data: context.data,
-        init: context.registration.init,
-        ...(context.registration.destroy ? {destroy: context.registration.destroy} : {}),
-        ...(context.registration.beforeDestroy ? {beforeDestroy: context.registration.beforeDestroy} : {}),
-        ...(context.registration.resize ? {resize: context.registration.resize} : {}),
-        ...(context.registration.update ? {update: context.registration.update} : {}),
-    });
-    const parentElement = custom.element.parentElement?.parentElement;
-    if (parentElement) {
-        custom.element.addEventListener("click", () => {
-            clearObjectBlockGraphs();
-            setPanelFocus(parentElement);
-        });
-    }
-    return custom;
-};
 
 /**
  * 初始化文件树 Dock

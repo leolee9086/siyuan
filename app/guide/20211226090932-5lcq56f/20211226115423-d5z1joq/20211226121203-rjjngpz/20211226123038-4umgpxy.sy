@@ -6,7 +6,7 @@
 		"id": "20211226123038-4umgpxy",
 		"title": "資料文件",
 		"type": "doc",
-		"updated": "20260720201253"
+		"updated": "20260820133158"
 	},
 	"Children": [
 		{
@@ -15,7 +15,7 @@
 			"HeadingLevel": 2,
 			"Properties": {
 				"id": "20211226123051-arn57f1",
-				"updated": "20211226013452"
+				"updated": "20260820133158"
 			},
 			"Children": [
 				{
@@ -48,12 +48,62 @@
 			]
 		},
 		{
+			"ID": "20260820101322-k3v7qem",
+			"Type": "NodeParagraph",
+			"Properties": {
+				"id": "20260820101322-k3v7qem",
+				"updated": "20260820133158"
+			},
+			"Children": [
+				{
+					"Type": "NodeText",
+					"Data": "在桌面端，可在 "
+				},
+				{
+					"Type": "NodeTextMark",
+					"TextMarkType": "kbd",
+					"TextMarkTextContent": "設定"
+				},
+				{
+					"Type": "NodeText",
+					"Data": " - "
+				},
+				{
+					"Type": "NodeTextMark",
+					"TextMarkType": "kbd",
+					"TextMarkTextContent": "編輯器"
+				},
+				{
+					"Type": "NodeText",
+					"Data": " - "
+				},
+				{
+					"Type": "NodeTextMark",
+					"TextMarkType": "kbd",
+					"TextMarkTextContent": "行為"
+				},
+				{
+					"Type": "NodeText",
+					"Data": " - "
+				},
+				{
+					"Type": "NodeTextMark",
+					"TextMarkType": "kbd",
+					"TextMarkTextContent": "資源開啟方式"
+				},
+				{
+					"Type": "NodeText",
+					"Data": " 中設定按一下、Ctrl+按一下 / ⌘按一下、Alt+按一下和 Shift+按一下資源檔案時的開啟方式。"
+				}
+			]
+		},
+		{
 			"ID": "20211226123051-ddr3yub",
 			"Type": "NodeHeading",
 			"HeadingLevel": 2,
 			"Properties": {
 				"id": "20211226123051-ddr3yub",
-				"updated": "20250115152732"
+				"updated": "20260809232000"
 			},
 			"Children": [
 				{
@@ -225,15 +275,12 @@
 			"Type": "NodeParagraph",
 			"Properties": {
 				"id": "20211226123051-2p8rbm4",
-				"updated": "20220824172748"
+				"updated": "20260809232000"
 			},
 			"Children": [
 				{
 					"Type": "NodeImage",
 					"Data": "span",
-					"Properties": {
-						"parent-style": "display: block;"
-					},
 					"Children": [
 						{
 							"Type": "NodeBang"
@@ -266,10 +313,6 @@
 							"Type": "NodeCloseParen"
 						}
 					]
-				},
-				{
-					"Type": "NodeKramdownSpanIAL",
-					"Data": "{: parent-style=\"display: block;\"}"
 				}
 			]
 		},
@@ -523,7 +566,7 @@
 			"HeadingLevel": 2,
 			"Properties": {
 				"id": "20230604120454-cxz64oc",
-				"updated": "20250115152754"
+				"updated": "20260803171606"
 			},
 			"Children": [
 				{
@@ -537,7 +580,7 @@
 			"Type": "NodeParagraph",
 			"Properties": {
 				"id": "20230604120454-k7wee90",
-				"updated": "20250115152754"
+				"updated": "20260803163402"
 			},
 			"Children": [
 				{
@@ -560,7 +603,7 @@
 				},
 				{
 					"Type": "NodeText",
-					"Data": "​中可以查看丟失的資源，複製路徑後可以在全域搜索中找到引用處。"
+					"Data": " ​中可以查看丟失的資源，複製路徑後可以在全域搜索中找到引用處。"
 				}
 			]
 		},
@@ -569,7 +612,7 @@
 			"Type": "NodeParagraph",
 			"Properties": {
 				"id": "20230604120454-m6jtopr",
-				"updated": "20230604120825"
+				"updated": "20260803171606"
 			},
 			"Children": [
 				{

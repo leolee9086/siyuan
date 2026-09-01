@@ -9,7 +9,7 @@ import { resizeTabs } from "./imports";
 /** 用途：引入新窗口打开入口。使用范围：tabToWindow 命令。解耦评估：窗口创建逻辑由窗口模块封装。 */
 import { openNewWindow } from "./imports";
 /** 用途：引入取消拆分工具。使用范围：unsplit/unsplitAll 命令。解耦评估：布局重组仍由菜单层既有工具执行。 */
-import { unsplitWnd } from "./imports";
+import { unsplitWnd, unsplitCurrentWnd } from "./imports";
 /** 用途：引入布局访问器。使用范围：取消拆分命令读取 centerLayout。解耦评估：通过环境访问器替代新增直接 window 访问。 */
 import { getSiyuanLayout } from "./imports";
 /** 用途：引入 Wnd 类型和值。使用范围：取消拆分时标注窗口数组。解耦评估：布局核心类型由网关集中转发。 */
@@ -32,51 +32,19 @@ const executeUnsplitAllDesktopGlobalCommand = () => {
     const centerLayout = getSiyuanLayout().centerLayout;
     // centerLayout 存在时才调用取消拆分，避免在布局尚未初始化时传入 undefined。
     if (centerLayout) {
-        unsplitWnd(centerLayout, centerLayout, false);
+        unsplitWnd(centerLayout, centerLayout);
     }
     return true;
-};
-
-/** 查找当前标签所在布局向上的首个多窗口拆分层。 */
-const getNearestSplitLayout = (parentLayout: Layout, centerLayout: Layout) => {
-    let layout: Layout | Wnd = parentLayout;
-    let wndsTemp: Wnd[] = [];
-    while (layout.id !== centerLayout.id) {
-        wndsTemp = [];
-        getAllWnds(layout, wndsTemp);
-        // 找到包含多个窗口的拆分层后停止向上查找。
-        if (wndsTemp.length > 1) {
-            break;
-        }
-        // 根中心布局之前的父节点都应为 Layout；缺失 parent 时保守返回当前布局。
-        if (!layout.parent) {
-            return layout;
-        }
-        layout = layout.parent;
-    }
-    return layout;
 };
 
 /** 执行取消当前拆分命令。 */
 const executeUnsplitDesktopGlobalCommand = () => {
     const tab = getActiveTab(false);
-    const centerLayout = getSiyuanLayout().centerLayout;
-    // 当前无活动标签或中心布局未就绪时命令视为已处理但不调整布局。
-    if (!tab || !centerLayout) {
+    if (!tab) {
         return true;
     }
-    const parentLayout = tab.parent.parent;
-    // 标签窗口缺少父布局时无法执行取消拆分，保持命令已处理。
-    if (!parentLayout) {
-        return true;
-    }
-    const firstChild = parentLayout.children.at(0);
-    const targetLayout = getNearestSplitLayout(parentLayout, centerLayout);
-    // 原逻辑以父布局第一个子项作为保留对象；存在时再执行取消拆分。
-    if (firstChild) {
-        unsplitWnd(firstChild, targetLayout, true);
-        resizeTabs();
-    }
+    unsplitCurrentWnd(tab.parent);
+    resizeTabs();
     return true;
 };
 

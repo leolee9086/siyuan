@@ -23,6 +23,11 @@ import {getSiyuanStorage} from "../../util/siyuanEnvironments/getSiyuanConfig.en
 /** 导出应用存储访问器。 */
 export {getSiyuanStorage};
 
+/** 用途：识别加密笔记本；使用范围：全局搜索敏感态判定；解耦评估：直达加密子域唯一判定实现。 */
+import {isEncryptedBox} from "../../util/file/notebook/store";
+/** 导出加密笔记本判定。 */
+export {isEncryptedBox};
+
 /** 用途：约束搜索宿主为完整应用外观；使用范围：创建 Search 页签；解耦评估：纯类型直达抽象领域根，不加载具体 App。 */
 import type {AppFacade} from "../../app/AppFacade.types";
 /** 导出完整应用外观。 */

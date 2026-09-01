@@ -1,6 +1,7 @@
 import {hasClosestBlock, hasClosestByAttribute, hasClosestByTag} from "../util/hasClosest";
 import {
     focusByOffset,
+    focusByRange,
     getEditorRange,
     getSelectionOffset,
     setInsertWbrHTML,
@@ -81,8 +82,22 @@ export function bindInputEvents(
 
     // 输入法测试点 https://github.com/siyuan-note/siyuan/issues/3027
     let isComposition = false; // for iPhone
-    // 记录组合开始时的光标位置，用于取消组合后恢复光标（输入法删空候选词触发 compositionend 时浏览器会把光标移出可编辑单元格）
-    let compositionRange: { cell: HTMLElement; offset: number } | undefined;
+    // 记录组合开始时的光标位置，用于取消组合后恢复光标。
+    let compositionRange: { range: Range } | { cell: HTMLElement; offset: number } | undefined;
+    const isAfterInlineMath = (range: Range) => {
+        let previousNode: Node;
+        if (range.startContainer.nodeType === Node.TEXT_NODE) {
+            const text = range.startContainer.textContent || "";
+            if (!/^[\\n\\u200B\\uFEFF]*$/.test(text.slice(0, range.startOffset))) {
+                return false;
+            }
+            previousNode = range.startContainer.previousSibling;
+        } else {
+            previousNode = range.startContainer.childNodes[range.startOffset - 1];
+        }
+        return previousNode?.nodeType === Node.ELEMENT_NODE &&
+            (previousNode as Element).getAttribute("data-type")?.split(" ").includes("inline-math");
+    };
     element.addEventListener("compositionstart", (event) => {
         isComposition = true;
         // 微软双拼由于 focusByRange 导致无法输入文字，因此不再 keydown 中记录了，但 keyup 会记录拼音字符，因此使用 isComposition 阻止 keyup 记录。
@@ -92,13 +107,13 @@ export function bindInputEvents(
         // 记录组合开始时光标所在的可编辑单元格与偏移，供取消组合时恢复光标
         if (nodeElement) {
             const startCell = hasClosestByTag(range.startContainer, "TD") || hasClosestByTag(range.startContainer, "TH");
-            if (startCell) {
+            if (startCell && !isAfterInlineMath(range)) {
                 compositionRange = {
-                    cell: startCell,
+                    cell: startCell as HTMLElement,
                     offset: getSelectionOffset(startCell as HTMLElement, nodeElement, range).start,
                 };
             } else {
-                compositionRange = undefined;
+                compositionRange = {range: range.cloneRange()};
             }
         } else {
             compositionRange = undefined;
@@ -140,15 +155,22 @@ export function bindInputEvents(
             }
             // https://github.com/siyuan-note/siyuan/issues/17584
             if (compositionRange) {
-                const selection = getSelection();
-                if (selection.rangeCount > 0) {
-                    const afterRange = selection.getRangeAt(0);
-                    const currentCell = hasClosestByTag(afterRange.startContainer, "TD") || hasClosestByTag(afterRange.startContainer, "TH");
-                    if (!currentCell || currentCell !== compositionRange.cell) {
-                        focusByOffset(compositionRange.cell, compositionRange.offset, compositionRange.offset);
+                if ("range" in compositionRange) {
+                    // https://github.com/siyuan-note/siyuan/issues/14667
+                    if (element.contains(compositionRange.range.startContainer)) {
+                        focusByRange(compositionRange.range);
                     }
                 } else {
-                    focusByOffset(compositionRange.cell, compositionRange.offset, compositionRange.offset);
+                    const selection = getSelection();
+                    if (selection.rangeCount > 0) {
+                        const afterRange = selection.getRangeAt(0);
+                        const currentCell = hasClosestByTag(afterRange.startContainer, "TD") || hasClosestByTag(afterRange.startContainer, "TH");
+                        if (!currentCell || currentCell !== compositionRange.cell) {
+                            focusByOffset(compositionRange.cell, compositionRange.offset, compositionRange.offset);
+                        }
+                    } else {
+                        focusByOffset(compositionRange.cell, compositionRange.offset, compositionRange.offset);
+                    }
                 }
             }
             compositionRange = undefined;

@@ -1,7 +1,7 @@
 import {Menu} from "../../../../plugin/Menu";
 import {transaction} from "../../../wysiwyg/transaction/submit";
 import {fetchPost} from "../../../../util/network/fetch";
-import {updateAttrViewCellAnimation} from "../action/animation";
+import {updateAttrViewCellAnimation, updateAttrViewColAnimation} from "../action/animation";
 import {focusBlock} from "../../../util/selection";
 import {handleDeleteColClick} from "./col.showColMenu";
 import {addCol} from "./add/menu.factory";
@@ -9,13 +9,14 @@ import {avMenuPanel} from "./imports";
 import {duplicateCol} from "./structure/operations";
 import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {isHTMLInputElement} from "../../../../util/DOM/element.guard";
+import {openFieldVisibility} from "../fieldVisibility";
 import type {IShowColMenuContext} from "./col.showColMenu.types";
 
 /** @同步豁免: UI构建 — 菜单关闭时保存名称变更 */
 const saveNameChange = (
     ctx: IShowColMenuContext, menu: Menu,
 ): void => {
-    const {protyle, blockElement, colId, avID, type, oldValue} = ctx;
+    const {protyle, colId, avID, type, oldValue} = ctx;
     const textField = menu.element.querySelector(".b3-text-field");
     // 文本输入框不存在或非 HTMLInputElement 时跳过
     if (!(textField instanceof HTMLInputElement)) {
@@ -33,11 +34,7 @@ const saveNameChange = (
         action: "updateAttrViewCol",
         id: colId, avID, name: oldValue, type,
     }]);
-    const headerCell = blockElement.querySelector(`.av__row--header .av__cell[data-col-id="${colId}"]`);
-    // 表头单元格存在时同步名称动画
-    if (headerCell instanceof HTMLElement) {
-        updateAttrViewCellAnimation(headerCell, undefined, {name: newValue});
-    }
+    updateAttrViewColAnimation(protyle, avID, colId, {name: newValue});
 };
 
 /** @同步豁免: UI构建 — 菜单关闭时保存描述变更 */
@@ -102,6 +99,7 @@ export const addPinAndHideItems = (menu: Menu, ctx: IShowColMenuContext): void =
             id: "hide",
             icon: "iconEyeoff",
             label: siyuanI18n.hide,
+            action: "iconEdit",
             /** 隐藏当前列，用户点击隐藏菜单项时触发 */
             click() {
                 transaction(protyle, [{
@@ -111,6 +109,23 @@ export const addPinAndHideItems = (menu: Menu, ctx: IShowColMenuContext): void =
                     action: "setAttrViewColHidden",
                     id: colId, avID, data: false, blockID
                 }]);
+            },
+            /** 绑定字段可见性快捷入口（openFieldVisibility），菜单项 DOM 渲染后执行 */
+            bind(element) {
+                const actionElement = element.querySelector(".b3-menu__action") as HTMLElement;
+                actionElement.classList.add("ariaLabel");
+                actionElement.setAttribute("data-position", "4west");
+                actionElement.setAttribute("aria-label", window.siyuan.languages.fieldVisibility);
+                actionElement.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    openFieldVisibility({
+                        protyle,
+                        blockElement,
+                        colId,
+                        fieldType: type,
+                    });
+                });
             }
         });
     }

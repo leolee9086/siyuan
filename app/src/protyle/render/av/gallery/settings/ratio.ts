@@ -12,56 +12,81 @@ import {createGallerySettingContext} from "./identity";
 import type {GallerySettingContext} from "./settings.types";
 /** 用途：标注完整 Gallery 设置输入；使用范围：宽高比菜单；解耦评估：纯类型依赖。 */
 import type {GallerySettingOptions} from "./settings.types";
+/** 用途：读取宽高比档位、边界与标签并解析当前数值；使用范围：宽高比菜单构建；解耦评估：复用画廊样式唯一实现。 */
+import {
+    CARD_ASPECT_RATIO_MAX,
+    CARD_ASPECT_RATIO_MIN,
+    CARD_ASPECT_RATIO_PRESETS,
+    getCardAspectRatio,
+    getCardAspectRatioLabel,
+    getCardAspectRatioValue,
+} from "../style";
+/** 用途：拖动滑杆时实时更新卡片预览；使用范围：宽高比滑杆；解耦评估：同域唯一预览实现。 */
+import {updateCardPreview} from "./cardPreview";
 
-const CARD_ASPECT_RATIO_COUNT = 7;
-
-/** 返回一次性宽高比标签序列，避免共享可变数组状态。 */
-const getCardAspectRatioLabels = () => "16:9|9:16|4:3|3:4|3:2|2:3|1:1".split("|");
-
-/** 将宽高比协议编号映射为菜单标签，未知值沿用 16:9 回退。 */
-/** @同步豁免: UI构建 */
-export const getCardAspectRatio = (ratio: number) => {
-    return getCardAspectRatioLabels()[ratio] ?? "16:9";
-};
-
-/** 提交卡片宽高比并同步当前视图对象和菜单标签。 */
-const applyCardAspectRatio = (
+/** 提交卡片宽高比数值并同步当前视图对象和菜单标签。 */
+const applyCardAspectRatioValue = (
     context: GallerySettingContext,
     viewID: string,
-    ratio: number,
+    ratioValue: number,
+    previousRatio: number,
 ) => {
     submitAVGallerySettingTransaction(context.options.protyle, [{
-        action: "setAttrViewCardAspectRatio",
+        action: "setAttrViewCardAspectRatioValue",
         avID: context.avID,
         blockID: context.blockID,
-        data: ratio,
+        data: ratioValue,
         viewID,
     }], [{
-        action: "setAttrViewCardAspectRatio",
+        action: "setAttrViewCardAspectRatioValue",
         avID: context.avID,
         blockID: context.blockID,
-        data: context.options.view.cardAspectRatio,
+        data: previousRatio,
         viewID,
     }]);
-    context.options.view.cardAspectRatio = ratio;
-    context.labelElement.textContent = getCardAspectRatio(ratio);
+    context.options.view.cardAspectRatioValue = ratioValue;
+    context.labelElement.textContent = getCardAspectRatioLabel(ratioValue);
 };
 
-/** 构建 Gallery 卡片宽高比菜单，保持协议编号顺序。 */
+/** 构建 Gallery 卡片宽高比菜单：内置档位加自由比例滑杆，保持协议档位顺序。 */
 /** @同步豁免: UI构建 */
 export const setGalleryRatio = (options: GallerySettingOptions) => {
     const context = createGallerySettingContext(options);
     const viewID = requireGalleryAttribute(options.nodeElement, Constants.CUSTOM_SY_AV_VIEW);
     const menu = createGallerySettingsMenu();
-    for (let ratio = 0; ratio < CARD_ASPECT_RATIO_COUNT; ratio++) {
+    const previousRatio = getCardAspectRatioValue(options.view);
+    CARD_ASPECT_RATIO_PRESETS.forEach((ratioValue, ratio) => {
         menu.addItem({
             iconHTML: "",
-            checked: options.view.cardAspectRatio === ratio,
+            checked: Math.abs(previousRatio - ratioValue) < 0.0001,
             label: getCardAspectRatio(ratio),
             /** @内联回调 */
-            click: () => applyCardAspectRatio(context, viewID, ratio),
+            click: () => applyCardAspectRatioValue(context, viewID, ratioValue, previousRatio),
         });
-    }
+    });
+    menu.addSeparator();
+    menu.addItem({
+        iconHTML: "",
+        type: "readonly",
+        label: `<div class="b3-tooltips b3-tooltips__n" aria-label="${getCardAspectRatioLabel(previousRatio)}" style="margin: 4px 0;">
+    <input class="b3-slider fn__block" max="${CARD_ASPECT_RATIO_MAX}" min="${CARD_ASPECT_RATIO_MIN}" step="0.05" type="range" value="${previousRatio}">
+</div>`,
+        bind(element) {
+            const rangeElement = element.querySelector("input") as HTMLInputElement;
+            rangeElement.addEventListener("input", () => {
+                const ratio = parseFloat(rangeElement.value);
+                updateCardPreview(options.nodeElement, "--b3-av-card-aspect-ratio", rangeElement.value);
+                rangeElement.parentElement.setAttribute("aria-label", getCardAspectRatioLabel(ratio));
+            });
+            rangeElement.addEventListener("change", () => {
+                const ratio = parseFloat(rangeElement.value);
+                if (ratio !== previousRatio) {
+                    applyCardAspectRatioValue(context, viewID, ratio, previousRatio);
+                }
+                menu.close();
+            });
+        }
+    });
     const rect = options.target.getBoundingClientRect();
     menu.open({x: rect.left, y: rect.bottom});
 };

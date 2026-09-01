@@ -10,4 +10,8 @@ export interface WYSIWYGDomain {
     renderCustom(ial: Record<string, string>): void;
     flushPendingInput(): void;
     withInputSuppressed<T>(callback: () => T): T;
+    destroy(): void;
+    copyRichText(): void;
+    prepareLargeListVirtualization(contentElement: Element, replace: boolean): void;
+    readonly tableControl?: { destroy(): void };
 }

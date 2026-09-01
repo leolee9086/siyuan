@@ -10,11 +10,21 @@ vi.mock("../../src/protyle/wysiwyg/transaction/prepared/submit", () => ({
 
 import {submitAVGallerySettingTransaction} from "../../src/protyle/wysiwyg/transaction/prepared/av/view/avGallery";
 
+const legacyActions = [
+    "setAttrViewCardSize",
+    "setAttrViewCardAspectRatio",
+] as const;
+
+const currentActions = [
+    "setAttrViewCardWidth",
+    "setAttrViewCardAspectRatioValue",
+] as const;
+
 const actions = [
     "setAttrViewCoverFrom",
     "setAttrViewCoverFromAssetKeyID",
-    "setAttrViewCardSize",
-    "setAttrViewCardAspectRatio",
+    ...legacyActions,
+    ...currentActions,
 ] as const;
 
 describe("AV gallery setting transaction", () => {

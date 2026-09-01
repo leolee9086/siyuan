@@ -12,3 +12,13 @@ export {fetchPost};
 import {promiseTransaction} from "../transaction.promise";
 /** 导出本地同步事务实现。 */
 export {promiseTransaction};
+
+/** 用途：为视图级折叠上下文归一化事务内容。使用范围：提交前。解耦评估：视图状态属于 Protyle 工具域，事务只调用其稳定协议。 */
+import {prepareViewFoldTransaction} from "../../util/viewFold";
+/** 导出视图折叠事务预处理。 */
+export {prepareViewFoldTransaction};
+
+/** 用途：去除仅用于编辑器展示的标题编号标记。使用范围：事务落盘前。解耦评估：编号规则由 Protyle 工具域独占。 */
+import {cleanHeadingNumberOperations} from "../../util/headingNumber";
+/** 导出标题编号事务清理函数。 */
+export {cleanHeadingNumberOperations};

@@ -52,7 +52,8 @@ export function renderMagiConversation(runtime: AgentChatRuntime, history: Agent
             id: history.conversationId,
             title: "MAGI",
             targetKind: "magi",
-            entries: runtime.entries,
+            entries: runtime.entries.filter((entry): entry is Exclude<SessionEntry, {type: "todo"}> =>
+                entry.type !== "todo"),
             createdAt: runtime.sessionCreatedAt,
             updatedAt: Date.now(),
         });

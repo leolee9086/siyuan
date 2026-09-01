@@ -4,6 +4,9 @@ import {pathPosix, setNoteBook} from "../../util/file/pathName";
 import {unicode2Emoji} from "../../emoji";
 import {getPublishAccessOptionByLevel} from "../../protyle/util/publishAccess";
 import type {MobileFilesWebSocketPort} from "./files/ports.types";
+/** 用途：执行移动文档后的共享 DOM 协调；使用范围：移动文件树 WebSocket；解耦评估：显式宿主端口。 */
+import {applyFileTreeMoves} from "../../util/fileTreeMoveDom";
+import type {IFileTreeMove} from "../../util/fileTreeMove";
 
 /**
  * 作用：生成笔记本的 HTML 片段（开启或关闭状态）。
@@ -118,76 +121,19 @@ export function updateItemArrow(files: MobileFilesWebSocketPort, notebookId: str
     }
 }
 
-/**
- * 作用：处理文档移动后的文件树 DOM 更新。
- * 意图：在源位置移除节点，在目标位置刷新展开状态。
- * 调用时机：收到 WebSocket "moveDoc" 消息时。
- * @同步豁免: UI构建
- */
-export function onMove(files: MobileFilesWebSocketPort, data: {
-    fromNotebook: string,
-    toNotebook: string,
-    fromPath: string
-    toPath: string
-}) {
-    const sourceElement = files.element.querySelector(`ul[data-url="${data.fromNotebook}"] li[data-path="${data.fromPath}"]`) as HTMLElement;
-    if (sourceElement) {
-        // 如果源节点有展开的子列表，先移除
-        if (sourceElement.nextElementSibling && sourceElement.nextElementSibling.tagName === "UL") {
-            sourceElement.nextElementSibling.remove();
-        }
-        // 源节点是父容器中唯一子节点时，需要更新父节点箭头状态
-        if (sourceElement.parentElement.childElementCount === 1) {
-            if (sourceElement.parentElement.previousElementSibling) {
-                const parentLiElement = sourceElement.parentElement.previousElementSibling as HTMLElement;
-                if (parentLiElement.getAttribute("data-type") !== "navigation-root" || parentLiElement.dataset.nodeId) {
-                    parentLiElement.querySelector(".b3-list-item__toggle").classList.add("fn__hidden");
-                }
-                parentLiElement.querySelector(".b3-list-item__arrow").classList.remove("b3-list-item__arrow--open");
-                parentLiElement.setAttribute("data-count", "0");
-                updateDocActionElement(parentLiElement);
-                const emojiElement = parentLiElement.querySelector(".b3-list-item__icon");
-                const localImages = window.siyuan.storage[Constants.LOCAL_IMAGES];
-                // 无子文档时将文件夹图标改回文件图标
-                if (emojiElement.innerHTML === unicode2Emoji(localImages.folder)) {
-                    emojiElement.innerHTML = unicode2Emoji(localImages.file);
-                }
-            }
-            sourceElement.parentElement.remove();
-        } else {
-            sourceElement.remove();
-        }
-    } else {
-        const parentElement = files.element.querySelector(`ul[data-url="${data.fromNotebook}"] li[data-path="${pathPosix().dirname(data.fromPath)}.sy"]`) as HTMLElement;
-        if (parentElement && parentElement.getAttribute("data-count") === "1") {
-            if (parentElement.dataset.type !== "navigation-root" || parentElement.dataset.nodeId) {
-                parentElement.querySelector(".b3-list-item__toggle").classList.add("fn__hidden");
-            }
-            parentElement.querySelector(".b3-list-item__arrow").classList.remove("b3-list-item__arrow--open");
-            parentElement.setAttribute("data-count", "0");
-            updateDocActionElement(parentElement);
-        }
-    }
-    const newElement = files.element.querySelector(`[data-url="${data.toNotebook}"] li[data-path="${data.toPath}"]`) as HTMLElement;
-    // 重新展开移动到的新文件夹
-    if (newElement) {
-        if (newElement.getAttribute("data-type") === "navigation-root") {
-            newElement.setAttribute("data-count", Math.max(1, Number(newElement.getAttribute("data-count"))).toString());
-            updateDocActionElement(newElement);
-        }
-        const emojiElement = newElement.querySelector(".b3-list-item__icon");
-        const localImages = window.siyuan.storage[Constants.LOCAL_IMAGES];
-        // 目标位置有子文档，将文件图标改为文件夹图标
-        if (emojiElement.innerHTML === unicode2Emoji(localImages.file)) {
-            emojiElement.innerHTML = unicode2Emoji(localImages.folder);
-        }
-        newElement.querySelector(".b3-list-item__toggle").classList.remove("fn__hidden");
-        newElement.querySelector(".b3-list-item__arrow").classList.remove("b3-list-item__arrow--open");
-        if (newElement.nextElementSibling && newElement.nextElementSibling.tagName === "UL") {
-            newElement.nextElementSibling.remove();
-        }
-        files.getLeaf(newElement, data.toNotebook);
-    }
+/** 作用：协调单条或批量移动后的文件树 DOM 与展开状态。 @同步豁免: UI构建 */
+export function onMove(files: MobileFilesWebSocketPort, moves: IFileTreeMove[], callback?: string) {
+    applyFileTreeMoves({
+        host: {
+            element: files.element,
+            getLeaf: files.getLeaf,
+            recordMovedExpandedDocIDs: files.recordMovedExpandedDocIDs,
+            updateDocActionElement: files.updateDocActionElement,
+            persistOpenPaths: files.persistOpenPaths,
+        },
+        moves,
+        ...(callback ? {callback} : {}),
+    });
 }
 
 /**

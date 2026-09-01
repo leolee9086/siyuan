@@ -2,7 +2,8 @@ import { getSiyuanStorage } from "../siyuanEnvironments/getSiyuanConfig.environm
 import { siyuanI18n } from "../siyuanEnvironments/i18n.getI18n.environment";
 import { unicode2Emoji } from "../../emoji/emoji.render";
 import { Constants } from "../../constants";
-import { getDisplayName } from "./path/operations";
+import { getDocDisplayName } from "./path/operations";
+import { escapeAriaLabel } from "../DOM/escape";
 
 /**
  * 生成文件项的计数HTML
@@ -30,14 +31,14 @@ export const generateCountHTML = (item: IFile, flashcard: boolean): string => {
  * @returns aria-label内容数组
  */
 const generateAriaLabelParts = (item: IFile): string[] => {
-    const displayName = getDisplayName(item.name, true, true);
+    const displayName = getDocDisplayName(item.name, item.titleEmpty, true);
     // @内联数组 - 数组元素依赖运行时参数 item，无法提取为静态顶层常量
     return [
         `${displayName} <small class='ft__on-surface'>${item.hSize}</small>`,
-        item.bookmark ? `<br>${siyuanI18n.bookmark} ${item.bookmark}` : "",
-        item.name1 ? `<br>${siyuanI18n.name} ${item.name1}` : "",
-        item.alias ? `<br>${siyuanI18n.alias} ${item.alias}` : "",
-        item.memo ? `<br>${siyuanI18n.memo} ${item.memo}` : "",
+        item.bookmark ? `<br>${siyuanI18n.bookmark} ${escapeAriaLabel(item.bookmark)}` : "",
+        item.name1 ? `<br>${siyuanI18n.name} ${escapeAriaLabel(item.name1)}` : "",
+        item.alias ? `<br>${siyuanI18n.alias} ${escapeAriaLabel(item.alias)}` : "",
+        item.memo ? `<br>${siyuanI18n.memo} ${escapeAriaLabel(item.memo)}` : "",
         item.subFileCount !== 0 ? siyuanI18n.includeSubFile.replace("x", item.subFileCount.toString()) : "",
         `<br>${siyuanI18n.modifiedAt} ${item.hMtime}`,
         `<br>${siyuanI18n.createdAt} ${item.hCtime}`
@@ -56,7 +57,7 @@ const generateFileItemHTMLBase = (item: IFile, notebookId: string, flashcard: bo
     const localImages = storage[Constants.LOCAL_IMAGES];
     const iconPath = item.icon || (item.subFileCount === 0 ? localImages.file : localImages.folder);
 
-    const displayName = getDisplayName(item.name, true, true);
+    const displayName = getDocDisplayName(item.name, item.titleEmpty, true);
     const ariaLabelParts = generateAriaLabelParts(item);
     const countHTML = generateCountHTML(item, flashcard);
 

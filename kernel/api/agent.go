@@ -34,6 +34,7 @@ import (
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/agent"
 	"github.com/siyuan-note/siyuan/kernel/conf"
+	"github.com/siyuan-note/siyuan/kernel/mcp/tools"
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/util"
 	"github.com/siyuan-note/siyuan/packages/agentqueue"
@@ -239,17 +240,19 @@ func requireRunningAgentAccess(c *gin.Context, sessionID string) bool {
 }
 
 type agentChatReq struct {
-	SessionID       string               `json:"sessionID"`
-	UserEntryID     string               `json:"userEntryID"`
-	ContentRevision *int64               `json:"contentRevision"`
-	Message         string               `json:"message"`
-	Language        string               `json:"language"`
-	References      []agent.Reference    `json:"references"`
-	EditorContext   agent.EditorContext  `json:"editorContext"`
-	PluginActions   []agent.PluginAction `json:"pluginActions"`
-	Model           string               `json:"model,omitempty"`
-	Regenerate      bool                 `json:"regenerate"`
-	ReasoningEffort string               `json:"reasoningEffort,omitempty"`
+	SessionID            string                     `json:"sessionID"`
+	UserEntryID          string                     `json:"userEntryID"`
+	ContentRevision      *int64                     `json:"contentRevision"`
+	Message              string                     `json:"message"`
+	BlockHTML            *string                    `json:"blockHTML"`
+	Language             string                     `json:"language"`
+	References           []agent.Reference          `json:"references"`
+	EditorContext        agent.EditorContext        `json:"editorContext"`
+	PluginActions        []agent.PluginAction       `json:"pluginActions"`
+	FrontendCapabilities []agent.FrontendCapability `json:"frontendCapabilities"`
+	Model                string                     `json:"model,omitempty"`
+	Regenerate           bool                       `json:"regenerate"`
+	ReasoningEffort      string                     `json:"reasoningEffort,omitempty"`
 }
 
 func isAgentSessionRunning(sessionID string) bool {
@@ -285,9 +288,10 @@ func agentChat(c *gin.Context) {
 		contentRevision = *req.ContentRevision
 	}
 	turnParams, err := buildAgentTurnParams(agentTurnRequestOptions{
-		ModelID: req.Model, UserEntryID: req.UserEntryID, ContentRevision: contentRevision,
+		ModelID: req.Model, UserEntryID: req.UserEntryID, BlockHTML: req.BlockHTML, ContentRevision: contentRevision,
 		Language: req.Language, References: req.References, EditorContext: req.EditorContext,
-		PluginActions: req.PluginActions, Regenerate: req.Regenerate, ReasoningEffort: req.ReasoningEffort,
+		PluginActions: req.PluginActions, FrontendCapabilities: req.FrontendCapabilities,
+		Regenerate: req.Regenerate, ReasoningEffort: req.ReasoningEffort,
 	}, ownerAuth)
 	if err != nil {
 		ret := gulu.Ret.NewResult()
@@ -447,6 +451,37 @@ func agentChatConfirm(c *gin.Context) {
 	writeAgentInteractionAccepted(c)
 }
 
+// 上游新增的 setPermission 端点：切换会话权限模式并广播 permission 变更。
+// 本分叉保留上游响应契约，仅按本地安全模型补充 requireAgentSessionAccess 会话级访问校验。
+type agentPermissionReq struct {
+	SessionID      string `json:"sessionID"`
+	PermissionMode string `json:"permissionMode"`
+}
+
+func setAgentSessionPermission(c *gin.Context) {
+	req := &agentPermissionReq{}
+	if err := c.ShouldBindJSON(req); err != nil {
+		ret := gulu.Ret.NewResult()
+		ret.Code = -1
+		ret.Msg = "invalid request: " + err.Error()
+		c.JSON(http.StatusOK, ret)
+		return
+	}
+	if _, _, ok := requireAgentSessionAccess(c, req.SessionID); !ok {
+		return
+	}
+	ret := gulu.Ret.NewResult()
+	if err := agent.SetSessionPermissionMode(req.SessionID, req.PermissionMode); err != nil {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		c.JSON(http.StatusOK, ret)
+		return
+	}
+	ret.Data = map[string]string{"permissionMode": req.PermissionMode}
+	c.JSON(http.StatusOK, ret)
+	broadcastAgentSessionChanged(c.GetHeader("X-SiYuan-App-ID"), req.SessionID, "permission")
+}
+
 type agentQuestionReq struct {
 	SessionID  string   `json:"sessionID"`
 	QuestionID string   `json:"questionID"`
@@ -494,6 +529,42 @@ func agentChatFrontendResult(c *gin.Context) {
 		return
 	}
 	writeAgentInteractionAccepted(c)
+}
+
+// 上游新增的 browserCapabilityResult 端点：接收浏览器能力调用的执行结果。
+// 请求先经过本地会话访问校验，再按不可预测的 callID 投递到当前等待者。
+type agentBrowserCapabilityResultReq struct {
+	SessionID            string `json:"sessionID"`
+	CallID               string `json:"callID"`
+	Result               string `json:"result"`
+	StructuredContent    any    `json:"structuredContent"`
+	StructuredContentSet bool   `json:"structuredContentSet"`
+	IsError              bool   `json:"isError"`
+}
+
+func agentChatBrowserCapabilityResult(c *gin.Context) {
+	req := &agentBrowserCapabilityResultReq{}
+	if err := c.ShouldBindJSON(req); err != nil {
+		writeAgentInteractionFailure(c, http.StatusBadRequest, "invalid_request", "error",
+			"invalid request: "+err.Error())
+		return
+	}
+	if !requireRunningAgentAccess(c, req.SessionID) {
+		return
+	}
+	if !agent.BrowserCapabilityResult(req.CallID, req.Result, req.StructuredContent,
+		req.StructuredContentSet, req.IsError) {
+		writeAgentInteractionFailure(c, http.StatusConflict, "interaction_expired", "expired",
+			"agent browser capability call expired")
+		return
+	}
+	writeAgentInteractionAccepted(c)
+}
+
+func lsCapabilities(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	ret.Data = tools.ListCapabilityManifests()
+	c.JSON(http.StatusOK, ret)
 }
 
 type agentTitleReq struct {
@@ -1157,8 +1228,10 @@ func setAgentCommitTurnID(body []byte, turnID string) ([]byte, error) {
 	return gulu.JSON.MarshalJSON(payload)
 }
 
-// broadcastAgentSessionChanged 只广播普通会话。外部目录会话的 ID、活动状态和时序
-// 都不能进入未携带 owner capability 的全局 WebSocket 通道。
+// broadcastAgentSessionChanged 向除发起者 app 外、所有打开了 agentChat dock 的实例推送会话变更通知；
+// action 取 streamStart / streamEnd / update / permission / delete。只广播普通会话：外部目录会话的
+// ID、活动状态和时序都不能进入未携带 owner capability 的全局 WebSocket 通道；发起者 app 自身已被
+// 排除，它已通过 SSE 自渲染或在本地持有最新状态。
 func broadcastAgentSessionChanged(app, sessionID, action string) {
 	if "" == app || "" == sessionID {
 		return
@@ -1300,8 +1373,14 @@ func writeSSEInterrupted(c *gin.Context, message string) error {
 func lsSkills(c *gin.Context) {
 	ret := gulu.Ret.NewResult()
 	defer c.JSON(http.StatusOK, ret)
-	skills := util.DiscoverSkills()
+	skills := util.DiscoverSkills(model.EnabledUserSkills())
 	ret.Data = skills
+}
+
+func lsUserSkills(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+	ret.Data = util.DiscoverUserSkills(model.EnabledUserSkills())
 }
 
 type skillGetReq struct {
@@ -1319,7 +1398,7 @@ func getSkill(c *gin.Context) {
 		return
 	}
 
-	content, err := util.ReadSkill(req.Name)
+	content, err := util.ReadSkill(req.Name, model.EnabledUserSkills())
 	if err != nil {
 		ret.Code = -1
 		ret.Msg = err.Error()

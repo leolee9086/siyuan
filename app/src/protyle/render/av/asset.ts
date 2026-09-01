@@ -3,29 +3,32 @@ import {submitAVAssetTransaction} from "../../wysiwyg/transaction/prepared/av/av
 import {updateAttrViewCellAnimation} from "./action/animation";
 import {isMobile} from "../../../platform";
 import { Constants } from "../../../constants";
-import {uploadFiles} from "../../upload/transport";
-import { pathPosix } from "../../../util/file/pathName";
+import {getUploadRuntimeEffects} from "../../upload/runtime/port";
+import { getAssetExtension } from "../../../util/file/path/operations";
 import { openMenu } from "../../../menus/commonMenuItem/openMenu";
 import { MenuItem } from "../../../menus/Menu.Item";
 import {copyPNGByLink, exportAsset, writeAssetToClipboard} from "../../../asset/actions";
 import { setPosition } from "../../../util/DOM/positioning/setPosition";
 import { previewAttrViewImages } from "../../preview/image";
 import {genAVValueHTML} from "./value/render";
-import { hideMessage, showMessage } from "../../runtime/dialog.port";
-import { fetchPost } from "../../../util/network/fetch";
+import { showMessage } from "../../runtime/dialog.port";
 import { hasClosestBlock } from "../../util/hasClosest";
 import {genCellValueByElement} from "./cell.value";
 import {getTypeByCellElement} from "./cell/position";
+import {getAttrViewCellOtherElementsSync} from "./cell/sync/port";
 import { writeText } from "../../util/compatibility";
 import { escapeAriaLabel, escapeAttr, escapeHtml } from "../../../util/DOM/escape";
 import {renameAsset} from "../../../asset/rename/renameAsset";
 import * as dayjs from "dayjs";
 import { getColId } from "./col/identity/resolve";
 import { getFieldIdByCellElement } from "./row";
-import { base64ToURL, getCompressURL, removeCompressURL } from "../../../util/assets/image";
+import { getCompressURL, removeCompressURL } from "../../../util/assets/image";
+import {base64ToURL} from "../../upload/base64";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { confirmDialog } from "../../runtime/dialog.port";
-import { filesize } from "filesize";
+import {isBrowserRenderableImagePath} from "../../../util/imageURL";
+import {genNetworkImageAssetValue} from "./assetValue";
+import {getAVBatchEditMode, getAVBatchSourceValue} from "./batchValue";
+import {getAssetUploadSuccesses} from "../../upload/uploadResult";
 
 export const bindAssetEvent = (options: {
     protyle: IProtyle,
@@ -39,14 +42,14 @@ export const bindAssetEvent = (options: {
         if (event.target.files.length === 0) {
             return;
         }
-        uploadFiles(options.protyle, event.target.files, event.target, (res) => {
+        getUploadRuntimeEffects().uploadFiles(options.protyle, event.target.files, event.target, (res) => {
             const resData = JSON.parse(res);
             const value: IAVCellAssetValue[] = [];
-            Object.keys(resData.data.succMap).forEach((key) => {
+            getAssetUploadSuccesses(resData.data).forEach((success) => {
                 value.push({
-                    name: key,
-                    content: resData.data.succMap[key],
-                    type: Constants.SIYUAN_ASSETS_IMAGE.includes(pathPosix().extname(resData.data.succMap[key]).toLowerCase()) ? "image" : "file"
+                    name: success.name,
+                    content: success.path,
+                    type: Constants.SIYUAN_ASSETS_IMAGE.includes(getAssetExtension(success.path).toLowerCase()) ? "image" : "file"
                 });
             });
             updateAssetCell({
@@ -55,15 +58,34 @@ export const bindAssetEvent = (options: {
                 addValue: value,
                 blockElement: options.blockElement
             });
-        });
+        }, undefined, {source: "file-picker", target: "av-cell"});
     });
+};
+
+const getVisibleAssetValues = (cellElements: HTMLElement[]) => {
+    const batchMode = getAVBatchEditMode(cellElements[0]);
+    if (batchMode === "add") {
+        return [];
+    }
+    if (batchMode === "remove") {
+        const assets = new Map<string, IAVCellAssetValue>();
+        cellElements.forEach(item => {
+            const renderedValue = genCellValueByElement("mAsset", item);
+            getAVBatchSourceValue(item, renderedValue).mAsset?.forEach(asset => {
+                assets.set(`${asset.type}:${asset.content}:${asset.name}`, asset);
+            });
+        });
+        return Array.from(assets.values());
+    }
+    return genCellValueByElement("mAsset", cellElements[0]).mAsset || [];
 };
 
 export const getAssetHTML = (cellElements: HTMLElement[]) => {
     let html = "";
-    genCellValueByElement("mAsset", cellElements[0]).mAsset.forEach((item, index) => {
+    const batchMode = getAVBatchEditMode(cellElements[0]);
+    getVisibleAssetValues(cellElements).forEach((item, index) => {
         let contentHTML;
-        if (item.type === "image") {
+        if (item.type === "image" && isBrowserRenderableImagePath(item.content)) {
             contentHTML = `<span data-type="openAssetItem" class="fn__flex-1 ariaLabel" aria-label="${escapeAriaLabel(item.content)}">
     <img style="max-height: 180px;max-width: 360px;border-radius: var(--b3-border-radius);margin: 4px 0;" src="${getCompressURL(encodeURI(item.content))}"/>
 </span>`;
@@ -74,7 +96,7 @@ export const getAssetHTML = (cellElements: HTMLElement[]) => {
         html += `<button class="b3-menu__item" draggable="true" data-index="${index}" data-name="${escapeAttr(item.name)}" data-type="${item.type}" data-content="${escapeAttr(item.content)}">
 <svg class="b3-menu__icon fn__grab"><use xlink:href="#iconDrag"></use></svg>
 ${contentHTML}
-<svg class="b3-menu__action" data-type="editAssetItem"><use xlink:href="#iconEdit"></use></svg>
+${batchMode === "replace" ? '<svg class="b3-menu__action" data-type="editAssetItem"><use xlink:href="#iconEdit"></use></svg>' : ""}
 </button>`;
     });
     const ids: string[] = [];
@@ -92,7 +114,11 @@ ${contentHTML}
         <span class="b3-menu__label">${siyuanI18n.insertAsset}</span> 
         <input multiple class="b3-form__upload" type="file">
     </button>
-    <button data-type="addAssetLink" class="b3-menu__item">
+    <button data-type="addAssetLink" data-asset-type="image" class="b3-menu__item">
+        <svg class="b3-menu__icon"><use xlink:href="#iconImage"></use></svg>
+        <span class="b3-menu__label">${window.siyuan.languages.insertImgURL}</span>
+    </button>
+    <button data-type="addAssetLink" data-asset-type="file" class="b3-menu__item">
         <svg class="b3-menu__icon"><use xlink:href="#iconLink"></use></svg>
         <span class="b3-menu__label">${siyuanI18n.link}</span>
     </button>
@@ -113,6 +139,9 @@ export const updateAssetCell = (options: {
     const cellDoOperations: IOperation[] = [];
     const cellUndoOperations: IOperation[] = [];
     let mAssetValue: IAVCellAssetValue[];
+    const batchMode = getAVBatchEditMode(options.cellElements[0]);
+    const batchTarget = typeof options.removeIndex === "number" ?
+        getVisibleAssetValues(options.cellElements)[options.removeIndex] : undefined;
     options.cellElements.forEach((item, elementIndex) => {
         const rowID = getFieldIdByCellElement(item, viewType);
         if (!options.blockElement.contains(item)) {
@@ -123,9 +152,19 @@ export const updateAssetCell = (options: {
                 item = options.cellElements[elementIndex] = (options.blockElement.querySelector(`.av__gallery-item[data-id="${rowID}"] .av__cell[data-field-id="${item.dataset.fieldId}"]`)) as HTMLElement;
             }
         }
-        const cellValue = genCellValueByElement(getTypeByCellElement(item) || item.dataset.type as TAVCol, item);
+        const renderedValue = genCellValueByElement(getTypeByCellElement(item) || item.dataset.type as TAVCol, item);
+        const cellValue = batchMode === "replace" ? renderedValue : getAVBatchSourceValue(item, renderedValue);
         const oldValue = JSON.parse(JSON.stringify(cellValue));
-        if (elementIndex === 0) {
+        if (batchMode === "add" && options.addValue?.length > 0) {
+            const existing = new Set((cellValue.mAsset || []).map(asset =>
+                `${asset.type}:${asset.content}:${asset.name}`));
+            cellValue.mAsset = (cellValue.mAsset || []).concat(options.addValue.filter(asset =>
+                !existing.has(`${asset.type}:${asset.content}:${asset.name}`)));
+        } else if (batchMode === "remove" && batchTarget) {
+            cellValue.mAsset = (cellValue.mAsset || []).filter(asset =>
+                asset.type !== batchTarget.type || asset.content !== batchTarget.content ||
+                asset.name !== batchTarget.name);
+        } else if (elementIndex === 0) {
             if (typeof options.removeIndex === "number") {
                 cellValue.mAsset.splice(options.removeIndex, 1);
             } else if (options.addValue?.length > 0) {
@@ -168,6 +207,7 @@ export const updateAssetCell = (options: {
         } else {
             updateAttrViewCellAnimation(item, cellValue);
         }
+        getAttrViewCellOtherElementsSync()(options.protyle, avID, rowID, colId, cellValue, item);
     });
     cellDoOperations.push({
         action: "doUpdateUpdated",
@@ -199,7 +239,8 @@ export const editAssetItem = (options: {
     type: "image" | "file",
     name: string,
     index: number,
-    rect: DOMRect
+    rect: DOMRect,
+    keepMenuOpen?: boolean,
 }) => {
     const linkAddress = removeCompressURL(options.content);
     const type = options.type as "image" | "file";
@@ -210,8 +251,11 @@ export const editAssetItem = (options: {
             return;
         }
         if (type === "image" && currentLink.startsWith("data:image/")) {
-            const base64Src = await base64ToURL([currentLink]);
-            currentLink = base64Src[0];
+            const base64Src = await base64ToURL([currentLink], options.protyle, {
+                source: "programmatic",
+                target: "av-cell",
+            });
+            currentLink = base64Src[0] || currentLink;
         }
 
         updateAssetCell({
@@ -227,7 +271,7 @@ export const editAssetItem = (options: {
                 }
             }
         });
-    });
+    }, options.keepMenuOpen);
     if (menu.isOpen) {
         return;
     }
@@ -347,7 +391,7 @@ export const editAssetItem = (options: {
     if (type !== "file" || openSubMenu.length > 0) {
         menu.addSeparator({ id: "separator_2" });
     }
-    if (type !== "file") {
+    if (type !== "file" && isBrowserRenderableImagePath(linkAddress)) {
         menu.addItem({
             id: "cardPreview",
             icon: "iconPreview",
@@ -395,9 +439,26 @@ export const editAssetItem = (options: {
     }
 };
 
-export const addAssetLink = (protyle: IProtyle, cellElements: HTMLElement[], target: HTMLElement, blockElement: Element) => {
+export const addAssetLink = (protyle: IProtyle, cellElements: HTMLElement[], target: HTMLElement, blockElement: Element,
+                             assetType: "image" | "file", keepMenuOpen = false) => {
     const menu = new Menu(Constants.MENU_AV_ASSET_EDIT, () => {
         const textElements = menu.element.querySelectorAll("textarea");
+        if (assetType === "image") {
+            const value = genNetworkImageAssetValue(textElements[0].value);
+            if (!value) {
+                if (textElements[0].value) {
+                    showMessage(siyuanI18n.invalid);
+                }
+                return;
+            }
+            updateAssetCell({
+                protyle,
+                cellElements,
+                blockElement,
+                addValue: [value]
+            });
+            return;
+        }
         if (!textElements[0].value && !textElements[1].value) {
             return;
         }
@@ -411,78 +472,67 @@ export const addAssetLink = (protyle: IProtyle, cellElements: HTMLElement[], tar
                 content: textElements[0].value,
             }]
         });
-    });
+    }, keepMenuOpen);
     if (menu.isOpen) {
         return;
     }
     menu.addItem({
         iconHTML: "",
         type: "readonly",
-        label: `${siyuanI18n.link}
-<textarea rows="1" style="margin:4px 0;width: ${isMobile ? "200" : "360"}px;resize: vertical;" class="b3-text-field"></textarea>
+        label: assetType === "image" ? `${siyuanI18n.insertImgURL}
+<textarea rows="1" style="margin:4px 0;width: ${isMobile ? "100%" : "360px"};resize: vertical;" class="b3-text-field"></textarea>` : `${siyuanI18n.link}
+<textarea rows="1" style="margin:4px 0;width: ${isMobile ? "100%" : "360px"};resize: vertical;" class="b3-text-field"></textarea>
 <div class="fn__hr"></div>
 ${siyuanI18n.title}
-<textarea style="width: ${isMobile ? "200" : "360"}px;margin: 4px 0;resize: vertical;" rows="1" class="b3-text-field"></textarea>`,
+<textarea style="width: ${isMobile ? "100%" : "360px"};margin: 4px 0;resize: vertical;" rows="1" class="b3-text-field"></textarea>`,
     });
-    const rect = target.getBoundingClientRect();
-    menu.open({
-        x: rect.right,
-        y: rect.bottom,
-        w: target.parentElement.clientWidth + 8,
-        h: rect.height,
-    });
+    if (isMobile) {
+        menu.fullscreen();
+    } else {
+        const rect = target.getBoundingClientRect();
+        menu.open({
+            x: rect.right,
+            y: rect.bottom,
+            w: target.parentElement.clientWidth + 8,
+            h: rect.height,
+        });
+    }
     menu.element.querySelector("textarea").focus();
 };
 
-export const dragUpload = (files: string[] | ILocalFiles[], protyle: IProtyle, cellElement: HTMLElement) => {
-    let msg = "";
-    const assetPaths: string[] = [];
-    files.forEach(item => {
-        if (typeof item === "string") {
-            assetPaths.push(item);
-        } else {
-            if (item.size && Constants.SIZE_UPLOAD_TIP_SIZE <= item.size) {
-                msg += (siyuanI18n as any).uploadFileTooLarge.replace("${x}", item.path).replace("${y}", filesize(item.size, { standard: "iec" })) + "<br>";
-            }
-            assetPaths.push(item.path);
+export const dragUpload = (files: string[] | ILocalFiles[], protyle: IProtyle, cellElement: HTMLElement,
+                           position?: IAssetUploadPosition) => {
+    // 本地分支扩展：允许直接传入资源路径字符串（Electron 拖拽场景），统一归一化为 ILocalFiles 后走共享上传链路
+    const localFiles: ILocalFiles[] = files.map(item =>
+        typeof item === "string" ? {path: item, size: null} : item);
+    getUploadRuntimeEffects().uploadLocalFiles(localFiles, protyle, true, {source: "drop", target: "av-cell", position}, (response) => {
+        const blockElement = hasClosestBlock(cellElement);
+        if (!blockElement) {
+            return;
         }
-    });
-
-    confirmDialog(msg ? siyuanI18n.upload : "", msg, () => {
-        const msgId = showMessage(siyuanI18n.uploading, 0);
-        fetchPost("/api/asset/insertLocalAssets", {
-            assetPaths,
-            isUpload: true,
-            id: protyle.block.rootID
-        }, (response) => {
-            const blockElement = hasClosestBlock(cellElement);
-            if (blockElement) {
-                hideMessage(msgId);
-                const addValue: IAVCellAssetValue[] = [];
-                Object.keys(response.data.succMap).forEach(key => {
-                    const type = pathPosix().extname(key).toLowerCase();
-                    const name = key.substring(0, key.length - type.length);
-                    if (Constants.SIYUAN_ASSETS_IMAGE.includes(type)) {
-                        addValue.push({
-                            type: "image",
-                            name,
-                            content: response.data.succMap[key],
-                        });
-                    } else {
-                        addValue.push({
-                            type: "file",
-                            name,
-                            content: response.data.succMap[key],
-                        });
-                    }
+        const addValue: IAVCellAssetValue[] = [];
+        getAssetUploadSuccesses(response.data).forEach(success => {
+            const type = getAssetExtension(success.path).toLowerCase();
+            const name = success.name.substring(0, success.name.length - type.length);
+            if (Constants.SIYUAN_ASSETS_IMAGE.includes(type)) {
+                addValue.push({
+                    type: "image",
+                    name,
+                    content: success.path,
                 });
-                updateAssetCell({
-                    protyle,
-                    blockElement,
-                    cellElements: [cellElement],
-                    addValue
+            } else {
+                addValue.push({
+                    type: "file",
+                    name,
+                    content: success.path,
                 });
             }
+        });
+        updateAssetCell({
+            protyle,
+            blockElement,
+            cellElements: [cellElement],
+            addValue
         });
     });
 };

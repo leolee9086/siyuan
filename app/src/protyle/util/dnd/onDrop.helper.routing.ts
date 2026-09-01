@@ -6,10 +6,11 @@
  * 调用时机：onDrop 主函数根据 dataTransfer 类型分发到此模块
  */
 import { Constants } from "../../../constants";
-import { hasClosestBlock } from "../hasClosest";
+import { hasClosestBlock, hasClosestByClassName } from "../hasClosest";
 import {transaction} from "../../wysiwyg/transaction/submit";
 import { hideElements } from "../../ui/hideElements";
 import { getDragElement } from "./onDrop.environment";
+import { cleanupKanbanGroupDragover } from "./onDragOver";
 import {
     handleAvCellDrop,
     resolveAvItemPreviousId,
@@ -225,6 +226,74 @@ export const handleGutterNormalDrop = async (
  * @param targetElement 拖拽目标元素（可能为 null）
  * @param state 拖拽状态
  */
+const KANBAN_GROUP_DRAG_TYPE_LOWER = `${Constants.SIYUAN_DROP_GUTTER}NodeAttributeView${Constants.ZWSP}Group${Constants.ZWSP}`.toLowerCase();
+
+const handleKanbanGroupDrop = async (protyle: IProtyle, event: DragEvent, targetElement: Element | null): Promise<boolean> => {
+    // 上游移植: 看板分组拖拽落点 (issue 16325, commits d46a46c87a, 69085878b1, f57ebba032)
+    // gutterType 为 NodeAttributeView Group 前缀时触发，需配合 onDragOver 的 dragover__left/right 指示
+    const sourceElement = window.siyuan.dragElement as HTMLElement;
+    const sourceKanbanElement = sourceElement?.parentElement as HTMLElement;
+    // 兼容两种落点来源: 1) onDragOver 存储的 kanbanGroupDragoverElement; 2) 清理前查询到的 targetElement
+    const targetKanbanElement = targetElement as HTMLElement;
+    const isValidTarget = targetKanbanElement?.classList.contains("av__kanban-group") && (targetKanbanElement.classList.contains("dragover__left") || targetKanbanElement.classList.contains("dragover__right"));
+    const resolvedTarget = isValidTarget ? targetKanbanElement : document.querySelector(".av__kanban-group.dragover__left, .av__kanban-group.dragover__right") as HTMLElement;
+    if (!sourceElement || !resolvedTarget || sourceElement === resolvedTarget || !sourceKanbanElement?.classList.contains("av__kanban") || sourceKanbanElement !== resolvedTarget.parentElement) {
+        if (sourceElement) {
+            sourceElement.style.opacity = "";
+        }
+        cleanupKanbanGroupDragover();
+        // 未命中有效落点时由调用方决定是否继续其他分支；返回 true 表示已处理完 kanban 拖拽生命周期
+        const isKanbanDrag = event.dataTransfer.types.some(t => t.toLowerCase().startsWith(KANBAN_GROUP_DRAG_TYPE_LOWER));
+        if (isKanbanDrag) {
+            window.siyuan.dragElement = undefined;
+            return true;
+        }
+        return false;
+    }
+    const blockElement = hasClosestBlock(sourceElement) as HTMLElement;
+    const sourceGroupID = sourceElement.dataset.groupId || "";
+    const oldPreviousID = sourceElement.dataset.previousGroupId || "";
+    let previousID = resolvedTarget.classList.contains("dragover__left") ? resolvedTarget.dataset.previousGroupId || "" : resolvedTarget.dataset.groupId || "";
+    if (previousID === sourceGroupID) {
+        previousID = oldPreviousID;
+    }
+    if (blockElement && sourceGroupID && previousID !== oldPreviousID) {
+        let oldGroup: IAVGroup | undefined;
+        try {
+            oldGroup = JSON.parse(sourceElement.dataset.groupConfig || "null");
+        } catch (e) {
+            console.warn("parse attribute view group config failed", e);
+        }
+        const avID = blockElement.getAttribute("data-av-id") || "";
+        const blockID = blockElement.getAttribute("data-node-id") || "";
+        const undoOperations: IOperation[] = oldGroup && (oldGroup as unknown as { order?: number }).order !== 2 ? [{
+            action: "setAttrViewGroup",
+            avID,
+            blockID,
+            data: oldGroup,
+        }] : [{
+            action: "sortAttrViewGroup",
+            avID,
+            blockID,
+            previousID: oldPreviousID,
+            id: sourceGroupID,
+        }];
+        transaction(protyle, [{
+            action: "sortAttrViewGroup",
+            avID,
+            blockID,
+            previousID,
+            id: sourceGroupID,
+        }], undoOperations);
+    }
+    if (sourceElement) {
+        sourceElement.style.opacity = "";
+    }
+    cleanupKanbanGroupDragover();
+    window.siyuan.dragElement = undefined;
+    return true;
+};
+
 export const handleGutterDrop = async (
     protyle: IProtyle,
     editorElement: HTMLElement,
@@ -235,6 +304,13 @@ export const handleGutterDrop = async (
 ): Promise<void> => {
     const gutterTypes = gutterType.replace(Constants.SIYUAN_DROP_GUTTER, "").split(Constants.ZWSP);
     const selectedIds = (gutterTypes[2] ?? "").split(",");
+    // 优先处理 kanban 分组拖拽，避免落入通用块移动分支
+    if (gutterType.toLowerCase().startsWith(KANBAN_GROUP_DRAG_TYPE_LOWER)) {
+        event.preventDefault();
+        event.stopPropagation();
+        await handleKanbanGroupDrop(protyle, event, targetElement);
+        return;
+    }
     const insertReference = event.altKey || (event.shiftKey && protyle.lite);
     const insertEmbed = event.shiftKey && !protyle.lite;
 

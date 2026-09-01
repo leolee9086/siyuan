@@ -22,6 +22,10 @@ import {hintRef} from "../../../protyle/hint/extend.hintRef";
 import {genEmptyElement} from "../../../block/element.factory";
 /** 用途：渲染块内容；使用范围：Protyle Composer；解耦评估：复用编辑器渲染生命周期。 */
 import {blockRender} from "../../../protyle/render/blockRender";
+/** 用途：聚焦指定块或回退编辑器整体聚焦；使用范围：Protyle Composer toEnd 聚焦协议；解耦评估：复用编辑器选择工具。 */
+import {focusBlock} from "../../../protyle/util/selection";
+/** 用途：匹配可配置发送快捷键；使用范围：Composer 发送分派；解耦评估：键位协议由平台热键模块统一解释。 */
+import {matchHotKey} from "../../../protyle/util/hotKey";
 /** 用途：读取块类型图标；使用范围：Tiptap Composer；解耦评估：纯展示映射。 */
 import {getIconByType} from "../../../editor/getIcon";
 /** 用途：创建项目标准菜单并约束其状态；使用范围：Tiptap Composer 建议菜单；解耦评估：复用统一定位和生命周期，不再维护自建遮罩层。 */
@@ -73,6 +77,10 @@ export {hintRef};
 export {genEmptyElement};
 /** 导出块渲染函数。 */
 export {blockRender};
+/** 导出块聚焦工具。 */
+export {focusBlock};
+/** 导出快捷键匹配工具。 */
+export {matchHotKey};
 /** 导出块图标映射。 */
 export {getIconByType};
 /** 导出标准菜单工厂。 */

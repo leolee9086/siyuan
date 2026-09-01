@@ -8,7 +8,8 @@ import {insertBeforeAI} from "./imports";
 import {scrollToBottom} from "./imports";
 
 /** 追加问题卡片并绑定选项提交。 @同步豁免: UI构建 - SSE 事件处理必须按到达顺序立即建立问题卡片。 */
-export function appendQuestion(runtime: AgentChatRuntime, questionID: string, args: Record<string, unknown>) {
+export function appendQuestion(runtime: AgentChatRuntime, questionID: string, args: Record<string, unknown>,
+                               roundID?: string) {
     finishActiveThinking(runtime);
     flushThinkingStep(runtime);
     const rawQuestions = args.questions;
@@ -29,6 +30,7 @@ export function appendQuestion(runtime: AgentChatRuntime, questionID: string, ar
         questionID,
         questions: rawQuestions,
         status: "pending",
+        ...(roundID || runtime.currentRoundID ? {roundID: roundID || runtime.currentRoundID} : {}),
     });
     bindQuestionOptionToggles(element);
     bindQuestionSubmit(runtime, {

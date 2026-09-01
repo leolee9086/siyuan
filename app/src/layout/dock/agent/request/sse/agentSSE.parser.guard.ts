@@ -18,6 +18,10 @@ function readInteractionStatus(data: Record<string, unknown>): AgentInteractionR
     return "error";
 }
 
+function readRoundID(data: Record<string, unknown>) {
+    return typeof data.roundID === "string" && data.roundID ? {roundID: data.roundID} : {};
+}
+
 /** @显式返回类型原因 各事件构建器共同组成 ISSEResult 判别联合，固定边界可阻止字符串字面量在组合时被拓宽。 */
 function buildAgentTextEvent(event: string, data: Record<string, unknown>): ISSEResult | null {
     // turn 事件建立当前服务端轮次标识，后续保存和恢复均依赖该值。
@@ -26,11 +30,11 @@ function buildAgentTextEvent(event: string, data: Record<string, unknown>): ISSE
     }
     // content 事件携带最终回答的增量文本。
     if (event === "content") {
-        return {type: "content", token: data.token as string};
+        return {type: "content", token: data.token as string, ...readRoundID(data)};
     }
     // thinking 事件携带兼容旧协议的思考文本。
     if (event === "thinking") {
-        return {type: "thinking", reasoning: data.reasoning as string};
+        return {type: "thinking", reasoning: data.reasoning as string, ...readRoundID(data)};
     }
     // error 事件由服务端显式结束当前轮次并展示原因。
     if (event === "error") {
@@ -46,11 +50,11 @@ function buildAgentTextEvent(event: string, data: Record<string, unknown>): ISSE
     }
     // reasoning 事件携带新版协议的思考增量。
     if (event === "reasoning") {
-        return {type: "reasoning", token: data.token as string};
+        return {type: "reasoning", token: data.token as string, ...readRoundID(data)};
     }
     // snapshot 事件记录工具执行前由 Kernel 创建的快照标识。
     if (event === "snapshot") {
-        return {type: "snapshot", snapshotID: data.snapshotID as string};
+        return {type: "snapshot", snapshotID: data.snapshotID as string, ...readRoundID(data)};
     }
     return null;
 }
@@ -64,6 +68,7 @@ function buildAgentToolEvent(event: string, data: Record<string, unknown>): ISSE
             name: data.name as string,
             callID: (data.callID as string) || "",
             arguments: (data.arguments || {}) as Record<string, unknown>,
+            ...readRoundID(data),
         };
     }
     // tool_result 事件以 callID 结算对应的工具卡片。
@@ -73,6 +78,7 @@ function buildAgentToolEvent(event: string, data: Record<string, unknown>): ISSE
             name: data.name as string,
             callID: (data.callID as string) || "",
             result: data.result as string,
+            ...readRoundID(data),
         };
     }
     return null;
@@ -90,6 +96,9 @@ function buildAgentInteractionEvent(event: string, data: Record<string, unknown>
             ...(data.effects && typeof data.effects === "object"
                 ? {effects: data.effects as IToolEffects}
                 : {}),
+            ...(typeof data.forcedConfirm === "boolean" ? {forcedConfirm: data.forcedConfirm} : {}),
+            ...(typeof data.capabilityID === "string" ? {capabilityID: data.capabilityID} : {}),
+            ...readRoundID(data),
         };
     }
     // confirm_resolved 携带 Kernel 给出的明确终态，卡片层无需等待工具结果文本。
@@ -100,6 +109,17 @@ function buildAgentInteractionEvent(event: string, data: Record<string, unknown>
             callID: (data.callID as string) || "",
             status: readInteractionStatus(data),
             message: (data.message as string) || "",
+        };
+    }
+    // 浏览器能力事件由当前应用实例按 capability ID 和 generation 执行。
+    if (event === "browser_capability_call") {
+        return {
+            type: "browser_capability_call",
+            callID: data.callID as string,
+            name: data.name as string,
+            capabilityID: data.capabilityID as string,
+            generation: Number(data.generation) || 0,
+            arguments: (data.arguments || {}) as Record<string, unknown>,
         };
     }
     // frontend_tool_call 事件交由当前宿主提供的插件动作执行器处理。
@@ -170,12 +190,17 @@ function buildAgentStateEvent(event: string, data: Record<string, unknown>): ISS
             maxRetries: (data.maxRetries as number) || 1,
         };
     }
+    // permission 事件同步内核运行期会话权限模式。
+    if (event === "permission" && (data.permissionMode === "confirm" || data.permissionMode === "allowSession")) {
+        return {type: "permission", permissionMode: data.permissionMode};
+    }
     // question 事件把结构化提问转交给聊天交互层。
     if (event === "question") {
         return {
             type: "question",
             questionID: data.questionID as string,
             arguments: (data.arguments || {}) as Record<string, unknown>,
+            ...readRoundID(data),
         };
     }
     if (event === "question_resolved") {

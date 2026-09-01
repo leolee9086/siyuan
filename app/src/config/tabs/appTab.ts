@@ -1,4 +1,3 @@
-import * as path from "path";
 import type {SettingTabBuilder} from "../setting/builder";
 import {Constants} from "../../constants";
 import {fetchPost} from "../../util/network/fetch";
@@ -9,7 +8,7 @@ import {isMac, saveExportFile} from "../../protyle/util/compatibility";
 import {confirmDialog} from "../../dialog/confirmDialog";
 import {Dialog} from "../../dialog";
 import {isInMobileApp} from "../../protyle/util/compatibility";
-import {pathPosix} from "../../util/file/pathName";
+import {originalPath, pathPosix} from "../../util/file/pathName";
 import {escapeAttr, escapeHtml} from "../../util/DOM/escape";
 import {afterExport} from "../../protyle/export/util";
 import {genConfigItemMainHtml, genConfigItemName} from "../render/fragments";
@@ -138,14 +137,21 @@ const mountAppWorkspaceSlot = (root: HTMLElement) => {
                 if (!removePath) {
                     break;
                 }
-                fetchPost("/api/system/removeWorkspaceDir", {path: removePath}, () => {
-                    renderWorkspaceList(workspaceDirElement);
-                    confirmDialog(window.siyuan.languages.deleteOpConfirm, window.siyuan.languages.removeWorkspacePhysically.replace("${x}", removePath), () => {
-                        fetchPost("/api/system/removeWorkspaceDirPhysically", {path: removePath});
-                    }, undefined, true);
-                });
                 event.preventDefault();
                 event.stopPropagation();
+                if (removePath === window.siyuan.config.system.workspaceDir) {
+                    fetchPost("/api/system/removeWorkspaceDir", {path: removePath});
+                    break;
+                }
+                confirmDialog(window.siyuan.languages.deleteOpConfirm, window.siyuan.languages.removeWorkspacePhysically.replace("${x}", removePath), () => {
+                    fetchPost("/api/system/removeWorkspaceDirPhysically", {path: removePath}, () => {
+                        renderWorkspaceList(workspaceDirElement);
+                    });
+                }, () => {
+                    fetchPost("/api/system/removeWorkspaceDir", {path: removePath}, () => {
+                        renderWorkspaceList(workspaceDirElement);
+                    });
+                }, true);
                 break;
             } else if (target.classList.contains("b3-list-item") && !target.classList.contains("b3-list-item--focus")) {
                 const workspacePath = target.getAttribute("data-path");
@@ -194,6 +200,7 @@ const registerAppGeneralGroup = (tab: SettingTabBuilder) => {
             window.siyuan.languages.networkProxy,
             window.siyuan.languages.about17,
             window.siyuan.languages.directConnection,
+            window.siyuan.languages.useSystemProxy,
             "SOCKS5",
             "HTTPS",
             "HTTP",
@@ -217,6 +224,7 @@ const genNetworkProxyHtml = (): string => {
     <div class="b3-label__text fn__flex config-wrap" style="overflow: visible !important;">
         <select id="networkProxyScheme" class="b3-select">
             <option value="" ${proxy.scheme === "" ? "selected" : ""}>${window.siyuan.languages.directConnection}</option>
+            <option value="system" ${proxy.scheme === "system" ? "selected" : ""}>${window.siyuan.languages.useSystemProxy}</option>
             <option value="socks5" ${proxy.scheme === "socks5" ? "selected" : ""}>SOCKS5</option>
             <option value="https" ${proxy.scheme === "https" ? "selected" : ""}>HTTPS</option>
             <option value="http" ${proxy.scheme === "http" ? "selected" : ""}>HTTP</option>
@@ -245,10 +253,20 @@ const genNetworkProxyHtml = (): string => {
 };
 
 const mountNetworkProxy = (root: HTMLElement) => {
+    const schemeElement = root.querySelector("#networkProxyScheme") as HTMLSelectElement;
+    const hostElement = root.querySelector("#networkProxyHost") as HTMLInputElement;
+    const portElement = root.querySelector("#networkProxyPort") as HTMLInputElement;
+    const updateInputs = () => {
+        const disabled = schemeElement.value === "" || schemeElement.value === "system";
+        hostElement.disabled = disabled;
+        portElement.disabled = disabled;
+    };
+    schemeElement.addEventListener("change", updateInputs);
+    updateInputs();
     root.querySelector("#networkProxyConfirm")?.addEventListener("click", () => {
-        const scheme = (root.querySelector("#networkProxyScheme") as HTMLSelectElement)?.value as Config.TSystemNetworkProxyScheme;
-        const host = (root.querySelector("#networkProxyHost") as HTMLInputElement)?.value;
-        const port = (root.querySelector("#networkProxyPort") as HTMLInputElement)?.value;
+        const scheme = schemeElement.value as Config.TSystemNetworkProxyScheme;
+        const host = hostElement.value;
+        const port = portElement.value;
         fetchPost("/api/system/setNetworkProxy", {scheme, host, port}, async () => {
             Object.assign(window.siyuan.config.system.networkProxy, {scheme, host, port});
             if (!isElectron) {
@@ -256,7 +274,8 @@ const mountNetworkProxy = (root: HTMLElement) => {
             }
             await ipcInvoke(Constants.SIYUAN_GET, {
                 cmd: "setProxy",
-                proxyURL: `${window.siyuan.config.system.networkProxy.scheme}://${window.siyuan.config.system.networkProxy.host}:${window.siyuan.config.system.networkProxy.port}`,
+                proxyMode: scheme === "system" ? "system" : scheme === "" ? "direct" : "fixed_servers",
+                proxyURL: scheme === "system" ? "://" : `${scheme}://${host}:${port}`,
             });
             exportLayout({
                 errorExit: false,
@@ -409,7 +428,7 @@ const mountExportData = (root: HTMLElement) => {
         fetchPost("/api/export/exportDataInFolder", {
             folder: result.filePaths[0],
         }, (response) => {
-            afterExport(path.join(result.filePaths[0], response.data.name), msgId);
+            afterExport(originalPath().join(result.filePaths[0], response.data.name), msgId);
         });
     });
 };

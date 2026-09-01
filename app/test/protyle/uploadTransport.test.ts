@@ -48,6 +48,7 @@ vi.mock("../../src/protyle/upload/transport/imports", () => ({
     Constants: {SIZE_UPLOAD_TIP_SIZE: 1024, UPLOAD_ADDRESS: "/legacy-upload"},
     confirmDialog: mocks.confirmDialog,
     destroy: mocks.destroy,
+    escapeHtml: (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;"),
     filesize: (size: number) => `${size} B`,
     hideMessage: mocks.hideMessage,
     showMessage: mocks.showMessage,
@@ -158,6 +159,36 @@ describe("upload transport", () => {
 
         expect(format).toHaveBeenCalledWith([file], "raw");
         expect(context.applyUploadedFiles).toHaveBeenCalledWith("formatted");
+    });
+
+    it("escapes accepted file names in upload status and confirmation HTML", () => {
+        const context = createUploadContext();
+        const filename = `<img src=x onerror="alert(1)">.txt`;
+        const file = new File([new Uint8Array(1024)], filename, {type: "text/plain"});
+
+        uploadFiles(context.domain.protyle, [file]);
+
+        const statusHTML = mocks.showMessage.mock.calls[0][0] as string;
+        const confirmationHTML = mocks.confirmDialog.mock.calls[0][1] as string;
+        expect(statusHTML).toContain("&lt;img src=x onerror=\"alert(1)\">.txt");
+        expect(statusHTML).not.toContain(`<img src=x onerror="alert(1)">.txt`);
+        expect(confirmationHTML).toContain("&lt;img src=x onerror=\"alert(1)\">.txt");
+        expect(confirmationHTML).not.toContain(`<img src=x onerror="alert(1)">.txt`);
+    });
+
+    it("escapes rejected file names without creating an upload request", () => {
+        const context = createUploadContext();
+        context.domain.protyle.options.upload.max = 1;
+        const filename = `<img src=x onerror="alert(1)">.txt`;
+        const file = new File([new Uint8Array(2)], filename, {type: "text/plain"});
+
+        uploadFiles(context.domain.protyle, [file]);
+
+        const statusHTML = mocks.showMessage.mock.calls[0][0] as string;
+        expect(statusHTML).toContain("&lt;img src=x onerror=\"alert(1)\">.txt");
+        expect(statusHTML).not.toContain(`<img src=x onerror="alert(1)">.txt`);
+        expect(mocks.confirmDialog).not.toHaveBeenCalled();
+        expect(mocks.xhrs).toHaveLength(0);
     });
 
     it("delegates directory pseudo-files to the complete Protyle domain", () => {

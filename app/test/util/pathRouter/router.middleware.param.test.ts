@@ -16,19 +16,22 @@ describe("Router参数中间件测试", () => {
         url: "/users/123",
         params: {},
         query: {},
-        headers: {}
+        headers: {},
+        body: undefined
       },
       response: {
         status: 200,
         headers: {},
         set: vi.fn(),
-        redirect: vi.fn()
+        redirect: vi.fn(),
+        body: undefined
       },
       status: 200,
       params: {},
       captures: [],
       set: vi.fn(),
-      redirect: vi.fn()
+      redirect: vi.fn(),
+      body: undefined
     };
   });
 
