@@ -13,6 +13,11 @@ export interface VectorBlock {
   offset: number;
   count: number;
   dimension: number;
+  /**
+   * 块属于哪个**嵌入字段**（dataset 的多命名嵌入用它对齐）。
+   * collection 那套不带名字 —— 只有一个向量字段，靠位置就够。
+   */
+  name?: string;
 }
 
 /** 请求与响应共用一个信封。 */
@@ -125,6 +130,46 @@ export function packVectors(rows: readonly (Float32Array | readonly number[])[])
     blocks: [{ offset: 0, count: rows.length, dimension }],
     payload: Buffer.from(flat.buffer, flat.byteOffset, flat.byteLength),
   };
+}
+
+/**
+ * 把多组**命名**向量打成若干载荷块：一个字段一块，块上带字段名。
+ *
+ * 字段名排序后依次排布 —— map 的遍历顺序不保证，不排的话同一份数据两次打包
+ * 载荷布局会不一样。客户端按名字找块本来不怕，但可复现的帧更好对账。
+ */
+export function packNamedVectors(
+  named: Record<string, readonly (Float32Array | readonly number[])[]>,
+): { blocks: VectorBlock[]; payload: Buffer } {
+  const blocks: VectorBlock[] = [];
+  const chunks: Buffer[] = [];
+  let offset = 0;
+  for (const name of Object.keys(named).sort()) {
+    const rows = named[name];
+    if (rows.length === 0) continue;
+    const packed = packVectors(rows);
+    blocks.push({ offset, count: packed.blocks[0].count, dimension: packed.blocks[0].dimension, name });
+    chunks.push(packed.payload);
+    offset += packed.payload.length;
+  }
+  return { blocks, payload: Buffer.concat(chunks) };
+}
+
+/**
+ * 按块名把载荷切回向量：返回「字段名 → 一维 Float32Array」。
+ * 行数（len / 实体数）由调用方按各自的 id 列表切分 —— 这一层不知道有多少个实体。
+ */
+export function unpackNamedVectors(
+  payload: Buffer,
+  blocks: readonly VectorBlock[] | undefined,
+): Map<string, Float32Array> {
+  const out = new Map<string, Float32Array>();
+  if (blocks === undefined || blocks.length === 0) return out;
+  for (const block of blocks) {
+    if (block.name === undefined || block.name === "") continue;
+    out.set(block.name, unpackVectors(payload, [block])[0]);
+  }
+  return out;
 }
 
 /** 按块把载荷切回向量（每块合成一个 Float32Array）。 */

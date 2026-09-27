@@ -6,7 +6,7 @@
  */
 
 import { SidecarClient, type SidecarOptions } from "./client.js";
-import { VectorDBError, packVectors, unpackVectors } from "./protocol.js";
+import { VectorDBError, packNamedVectors, packVectors, unpackNamedVectors, unpackVectors } from "./protocol.js";
 
 export * from "./protocol.js";
 export { SidecarClient, resolveSidecarBinary } from "./client.js";
@@ -88,6 +88,87 @@ export interface CreateCollectionOptions {
   diskBuild?: DiskBuildOptions;
   /** DiskVamana 建库必须带初始点集（引擎用它构建磁盘图）。 */
   initialPoints?: VectorInput[];
+}
+
+
+/** 一个命名嵌入字段的契约：维度与距离度量在建库时定死。 */
+export interface EmbeddingSchema {
+  dimension: number;
+  distanceMetric?: DistanceMetric;
+}
+
+/** 把一个嵌入字段投影到一个独立 ANN 引擎（IndexView）。 */
+export interface IndexViewOptions {
+  embedding: string;
+  engine?: Engine;
+}
+
+/** 数据集里的一个实体：共享 ID 与 meta，带多个**命名**嵌入。
+ *
+ *  多个命名嵌入是「换嵌入模型不炸库」的实现方式：换模型 = 加一个字段，
+ *  旧字段原样留着，旧记忆后台渐进回填，迁移期两路并存靠 RRF 融合。
+ */
+export interface EntityInput {
+  id: string;
+  embeddings: Record<string, Float32Array | readonly number[]>;
+  meta?: unknown;
+}
+
+/** 取回的实体：向量是按字段名索引的一维数组（长度 = 实体数 × 维度）。 */
+export interface StoredEntity {
+  id: string;
+  embeddings: Record<string, Float32Array>;
+  meta?: unknown;
+}
+
+export interface DatasetStats {
+  name: string;
+  entityCount?: number;
+  embeddings?: Record<string, EmbeddingSchema>;
+  indexes?: readonly string[];
+  [key: string]: unknown;
+}
+
+/** 融合检索的一路：查哪个索引、用哪个向量、占多少权重。 */
+export interface FusionQuery {
+  index: string;
+  vector: Float32Array | readonly number[];
+  weight?: number;
+  topK?: number;
+  efSearch?: number;
+}
+
+/** 融合结果里的一路来源 —— 它会告诉你这条是靠哪个字段、排在第几被捞上来的。 */
+export interface FusionSource {
+  index: string;
+  embedding: string;
+  rank: number;
+  score: number;
+  distance: number;
+  weight: number;
+}
+
+export interface FusedSearchResult {
+  id: string;
+  score: number;
+  meta?: unknown;
+  sources?: readonly FusionSource[];
+}
+
+export interface FusionFailure {
+  index: string;
+  error: string;
+}
+
+export interface FusionSearchResponse {
+  results: FusedSearchResult[];
+  failures?: readonly FusionFailure[];
+}
+
+export interface CreateDatasetOptions {
+  embeddings: Record<string, EmbeddingSchema>;
+  indexes?: Record<string, IndexViewOptions>;
+  entities?: readonly EntityInput[];
 }
 
 export interface SearchOptions {
@@ -238,6 +319,178 @@ export class Collection {
   }
 }
 
+
+/**
+ * 数据集句柄：多命名嵌入 + 多索引视图 + RRF 融合检索。
+ *
+ * 与 {@link Collection} 的区别只有一处，但是要紧的一处：**一个实体可以有多个嵌入字段**。
+ * 于是「换嵌入模型」不再是重刷全库，而是加一个字段、两路并存、按权重融合。
+ */
+export class Dataset {
+  constructor(
+    private readonly client: SidecarClient,
+    readonly name: string,
+  ) {}
+
+  async stats(): Promise<DatasetStats> {
+    const { result } = await this.client.request<DatasetStats>("dataset.stats", { dataset: this.name });
+    return result;
+  }
+
+  async listIndexes(): Promise<unknown[]> {
+    const { result } = await this.client.request<unknown[]>("dataset.listIndexes", { dataset: this.name });
+    return result ?? [];
+  }
+
+  /**
+   * 写入/更新实体。向量按字段打包成若干命名块 —— 服务端靠块名对齐字段，
+   * 不靠位置，所以字段顺序在两边都可以不一样。
+   */
+  async upsertEntities(entities: readonly EntityInput[], options: WriteOptions = {}): Promise<unknown> {
+    if (entities.length === 0) return { applied: 0 };
+    const fields: Record<string, (Float32Array | readonly number[])[]> = {};
+    for (const entity of entities) {
+      for (const [field, vector] of Object.entries(entity.embeddings)) {
+        (fields[field] ??= []).push(vector);
+      }
+    }
+    // 每个字段的行数必须等于实体数 —— 少一行就意味着字段与实体错位，宁可在客户端拦住。
+    for (const [field, rows] of Object.entries(fields)) {
+      if (rows.length !== entities.length) {
+        throw new VectorDBError("invalid_argument",
+          `字段 ${field} 只有 ${rows.length} 个向量，但实体有 ${entities.length} 个`);
+      }
+    }
+    const { blocks, payload } = packNamedVectors(fields);
+    const { result } = await this.client.request(
+      "dataset.upsertEntities",
+      {
+        dataset: this.name,
+        ids: entities.map((entity) => entity.id),
+        metas: entities.map((entity) => entity.meta ?? null),
+        durability: options.durability ?? "sync",
+      },
+      payload,
+      blocks,
+    );
+    return result;
+  }
+
+  async deleteEntities(ids: readonly string[], options: WriteOptions = {}): Promise<unknown> {
+    const { result } = await this.client.request("dataset.deleteEntities", {
+      dataset: this.name,
+      ids: [...ids],
+      durability: options.durability ?? "sync",
+    });
+    return result;
+  }
+
+  /** 单索引检索：只在某一个嵌入字段的索引视图中查。 */
+  async search(index: string, vector: Float32Array | readonly number[], options: SearchOptions = {}): Promise<SearchHit[]> {
+    const { payload, blocks } = packVectors([vector]);
+    const { result } = await this.client.request<SearchHit[]>(
+      "dataset.search",
+      {
+        dataset: this.name,
+        index,
+        vectorIndex: 0,
+        topK: options.topK ?? 10,
+        efSearch: options.efSearch ?? 0,
+        scoreThreshold: options.scoreThreshold ?? 0,
+        excludeIds: options.excludeIds ?? [],
+      },
+      payload,
+      blocks,
+    );
+    return (result ?? []).map((hit) => ({ ...hit, meta: normalizeMeta(hit.meta) }));
+  }
+
+  /**
+   * **RRF 融合检索**：多路各查一次，按排名（不是分数）融合。
+   *
+   * 按排名融合是要紧的：不同嵌入字段、不同引擎、甚至不同量纲的打分本来就没法直接比，
+   * RRF 只取「排第几」，天然绕开归一化。
+   *
+   * @param queries 参与融合的每一路（索引名 + 查询向量 + 可选权重）。
+   * @param options topK / rrfConstant / allowPartial —— 后者为真时某一路失败不拖垮整体，
+   *   失败明细在响应的 failures 里。
+   */
+  async fuseSearch(queries: readonly FusionQuery[], options: { topK?: number; rrfConstant?: number; allowPartial?: boolean } = {}): Promise<FusionSearchResponse> {
+    if (queries.length === 0) return { results: [] };
+    // 每路打一个**单行块**，vectorIndex 指向自己那一块 —— 服务端按块下标取向量，
+    // 打成一个大块（多行）的话它只会看到 1 个块。collection.write 也是这么打的。
+    const rows = queries.map((query) => query.vector);
+    const { payload } = packVectors(rows);
+    const rowBlocks = rows.map((row, index) => ({
+      offset: index * row.length * 4,
+      count: 1,
+      dimension: row.length,
+    }));
+    const { result } = await this.client.request<FusionSearchResponse>(
+      "dataset.fuseSearch",
+      {
+        dataset: this.name,
+        topK: options.topK ?? 10,
+        rrfConstant: options.rrfConstant ?? 0,
+        allowPartial: options.allowPartial ?? false,
+        queries: queries.map((query, index) => ({
+          index: query.index,
+          vectorIndex: index,
+          weight: query.weight ?? 1,
+          topK: query.topK ?? 0,
+          efSearch: query.efSearch ?? 0,
+        })),
+      },
+      payload,
+      rowBlocks,
+    );
+    const response = result ?? { results: [] };
+    return {
+      results: (response.results ?? []).map((item) => ({ ...item, meta: normalizeMeta(item.meta) })),
+      ...(response.failures === undefined ? {} : { failures: response.failures }),
+    };
+  }
+
+  /** 取回实体：每个嵌入字段一块，靠块名对回字段。 */
+  async fetchEntities(ids: readonly string[]): Promise<StoredEntity[]> {
+    const { result, payload, outVectors } = await this.client.request<{
+      entities: { id: string; embeddings?: string[]; meta?: unknown }[];
+    }>("dataset.fetchEntities", { dataset: this.name, ids: [...ids] });
+    const named = unpackNamedVectors(payload, outVectors);
+    return (result?.entities ?? []).map((entity) => {
+      const embeddings: Record<string, Float32Array> = {};
+      for (const field of entity.embeddings ?? []) {
+        const flat = named.get(field);
+        if (flat === undefined) continue;
+        // 一行一个实体：按本次返回的实体数切。
+        const count = (result?.entities ?? []).length;
+        const dimension = count > 0 ? flat.length / count : 0;
+        const index = (result?.entities ?? []).findIndex((item) => item.id === entity.id);
+        embeddings[field] = dimension > 0 && index >= 0
+          ? flat.subarray(index * dimension, (index + 1) * dimension)
+          : new Float32Array(0);
+      }
+      return { id: entity.id, embeddings, meta: normalizeMeta(entity.meta) };
+    });
+  }
+
+  async addIndex(name: string, options: IndexViewOptions): Promise<void> {
+    await this.client.request("dataset.addIndex", {
+      dataset: this.name,
+      name,
+      options: { embedding: options.embedding, engine: options.engine ?? "hnsw" },
+    });
+  }
+
+  async dropIndex(name: string): Promise<void> {
+    await this.client.request("dataset.dropIndex", { dataset: this.name, name });
+  }
+
+  async checkpoint(): Promise<void> {
+    await this.client.request("dataset.checkpoint", { dataset: this.name });
+  }
+}
+
 export class VectorDB {
   private closed = false;
 
@@ -311,6 +564,54 @@ export class VectorDB {
 
   async deleteCollection(name: string): Promise<void> {
     await this.client.request("db.deleteCollection", { name });
+  }
+
+  // ---- 数据集（多命名嵌入 + RRF 融合）----
+
+  async listDatasets(): Promise<DatasetStats[]> {
+    const { result } = await this.client.request<DatasetStats[]>("db.listDatasets", {});
+    return result ?? [];
+  }
+
+  /**
+   * 建数据集。embeddings 声明有哪些命名嵌入字段（各自的维度与度量），
+   * indexes 决定每个字段投影到哪个 ANN 引擎 —— 不写索引名也行，之后用 addIndex 补。
+   */
+  async createDataset(name: string, options: CreateDatasetOptions): Promise<Dataset> {
+    const params: Record<string, unknown> = {
+      name,
+      embeddings: Object.fromEntries(Object.entries(options.embeddings).map(([field, schema]) => [
+        field,
+        { dimension: schema.dimension, distanceMetric: schema.distanceMetric ?? "" },
+      ])),
+      indexes: Object.fromEntries(Object.entries(options.indexes ?? {}).map(([index, view]) => [
+        index,
+        { embedding: view.embedding, engine: view.engine ?? "hnsw" },
+      ])),
+    };
+    const entities = options.entities ?? [];
+    const fields: Record<string, (Float32Array | readonly number[])[]> = {};
+    for (const entity of entities) {
+      for (const [field, vector] of Object.entries(entity.embeddings)) {
+        (fields[field] ??= []).push(vector);
+      }
+    }
+    const packed = entities.length > 0 ? packNamedVectors(fields) : packNamedVectors({});
+    if (entities.length > 0) {
+      params.ids = entities.map((entity) => entity.id);
+      params.metas = entities.map((entity) => entity.meta ?? null);
+    }
+    await this.client.request("db.createDataset", params, packed.payload, packed.blocks);
+    return new Dataset(this.client, name);
+  }
+
+  async openDataset(name: string): Promise<Dataset> {
+    await this.client.request("db.openDataset", { name });
+    return new Dataset(this.client, name);
+  }
+
+  async deleteDataset(name: string): Promise<void> {
+    await this.client.request("db.deleteDataset", { name });
   }
 
   /** 关闭：先关库再收进程。可重复调用。 */

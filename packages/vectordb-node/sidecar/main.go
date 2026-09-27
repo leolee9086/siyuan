@@ -17,6 +17,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"sort"
 	"sync"
 	"time"
 
@@ -26,11 +27,72 @@ import (
 
 const protocolVersion = 1
 
+// ---------- 数据集的协议视图 ----------
+//
+// 与集合那套同理，而且这里更必要：DatasetStats / DatasetWriteResult / DatasetIndexInfo
+// 在内核里没有 JSON tag，直接回给客户端会得到 Go 字段名（Name / EntityCount / CommitSequence）——
+// 与本协议其余部分的 camelCase 不一致，客户端只好两套名字都认。视图在这里把名字定死。
+
+func datasetStatsView(stats vectordb.DatasetStats) map[string]any {
+	embeddings := make(map[string]any, len(stats.Embeddings))
+	for name, schema := range stats.Embeddings {
+		embeddings[name] = map[string]any{"dimension": schema.Dimension, "distanceMetric": schema.DistanceMetric}
+	}
+	indexes := make(map[string]any, len(stats.Indexes))
+	for name, view := range stats.Indexes {
+		indexes[name] = map[string]any{"embedding": view.Embedding, "engine": string(view.Engine)}
+	}
+	return map[string]any{
+		"name":                  stats.Name,
+		"entityCount":           stats.EntityCount,
+		"commitSequence":        stats.CommitSequence,
+		"metadataWalBytes":      stats.MetadataWALBytes,
+		"checkpointRecommended": stats.CheckpointRecommended,
+		"indexBuilding":         stats.IndexBuilding,
+		"recoveryRequired":      stats.RecoveryRequired,
+		"embeddings":            embeddings,
+		"indexes":               indexes,
+	}
+}
+
+func datasetStatsViews(list []vectordb.DatasetStats) []map[string]any {
+	views := make([]map[string]any, 0, len(list))
+	for _, stats := range list {
+		views = append(views, datasetStatsView(stats))
+	}
+	return views
+}
+
+func datasetWriteView(result vectordb.DatasetWriteResult) map[string]any {
+	return map[string]any{
+		"commitSequence": result.CommitSequence,
+		"applied":        result.Applied,
+		"committed":      result.Committed,
+		"indexHealthy":   result.IndexHealthy,
+	}
+}
+
+func datasetIndexViews(list []vectordb.DatasetIndexInfo) []map[string]any {
+	views := make([]map[string]any, 0, len(list))
+	for _, info := range list {
+		views = append(views, map[string]any{
+			"name":      info.Name,
+			"embedding": info.Embedding,
+			"engine":    string(info.Engine),
+		})
+	}
+	return views
+}
+
 // 载荷里的一个向量块：从载荷第 Offset 字节起，共 Count 行、每行 Dimension 个 float32。
+//
+// Name 用于**多命名嵌入**（dataset）：一个实体可以有多个嵌入字段，块靠名字对齐而不是靠下标。
+// collection 那套不带名字（omitempty），所以加了字段之后旧客户端照常能用。
 type vectorBlock struct {
-	Offset    int `json:"offset"`
-	Count     int `json:"count"`
-	Dimension int `json:"dimension"`
+	Offset    int    `json:"offset"`
+	Count     int    `json:"count"`
+	Dimension int    `json:"dimension"`
+	Name      string `json:"name,omitempty"`
 }
 
 // 请求与响应共用一个信封；用 omitempty 区分方向。
@@ -65,11 +127,12 @@ type progressEvent struct {
 }
 
 type server struct {
-	mu   sync.Mutex // 串行化请求处理
-	out  *bufio.Writer
-	wmu  sync.Mutex // 串行化帧写出（进度事件可能在别的 goroutine 里产生）
-	db   *vectordb.Database
-	cols map[string]vectordb.CollectionAPI
+	mu       sync.Mutex // 串行化请求处理
+	out      *bufio.Writer
+	wmu      sync.Mutex // 串行化帧写出（进度事件可能在别的 goroutine 里产生）
+	db       *vectordb.Database
+	cols     map[string]vectordb.CollectionAPI
+	datasets map[string]vectordb.DatasetAPI
 }
 
 func main() {
@@ -130,6 +193,8 @@ func (s *server) dispatch(req *envelope, payload []byte) (any, []vectorBlock, []
 		}
 		s.db = db
 		s.cols = map[string]vectordb.CollectionAPI{}
+		s.datasets = map[string]vectordb.DatasetAPI{}
+		s.datasets = map[string]vectordb.DatasetAPI{}
 		logf("已打开数据库 %s", p.Path)
 		return map[string]any{"path": p.Path, "collections": db.ListCollectionStats()}, nil, nil, nil
 
@@ -140,6 +205,8 @@ func (s *server) dispatch(req *envelope, payload []byte) (any, []vectorBlock, []
 		err := s.closeAll()
 		s.db = nil
 		s.cols = map[string]vectordb.CollectionAPI{}
+		s.datasets = map[string]vectordb.DatasetAPI{}
+		s.datasets = map[string]vectordb.DatasetAPI{}
 		if err != nil {
 			return nil, nil, nil, mapError(err)
 		}
@@ -326,6 +393,290 @@ func (s *server) dispatch(req *envelope, payload []byte) (any, []vectorBlock, []
 		}
 		return col.Stats(), nil, nil, nil
 
+	case "db.createDataset":
+		var p struct {
+			Name       string `json:"name"`
+			Embeddings map[string]struct {
+				Dimension      int    `json:"dimension"`
+				DistanceMetric string `json:"distanceMetric"`
+			} `json:"embeddings"`
+			Indexes map[string]struct {
+				Embedding string                     `json:"embedding"`
+				Engine    vectordb.Engine            `json:"engine"`
+				HNSW      *vectordb.CollectionConfig `json:"hnswConfig,omitempty"`
+			} `json:"indexes"`
+			IDs   []string          `json:"ids"`
+			Metas []json.RawMessage `json:"metas"`
+		}
+		if err := json.Unmarshal(req.Params, &p); err != nil || p.Name == "" {
+			return nil, nil, nil, badRequest("db.createDataset 需要 name")
+		}
+		if s.db == nil {
+			return nil, nil, nil, mapError(vectordb.ErrDatabaseClosed)
+		}
+		opts := vectordb.DatasetOptions{
+			Embeddings: make(map[string]vectordb.EmbeddingSchema, len(p.Embeddings)),
+			Indexes:    make(map[string]vectordb.IndexViewOptions, len(p.Indexes)),
+		}
+		for name, schema := range p.Embeddings {
+			opts.Embeddings[name] = vectordb.EmbeddingSchema{Dimension: schema.Dimension, DistanceMetric: schema.DistanceMetric}
+		}
+		for name, view := range p.Indexes {
+			opts.Indexes[name] = vectordb.IndexViewOptions{Embedding: view.Embedding, Engine: view.Engine, HNSWConfig: view.HNSW}
+		}
+		if len(p.IDs) > 0 {
+			entities, rerr := buildEntities(p.IDs, p.Metas, req.Vectors, payload)
+			if rerr != nil {
+				return nil, nil, nil, rerr
+			}
+			opts.Entities = entities
+		}
+		dataset, err := s.db.CreateDataset(p.Name, opts)
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		s.datasets[p.Name] = dataset
+		return map[string]any{"name": dataset.Name(), "stats": datasetStatsView(dataset.Stats())}, nil, nil, nil
+
+	case "db.openDataset":
+		var p struct {
+			Name string `json:"name"`
+		}
+		if err := json.Unmarshal(req.Params, &p); err != nil || p.Name == "" {
+			return nil, nil, nil, badRequest("db.openDataset 需要 name")
+		}
+		dataset, err := s.dataset(p.Name)
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		return datasetStatsView(dataset.Stats()), nil, nil, nil
+
+	case "db.listDatasets":
+		if s.db == nil {
+			return nil, nil, nil, mapError(vectordb.ErrDatabaseClosed)
+		}
+		return datasetStatsViews(s.db.ListDatasetStats()), nil, nil, nil
+
+	case "db.deleteDataset":
+		var p struct {
+			Name string `json:"name"`
+		}
+		if err := json.Unmarshal(req.Params, &p); err != nil || p.Name == "" {
+			return nil, nil, nil, badRequest("db.deleteDataset 需要 name")
+		}
+		if dataset, ok := s.datasets[p.Name]; ok {
+			_ = dataset.Close()
+			delete(s.datasets, p.Name)
+		}
+		if s.db == nil {
+			return nil, nil, nil, mapError(vectordb.ErrDatabaseClosed)
+		}
+		if err := s.db.DeleteDataset(p.Name); err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		return map[string]any{"deleted": p.Name}, nil, nil, nil
+
+	case "dataset.stats":
+		dataset, err := s.datasetFrom(req.Params)
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		return datasetStatsView(dataset.Stats()), nil, nil, nil
+
+	case "dataset.listIndexes":
+		dataset, err := s.datasetFrom(req.Params)
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		return datasetIndexViews(dataset.ListIndexes()), nil, nil, nil
+
+	case "dataset.upsertEntities":
+		dataset, err := s.datasetFrom(req.Params)
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		var p struct {
+			Dataset    string            `json:"dataset"`
+			IDs        []string          `json:"ids"`
+			Metas      []json.RawMessage `json:"metas"`
+			Durability string            `json:"durability"`
+		}
+		if err := json.Unmarshal(req.Params, &p); err != nil {
+			return nil, nil, nil, badRequest("dataset.upsertEntities 参数解析失败")
+		}
+		entities, rerr := buildEntities(p.IDs, p.Metas, req.Vectors, payload)
+		if rerr != nil {
+			return nil, nil, nil, rerr
+		}
+		result, err := dataset.UpsertEntities(context.Background(), entities, writeOptions(p.Durability))
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		return datasetWriteView(result), nil, nil, nil
+
+	case "dataset.deleteEntities":
+		dataset, err := s.datasetFrom(req.Params)
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		var p struct {
+			Dataset    string   `json:"dataset"`
+			IDs        []string `json:"ids"`
+			Durability string   `json:"durability"`
+		}
+		if err := json.Unmarshal(req.Params, &p); err != nil {
+			return nil, nil, nil, badRequest("dataset.deleteEntities 参数解析失败")
+		}
+		result, err := dataset.DeleteEntities(context.Background(), p.IDs, writeOptions(p.Durability))
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		return datasetWriteView(result), nil, nil, nil
+
+	case "dataset.search":
+		dataset, err := s.datasetFrom(req.Params)
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		var p struct {
+			Dataset        string   `json:"dataset"`
+			Index          string   `json:"index"`
+			VectorIndex    int      `json:"vectorIndex"`
+			TopK           int      `json:"topK"`
+			EfSearch       int      `json:"efSearch"`
+			ScoreThreshold float32  `json:"scoreThreshold"`
+			ExcludeIDs     []string `json:"excludeIds"`
+		}
+		if err := json.Unmarshal(req.Params, &p); err != nil {
+			return nil, nil, nil, badRequest("dataset.search 参数解析失败")
+		}
+		vectors, derr := decodeVectors(req.Vectors, payload)
+		if derr != nil {
+			return nil, nil, nil, badRequest(derr.Error())
+		}
+		if p.VectorIndex < 0 || p.VectorIndex >= len(vectors) {
+			return nil, nil, nil, badRequest(fmt.Sprintf("向量下标 %d 越界（共 %d 个向量块）", p.VectorIndex, len(vectors)))
+		}
+		hits, err := dataset.SearchIndex(p.Index, vectors[p.VectorIndex], searchOptions(p.TopK, p.EfSearch, p.ScoreThreshold, p.ExcludeIDs))
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		return hits, nil, nil, nil
+
+	case "dataset.fuseSearch":
+		dataset, err := s.datasetFrom(req.Params)
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		var p struct {
+			Dataset      string `json:"dataset"`
+			TopK         int    `json:"topK"`
+			RRFConstant  int    `json:"rrfConstant"`
+			AllowPartial bool   `json:"allowPartial"`
+			Queries      []struct {
+				Index       string  `json:"index"`
+				VectorIndex int     `json:"vectorIndex"`
+				Weight      float64 `json:"weight"`
+				TopK        int     `json:"topK"`
+				EfSearch    int     `json:"efSearch"`
+			} `json:"queries"`
+		}
+		if err := json.Unmarshal(req.Params, &p); err != nil {
+			return nil, nil, nil, badRequest("dataset.fuseSearch 参数解析失败")
+		}
+		vectors, derr := decodeVectors(req.Vectors, payload)
+		if derr != nil {
+			return nil, nil, nil, badRequest(derr.Error())
+		}
+		queries := make([]vectordb.FusionQuery, 0, len(p.Queries))
+		for i, q := range p.Queries {
+			if q.VectorIndex < 0 || q.VectorIndex >= len(vectors) {
+				return nil, nil, nil, badRequest(fmt.Sprintf("第 %d 路的向量下标 %d 越界（共 %d 个向量块）", i, q.VectorIndex, len(vectors)))
+			}
+			queries = append(queries, vectordb.FusionQuery{
+				Index:   q.Index,
+				Vector:  vectors[q.VectorIndex],
+				Weight:  q.Weight,
+				Options: searchOptions(q.TopK, q.EfSearch, 0, nil),
+			})
+		}
+		response, err := dataset.SearchFusion(context.Background(), vectordb.FusionSearchRequest{
+			Queries: queries, TopK: p.TopK, RRFConstant: p.RRFConstant, AllowPartial: p.AllowPartial,
+		})
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		return response, nil, nil, nil
+
+	case "dataset.fetchEntities":
+		dataset, err := s.datasetFrom(req.Params)
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		var p struct {
+			Dataset string   `json:"dataset"`
+			IDs     []string `json:"ids"`
+		}
+		if err := json.Unmarshal(req.Params, &p); err != nil {
+			return nil, nil, nil, badRequest("dataset.fetchEntities 参数解析失败")
+		}
+		entities, err := dataset.FetchEntities(p.IDs)
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		return packEntitiesAsVectors(entities)
+
+	case "dataset.addIndex":
+		dataset, err := s.datasetFrom(req.Params)
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		var p struct {
+			Dataset string `json:"dataset"`
+			Name    string `json:"name"`
+			Options struct {
+				Embedding string                     `json:"embedding"`
+				Engine    vectordb.Engine            `json:"engine"`
+				HNSW      *vectordb.CollectionConfig `json:"hnswConfig,omitempty"`
+			} `json:"options"`
+		}
+		if err := json.Unmarshal(req.Params, &p); err != nil || p.Name == "" {
+			return nil, nil, nil, badRequest("dataset.addIndex 需要 name")
+		}
+		if err := dataset.AddIndexContext(context.Background(), p.Name, vectordb.IndexViewOptions{
+			Embedding: p.Options.Embedding, Engine: p.Options.Engine, HNSWConfig: p.Options.HNSW,
+		}); err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		return map[string]any{"added": p.Name}, nil, nil, nil
+
+	case "dataset.dropIndex":
+		dataset, err := s.datasetFrom(req.Params)
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		var p struct {
+			Dataset string `json:"dataset"`
+			Name    string `json:"name"`
+		}
+		if err := json.Unmarshal(req.Params, &p); err != nil || p.Name == "" {
+			return nil, nil, nil, badRequest("dataset.dropIndex 需要 name")
+		}
+		if err := dataset.DropIndex(p.Name); err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		return map[string]any{"dropped": p.Name}, nil, nil, nil
+
+	case "dataset.checkpoint":
+		dataset, err := s.datasetFrom(req.Params)
+		if err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		if err := dataset.Checkpoint(context.Background()); err != nil {
+			return nil, nil, nil, mapError(err)
+		}
+		return map[string]any{"checkpointed": true}, nil, nil, nil
+
 	default:
 		return nil, nil, nil, &rpcError{Code: "unknown_method", Message: fmt.Sprintf("未知方法 %q", req.Method)}
 	}
@@ -457,6 +808,62 @@ func (s *server) write(req *envelope, payload []byte) (any, []vectorBlock, []byt
 	return result, nil, nil, nil
 }
 
+// writeOptions 把协议里的 durability 字符串翻成库里的写选项。
+func writeOptions(durability string) vectordb.WriteOptions {
+	switch durability {
+	case "memory":
+		return vectordb.WriteOptions{Durability: vectordb.DurabilityMemory}
+	case "async":
+		return vectordb.WriteOptions{Durability: vectordb.DurabilityAsync}
+	default:
+		return vectordb.WriteOptions{Durability: vectordb.DurabilitySync}
+	}
+}
+
+// searchOptions 把协议参数翻成库里的检索选项。零值一律不传（库按自己的默认走）。
+func searchOptions(topK, efSearch int, scoreThreshold float32, excludeIDs []string) vectordb.SearchOptions {
+	options := vectordb.SearchOptions{}
+	if topK > 0 {
+		options.TopK = topK
+	}
+	if efSearch > 0 {
+		options.EfSearch = efSearch
+	}
+	if scoreThreshold != 0 {
+		options.ScoreThreshold = scoreThreshold
+	}
+	if len(excludeIDs) > 0 {
+		options.ExcludeIDs = excludeIDs
+	}
+	return options
+}
+
+// datasetFrom 从参数里取数据集名并取出句柄（必要时打开）。
+func (s *server) datasetFrom(params json.RawMessage) (vectordb.DatasetAPI, error) {
+	var p struct {
+		Dataset string `json:"dataset"`
+	}
+	if err := json.Unmarshal(params, &p); err != nil || p.Dataset == "" {
+		return nil, errors.New("缺少 dataset 名")
+	}
+	return s.dataset(p.Dataset)
+}
+
+func (s *server) dataset(name string) (vectordb.DatasetAPI, error) {
+	if s.db == nil {
+		return nil, vectordb.ErrDatabaseClosed
+	}
+	if dataset, ok := s.datasets[name]; ok {
+		return dataset, nil
+	}
+	dataset, err := s.db.OpenDataset(name)
+	if err != nil {
+		return nil, err
+	}
+	s.datasets[name] = dataset
+	return dataset, nil
+}
+
 // collectionFrom 从参数里取集合名并取出句柄（必要时打开）。
 func (s *server) collectionFrom(params json.RawMessage) (vectordb.CollectionAPI, error) {
 	var p struct {
@@ -490,6 +897,11 @@ func (s *server) closeAll() error {
 			firstErr = fmt.Errorf("关闭集合 %s 失败：%w", name, err)
 		}
 	}
+	for name, dataset := range s.datasets {
+		if err := dataset.Close(); err != nil && firstErr == nil {
+			firstErr = fmt.Errorf("关闭数据集 %s 失败：%w", name, err)
+		}
+	}
 	if s.db != nil {
 		if err := s.db.Close(); err != nil && firstErr == nil {
 			firstErr = err
@@ -506,6 +918,7 @@ func (s *server) shutdown() {
 	}
 	s.db = nil
 	s.cols = map[string]vectordb.CollectionAPI{}
+	s.datasets = map[string]vectordb.DatasetAPI{}
 }
 
 // ---------- 帧读写 ----------
@@ -655,6 +1068,125 @@ func packPointsAsVectors(points []vectordb.Point) (any, []vectorBlock, []byte, *
 	}
 	blocks := []vectorBlock{{Offset: 0, Count: len(points), Dimension: dimension}}
 	return map[string]any{"points": views}, blocks, payload, nil
+}
+
+// decodeNamedVectors 按**块名**切载荷，返回"名字 → 一维 float32"。
+//
+// 与 decodeVectors 的区别只在寻址方式：那边的下标是位置约定（collection 只有一个向量字段），
+// 这边的名字是**嵌入字段名**（dataset 的实体可以有多个）。同一个载荷里两种块不会混用。
+func decodeNamedVectors(blocks []vectorBlock, payload []byte) (map[string][]float32, error) {
+	out := make(map[string][]float32, len(blocks))
+	for index, block := range blocks {
+		if block.Name == "" {
+			return nil, fmt.Errorf("第 %d 个向量块没有名字（多命名嵌入必须逐块标注字段名）", index)
+		}
+		if _, exists := out[block.Name]; exists {
+			return nil, fmt.Errorf("向量块名重复：%q", block.Name)
+		}
+		values, err := decodeVectors([]vectorBlock{block}, payload)
+		if err != nil {
+			return nil, err
+		}
+		out[block.Name] = values[0]
+	}
+	return out, nil
+}
+
+// buildEntities 按 id/meta 与若干命名向量块拼出 Entity 列表。
+//
+// embeddings 是这次要写的字段名（顺序无关，靠名字与块对齐）；每个字段的块里应当有 len(ids) 行 ——
+// 行数与 id 数不一致时按行数少的那边报错，而不是静默错位：错位会写出语义张冠李戴的向量。
+func buildEntities(ids []string, metas []json.RawMessage, blocks []vectorBlock, payload []byte) ([]vectordb.Entity, *rpcError) {
+	if len(ids) == 0 {
+		return nil, badRequest("缺少 ids")
+	}
+	named, err := decodeNamedVectors(blocks, payload)
+	if err != nil {
+		return nil, badRequest(err.Error())
+	}
+	if len(named) == 0 {
+		return nil, badRequest("至少要给一个嵌入字段的向量块")
+	}
+	// 每个字段的维度要能被行数整除，且行数必须等于 id 数。
+	for name, flat := range named {
+		if len(flat)%len(ids) != 0 {
+			return nil, badRequest(fmt.Sprintf("字段 %q 的向量长度 %d 不能被 id 数 %d 整除", name, len(flat), len(ids)))
+		}
+		if len(flat)/len(ids)*len(ids) != len(flat) || len(flat)/len(ids) == 0 {
+			return nil, badRequest(fmt.Sprintf("字段 %q 的向量是空的", name))
+		}
+	}
+	entities := make([]vectordb.Entity, 0, len(ids))
+	for i, id := range ids {
+		entity := vectordb.Entity{ID: id, Embeddings: make(map[string][]float32, len(named))}
+		for name, flat := range named {
+			dimension := len(flat) / len(ids)
+			entity.Embeddings[name] = flat[i*dimension : (i+1)*dimension]
+		}
+		if i < len(metas) && len(metas[i]) > 0 && string(metas[i]) != "null" {
+			entity.Meta = metas[i]
+		}
+		entities = append(entities, entity)
+	}
+	return entities, nil
+}
+
+// packEntitiesAsVectors 把一个实体集拆成"每个嵌入字段一块"的响应。
+//
+// 块的顺序按字段名排序定死：map 遍历顺序在 Go 里是随机的，不排的话同一个库两次取回
+// 载荷布局会不一样 —— 客户端按名字找块本来不怕，但可复现的帧更好对账。
+func packEntitiesAsVectors(entities []vectordb.Entity) (any, []vectorBlock, []byte, *rpcError) {
+	type entityView struct {
+		ID         string          `json:"id"`
+		Embeddings []string        `json:"embeddings"`
+		Meta       json.RawMessage `json:"meta,omitempty"`
+	}
+	names := make([]string, 0)
+	seen := make(map[string]struct{})
+	for _, entity := range entities {
+		for name := range entity.Embeddings {
+			if _, exists := seen[name]; exists {
+				continue
+			}
+			seen[name] = struct{}{}
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+
+	views := make([]entityView, 0, len(entities))
+	var payload []byte
+	blocks := make([]vectorBlock, 0, len(names))
+	for _, name := range names {
+		offset := len(payload)
+		rows := 0
+		dimension := 0
+		for _, entity := range entities {
+			values := entity.Embeddings[name]
+			if values == nil {
+				continue
+			}
+			if dimension == 0 {
+				dimension = len(values)
+			}
+			for _, value := range values {
+				var raw [4]byte
+				binary.LittleEndian.PutUint32(raw[:], math.Float32bits(value))
+				payload = append(payload, raw[:]...)
+			}
+			rows++
+		}
+		blocks = append(blocks, vectorBlock{Offset: offset, Count: rows, Dimension: dimension, Name: name})
+	}
+	for _, entity := range entities {
+		names := make([]string, 0, len(entity.Embeddings))
+		for name := range entity.Embeddings {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		views = append(views, entityView{ID: entity.ID, Embeddings: names, Meta: entity.Meta})
+	}
+	return map[string]any{"entities": views}, blocks, payload, nil
 }
 
 // ---------- 协议视图：响应字段名在这里定死，不随库里的结构体形状变化 ----------
