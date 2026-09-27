@@ -1,0 +1,8 @@
+# 构建产物与依赖
+node_modules/
+dist/
+bin/
+*.tsbuildinfo
+
+# 本地诊断输出
+*.log

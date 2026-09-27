@@ -1,0 +1,46 @@
+{
+  "name": "@leolee9086/vectordb",
+  "version": "0.1.0",
+  "description": "Node 封装：通过 stdio sidecar 使用 s-forge 的向量数据库（DiskVamana/DiskANN 与内存 HNSW）",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "bin",
+    "sidecar",
+    "scripts",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "npm run build:sidecar && npm run build:ts",
+    "build:sidecar": "node scripts/build-sidecar.mjs",
+    "build:ts": "tsc",
+    "test": "node scripts/run-tests.mjs",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "vectordb",
+    "diskann",
+    "vamana",
+    "hnsw",
+    "ann",
+    "vector-search",
+    "sidecar"
+  ],
+  "author": "Zhi",
+  "license": "AGPL-3.0-or-later",
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "typescript": "^5.5.3"
+  }
+}
