@@ -18,9 +18,10 @@ test("封装层：DiskVamana 全链路（建库/写入/检索/删除/checkpoint/
   assert.ok(existsSync(DIST), `没有编译产物 ${DIST}：先跑 node_modules/.bin/tsc -p tsconfig.json`);
   const { openVectorDB, VectorDBError } = await import(`file://${DIST.replaceAll("\\", "/")}`);
   const dir = mkdtempSync(join(tmpdir(), "vectordb-client-"));
-  let db = await openVectorDB({ path: dir });
-
+  // finally 回收已返回的数据库和临时目录；打开失败的内部进程由 openVectorDB 自己负责。
+  let db;
   try {
+    db = await openVectorDB({ path: dir });
     const pong = await db.ping();
     assert.equal(pong.pong, true);
     assert.equal(pong.protocolVersion, 1);
@@ -126,7 +127,7 @@ test("封装层：DiskVamana 全链路（建库/写入/检索/删除/checkpoint/
     const names = (await db.listCollections()).map((item) => item.name);
     assert.ok(!names.includes("memo"), `删集合后不该再出现，实际 ${names.join(",")}`);
   } finally {
-    await db.close().catch(() => {});
+    if (db !== undefined) await db.close().catch(() => {});
     await new Promise((resolve) => setTimeout(resolve, 100));
     try {
       rmSync(dir, { recursive: true, force: true });

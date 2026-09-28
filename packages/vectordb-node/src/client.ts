@@ -8,7 +8,7 @@
  */
 
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -25,6 +25,8 @@ import {
 export interface SidecarOptions {
   /** sidecar 可执行文件路径；缺省按平台查找包内 bin/，也认环境变量 VECTORDB_SIDECAR。 */
   binary?: string;
+  /** 可选启动参数，供解释器或侧车启动器使用；默认直接执行二进制。 */
+  args?: readonly string[];
   cwd?: string;
   env?: Record<string, string>;
   /** 子进程 stderr 的每一行（默认丢弃）。 */
@@ -48,7 +50,23 @@ interface Pending {
   timer?: NodeJS.Timeout;
 }
 
-/** 默认按平台找包内 bin/ 下的产物；可用环境变量或 binary 选项覆盖。 */
+/** bin/ 里现有哪些 sidecar 产物；只用来把错误信息写具体。 */
+function listSidecarBinaries(binDir: string): string {
+  try {
+    const names = readdirSync(binDir).filter((name) => name.startsWith("vectordb-sidecar"));
+    return names.length > 0 ? `bin/ 里有：${names.join("、")}` : "bin/ 里没有任何 sidecar 产物";
+  } catch {
+    return "bin/ 目录不存在";
+  }
+}
+
+/**
+ * 按平台找包内 bin/ 下的 sidecar；可用 binary 选项或 VECTORDB_SIDECAR 环境变量覆盖。
+ *
+ * 发布包带多个平台的预编译产物，文件名是 vectordb-sidecar-<平台>-<架构>，用 Node 的叫法
+ * （win32-x64、linux-arm64、darwin-arm64…）—— 挑文件的正是这里。不带平台后缀的那个是本机
+ * 开发编出来的，排在后面当兜底。
+ */
 export function resolveSidecarBinary(explicit?: string): string {
   if (explicit !== undefined && explicit !== "") return explicit;
   const fromEnv = process.env.VECTORDB_SIDECAR;
@@ -56,28 +74,36 @@ export function resolveSidecarBinary(explicit?: string): string {
   const here = dirname(fileURLToPath(import.meta.url));
   // dist/ 与 src/ 同在包内，bin/ 在包根：两种深度都试一遍。
   const suffix = process.platform === "win32" ? ".exe" : "";
-  const candidates = [
-    join(here, "..", "bin", `vectordb-sidecar${suffix}`),
-    join(here, "..", "..", "bin", `vectordb-sidecar${suffix}`),
+  const names = [
+    `vectordb-sidecar-${process.platform}-${process.arch}${suffix}`,
+    `vectordb-sidecar${suffix}`,
   ];
+  const candidates: string[] = [];
+  for (const name of names) {
+    candidates.push(join(here, "..", "bin", name), join(here, "..", "..", "bin", name));
+  }
   for (const candidate of candidates) {
     if (existsSync(candidate)) return candidate;
   }
   throw new VectorDBError(
     "sidecar_unavailable",
-    `找不到 sidecar 可执行文件，试过：${candidates.join("、")}；先跑 node scripts/build-sidecar.mjs，或用 binary 选项指定`,
+    `找不到当前平台的 sidecar（${process.platform}/${process.arch}）；试过：${candidates.join("、")}；` +
+      `${listSidecarBinaries(join(here, "..", "bin"))}；从源码重建见 README，或用 binary 选项指定`,
   );
 }
 
 export class SidecarClient {
   private child: ChildProcessWithoutNullStreams | undefined;
-  private readonly decoder = new FrameDecoder();
+  private decoder = new FrameDecoder();
+  private closePromise: Promise<void> | undefined;
   private readonly pending = new Map<number, Pending>();
   private readonly progressHandlers: ((event: ProgressEvent) => void)[] = [];
   private nextId = 1;
   private closing = false;
   private started = false;
   private readonly binary: string;
+  /** 子进程 stderr 的末尾若干行：它失败时唯一的解释渠道，出错时要能带出去。 */
+  private readonly stderrTail: string[] = [];
 
   constructor(private readonly options: SidecarOptions = {}) {
     this.binary = resolveSidecarBinary(options.binary);
@@ -102,8 +128,14 @@ export class SidecarClient {
 
   ensureStarted(): void {
     if (this.child !== undefined) return;
-    this.closing = false;
-    const child = spawn(this.binary, [], {
+    if (this.closing) throw new VectorDBError("database_closed", "客户端已关闭");
+    if (this.started && this.options.autoRestart === false) {
+      throw new VectorDBError("sidecar_exited", "sidecar 已退出，自动重启已禁用");
+    }
+    // 每个进程有独立的协议流，不能把旧进程的半帧拼进新响应。
+    this.decoder = new FrameDecoder();
+    this.stderrTail.length = 0;
+    const child = spawn(this.binary, [...(this.options.args ?? [])], {
       cwd: this.options.cwd,
       env: this.options.env === undefined ? process.env : { ...process.env, ...this.options.env },
       stdio: ["pipe", "pipe", "pipe"],
@@ -113,14 +145,25 @@ export class SidecarClient {
     this.started = true;
     child.stdout.on("data", (chunk: Buffer) => this.handleChunk(chunk));
     child.stderr.on("data", (chunk: Buffer) => {
-      const onLog = this.options.onLog;
-      if (onLog === undefined) return;
+      // 没给 onLog 也要留住末尾几行：否则一次启动失败在调用方看来只是"没反应"。
       for (const line of chunk.toString().split(/\r?\n/)) {
-        if (line.trim() !== "") onLog(line);
+        if (line.trim() === "") continue;
+        this.stderrTail.push(line);
+        if (this.stderrTail.length > 20) this.stderrTail.shift();
+        this.options.onLog?.(line);
       }
     });
-    child.on("error", (error) => this.failAll(new VectorDBError("sidecar_unavailable", error.message)));
+    // 流的 error 与 write 回调可以同时发生；必须消费事件，避免 EPIPE 终止宿主。
+    child.stdin.on("error", (error) => {
+      if (this.child === child) this.failAll(new VectorDBError("sidecar_exited", error.message));
+    });
+    child.on("error", (error) => {
+      if (this.child !== child) return;
+      this.child = undefined;
+      this.failAll(new VectorDBError("sidecar_unavailable", error.message + this.describeStderr()));
+    });
     child.on("exit", (code, signal) => {
+      if (this.child !== child) return;
       this.child = undefined;
       const reason = this.closing ? "客户端已关闭" : `sidecar 退出（code=${String(code)} signal=${String(signal)}）`;
       this.failAll(new VectorDBError("sidecar_exited", reason));
@@ -146,6 +189,12 @@ export class SidecarClient {
     }
   }
 
+  /** 把子进程 stderr 的末尾几行拼成一句话，用来解释失败。没有就不拼。 */
+  private describeStderr(): string {
+    if (this.stderrTail.length === 0) return "";
+    return `；sidecar 最后说：${this.stderrTail.slice(-5).join(" | ")}`;
+  }
+
   private failAll(error: Error): void {
     for (const [id, waiter] of this.pending) {
       if (waiter.timer !== undefined) clearTimeout(waiter.timer);
@@ -154,7 +203,10 @@ export class SidecarClient {
     }
   }
 
-  async request<T>(method: string, params: Record<string, unknown> = {}, vectors: Buffer = Buffer.alloc(0), blocks: VectorBlock[] = []): Promise<RpcResult<T>> {
+  async request<T>(method: string, params: Record<string, unknown> = {}, vectors: Buffer = Buffer.alloc(0), blocks: VectorBlock[] = [], timeoutMs = this.options.requestTimeoutMs ?? 0): Promise<RpcResult<T>> {
+    if (this.closing && method !== "shutdown") {
+      throw new VectorDBError("database_closed", "客户端正在关闭", method);
+    }
     this.ensureStarted();
     const child = this.child;
     if (child === undefined) {
@@ -163,7 +215,6 @@ export class SidecarClient {
     const id = this.nextId++;
     const envelope: Envelope = { id, method, params };
     if (blocks.length > 0) envelope.vectors = blocks;
-    const timeoutMs = this.options.requestTimeoutMs ?? 0;
     const promise = new Promise<{ header: Envelope; payload: Buffer }>((resolve, reject) => {
       const waiter: Pending = { method, resolve, reject };
       if (timeoutMs > 0) {
@@ -188,30 +239,31 @@ export class SidecarClient {
     return { result: header.result as T, payload, outVectors: header.outVectors ?? [] };
   }
 
-  /** 优雅关闭：先发 shutdown，等进程退出；超时则强杀。 */
-  async close(graceMs = 5000): Promise<void> {
+  /** 截止时间涵盖 shutdown 响应与退出；所有调用者等待同一次资源回收。 */
+  close(graceMs = 5000): Promise<void> {
+    if (this.closePromise !== undefined) return this.closePromise;
+    if (!Number.isFinite(graceMs) || graceMs < 0) {
+      return Promise.reject(new VectorDBError("invalid_argument", "关闭期限必须是非负有限毫秒数"));
+    }
     const child = this.child;
     this.closing = true;
-    if (child === undefined) return;
-    try {
-      await this.request("shutdown", {});
-    } catch {
-      // 关闭途中的错误不再抛出：进程无论如何都要收掉。
-    }
-    await new Promise<void>((resolve) => {
-      if (this.child === undefined) {
-        resolve();
-        return;
-      }
+    if (child === undefined) return this.closePromise = Promise.resolve();
+    this.closePromise = new Promise<void>((resolve) => {
+      // 必须在发请求前布置期限。只等 close：此时进程和全部 stdio 才都已收回。
       const timer = setTimeout(() => {
-        this.child?.kill("SIGKILL");
-        resolve();
+        this.failAll(new VectorDBError("timeout", "sidecar 关闭超时，强制终止"));
+        child.kill("SIGKILL");
       }, graceMs);
-      child.once("exit", () => {
+      child.once("close", () => {
         clearTimeout(timer);
+        if (this.child === child) this.child = undefined;
+        this.failAll(new VectorDBError("database_closed", "客户端已关闭"));
         resolve();
       });
+      void this.request("shutdown").catch(() => {
+        // 请求失败仍由进程 close 或期限负责收尾，不允许在这里提前宣称完成。
+      });
     });
-    this.child?.stdin.end();
+    return this.closePromise;
   }
 }

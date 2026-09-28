@@ -2,14 +2,27 @@
 
 Node 封装：把 s-forge 的 `packages/vectordb`（DiskVamana/DiskANN 与内存 HNSW）通过 **stdio sidecar** 暴露给 Node 使用。
 
-- **零原生构建**：不需要 node-gyp / prebuild，只用本机 Go 工具链把 sidecar 编成一个可执行文件。
+- **零原生构建**：不需要 node-gyp / prebuild。发布包直接带各平台的 sidecar 可执行文件，装完就能用；只有要改 sidecar 本身时才需要 Go 工具链。
 - **进程即数据库**：sidecar 持有数据库目录的跨进程独占锁；Node 侧只发请求帧。
 - **向量走二进制载荷**：768 维 float32 不经过 JSON，避免膨胀与解析开销。
 
-## 快速开始
+## 支持的平台
+
+发布包带这些平台的 sidecar，装完按 `process.platform` / `process.arch` 自动挑 —— 使用者不需要 Go：
+
+| 平台 | 包内文件 |
+|---|---|
+| Windows x64 | `bin/vectordb-sidecar-win32-x64.exe` |
+| Linux x64 / arm64 | `bin/vectordb-sidecar-linux-x64`、`bin/vectordb-sidecar-linux-arm64` |
+| macOS Intel / Apple 芯片 | `bin/vectordb-sidecar-darwin-x64`、`bin/vectordb-sidecar-darwin-arm64` |
+
+Linux 产物是关掉 CGO 编的静态链接，glibc 与 musl（Alpine）都能跑。要用别的平台、或自己编的：
+`openVectorDB({ binary: "…" })`，或设环境变量 `VECTORDB_SIDECAR`。
+
+## 在仓库里开发
 
 ```bash
-# 1) 编 sidecar（需要 Go，版本需满足 sidecar/go.mod 的 go 指令）
+# 1) 编 sidecar：默认只编当前平台；发布用的全平台产物加 --all（需要 Go，版本需满足 sidecar/go.mod 的 go 指令）
 node scripts/build-sidecar.mjs
 
 # 2) 编译 TS
@@ -146,11 +159,11 @@ node scripts/serve-embeddings.mjs --check    # 只探测设备与 CUDA 运行时
 
 ```
 vectordb-node/
-├── sidecar/            Go 侧可执行入口（go.mod 用 replace 指向 ../../vectordb）
+├── sidecar/            Go 侧可执行入口（只在仓库里，不随包分发）
 ├── src/                协议、客户端、门面（TS）
 ├── scripts/            编 sidecar / 跑测试 / 元数据探针
 ├── test/               裸协议冒烟 + 封装层端到端
-└── bin/                编出来的 sidecar（不随源码分发）
+└── bin/                各平台 sidecar 产物（源码里忽略，发布时随包分发）
 ```
 
-`sidecar/go.mod` 里有一行 `replace s-forge.local/vectordb => ../../vectordb`：**封装直接编仓库里的 Go 模块**，不依赖任何已发布的 Go 包；改 Go 侧代码后重跑 `node scripts/build-sidecar.mjs` 即可。
+`sidecar/go.mod` 里有一行 `replace s-forge.local/vectordb => ../../vectordb`：**封装直接编仓库里的 Go 模块**，不依赖任何已发布的 Go 包；改 Go 侧代码后重跑 `node scripts/build-sidecar.mjs` 即可。因为这行指到包外，`sidecar/` 源码不随包发布 —— 发布包只带编好的各平台产物，重建请克隆 s-forge。

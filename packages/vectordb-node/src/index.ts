@@ -419,13 +419,17 @@ export class Dataset {
     if (queries.length === 0) return { results: [] };
     // 每路打一个**单行块**，vectorIndex 指向自己那一块 —— 服务端按块下标取向量，
     // 打成一个大块（多行）的话它只会看到 1 个块。collection.write 也是这么打的。
-    const rows = queries.map((query) => query.vector);
-    const { payload } = packVectors(rows);
-    const rowBlocks = rows.map((row, index) => ({
-      offset: index * row.length * 4,
-      count: 1,
-      dimension: row.length,
-    }));
+    // 不同字段允许不同维度；分别打包并累计字节偏移，不能按等长矩阵打包。
+    const chunks: Buffer[] = [];
+    let offset = 0;
+    const rowBlocks = queries.map((query) => {
+      const packed = packVectors([query.vector]);
+      const block = { offset, count: 1, dimension: query.vector.length };
+      chunks.push(packed.payload);
+      offset += packed.payload.length;
+      return block;
+    });
+    const payload = Buffer.concat(chunks);
     const { result } = await this.client.request<FusionSearchResponse>(
       "dataset.fuseSearch",
       {
@@ -457,21 +461,29 @@ export class Dataset {
       entities: { id: string; embeddings?: string[]; meta?: unknown }[];
     }>("dataset.fetchEntities", { dataset: this.name, ids: [...ids] });
     const named = unpackNamedVectors(payload, outVectors);
-    return (result?.entities ?? []).map((entity) => {
+    const schemas = new Map(outVectors.map((block) => [block.name, block]));
+    const cursors = new Map<string, number>();
+    const entities = (result?.entities ?? []).map((entity) => {
       const embeddings: Record<string, Float32Array> = {};
       for (const field of entity.embeddings ?? []) {
         const flat = named.get(field);
-        if (flat === undefined) continue;
-        // 一行一个实体：按本次返回的实体数切。
-        const count = (result?.entities ?? []).length;
-        const dimension = count > 0 ? flat.length / count : 0;
-        const index = (result?.entities ?? []).findIndex((item) => item.id === entity.id);
-        embeddings[field] = dimension > 0 && index >= 0
-          ? flat.subarray(index * dimension, (index + 1) * dimension)
-          : new Float32Array(0);
+        const schema = schemas.get(field);
+        const row = cursors.get(field) ?? 0;
+        if (!flat || !schema || row >= schema.count) {
+          throw new VectorDBError("internal", `实体 ${entity.id} 的字段 ${field} 缺少向量载荷`);
+        }
+        // 缺少某字段的实体不占该字段的行；各字段分别推进游标，不能按总实体数均分。
+        embeddings[field] = flat.subarray(row * schema.dimension, (row + 1) * schema.dimension);
+        cursors.set(field, row + 1);
       }
       return { id: entity.id, embeddings, meta: normalizeMeta(entity.meta) };
     });
+    for (const [field, schema] of schemas) {
+      if (field === undefined || (cursors.get(field) ?? 0) !== schema.count) {
+        throw new VectorDBError("internal", "实体字段与向量载荷行数不一致");
+      }
+    }
+    return entities;
   }
 
   async addIndex(name: string, options: IndexViewOptions): Promise<void> {
@@ -492,7 +504,7 @@ export class Dataset {
 }
 
 export class VectorDB {
-  private closed = false;
+  private closePromise: Promise<void> | undefined;
 
   private constructor(
     private readonly client: SidecarClient,
@@ -506,8 +518,14 @@ export class VectorDB {
     }
     const client = new SidecarClient(options);
     const db = new VectorDB(client, options.path);
-    await client.request("db.open", { path: options.path });
-    return db;
+    try {
+      await client.request("db.open", { path: options.path });
+      return db;
+    } catch (error) {
+      // 打开失败时对象尚未交给调用方，由创建者负责回收进程并保留原始错误。
+      await client.close();
+      throw error;
+    }
   }
 
   get pid(): number | undefined {
@@ -614,15 +632,21 @@ export class VectorDB {
     await this.client.request("db.deleteDataset", { name });
   }
 
-  /** 关闭：先关库再收进程。可重复调用。 */
-  async close(): Promise<void> {
-    if (this.closed) return;
-    this.closed = true;
-    try {
-      await this.client.request("db.close", {});
-    } finally {
-      await this.client.close();
+  /** 关库与进程退出共用一个期限；重复调用等待同一次关闭。 */
+  close(graceMs = 5000): Promise<void> {
+    if (this.closePromise !== undefined) return this.closePromise;
+    if (!Number.isFinite(graceMs) || graceMs < 0) {
+      return Promise.reject(new VectorDBError("invalid_argument", "关闭期限必须是非负有限毫秒数"));
     }
+    const deadline = Date.now() + graceMs;
+    this.closePromise = (async () => {
+      try {
+        await this.client.request("db.close", {}, Buffer.alloc(0), [], Math.max(1, graceMs));
+      } finally {
+        await this.client.close(Math.max(0, deadline - Date.now()));
+      }
+    })();
+    return this.closePromise;
   }
 }
 

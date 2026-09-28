@@ -30,6 +30,8 @@ for (const file of files) {
   const result = spawnSync(process.execPath, [join(TEST_DIR, file)], {
     stdio: "inherit",
     cwd: join(HERE, ".."),
+    timeout: 120000,
+    killSignal: "SIGKILL",
   });
   const elapsed = ((Date.now() - started) / 1000).toFixed(1);
   if (result.status !== 0) {

@@ -14,16 +14,17 @@
   "files": [
     "dist",
     "bin",
-    "sidecar",
     "scripts",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "npm run build:sidecar && npm run build:ts",
     "build:sidecar": "node scripts/build-sidecar.mjs",
+    "build:sidecar:all": "node scripts/build-sidecar.mjs --all",
     "build:ts": "tsc",
     "test": "node scripts/run-tests.mjs",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build:sidecar:all && npm run build:ts"
   },
   "keywords": [
     "vectordb",
